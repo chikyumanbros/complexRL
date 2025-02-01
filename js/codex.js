@@ -38,7 +38,31 @@ class CodexSystem {
                             );
                         }
                     },
-                    { id: 'quick', name: 'Quick Slash', cost: 20, desc: 'Fast attack with bonus hit chance'}
+                    { 
+                        id: 'quick', 
+                        name: 'Quick Slash', 
+                        cost: 20, 
+                        desc: 'Fast attack with bonus hit chance',
+                        getEffectText: (player) => {
+                            return `[ACC: +20%]`;
+                        },
+                        isFreeAction: true,
+                        requiresTarget: false,
+                        slot: '2',
+                        learned: false,
+                        effect: (game, player) => {
+                            player.nextAttackModifier = {
+                                name: 'Quick Slash',
+                                damageMod: 1,
+                                accuracyMod: 0.2,
+                                duration: 1
+                            };
+                            game.logger.add(
+                                `You prepare a quick strike! ${this.findSkillById('quick').getEffectText(player)} ⚡`, 
+                                "playerInfo"
+                            );
+                        }
+                    }
                 ]
             },
             movement: {
@@ -88,16 +112,60 @@ class CodexSystem {
                 key: 'd',
                 name: 'DEFENSE',
                 skills: [
-                    { id: 'block', name: 'Shield Block', cost: 20, desc: 'Passive defense boost' },
-                    { id: 'armor', name: 'Armor Master', cost: 35, desc: 'Improved defense from all sources' }
+                    { 
+                        id: 'block', 
+                        name: 'Shield Block', 
+                        cost: 20, 
+                        desc: 'Passive defense boost',
+                        getEffectText: (player) => {
+                            return `[DEF: +20%]`;
+                        },
+                        isFreeAction: true,
+                        requiresTarget: false,
+                        learned: false
+                    },
+                    { 
+                        id: 'armor', 
+                        name: 'Armor Master', 
+                        cost: 35, 
+                        desc: 'Improved defense from all sources',
+                        getEffectText: (player) => {
+                            return `[DEF: +35%]`;
+                        },
+                        isFreeAction: true,
+                        requiresTarget: false,
+                        learned: false
+                    }
                 ]
             },
             magic: {
                 key: 'a',
                 name: 'ARCANE',
                 skills: [
-                    { id: 'bolt', name: 'Magic Bolt', cost: 25, desc: 'Basic magic attack' },
-                    { id: 'shield', name: 'Arcane Shield', cost: 30, desc: 'Magic barrier' }
+                    { 
+                        id: 'bolt', 
+                        name: 'Magic Bolt', 
+                        cost: 25, 
+                        desc: 'Basic magic attack',
+                        getEffectText: (player) => {
+                            return `[MAG: ${Math.floor(player.stats.int * 0.5)} DMG]`;
+                        },
+                        isFreeAction: false,
+                        requiresTarget: true,
+                        learned: false
+                    },
+                    { 
+                        id: 'shield', 
+                        name: 'Arcane Shield', 
+                        cost: 30, 
+                        desc: 'Magic barrier',
+                        getEffectText: (player) => {
+                            return `[BARRIER: ${player.stats.int * 2}]`;
+                        },
+                        isFreeAction: true,
+                        requiresTarget: false,
+                        learned: false
+                    }
                 ]
             },
             mind: {  // mental から mind に変更
@@ -177,8 +245,8 @@ class CodexSystem {
         if (!skill) return false;
         
         // すでに習得済みのスキルかチェック
-        for (const [_, existingSkill] of player.skills) {
-            if (existingSkill.id === skillId) {
+        for (const [_, skillData] of player.skills) {
+            if (skillData.id === skillId) {
                 return "You already know this skill!";
             }
         }
@@ -241,8 +309,12 @@ class CodexSystem {
         // 選択されたカテゴリのスキル一覧を表示
         display += `Available ${currentCat.name} Skills:\n`;
         currentCat.skills.forEach(skill => {
-            display += `[${skill.id}] ${skill.name} (${skill.cost} CP)\n`;
-            display += `    ${skill.desc}\n`;
+            const canAfford = player.codex >= skill.cost;
+            const alreadyLearned = Array.from(player.skills.entries()).some(([_, skillData]) => skillData.id === skill.id);
+            const skillColor = alreadyLearned ? '#666' : (canAfford ? '#2ecc71' : '#e74c3c');
+            
+            display += `<span style="color: ${skillColor}">[${skill.id}] ${skill.name} (${skill.cost} CP)\n`;
+            display += `    ${skill.desc}</span>\n`;
         });
         display += '\n';
         
@@ -253,8 +325,12 @@ class CodexSystem {
             if (this.suggestions.length > 0) {
                 display += 'Suggestions:\n';
                 this.suggestions.forEach(skill => {
-                    display += `[${skill.id}] ${skill.name} (${skill.cost} CP)\n`;
-                    display += `    ${skill.desc}\n`;
+                    const canAfford = player.codex >= skill.cost;
+                    const alreadyLearned = Array.from(player.skills.entries()).some(([_, skillData]) => skillData.id === skill.id);
+                    const skillColor = alreadyLearned ? '#666' : (canAfford ? '#2ecc71' : '#e74c3c');
+                    
+                    display += `<span style="color: ${skillColor}">[${skill.id}] ${skill.name} (${skill.cost} CP)\n`;
+                    display += `    ${skill.desc}</span>\n`;
                 });
                 display += '\n';
             }

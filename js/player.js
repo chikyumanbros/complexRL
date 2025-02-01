@@ -41,12 +41,15 @@ class Player {
 
     // 新規: 必要経験値を計算するメソッド
     calculateRequiredXP(level) {
-        // 基本値は10
+        // 基本値を30に増加
         const baseXP = 10;
-        // 成長率は1.5（これにより必要経験値は指数関数的に増加）
-        const growthRate = 1.5;
-        // レベルが上がるごとに必要経験値が指数関数的に増加
-        return Math.floor(baseXP * Math.pow(growthRate, level - 1));
+        // 成長率を2.0に増加（より急な曲線に）
+        const growthRate = 1.75;
+        // 追加の補正値を導入（レベルが上がるごとに必要量が更に増加）
+        const additionalXP = Math.floor(Math.pow(level, 1.5) * 5);
+        
+        // 最終的な必要経験値を計算
+        return Math.floor(baseXP * Math.pow(growthRate, level - 1) + additionalXP);
     }
 
     // 新規: 経験値を追加しレベルアップの判定を行うメソッド

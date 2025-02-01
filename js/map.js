@@ -277,7 +277,9 @@ class MapGenerator {
 
             // 上の壁：元は room.y、通路側は room.y - 1
             for (let x = room.x + 1; x < room.x + room.width - 1; x++) {
-                if (room.y - 1 >= 0 && this.map[room.y - 1][x] === 'floor') {
+                if (room.y - 1 >= 0 && this.map[room.y - 1][x] === 'floor' &&
+                    // 角から1マス以上離れていることを確認
+                    x > room.x + 1 && x < room.x + room.width - 2) {
                     candidates.push({ x, y: room.y - 1 });
                 }
             }
@@ -285,14 +287,18 @@ class MapGenerator {
             // 下の壁：元は room.y + room.height - 1、通路側は room.y + room.height
             const yBottom = room.y + room.height - 1;
             for (let x = room.x + 1; x < room.x + room.width - 1; x++) {
-                if (yBottom + 1 < this.height && this.map[yBottom + 1][x] === 'floor') {
+                if (yBottom + 1 < this.height && this.map[yBottom + 1][x] === 'floor' &&
+                    // 角から1マス以上離れていることを確認
+                    x > room.x + 1 && x < room.x + room.width - 2) {
                     candidates.push({ x, y: yBottom + 1 });
                 }
             }
 
             // 左の壁：元は room.x、通路側は room.x - 1
             for (let y = room.y + 1; y < room.y + room.height - 1; y++) {
-                if (room.x - 1 >= 0 && this.map[y][room.x - 1] === 'floor') {
+                if (room.x - 1 >= 0 && this.map[y][room.x - 1] === 'floor' &&
+                    // 角から1マス以上離れていることを確認
+                    y > room.y + 1 && y < room.y + room.height - 2) {
                     candidates.push({ x: room.x - 1, y });
                 }
             }
@@ -300,7 +306,9 @@ class MapGenerator {
             // 右の壁：元は room.x + room.width - 1、通路側は room.x + room.width
             const xRight = room.x + room.width - 1;
             for (let y = room.y + 1; y < room.y + room.height - 1; y++) {
-                if (xRight + 1 < this.width && this.map[y][xRight + 1] === 'floor') {
+                if (xRight + 1 < this.width && this.map[y][xRight + 1] === 'floor' &&
+                    // 角から1マス以上離れていることを確認
+                    y > room.y + 1 && y < room.y + room.height - 2) {
                     candidates.push({ x: xRight + 1, y });
                 }
             }
