@@ -2,14 +2,16 @@ body {
     background: #111;
     color: #fff;
     margin: 10px;
-    font-family: monospace;
+    font-family: 'Press Start 2P';
+    font-size: 12px;
 }
 
 .container {
     display: flex;
     flex-direction: column;
+    
     gap: 10px;
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
 }
 
@@ -23,18 +25,17 @@ body {
     background: black;
     color: rgb(207, 207, 207);
     padding: 10px;
-    font-size: 18px;
-    line-height: 1;
-    font-family: monospace;
-    letter-spacing: 0.2em;
+    font-size: 14px;
+    font-family: 'Press Start 2P';
 }
 
 #status-panel {
     background: black;
     padding: 10px;
-    min-width: 483px;
-    width: 483px;
-    font-size: 14px;
+    min-width: 350px;
+    width: 350px;
+    font-size: 12px;
+    line-height: 1.5;
 }
 
 .bottom-panels {
@@ -56,14 +57,14 @@ body {
     height: 200px;
     overflow-y: auto;
     padding-right: 5px;
-    font-size: 0.9em !important;
+    font-size: 12px !important;
 }
 
 #message-log div {
     margin-bottom: 2px;
     word-wrap: break-word;
-    font-size: 14px !important;
-    font-family: monospace;
+    font-size: 12px !important;
+    font-family: 'Press Start 2P';
 }
 
 /* メッセージタイプごとの色分け */
@@ -112,8 +113,8 @@ body {
 #available-skills {
     flex-grow: 1;
     overflow-y: auto;
-    font-family: monospace;
-    line-height: 1.4;
+    font-family: 'Press Start 2P';
+    font-size: 12px;
     color: #aaa;
     scrollbar-width: thin;
     scrollbar-color: #666 #333;
@@ -121,6 +122,13 @@ body {
 
 .stat {
     margin: 5px 0;
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.stat::before {
+    content: attr(data-label);
 }
 
 .codex {
@@ -189,14 +197,14 @@ h3 {
 .title h1 {
     color: #6cf;
     margin: 0;
-    font-size: 18px;
+    font-size: 10px;
     letter-spacing: 4px;
     text-transform: uppercase;
 }
 
 .version {
     color: #666;
-    font-size: 12px;
+    font-size: 10px;
     margin-top: 5px;
 }
 
@@ -213,8 +221,8 @@ h3 {
 
 #hp-text {
     white-space: pre;
-    width: 120px;
-    margin-left: 5px;
+    width: 100px;
+    margin-left: 2px;
 }
 
 #hp-text.healthy { color: #2ecc71; }

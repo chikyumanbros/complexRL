@@ -1,7 +1,7 @@
 const GAME_CONSTANTS = {
     TILES: {
         FLOOR: ['.', '^', '~'],
-        WALL: ['#', '█', '▒', '▓', '░'],
+        WALL: ['#', '|', '=', '+', '*'],
     },
     STAIRS: {
         CHAR: '>',
@@ -31,14 +31,14 @@ const GAME_CONSTANTS = {
     
     DIMENSIONS: {
         WIDTH: 60,
-        HEIGHT: 30
+        HEIGHT: 40
     },
     
     ROOM: {
         MIN_SIZE: 6,
-        MAX_SIZE: 12,
+        MAX_SIZE: 15,
         MIN_COUNT: 8,
-        MAX_COUNT: 10,
+        MAX_COUNT: 15,
         PADDING: 2
     },
 
