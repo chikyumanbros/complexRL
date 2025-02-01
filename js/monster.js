@@ -9,8 +9,13 @@ class Monster {
         this.level = template.level;
         this.exp = template.exp;
         
-        // ステータスをコピー
-        this.stats = { ...template.stats };
+        // ステータスをコピーして変動を加える
+        this.stats = {};
+        for (const [stat, value] of Object.entries(template.stats)) {
+            // 基本値の±10%の範囲でランダムに変動
+            const variation = Math.floor(value * 0.2 * (Math.random() - 0.5));
+            this.stats[stat] = Math.max(1, value + variation);
+        }
         
         // codexPointsを計算（一時的な計算式）
         const basePoints = 1;
@@ -40,6 +45,10 @@ class Monster {
         // 逃走関連のパラメータを追加
         this.fleeThreshold = 0.3; // HPが30%以下になったら逃走を検討
         this.hasStartedFleeing = false;
+
+        // 回復関連のパラメータを追加
+        this.healingDice = GAME_CONSTANTS.FORMULAS.HEALING_DICE(this.stats);
+        this.healModifier = GAME_CONSTANTS.FORMULAS.HEAL_MODIFIER(this.stats);
     }
 
     takeDamage(amount) {
@@ -54,8 +63,37 @@ class Monster {
     }
 
     act(game) {
-         // 睡眠状態チェック
-         if (this.isSleeping) {
+        // 自然回復の処理
+        if (this.hp < this.maxHp) {
+            const successChance = 15 + Math.floor(this.stats.con / 5);
+            const successRoll = Math.floor(Math.random() * 100);
+            
+            if (successRoll <= successChance) {
+                let healAmount = 0;
+                for (let i = 0; i < this.healingDice.count; i++) {
+                    healAmount += Math.floor(Math.random() * this.healingDice.sides) + 1;
+                }
+                healAmount = Math.max(0, healAmount + this.healModifier);
+
+                if (healAmount > 0) {
+                    const oldHp = this.hp;
+                    this.hp = Math.min(this.maxHp, this.hp + healAmount);
+                    const actualHeal = this.hp - oldHp;
+                    if (actualHeal > 0) {
+                        game.logger.add(`${this.name}は傷を回復した！ (+${actualHeal}) 💚`, "monsterInfo");
+                        
+                        // HPが30%を超えたら逃走状態を解除
+                        if (this.hasStartedFleeing && (this.hp / this.maxHp) > this.fleeThreshold) {
+                            this.hasStartedFleeing = false;
+                            game.logger.add(`${this.name}は戦意を取り戻した！`, "monsterInfo");
+                        }
+                    }
+                }
+            }
+        }
+
+        // 睡眠状態チェック
+        if (this.isSleeping) {
             const dx = game.player.x - this.x;
             const dy = game.player.y - this.y;
             // プレイヤーが隣接している場合は起床
@@ -332,8 +370,15 @@ class Monster {
             if (this.canMoveTo(newX, newY, game.map) && !game.getMonsterAt(newX, newY)) {
                 this.x = newX;
                 this.y = newY;
-                break;
+                return true; // 逃走成功
             }
         }
+
+        // 逃げ場がない場合、プレイヤーが隣接していれば攻撃
+        if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
+            this.attackPlayer(game.player, game);
+            game.logger.add(`${this.name} was cornered and attacked!`, "monsterInfo");
+        }
+        return false; // 逃走失敗
     }
 } 

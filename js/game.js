@@ -14,7 +14,7 @@ class Game {
         this.turn = 0;
         this.monsters = [];
         this.totalMonstersSpawned = 0;
-        this.maxTotalMonsters = 30;
+        this.maxTotalMonsters = 100;
         this.rooms = [];  // 部屋の情報を保持
         this.isGameOver = false;
         this.floorLevel = 1;  // 階層を追加
@@ -187,7 +187,12 @@ class Game {
     }
 
     spawnInitialMonsters() {
-        const numMonsters = Math.floor(Math.random() * 6) + 10;  // 10-15体のモンスター
+        // 基本モンスター数を増やし、フロアレベルに応じて増加
+        const baseMonsters = 30;  // 基本値を30に
+        const floorBonus = Math.floor(this.floorLevel * 2);  // フロアごとに2体ずつ増加
+        const randomVariation = Math.floor(Math.random() * 6);  // 0-5のランダム変動
+        const numMonsters = baseMonsters + floorBonus + randomVariation;  // 最終的な生成数
+
         for (let i = 0; i < numMonsters; i++) {
             if (this.totalMonstersSpawned >= this.maxTotalMonsters) {
                 break;

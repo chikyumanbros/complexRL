@@ -44,7 +44,7 @@ const GAME_CONSTANTS = {
     },
 
     FORMULAS: {
-        MAX_HP: (stats, level) => Math.floor((stats.con * 2 + stats.str / 2) * (1 + level * 0.2)),
+        MAX_HP: (stats, level) => Math.floor((stats.con * 2 + stats.str / 5) * (1 + level * 0.2)),
         ATTACK: (stats) => ({
             base: Math.floor(stats.str - stats.dex / 2),
             diceCount: Math.floor(stats.dex / 5),
@@ -151,7 +151,7 @@ const GAME_CONSTANTS = {
             stats: {
                 str: 14,
                 dex: 8,
-                con: 14,
+                con: 12,
                 int: 4,
                 wis: 6
             },
@@ -163,7 +163,7 @@ const GAME_CONSTANTS = {
             stats: {
                 str: 12,
                 dex: 6,
-                con: 16,
+                con: 11,
                 int: 2,
                 wis: 4
             },
