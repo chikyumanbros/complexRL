@@ -158,7 +158,7 @@ class Monster {
                 const [moveX, moveY] = directions[Math.floor(Math.random() * directions.length)];
                 
                 if (!game.getMonsterAt(this.x + moveX, this.y + moveY)) {
-                    if (this.canMoveTo(this.x + moveX, this.y + moveY, game.map)) {
+                    if (this.canMoveTo(this.x + moveX, this.y + moveY, game)) {
                         this.x += moveX;
                         this.y += moveY;
                     }
@@ -167,10 +167,11 @@ class Monster {
         }
     }
 
-    canMoveTo(x, y, map) {
-        return x >= 0 && x < map[0].length &&
-               y >= 0 && y < map.length &&
-               map[y][x] === 'floor';
+    canMoveTo(x, y, game) {
+        return x >= 0 && x < game.map[0].length &&
+               y >= 0 && y < game.map.length &&
+               game.map[y][x] === 'floor' &&
+               game.tiles[y][x] !== GAME_CONSTANTS.TILES.DOOR.CLOSED;
     }
 
     attackPlayer(player, game) {
@@ -299,7 +300,7 @@ class Monster {
             const newX = this.x + move.x;
             const newY = this.y + move.y;
             
-            if (this.canMoveTo(newX, newY, game.map) && !game.getMonsterAt(newX, newY)) {
+            if (this.canMoveTo(newX, newY, game) && !game.getMonsterAt(newX, newY)) {
                 const newDistance = Math.abs(targetX - newX) + Math.abs(targetY - newY);
                 if (newDistance < bestDistance) {
                     bestDistance = newDistance;
@@ -365,7 +366,7 @@ class Monster {
             const newX = this.x + dir.x;
             const newY = this.y + dir.y;
             
-            if (this.canMoveTo(newX, newY, game.map) && !game.getMonsterAt(newX, newY)) {
+            if (this.canMoveTo(newX, newY, game) && !game.getMonsterAt(newX, newY)) {
                 this.x = newX;
                 this.y = newY;
                 return true; // 逃走成功

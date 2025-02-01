@@ -1,7 +1,11 @@
 const GAME_CONSTANTS = {
     TILES: {
         FLOOR: ['.', '^', '~'],
-        WALL: ['#' , '=', '+', '*'],
+        WALL: ['#' , '=', '$', '*'],
+        DOOR: {
+            OPEN: '/',
+            CLOSED: '+'
+        }
     },
     STAIRS: {
         CHAR: '>',
@@ -10,6 +14,7 @@ const GAME_CONSTANTS = {
     COLORS: {
         FLOOR: '#222',
         WALL: '#445',
+        DOOR: '#8B4513',  // 茶色
         HEAL: '#2ed573',
         MONSTER: {
             RAT: '#a33',

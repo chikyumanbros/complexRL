@@ -70,10 +70,72 @@ class InputHandler {
             this.handleLookMode(key);
             return;
         }
-
+        
         const player = this.game.player;
-
-        // ターゲット選択モード中
+        
+        // 追加: ドア操作 (oで開け、cで閉じる)
+        if (key === 'o' || key === 'c') {
+            const adjacentOffsets = [
+                {dx: -1, dy: -1}, {dx: 0, dy: -1}, {dx: 1, dy: -1},
+                {dx: -1, dy: 0},                {dx: 1, dy: 0},
+                {dx: -1, dy: 1},  {dx: 0, dy: 1},  {dx: 1, dy: 1}
+            ];
+            let operated = false;
+            for (let offset of adjacentOffsets) {
+                const x = player.x + offset.dx;
+                const y = player.y + offset.dy;
+                if (x < 0 || x >= this.game.width || y < 0 || y >= this.game.height)
+                    continue;
+                if (key === 'o' && this.game.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                    // ドアを開ける: タイルの見た目と色を更新（オープン時も茶色に）
+                    this.game.tiles[y][x] = GAME_CONSTANTS.TILES.DOOR.OPEN;
+                    this.game.colors[y][x] = GAME_CONSTANTS.COLORS.DOOR;
+                    this.game.logger.add("You opened the door.", "playerInfo");
+                    operated = true;
+                    break;
+                } else if (key === 'c' && this.game.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.OPEN) {
+                    // ドアを閉じる時、対象マスにモンスターがいるかチェック
+                    const monster = this.game.getMonsterAt(x, y);
+                    if (monster) {
+                        // 大ダメージを与える（モンスターのHPを上回るダメージ）
+                        const massiveDamage = monster.hp + 999;
+                        const result = monster.takeDamage(massiveDamage);
+                        this.game.logger.add(`The closing door crushes ${monster.name} for massive damage! ⚡`, "playerCrit");
+                        // flashTile メソッドでマスをフラッシュさせる
+                        if (this.game.renderer.flashTile) {
+                            this.game.renderer.flashTile(x, y, GAME_CONSTANTS.COLORS.DOOR);
+                        }
+                        // ドアは破壊され、床に変化する
+                        this.game.tiles[y][x] = GAME_CONSTANTS.TILES.FLOOR[
+                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+                        ];
+                        this.game.colors[y][x] = GAME_CONSTANTS.COLORS.FLOOR;
+                        // モンスターが倒されていればログ出力し、モンスターを削除
+                        if (result.killed) {
+                            this.game.logger.add(`The door has destroyed ${monster.name}! 💥`, "kill");
+                            this.game.removeMonster(monster);
+                        }
+                    } else {
+                        // 通常のドアを閉じる処理
+                        this.game.tiles[y][x] = GAME_CONSTANTS.TILES.DOOR.CLOSED;
+                        this.game.colors[y][x] = GAME_CONSTANTS.COLORS.DOOR;
+                        this.game.logger.add("You closed the door.", "playerInfo");
+                    }
+                    operated = true;
+                    break;
+                }
+            }
+            if (!operated) {
+                this.game.logger.add("No door to operate nearby.", "warning");
+            } else {
+                // ドアの開閉操作は1ターン消費する
+                this.game.processTurn();
+            }
+            this.game.renderer.render();
+            return;
+        }
+        
+        // ターゲット選択モード中の処理
         if (this.targetingMode) {
             this.handleTargetingMode(key);
             return;

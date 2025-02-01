@@ -14,6 +14,7 @@ class MapGenerator {
         this.colors = this.initializeColors();
         const rooms = this.generateRooms();
         this.connectRooms(rooms);
+        this.placeDoors(rooms);
         this.placeStairs(rooms);  // 階段の配置を追加
         return {
             map: this.map,
@@ -137,8 +138,16 @@ class MapGenerator {
     }
 
     createHorizontalCorridor(x1, x2, y) {
-        for (let x = Math.min(x1, x2); x <= Math.max(x1, x2); x++) {
+        const startX = Math.min(x1, x2);
+        const endX = Math.max(x1, x2);
+        
+        for (let x = startX; x <= endX; x++) {
             if (y < this.height && x < this.width) {
+                // 通路の上下が壁であることを確認
+                if (y > 0) this.ensureWall(x, y - 1);
+                if (y < this.height - 1) this.ensureWall(x, y + 1);
+                
+                // 通路を作成
                 this.map[y][x] = 'floor';
                 this.tiles[y][x] = GAME_CONSTANTS.TILES.FLOOR[
                     Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
@@ -149,8 +158,16 @@ class MapGenerator {
     }
 
     createVerticalCorridor(x, y1, y2) {
-        for (let y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) {
+        const startY = Math.min(y1, y2);
+        const endY = Math.max(y1, y2);
+        
+        for (let y = startY; y <= endY; y++) {
             if (y < this.height && x < this.width) {
+                // 通路の左右が壁であることを確認
+                if (x > 0) this.ensureWall(x - 1, y);
+                if (x < this.width - 1) this.ensureWall(x + 1, y);
+                
+                // 通路を作成
                 this.map[y][x] = 'floor';
                 this.tiles[y][x] = GAME_CONSTANTS.TILES.FLOOR[
                     Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
@@ -187,5 +204,122 @@ class MapGenerator {
         this.map[stairsPos.y][stairsPos.x] = 'floor';  // 基底マップを床に
         this.tiles[stairsPos.y][stairsPos.x] = GAME_CONSTANTS.STAIRS.CHAR;  // 見た目を階段に
         this.colors[stairsPos.y][stairsPos.x] = GAME_CONSTANTS.STAIRS.COLOR;  // 色を階段用に
+    }
+
+    placeDoors(rooms) {
+        rooms.forEach(room => {
+            const candidates = [];
+
+            // 上の壁：元は room.y、通路側は room.y - 1
+            for (let x = room.x + 1; x < room.x + room.width - 1; x++) {
+                if (room.y - 1 >= 0 && this.map[room.y - 1][x] === 'floor') {
+                    candidates.push({ x, y: room.y - 1 });
+                }
+            }
+
+            // 下の壁：元は room.y + room.height - 1、通路側は room.y + room.height
+            const yBottom = room.y + room.height - 1;
+            for (let x = room.x + 1; x < room.x + room.width - 1; x++) {
+                if (yBottom + 1 < this.height && this.map[yBottom + 1][x] === 'floor') {
+                    candidates.push({ x, y: yBottom + 1 });
+                }
+            }
+
+            // 左の壁：元は room.x、通路側は room.x - 1
+            for (let y = room.y + 1; y < room.y + room.height - 1; y++) {
+                if (room.x - 1 >= 0 && this.map[y][room.x - 1] === 'floor') {
+                    candidates.push({ x: room.x - 1, y });
+                }
+            }
+
+            // 右の壁：元は room.x + room.width - 1、通路側は room.x + room.width
+            const xRight = room.x + room.width - 1;
+            for (let y = room.y + 1; y < room.y + room.height - 1; y++) {
+                if (xRight + 1 < this.width && this.map[y][xRight + 1] === 'floor') {
+                    candidates.push({ x: xRight + 1, y });
+                }
+            }
+
+            // 候補があればランダムに１つ選び、ドアとして配置
+            if (candidates.length > 0) {
+                const doorPos = candidates[Math.floor(Math.random() * candidates.length)];
+                if (this.tiles[doorPos.y][doorPos.x] !== GAME_CONSTANTS.STAIRS.CHAR) {
+                    // ドアの周囲の壁タイルをカウント
+                    let wallCount = 0;
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            const checkY = doorPos.y + dy;
+                            const checkX = doorPos.x + dx;
+                            if (checkY >= 0 && checkY < this.height && 
+                                checkX >= 0 && checkX < this.width && 
+                                this.map[checkY][checkX] === 'wall') {
+                                wallCount++;
+                            }
+                        }
+                    }
+
+                    // 壁タイルが4個以上ある場合のみドアを配置
+                    if (wallCount >= 4) {
+                        this.tiles[doorPos.y][doorPos.x] = GAME_CONSTANTS.TILES.DOOR.CLOSED;
+                        this.colors[doorPos.y][doorPos.x] = GAME_CONSTANTS.COLORS.DOOR;
+                    } else {
+                        // 壁が少なすぎる場合は床にする
+                        this.tiles[doorPos.y][doorPos.x] = GAME_CONSTANTS.TILES.FLOOR[
+                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+                        ];
+                        this.colors[doorPos.y][doorPos.x] = GAME_CONSTANTS.COLORS.FLOOR;
+                    }
+                }
+            }
+        });
+    }
+
+    // 新しいヘルパーメソッドを追加
+    ensureWall(x, y) {
+        // 既に床になっている場所は壁に戻さない（部屋の中は保持）
+        if (this.isPartOfRoom(x, y)) return;
+        
+        this.map[y][x] = 'wall';
+        this.tiles[y][x] = GAME_CONSTANTS.TILES.WALL[
+            Math.floor(Math.random() * GAME_CONSTANTS.TILES.WALL.length)
+        ];
+        this.colors[y][x] = GAME_CONSTANTS.COLORS.WALL;
+    }
+
+    // 新しいヘルパーメソッドを追加
+    isPartOfRoom(x, y) {
+        // 周囲8マスを確認し、3マス以上が床の場合は部屋の一部とみなす
+        let floorCount = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                const checkY = y + dy;
+                const checkX = x + dx;
+                if (checkY >= 0 && checkY < this.height && 
+                    checkX >= 0 && checkX < this.width && 
+                    this.map[checkY][checkX] === 'floor') {
+                    floorCount++;
+                }
+            }
+        }
+        return floorCount >= 3;
+    }
+
+    // 改善した printMap メソッド
+    printMap() {
+        if (!this.tiles) {
+            console.log("マップが生成されていません");
+            return;
+        }
+        for (let y = 0; y < this.height; y++) {
+            let rowStr = "";
+            const styles = [];
+            for (let x = 0; x < this.width; x++) {
+                // %c を使ってタイル毎にスタイルを指定
+                rowStr += `%c${this.tiles[y][x]}`;
+                // 背景を黒にして見やすく（必要に応じて調整可能）
+                styles.push(`color: ${this.colors[y][x]}; background-color: black; font-weight: bold;`);
+            }
+            console.log(rowStr, ...styles);
+        }
     }
 } 

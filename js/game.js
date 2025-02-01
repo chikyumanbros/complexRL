@@ -307,8 +307,20 @@ class Game {
         // 始点と終点を除いた中間点をチェック
         for (let i = 1; i < points.length - 1; i++) {
             const {x, y} = points[i];
-            if (this.map[y][x] === 'wall') {
+            
+            // 壁または閉じたドアの場合、視界をブロック
+            if (this.map[y][x] === 'wall' || this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
                 return false;
+            }
+            
+            // 斜め視線の場合は隣接壁のチェック
+            if (i > 0) {
+                const prev = points[i - 1];
+                if (prev.x !== x && prev.y !== y) {
+                    if (this.map[prev.y][x] === 'wall' && this.map[y][prev.x] === 'wall') {
+                        return false;
+                    }
+                }
             }
         }
         return true;

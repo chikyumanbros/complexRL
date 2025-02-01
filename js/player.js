@@ -121,22 +121,21 @@ class Player {
     }
 
     canMoveTo(x, y, map) {
-        // マップの範囲内かチェック
+        // マップ範囲外のチェック
         if (x < 0 || x >= map[0].length || y < 0 || y >= map.length) {
             console.log('Out of bounds');
             return false;
         }
         
-        // 移動可能判定のデバッグ
+        // 追加: 閉じたドアの場合、移動不可
+        if (this.game.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+            console.log('Blocked by a closed door');
+            return false;
+        }
+        
         const isFloor = map[y][x] === 'floor';
         const isStairs = this.game.tiles[y][x] === GAME_CONSTANTS.STAIRS.CHAR;
-        console.log('Checking position:', x, y);
-        console.log('Is floor:', isFloor);
-        console.log('Is stairs:', isStairs);
-        console.log('Map value:', map[y][x]);
-        console.log('Tile value:', this.game.tiles[y][x]);
         
-        // 床または階段なら移動可能
         return isFloor || isStairs;
     }
 
