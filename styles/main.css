@@ -2,7 +2,7 @@ body {
     background: #111;
     color: #fff;
     margin: 10px;
-    font-family: 'Courier New', monospace;
+    font-family: monospace;
 }
 
 .container {
@@ -25,7 +25,7 @@ body {
     padding: 10px;
     font-size: 18px;
     line-height: 1;
-    font-family: 'Courier New', monospace;
+    font-family: monospace;
     letter-spacing: 0.2em;
 }
 
@@ -63,7 +63,7 @@ body {
     margin-bottom: 2px;
     word-wrap: break-word;
     font-size: 14px !important;
-    font-family: 'Courier New', monospace;
+    font-family: monospace;
 }
 
 /* メッセージタイプごとの色分け */
