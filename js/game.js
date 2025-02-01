@@ -18,8 +18,17 @@ class Game {
         this.rooms = [];  // 部屋の情報を保持
         this.isGameOver = false;
         this.floorLevel = 1;  // 階層を追加
+        this.explored = this.initializeExplored();  // 踏破情報を追加
         
         this.init();
+    }
+
+    initializeExplored() {
+        const explored = [];
+        for (let y = 0; y < this.height; y++) {
+            explored[y] = new Array(this.width).fill(false);
+        }
+        return explored;
     }
 
     reset() {
@@ -42,6 +51,8 @@ class Game {
         this.maxTotalMonsters = 30;
         this.rooms = [];
         this.isGameOver = false;
+        this.floorLevel = 1;  // 階層を追加
+        this.explored = this.initializeExplored();
 
         // DOMをクリア
         const gameElement = document.getElementById('game');
@@ -176,6 +187,7 @@ class Game {
             }
         }
 
+        this.updateExplored();  // ターン終了時に踏破情報を更新
         this.renderer.render();
     }
 
@@ -250,9 +262,6 @@ class Game {
         this.logger.add(`Survived Turns: ${this.turn}`, "important");
         this.logger.add("=================", "important");
         this.logger.add("Press Enter to restart", "info");
-
-        // ゲームオーバー画面の表示
-        this.renderer.renderGameOver(finalScore);
     }
 
     generateNewFloor() {
@@ -281,6 +290,89 @@ class Game {
 
     setInputMode(mode, options = {}) {
         this.inputHandler.setMode(mode, options);
+    }
+
+    // プレイヤーの視界内のタイルを踏破済みとしてマーク
+    updateExplored() {
+        const visibleTiles = this.getVisibleTiles();
+        visibleTiles.forEach(({x, y}) => {
+            this.explored[y][x] = true;
+        });
+    }
+
+    // 視線が通るかチェック
+    hasLineOfSight(x1, y1, x2, y2) {
+        const points = this.getLinePoints(x1, y1, x2, y2);
+        
+        // 始点と終点を除いた中間点をチェック
+        for (let i = 1; i < points.length - 1; i++) {
+            const {x, y} = points[i];
+            if (this.map[y][x] === 'wall') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // 2点間の線上の座標を取得（ブレゼンハムのアルゴリズム）
+    getLinePoints(x1, y1, x2, y2) {
+        const points = [];
+        const dx = Math.abs(x2 - x1);
+        const dy = Math.abs(y2 - y1);
+        const sx = x1 < x2 ? 1 : -1;
+        const sy = y1 < y2 ? 1 : -1;
+        let err = dx - dy;
+
+        let x = x1;
+        let y = y1;
+
+        while (true) {
+            points.push({x, y});
+            if (x === x2 && y === y2) break;
+            const e2 = 2 * err;
+            if (e2 > -dy) {
+                err -= dy;
+                x += sx;
+            }
+            if (e2 < dx) {
+                err += dx;
+                y += sy;
+            }
+        }
+        return points;
+    }
+
+    // プレイヤーから見える全タイルを取得
+    getVisibleTiles() {
+        const visibleTiles = new Set();
+        const px = this.player.x;
+        const py = this.player.y;
+        const currentRoom = this.renderer.getCurrentRoom(px, py);
+        
+        // 部屋の中にいる場合は部屋の明るさ、通路にいる場合は視界を制限
+        const visibility = currentRoom ? currentRoom.brightness : 3;  // 通路では視界3マスに制限
+
+        for (let y = Math.max(0, py - visibility); y <= Math.min(this.height - 1, py + visibility); y++) {
+            for (let x = Math.max(0, px - visibility); x <= Math.min(this.width - 1, px + visibility); x++) {
+                // ユークリッド距離を使用して円形の視界を作成
+                const dx = x - px;
+                const dy = y - py;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // 視界範囲を少し広めに取り、端を少しぼかす
+                if (distance <= visibility + 0.5 && this.hasLineOfSight(px, py, x, y)) {
+                    // 端の部分をランダムに欠けさせて自然な円形に
+                    if (distance <= visibility || Math.random() < 0.5) {
+                        visibleTiles.add(`${x},${y}`);
+                    }
+                }
+            }
+        }
+
+        return Array.from(visibleTiles).map(coord => {
+            const [x, y] = coord.split(',').map(Number);
+            return {x, y};
+        });
     }
 }
 

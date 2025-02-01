@@ -80,12 +80,10 @@ class Monster {
                     this.hp = Math.min(this.maxHp, this.hp + healAmount);
                     const actualHeal = this.hp - oldHp;
                     if (actualHeal > 0) {
-                        game.logger.add(`${this.name}は傷を回復した！ (+${actualHeal}) 💚`, "monsterInfo");
                         
-                        // HPが30%を超えたら逃走状態を解除
+                        // If HP exceeds 30%, cancel fleeing state
                         if (this.hasStartedFleeing && (this.hp / this.maxHp) > this.fleeThreshold) {
                             this.hasStartedFleeing = false;
-                            game.logger.add(`${this.name}は戦意を取り戻した！`, "monsterInfo");
                         }
                     }
                 }
