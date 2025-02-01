@@ -1,15 +1,16 @@
 const GAME_CONSTANTS = {
     TILES: {
         FLOOR: ['.', '^', '~'],
-        WALL: ['#', '|', '=', '+', '*'],
+        WALL: ['#' , '=', '+', '*'],
     },
     STAIRS: {
         CHAR: '>',
         COLOR: '#FFFF00',
     },
     COLORS: {
-        FLOOR: '#444',
-        WALL: '#335',
+        FLOOR: '#222',
+        WALL: '#445',
+        HEAL: '#2ed573',
         MONSTER: {
             RAT: '#a33',
             BAT: '#c66',
@@ -35,9 +36,9 @@ const GAME_CONSTANTS = {
     },
     
     ROOM: {
-        MIN_SIZE: 6,
+        MIN_SIZE: 5,
         MAX_SIZE: 15,
-        MIN_COUNT: 8,
+        MIN_COUNT: 10,
         MAX_COUNT: 15,
         PADDING: 2
     },

@@ -22,8 +22,8 @@ body {
 
 #game {
     white-space: pre;
-    background: black;
-    color: rgb(207, 207, 207);
+    background: #000;
+    color: #cfcfcf;
     padding: 10px;
     font-size: 14px;
     font-family: 'Press Start 2P';
@@ -35,6 +35,7 @@ body {
     width: 350px;
     font-size: 12px;
     line-height: 1.5;
+    color: rgb(207, 207, 207);
 }
 
 #skills-panel {
@@ -43,6 +44,7 @@ body {
     width: 350px;
     font-size: 12px;
     line-height: 1.5;
+    color: rgb(207, 207, 207);
 }
 
 .bottom-panels {
@@ -75,13 +77,14 @@ body {
 }
 
 /* メッセージタイプごとの色分け */
-#message-log .info { color: #fff; }
+#message-log .info { color: #b1b1b1; }
 #message-log .warning { color: #ff6b6b; }
 #message-log .playerInfo { color: #4ecdc4; }
 #message-log .playerHit { color: #45b7d1; }
 #message-log .playerCrit { color: #45d1ae; }
 #message-log .playerMiss { color: #888; }
 #message-log .playerEvade { color: #45d1ae; }
+#message-log .heal { color: #2ed573; }
 #message-log .monsterInfo { color: #ff9f43; }
 #message-log .monsterHit { color: #ff6b6b; }
 #message-log .monsterCrit { color: #ff4757; }
@@ -138,6 +141,10 @@ body {
     content: attr(data-label);
 }
 
+.stat .value {
+    color: #6cf;
+}
+
 .codex {
     color: #6cf;
     margin: 10px 0;
@@ -162,7 +169,7 @@ h3 {
 }
 
 #skills {
-    color: #fff;
+    color: rgb(207, 207, 207);
 }
 
 .codex-header {
@@ -185,7 +192,7 @@ h3 {
 }
 
 #game-mode {
-    color: #6cf;
+    color: #66ccff;
     font-weight: bold;
 }
 
@@ -202,7 +209,7 @@ h3 {
 }
 
 .title h1 {
-    color: #6cf;
+    color: #66ccff;
     margin: 0;
     font-size: 10px;
     letter-spacing: 4px;
@@ -256,7 +263,7 @@ h3 {
 }
 
 #hp-bar {
-    background: #f44;
+    background: #ff4444;
 }
 
 #available-skills::-webkit-scrollbar {
