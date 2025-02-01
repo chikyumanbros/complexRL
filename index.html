@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>complexRL</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <div class="container">
+        <div class="title">
+            <h1>complexRL</h1>
+            <div class="version">v0.1.0</div>
+        </div>
+        <div class="game-container">
+            <div id="game"></div>
+            <div id="status-panel">
+                <h3>STATUS</h3>
+                <div id="status">
+                    Floor: <span id="floor-level">1</span><br>
+                    Level: <span id="level">1</span><br>
+                </div>
+                <div class="hp-bar">
+                    <div class="hp-numbers">
+                        HP: <span id="hp">20</span>/<span id="max-hp">20</span>
+                    </div>
+                    <span id="hp-text" class="bar"></span>
+                </div>
+                <div class="xp-bar">
+                    <div class="xp-numbers" style="display:inline-block; vertical-align: middle;">
+                        XP: <span id="xp">0/10</span>
+                    </div>
+                </div>
+                <div class="stat">STR: <span id="str">10</span></div>
+                <div class="stat">DEX: <span id="dex">10</span></div>
+                <div class="stat">CON: <span id="con">10</span></div>
+                <div class="stat">INT: <span id="int">10</span></div>
+                <div class="stat">WIS: <span id="wis">10</span></div>
+                <div class="stat">ATK: <span id="attack">10</span></div>
+                <div class="stat">DEF: <span id="defense">10</span></div>
+                <div class="codex">CODEX: <span id="codex">100</span></div>
+                <h3>CONTROLS</h3>
+                <div class="controls">
+                    <div>y k u</div>
+                    <div>h . l</div>
+                    <div>b j n</div>
+                    <div>stairs: ></div>
+                    <div>look: ;</div>
+                    <div>tab: switch mode</div>
+                </div>
+                <h3>SKILLS</h3>
+                <div id="skills">NO SKILLS</div>
+            </div>
+        </div>
+        <div class="bottom-panels">
+            <div id="log-panel">
+                <h3>LOG</h3>
+                <div id="message-log"></div>
+            </div>
+            <div id="codex-panel">
+                <div class="codex-header">
+                    <h3>CODEX MENU</h3>
+                    <div class="mode-indicator">
+                        <span id="game-mode">GAME MODE</span>
+                        <div class="hint">[TAB] to switch mode</div>
+                    </div>
+                </div>
+                <div id="available-skills"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/constants.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/monster.js"></script>
+    <script src="js/codex.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/logger.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
