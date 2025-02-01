@@ -8,11 +8,16 @@ class Monster {
         this.name = template.name;
         this.level = template.level;
         this.exp = template.exp;
-        this.codexPoints = template.codexPoints;
-
+        
         // ステータスをコピー
         this.stats = { ...template.stats };
-
+        
+        // codexPointsを計算（一時的な計算式）
+        const basePoints = 1;
+        const wisBonus = 1 + Math.max(0, (this.stats.wis - 10) * 0.125);
+        const levelBonus = 1 + ((this.level - 1) * 0.5);
+        this.codexPoints = Math.max(1, Math.floor(basePoints * wisBonus * levelBonus));
+        
         // 派生パラメータを計算
         this.maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(this.stats, this.level);
         this.hp = this.maxHp;
@@ -31,6 +36,10 @@ class Monster {
                 // 睡眠状態の初期化（知能が低いほど眠りやすい）
                 const sleepChance = GAME_CONSTANTS.FORMULAS.SLEEP_CHANCE(this.stats);
         this.isSleeping = Math.random() * 100 < sleepChance;
+        
+        // 逃走関連のパラメータを追加
+        this.fleeThreshold = 0.3; // HPが30%以下になったら逃走を検討
+        this.hasStartedFleeing = false;
     }
 
     takeDamage(amount) {
@@ -55,6 +64,16 @@ class Monster {
                 game.logger.add(`${this.name} wakes up!`, "monsterInfo");
             }
             return; // 睡眠中は行動しない
+        }
+
+        // 逃走判定を追加
+        if (this.shouldFlee()) {
+            if (!this.hasStartedFleeing) {
+                game.logger.add(`${this.name} has fled!`, "monsterInfo");
+                this.hasStartedFleeing = true;
+            }
+            this.flee(game);
+            return;
         }
 
         const dx = game.player.x - this.x;
@@ -276,5 +295,45 @@ class Monster {
             Math.floor(Math.random() * weightedTypes.length)
         ];
         return new Monster(selectedType, x, y);
+    }
+
+    // 逃走すべきか判断するメソッド
+    shouldFlee() {
+        return (this.hp / this.maxHp) <= this.fleeThreshold;
+    }
+
+    // 逃走行動を実行するメソッド
+    flee(game) {
+        const dx = game.player.x - this.x;
+        const dy = game.player.y - this.y;
+        
+        // プレイヤーの反対方向に移動
+        const moveDirections = [];
+        
+        // X方向の移動を決定
+        if (dx > 0) moveDirections.push({x: -1, y: 0});
+        else if (dx < 0) moveDirections.push({x: 1, y: 0});
+        
+        // Y方向の移動を決定
+        if (dy > 0) moveDirections.push({x: 0, y: -1});
+        else if (dy < 0) moveDirections.push({x: 0, y: 1});
+        
+        // 斜め方向の移動も追加
+        if (dx > 0 && dy > 0) moveDirections.push({x: -1, y: -1});
+        if (dx < 0 && dy > 0) moveDirections.push({x: 1, y: -1});
+        if (dx > 0 && dy < 0) moveDirections.push({x: -1, y: 1});
+        if (dx < 0 && dy < 0) moveDirections.push({x: 1, y: 1});
+
+        // ランダムに移動方向を選択して移動を試みる
+        for (const dir of moveDirections.sort(() => Math.random() - 0.5)) {
+            const newX = this.x + dir.x;
+            const newY = this.y + dir.y;
+            
+            if (this.canMoveTo(newX, newY, game.map) && !game.getMonsterAt(newX, newY)) {
+                this.x = newX;
+                this.y = newY;
+                break;
+            }
+        }
     }
 } 

@@ -43,139 +43,6 @@ const GAME_CONSTANTS = {
         PADDING: 2
     },
 
-    MONSTERS: {
-        RAT: {
-            char: 'r',
-            name: 'Rat',
-            stats: {
-                str: 8,
-                dex: 14,
-                con: 8,
-                int: 2,
-                wis: 8
-            },
-            level: 1,
-            codexPoints: 2
-        },
-        BAT: {
-            char: 'b',
-            name: 'Bat',
-            stats: {
-                str: 6,
-                dex: 16,
-                con: 6,
-                int: 3,
-                wis: 10
-            },
-            level: 2,
-            codexPoints: 3
-        },
-        SNAKE: {
-            char: 's',
-            name: 'Snake',
-            stats: {
-                str: 12,
-                dex: 12,
-                con: 10,
-                int: 4,
-                wis: 12
-            },
-            level: 3,
-            codexPoints: 4
-        },
-        GOBLIN: {
-            char: 'g',
-            name: 'Goblin',
-            stats: {
-                str: 10,
-                dex: 14,
-                con: 12,
-                int: 8,
-                wis: 6
-            },
-            level: 2,
-            codexPoints: 3
-        },
-        SPIDER: {
-            char: 'a',
-            name: 'Giant Spider',
-            stats: {
-                str: 8,
-                dex: 18,
-                con: 8,
-                int: 5,
-                wis: 14
-            },
-            level: 3,
-            codexPoints: 4
-        },
-        SKELETON: {
-            char: 'k',
-            name: 'Skeleton',
-            stats: {
-                str: 14,
-                dex: 8,
-                con: 14,
-                int: 4,
-                wis: 6
-            },
-            level: 4,
-            codexPoints: 5
-        },
-        ZOMBIE: {
-            char: 'z',
-            name: 'Zombie',
-            stats: {
-                str: 12,
-                dex: 6,
-                con: 16,
-                int: 2,
-                wis: 4
-            },
-            level: 4,
-            codexPoints: 5
-        },
-        GHOST: {
-            char: 'h',
-            name: 'Ghost',
-            stats: {
-                str: 4,
-                dex: 12,
-                con: 4,
-                int: 14,
-                wis: 16
-            },
-            level: 5,
-            codexPoints: 6
-        },
-        TROLL: {
-            char: 'T',
-            name: 'Troll',
-            stats: {
-                str: 18,
-                dex: 6,
-                con: 18,
-                int: 3,
-                wis: 8
-            },
-            level: 6,
-            codexPoints: 8
-        },
-        DRAGON_WHELP: {
-            char: 'D',
-            name: 'Dragon Whelp',
-            stats: {
-                str: 16,
-                dex: 14,
-                con: 16,
-                int: 12,
-                wis: 14
-            },
-            level: 7,
-            codexPoints: 10
-        }
-    },
-
     FORMULAS: {
         MAX_HP: (stats, level) => Math.floor((stats.con * 2 + stats.str / 2) * (1 + level * 0.2)),
         ATTACK: (stats) => ({
@@ -213,5 +80,130 @@ const GAME_CONSTANTS = {
             // intが低いほど眠りやすい。最大50%の確率で眠る
             return Math.min(50, Math.max(0, 50 - stats.int * 8));
         },
+    },
+
+    MONSTERS: {
+        RAT: {
+            char: 'r',
+            name: 'Rat',
+            stats: {
+                str: 8,
+                dex: 14,
+                con: 8,
+                int: 2,
+                wis: 8
+            },
+            level: 1,
+            codexPoints: 2
+        },
+        BAT: {
+            char: 'b',
+            name: 'Bat',
+            stats: {
+                str: 6,
+                dex: 16,
+                con: 6,
+                int: 3,
+                wis: 10
+            },
+            level: 2,
+            codexPoints: 3
+        },
+        SNAKE: {
+            char: 's',
+            name: 'Snake',
+            stats: {
+                str: 12,
+                dex: 12,
+                con: 7,
+                int: 4,
+                wis: 12
+            },
+            level: 3,
+        },
+        GOBLIN: {
+            char: 'g',
+            name: 'Goblin',
+            stats: {
+                str: 10,
+                dex: 14,
+                con: 9,
+                int: 8,
+                wis: 6
+            },
+            level: 2,
+        },
+        SPIDER: {
+            char: 'a',
+            name: 'Giant Spider',
+            stats: {
+                str: 8,
+                dex: 18,
+                con: 8,
+                int: 5,
+                wis: 14
+            },
+            level: 3,
+        },
+        SKELETON: {
+            char: 'k',
+            name: 'Skeleton',
+            stats: {
+                str: 14,
+                dex: 8,
+                con: 14,
+                int: 4,
+                wis: 6
+            },
+            level: 4,
+        },
+        ZOMBIE: {
+            char: 'z',
+            name: 'Zombie',
+            stats: {
+                str: 12,
+                dex: 6,
+                con: 16,
+                int: 2,
+                wis: 4
+            },
+            level: 4,
+        },
+        GHOST: {
+            char: 'h',
+            name: 'Ghost',
+            stats: {
+                str: 4,
+                dex: 12,
+                con: 4,
+                int: 14,
+                wis: 16
+            },
+            level: 5,
+        },
+        TROLL: {
+            char: 'T',
+            name: 'Troll',
+            stats: {
+                str: 18,
+                dex: 6,
+                con: 18,
+                int: 3,
+                wis: 8
+            },
+            level: 6,
+        },
+        DRAGON_WHELP: {
+            char: 'D',
+            name: 'Dragon Whelp',
+            stats: {
+                str: 16,
+                dex: 14,
+                con: 16,
+                int: 12,
+                wis: 14
+            },
+            level: 7,
+        }
     }
 }; 
