@@ -1,20 +1,20 @@
 * {
-    font-family: 'Courier New', monospace, sans-serif !important;
+    font-family: monospace !important;
 }
 
 body, div, p, span, button, input, select, textarea {
-    font-family: 'Courier New', monospace, sans-serif !important;
+    font-family: monospace !important;
 }
 
 #game, #message-log, #stats, #codex-panel, 
 .codex-entry, .codex-title, .codex-content,
 #game-container, #controls {
-    font-family: 'Courier New', monospace, sans-serif !important;
+    font-family: monospace !important;
 }
 
 /* ダイアログやポップアップ用 */
 .dialog, .popup, .menu-item, .message {
-    font-family: 'Courier New', monospace, sans-serif !important;
+    font-family: monospace !important;
 }
 
 body {
@@ -37,7 +37,7 @@ body {
 }
 
 #game {
-    font-family: 'Courier New', monospace, sans-serif;
+    font-family: monospace;
     white-space: pre;
     background: black;
     color: rgb(207, 207, 207);
@@ -70,7 +70,7 @@ body {
 }
 
 #message-log {
-    font-family: 'Courier New', monospace, sans-serif;
+    font-family: monospace;
     line-height: 1.3;
     height: 200px;
     overflow-y: auto;
@@ -125,7 +125,7 @@ body {
     padding: 10px;
     display: flex;
     flex-direction: column;
-    font-family: 'Courier New', monospace, sans-serif;
+    font-family: monospace;
 }
 
 #available-skills {
@@ -290,20 +290,20 @@ h3 {
 }
 
 .codex-entry {
-    font-family: 'Courier New', monospace, sans-serif;
+    font-family: monospace;
     margin-bottom: 10px;
     padding: 5px;
     border: 1px solid #333;
 }
 
 .codex-title {
-    font-family: 'Courier New', monospace, sans-serif;
+    font-family: monospace;
     color: #ffd700;
     margin-bottom: 5px;
 }
-
+    
 .codex-content {
-    font-family: 'Courier New', monospace, sans-serif;
+    font-family: monospace;
     color: #ccc;
     line-height: 1.4;
 }

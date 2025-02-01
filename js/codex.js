@@ -317,12 +317,12 @@ function createCodexEntry(title, content) {
     
     const titleElement = document.createElement('div');
     titleElement.className = 'codex-title';
-    titleElement.style.fontFamily = "'Courier New', monospace, sans-serif";
+    titleElement.style.fontFamily = "monospace";
     titleElement.textContent = title;
     
     const contentElement = document.createElement('div');
     contentElement.className = 'codex-content';
-    contentElement.style.fontFamily = "'Courier New', monospace, sans-serif";
+    contentElement.style.fontFamily = "monospace";
     contentElement.textContent = content;
     
     entry.appendChild(titleElement);
@@ -332,13 +332,13 @@ function createCodexEntry(title, content) {
 
 function createCodexMenu() {
     const menu = document.createElement('div');
-    menu.style.fontFamily = "'Courier New', monospace, sans-serif";
+    menu.style.fontFamily = "monospace";
     
     const title = document.createElement('div');
     title.textContent = "=== CODEX ===";
     title.style.color = "#ffd700";
     title.style.marginBottom = "10px";
-    title.style.fontFamily = "'Courier New', monospace, sans-serif";
+    title.style.fontFamily = "monospace";
     menu.appendChild(title);
     
     codexData.forEach((entry, index) => {
@@ -346,7 +346,7 @@ function createCodexMenu() {
         menuItem.textContent = `${index + 1}. ${entry.title}`;
         menuItem.style.cursor = 'pointer';
         menuItem.style.marginBottom = '5px';
-        menuItem.style.fontFamily = "'Courier New', monospace, sans-serif";
+        menuItem.style.fontFamily = "monospace";
         menuItem.addEventListener('click', () => showCodexEntry(index));
         menu.appendChild(menuItem);
     });

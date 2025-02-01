@@ -286,7 +286,7 @@ const game = new Game();
 function showMessage(text, color = '#fff') {
     const messageElement = document.createElement('div');
     messageElement.style.color = color;
-    messageElement.style.fontFamily = "'Courier New', monospace, sans-serif";
+    messageElement.style.fontFamily = "monospace";
     messageElement.textContent = text;
     messageLog.appendChild(messageElement);
     messageLog.scrollTop = messageLog.scrollHeight;
@@ -294,14 +294,14 @@ function showMessage(text, color = '#fff') {
 
 function updateStats() {
     const statsElement = document.getElementById('stats');
-    statsElement.style.fontFamily = "'Courier New', monospace, sans-serif";
+    statsElement.style.fontFamily = "monospace";
     statsElement.innerHTML = `HP: ${player.hp}/${player.maxHp} | Level: ${player.level} | XP: ${player.xp}/${player.nextLevelXp} | Gold: ${player.gold}`;
 }
 
 function showGameOver() {
     const gameOverElement = document.createElement('div');
     gameOverElement.style.color = 'red';
-    gameOverElement.style.fontFamily = "'Courier New', monospace, sans-serif";
+    gameOverElement.style.fontFamily = "monospace";
     gameOverElement.style.fontSize = '24px';
     gameOverElement.textContent = 'GAME OVER - Press Space to Restart';
     messageLog.appendChild(gameOverElement);
