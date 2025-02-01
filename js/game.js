@@ -18,6 +18,7 @@ class Game {
         this.rooms = [];  // 部屋の情報を保持
         this.isGameOver = false;
         this.floorLevel = 1;  // 階層を追加
+        this.dangerLevel = 'NORMAL';  // 危険度を追加
         this.explored = this.initializeExplored();  // 踏破情報を追加
         
         this.init();
@@ -52,6 +53,7 @@ class Game {
         this.rooms = [];
         this.isGameOver = false;
         this.floorLevel = 1;  // 階層を追加
+        this.dangerLevel = 'NORMAL';  // 危険度を追加
         this.explored = this.initializeExplored();
 
         // DOMをクリア
@@ -78,7 +80,7 @@ class Game {
         }
 
         // マップを生成し直す
-        const mapGenerator = new MapGenerator(this.width, this.height, this.floorLevel);
+        const mapGenerator = new MapGenerator(this.width, this.height, this.floorLevel, this);
         const mapData = mapGenerator.generate();
         this.map = mapData.map;
         this.tiles = mapData.tiles;
@@ -106,11 +108,27 @@ class Game {
     }
 
     init() {
-        // フロア生成時に現在の階層を渡す
+        // 危険度の抽選
+        const dangerRoll = Math.random() * 100;
+        if (dangerRoll < 10) {
+            this.dangerLevel = 'SAFE';
+        } else if (dangerRoll < 70) {
+            this.dangerLevel = 'NORMAL';  // NEUTRALからNORMALに修正
+        } else if (dangerRoll < 90) {
+            this.dangerLevel = 'DANGEROUS';
+        } else {
+            this.dangerLevel = 'DEADLY';
+        }
+
+        // デバッグ用のログを追加
+        console.log(`Initial floor ${this.floorLevel}, Danger Level: ${this.dangerLevel} (Roll: ${dangerRoll})`);
+
+        // フロア生成時にgameインスタンス（this）を渡す
         this.mapGenerator = new MapGenerator(
             GAME_CONSTANTS.DIMENSIONS.WIDTH,
             GAME_CONSTANTS.DIMENSIONS.HEIGHT,
-            this.floorLevel
+            this.floorLevel,
+            this  // gameインスタンスを渡す
         );
         const mapData = this.mapGenerator.generate();
         this.map = mapData.map;
@@ -199,12 +217,47 @@ class Game {
     }
 
     spawnInitialMonsters() {
-        // 基本モンスター数を増やし、フロアレベルに応じて増加
-        const baseMonsters = 30;  // 基本値を30に
+        // 基本モンスター数を設定
+        const baseMonsters = 30;  // 基本値
+        
+        // フロアレベルによるボーナス
         const floorBonus = Math.floor(this.floorLevel * 2);  // フロアごとに2体ずつ増加
+        
+        // 危険度による補正
+        let dangerModifier = 0;
+        switch (this.dangerLevel) {
+            case 'SAFE':
+                dangerModifier = -10;  // 安全: 基本値から10体減少
+                break;
+            case 'NORMAL':
+                dangerModifier = 0;    // 通常: 変化なし
+                break;
+            case 'DANGEROUS':
+                dangerModifier = 10;   // 危険: 基本値から10体増加
+                break;
+            case 'DEADLY':
+                dangerModifier = 20;   // 致命的: 基本値から20体増加
+                break;
+        }
+        
+        // ランダムな変動を追加
         const randomVariation = Math.floor(Math.random() * 6);  // 0-5のランダム変動
-        const numMonsters = baseMonsters + floorBonus + randomVariation;  // 最終的な生成数
+        
+        // 最終的な生成数を計算（最小値は5体を保証）
+        const numMonsters = Math.max(5, 
+            baseMonsters + floorBonus + dangerModifier + randomVariation
+        );
 
+        // デバッグ用のログを追加
+        console.log(`Spawning monsters:`, {
+            base: baseMonsters,
+            floorBonus,
+            dangerModifier,
+            randomVariation,
+            total: numMonsters
+        });
+
+        // モンスターの生成
         for (let i = 0; i < numMonsters; i++) {
             if (this.totalMonstersSpawned >= this.maxTotalMonsters) {
                 break;
@@ -230,8 +283,11 @@ class Game {
             }
 
             if (this.map[y][x] === 'floor' && !this.isOccupied(x, y)) {
-                // フロア階層を考慮してモンスターを生成
-                const monster = Monster.spawnRandomMonster(x, y, this.floorLevel);
+                // フロア階層と危険度を考慮してモンスターを生成
+                const dangerModifier = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel].levelModifier;
+                const adjustedFloorLevel = this.floorLevel + dangerModifier;
+                const monster = Monster.spawnRandomMonster(x, y, adjustedFloorLevel);
+                
                 this.monsters.push(monster);
                 this.totalMonstersSpawned++;
                 return true;
@@ -265,8 +321,28 @@ class Game {
     }
 
     generateNewFloor() {
-        // 新しいフロアの生成
-        const mapGenerator = new MapGenerator(this.width, this.height, this.floorLevel);
+        // 危険度の抽選
+        const dangerRoll = Math.random() * 100;
+        if (dangerRoll < 10) {
+            this.dangerLevel = 'SAFE';
+        } else if (dangerRoll < 70) {
+            this.dangerLevel = 'NORMAL';  // NEUTRALからNORMALに修正
+        } else if (dangerRoll < 90) {
+            this.dangerLevel = 'DANGEROUS';
+        } else {
+            this.dangerLevel = 'DEADLY';
+        }
+
+        // デバッグ用のログを追加
+        console.log(`New floor ${this.floorLevel}, Danger Level: ${this.dangerLevel} (Roll: ${dangerRoll})`);
+
+        // 新しいフロアの生成時もgameインスタンスを渡す
+        const mapGenerator = new MapGenerator(
+            this.width,
+            this.height,
+            this.floorLevel,
+            this  // gameインスタンスを渡す
+        );
         const mapData = mapGenerator.generate();
         
         this.map = mapData.map;
@@ -274,17 +350,13 @@ class Game {
         this.colors = mapData.colors;
         this.rooms = mapData.rooms;
         
-        // モンスターをクリア
         this.monsters = [];
         this.totalMonstersSpawned = 0;
+        this.explored = this.initializeExplored();
         
-        // プレイヤーを最初の部屋に配置
         this.placePlayerInRoom();
-        
-        // 新しいモンスターを生成
         this.spawnInitialMonsters();
         
-        // 画面を更新
         this.renderer.render();
     }
 

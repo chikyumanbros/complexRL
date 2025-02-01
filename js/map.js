@@ -1,8 +1,9 @@
 class MapGenerator {
-    constructor(width, height, floorLevel = 1) {
+    constructor(width, height, floorLevel = 1, game) {
         this.width = width;
         this.height = height;
         this.floorLevel = floorLevel;
+        this.game = game;
         this.map = null;
         this.tiles = null;  // タイルの文字を保存
         this.colors = null; // タイルの色を保存
@@ -50,13 +51,77 @@ class MapGenerator {
 
     initializeColors() {
         const colors = [];
+        
+        // 階層の下一桁を取得 (0-9)
+        const floorDigit = this.floorLevel % 10;
+        
+        // 危険度による色の変更
+        let baseWallColor = GAME_CONSTANTS.COLORS.WALL_VARIATIONS[floorDigit];
+        const dangerLevel = this.game.dangerLevel;
+        
+        // 危険度に応じて色を調整
+        switch (dangerLevel) {
+            case 'SAFE':
+                // より明るく、青みがかった色に
+                baseWallColor = this.adjustColor(baseWallColor, {b: 1, brightness: 1});
+                break;
+            case 'DANGEROUS':
+                // より暗く、赤みがかった色に
+                baseWallColor = this.adjustColor(baseWallColor, {r: 1, brightness: -1});
+                break;
+            case 'DEADLY':
+                // より暗く、紫がかった色に
+                baseWallColor = this.adjustColor(baseWallColor, {r: 1, b: 1, brightness: -2});
+                break;
+            // NORMALの場合は基本色をそのまま使用
+        }
+        
+        // わずかなランダムな色の変動を加える
+        const randomizeColor = (baseColor) => {
+            const variation = Math.floor(Math.random() * 3) - 1; // -1, 0, 1 のいずれか
+            const r = parseInt(baseColor[1], 16);
+            const g = parseInt(baseColor[2], 16);
+            const b = parseInt(baseColor[3], 16);
+            
+            const newR = Math.max(0, Math.min(15, r + variation)).toString(16);
+            const newG = Math.max(0, Math.min(15, g + variation)).toString(16);
+            const newB = Math.max(0, Math.min(15, b + variation)).toString(16);
+            
+            return `#${newR}${newG}${newB}`;
+        };
+
         for (let y = 0; y < this.height; y++) {
             colors[y] = [];
             for (let x = 0; x < this.width; x++) {
-                colors[y][x] = GAME_CONSTANTS.COLORS.WALL;
+                if (this.map[y][x] === 'wall') {
+                    colors[y][x] = randomizeColor(baseWallColor);
+                } else {
+                    colors[y][x] = GAME_CONSTANTS.COLORS.FLOOR;
+                }
             }
         }
         return colors;
+    }
+
+    // 色を調整するヘルパーメソッド
+    adjustColor(color, {r = 0, g = 0, b = 0, brightness = 0}) {
+        const components = {
+            r: parseInt(color[1], 16),
+            g: parseInt(color[2], 16),
+            b: parseInt(color[3], 16)
+        };
+        
+        // RGB成分の調整
+        if (r) components.r = Math.min(15, components.r + 1);
+        if (g) components.g = Math.min(15, components.g + 1);
+        if (b) components.b = Math.min(15, components.b + 1);
+        
+        // 明るさの全体的な調整
+        Object.keys(components).forEach(key => {
+            components[key] = Math.max(0, Math.min(15, components[key] + brightness));
+        });
+        
+        return `#${components.r.toString(16)}${components.g.toString(16)}${components.b.toString(16)}`;
     }
 
     generateRooms() {

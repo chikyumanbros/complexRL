@@ -236,10 +236,18 @@ class CodexSystem {
         display += '\n\n';
 
         const currentCat = this.categories[this.currentCategory];
-        display += `Selected: ${currentCat.name}\n`;
+        display += `Selected: ${currentCat.name}\n\n`;
+        
+        // 選択されたカテゴリのスキル一覧を表示
+        display += `Available ${currentCat.name} Skills:\n`;
+        currentCat.skills.forEach(skill => {
+            display += `[${skill.id}] ${skill.name} (${skill.cost} CP)\n`;
+            display += `    ${skill.desc}\n`;
+        });
+        display += '\n';
         
         if (this.inputMode === 'skill') {
-            display += `\nEnter skill name: ${this.inputBuffer}_\n\n`;
+            display += `Enter skill name: ${this.inputBuffer}_\n\n`;
 
             // サジェスションの表示
             if (this.suggestions.length > 0) {
@@ -248,11 +256,12 @@ class CodexSystem {
                     display += `[${skill.id}] ${skill.name} (${skill.cost} CP)\n`;
                     display += `    ${skill.desc}\n`;
                 });
+                display += '\n';
             }
         }
 
         // 現在のスキル一覧
-        display += '\nCurrent Skills:\n';
+        display += 'Current Skills:\n';
         if (player.skills.size === 0) {
             display += 'NO SKILLS\n';
         } else {

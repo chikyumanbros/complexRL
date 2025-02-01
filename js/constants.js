@@ -1,7 +1,7 @@
 const GAME_CONSTANTS = {
     TILES: {
         FLOOR: ['.', '^', '~'],
-        WALL: ['#' , '=', '$', '*'],
+        WALL: ['#','?', '=', '$', '*'],
         DOOR: {
             OPEN: '/',
             CLOSED: '+'
@@ -13,8 +13,20 @@ const GAME_CONSTANTS = {
     },
     COLORS: {
         FLOOR: '#222',
-        WALL: '#445',
-        DOOR: '#8B4513',  // 茶色
+        WALL_VARIATIONS: [
+            '#445',  // 基本の青灰色
+            '#544',  // 赤灰色
+            '#454',  // 緑灰色
+            '#455',  // 青緑灰色
+            '#554',  // 黄灰色
+            '#545',  // 紫灰色
+            '#556',  // 水色がかった灰色
+            '#655',  // オレンジがかった灰色
+            '#565',  // エメラルドがかった灰色
+            '#665',  // 金がかった灰色
+        ],
+        WALL: '#445',  // デフォルトの壁の色（後方互換性のため残す）
+        DOOR: '#8B4513',
         HEAL: '#2ed573',
         MONSTER: {
             RAT: '#a33',
@@ -210,5 +222,12 @@ const GAME_CONSTANTS = {
             },
             level: 7,
         }
+    },
+
+    DANGER_LEVELS: {
+        SAFE: { name: 'Serene', levelModifier: -1, color: '#2ecc71' },
+        NORMAL: { name: 'Neutral', levelModifier: 0, color: '#f1c40f' },
+        DANGEROUS: { name: 'Perilous', levelModifier: 1, color: '#e74c3c' },
+        DEADLY: { name: 'Fatal', levelModifier: 2, color: '#8e44ad' }
     }
 }; 

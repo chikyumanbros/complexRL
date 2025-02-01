@@ -146,7 +146,8 @@ class Renderer {
         // floor-level の更新
         const floorLevelElement = document.getElementById('floor-level');
         if (floorLevelElement) {
-            floorLevelElement.textContent = this.game.floorLevel;
+            const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.game.dangerLevel];
+            floorLevelElement.innerHTML = `${this.game.floorLevel} <span style="color: ${dangerInfo.color}">[${dangerInfo.name}]</span>`;
         }
         
         // HPの数値とバー表示の更新

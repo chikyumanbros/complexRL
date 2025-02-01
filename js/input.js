@@ -73,65 +73,70 @@ class InputHandler {
         
         const player = this.game.player;
         
-        // 追加: ドア操作 (oで開け、cで閉じる)
+        // ドア操作 (oで開け、cで閉じる)
         if (key === 'o' || key === 'c') {
-            const adjacentOffsets = [
-                {dx: -1, dy: -1}, {dx: 0, dy: -1}, {dx: 1, dy: -1},
-                {dx: -1, dy: 0},                {dx: 1, dy: 0},
-                {dx: -1, dy: 1},  {dx: 0, dy: 1},  {dx: 1, dy: 1}
-            ];
-            let operated = false;
-            for (let offset of adjacentOffsets) {
-                const x = player.x + offset.dx;
-                const y = player.y + offset.dy;
-                if (x < 0 || x >= this.game.width || y < 0 || y >= this.game.height)
-                    continue;
-                if (key === 'o' && this.game.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
-                    // ドアを開ける: タイルの見た目と色を更新（オープン時も茶色に）
-                    this.game.tiles[y][x] = GAME_CONSTANTS.TILES.DOOR.OPEN;
-                    this.game.colors[y][x] = GAME_CONSTANTS.COLORS.DOOR;
-                    this.game.logger.add("You opened the door.", "playerInfo");
-                    operated = true;
-                    break;
-                } else if (key === 'c' && this.game.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.OPEN) {
-                    // ドアを閉じる時、対象マスにモンスターがいるかチェック
-                    const monster = this.game.getMonsterAt(x, y);
-                    if (monster) {
-                        // 大ダメージを与える（モンスターのHPを上回るダメージ）
-                        const massiveDamage = monster.hp + 999;
-                        const result = monster.takeDamage(massiveDamage);
-                        this.game.logger.add(`The closing door crushes ${monster.name} for massive damage! ⚡`, "playerCrit");
-                        // flashTile メソッドでマスをフラッシュさせる
-                        if (this.game.renderer.flashTile) {
-                            this.game.renderer.flashTile(x, y, GAME_CONSTANTS.COLORS.DOOR);
-                        }
-                        // ドアは破壊され、床に変化する
-                        this.game.tiles[y][x] = GAME_CONSTANTS.TILES.FLOOR[
-                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
-                        ];
-                        this.game.colors[y][x] = GAME_CONSTANTS.COLORS.FLOOR;
-                        // モンスターが倒されていればログ出力し、モンスターを削除
-                        if (result.killed) {
-                            this.game.logger.add(`The door has destroyed ${monster.name}! 💥`, "kill");
-                            this.game.removeMonster(monster);
-                        }
-                    } else {
-                        // 通常のドアを閉じる処理
-                        this.game.tiles[y][x] = GAME_CONSTANTS.TILES.DOOR.CLOSED;
-                        this.game.colors[y][x] = GAME_CONSTANTS.COLORS.DOOR;
-                        this.game.logger.add("You closed the door.", "playerInfo");
-                    }
-                    operated = true;
-                    break;
-                }
-            }
-            if (!operated) {
+            const adjacentDoors = this.findAdjacentDoors();
+            
+            if (adjacentDoors.length === 0) {
                 this.game.logger.add("No door to operate nearby.", "warning");
-            } else {
-                // ドアの開閉操作は1ターン消費する
-                this.game.processTurn();
+                return;
             }
+            
+            if (adjacentDoors.length === 1) {
+                // ドアが1つの場合は直接操作
+                this.operateDoor(adjacentDoors[0], key);
+            } else {
+                // 複数のドアがある場合は方向選択モードに入る
+                this.game.logger.add("Choose direction to operate door. (Press direction key)", "info");
+                this.mode = 'doorOperation';
+                this.pendingDoorOperation = key;
+                return;
+            }
+            
+            this.game.processTurn();
             this.game.renderer.render();
+            return;
+        }
+        
+        // ドア操作の方向選択モード
+        if (this.mode === 'doorOperation') {
+            let dx = 0;
+            let dy = 0;
+            
+            switch(key) {
+                case 'arrowleft':
+                case 'h': dx = -1; break;
+                case 'arrowright':
+                case 'l': dx = 1; break;
+                case 'arrowup':
+                case 'k': dy = -1; break;
+                case 'arrowdown':
+                case 'j': dy = 1; break;
+                case 'y': dx = -1; dy = -1; break;
+                case 'u': dx = 1; dy = -1; break;
+                case 'b': dx = -1; dy = 1; break;
+                case 'n': dx = 1; dy = 1; break;
+                case 'escape':
+                    this.mode = 'normal';
+                    this.game.logger.add("Door operation cancelled.", "info");
+                    return;
+                default: return;
+            }
+
+            const x = this.game.player.x + dx;
+            const y = this.game.player.y + dy;
+            
+            const door = this.findAdjacentDoors().find(d => d.x === x && d.y === y);
+            if (door) {
+                this.operateDoor(door, this.pendingDoorOperation);
+                this.game.processTurn();
+                this.game.renderer.render();
+            } else {
+                this.game.logger.add("No door in that direction.", "warning");
+            }
+            
+            this.mode = 'normal';
+            this.pendingDoorOperation = null;
             return;
         }
         
@@ -491,6 +496,65 @@ class InputHandler {
         this.mode = mode;
         if (mode === 'statSelect') {
             this.statSelectCallback = options.callback;
+        }
+    }
+
+    // 新しいヘルパーメソッド
+    findAdjacentDoors() {
+        const player = this.game.player;
+        const doors = [];
+        
+        const adjacentOffsets = [
+            {dx: -1, dy: -1}, {dx: 0, dy: -1}, {dx: 1, dy: -1},
+            {dx: -1, dy: 0},                    {dx: 1, dy: 0},
+            {dx: -1, dy: 1},  {dx: 0, dy: 1},  {dx: 1, dy: 1}
+        ];
+
+        for (let offset of adjacentOffsets) {
+            const x = player.x + offset.dx;
+            const y = player.y + offset.dy;
+            
+            if (x < 0 || x >= this.game.width || y < 0 || y >= this.game.height)
+                continue;
+
+            const tile = this.game.tiles[y][x];
+            if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED || 
+                tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
+                doors.push({x, y, tile});
+            }
+        }
+        
+        return doors;
+    }
+
+    // ドア操作の実装を分離
+    operateDoor(door, operation) {
+        if (operation === 'o' && door.tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+            this.game.tiles[door.y][door.x] = GAME_CONSTANTS.TILES.DOOR.OPEN;
+            this.game.colors[door.y][door.x] = GAME_CONSTANTS.COLORS.DOOR;
+            this.game.logger.add("You opened the door.", "playerInfo");
+        } else if (operation === 'c' && door.tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
+            const monster = this.game.getMonsterAt(door.x, door.y);
+            if (monster) {
+                const massiveDamage = monster.hp + 999;
+                const result = monster.takeDamage(massiveDamage);
+                this.game.logger.add(`The closing door crushes ${monster.name} for massive damage! ⚡`, "playerCrit");
+                if (this.game.renderer.flashTile) {
+                    this.game.renderer.flashTile(door.x, door.y, GAME_CONSTANTS.COLORS.DOOR);
+                }
+                this.game.tiles[door.y][door.x] = GAME_CONSTANTS.TILES.FLOOR[
+                    Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+                ];
+                this.game.colors[door.y][door.x] = GAME_CONSTANTS.COLORS.FLOOR;
+                if (result.killed) {
+                    this.game.logger.add(`The door has destroyed ${monster.name}! 💥`, "kill");
+                    this.game.removeMonster(monster);
+                }
+            } else {
+                this.game.tiles[door.y][door.x] = GAME_CONSTANTS.TILES.DOOR.CLOSED;
+                this.game.colors[door.y][door.x] = GAME_CONSTANTS.COLORS.DOOR;
+                this.game.logger.add("You closed the door.", "playerInfo");
+            }
         }
     }
 } 
