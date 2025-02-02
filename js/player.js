@@ -26,7 +26,7 @@ class Player {
         this.evasion = GAME_CONSTANTS.FORMULAS.EVASION(this.stats);
 
         this.skills = new Map();  // スキルマップの初期化
-        this.codex = 0;
+        this.codex = 25;
         this.nextAttackModifier = null;  // 次の攻撃の修正値
         this.meditation = null;  // メディテーション状態を追加
         this.codexPoints = 0;  // codexポイントを初期化
@@ -170,7 +170,10 @@ class Player {
 
         if (this.hp <= 0) {
             this.hp = 0;
-            this.game.gameOver();  // ゲームオーバー処理を呼び出し
+            // レンダリングを先に行い、HPが0の状態を表示
+            this.game.renderer.render();
+            // その後でゲームオーバー処理
+            this.game.gameOver();
         }
 
         return { damage };
@@ -227,6 +230,11 @@ class Player {
             game.logger.add(`Critical ${attackType}! ${monster.name} takes ${result.damage} damage! ⚔️💥`, "playerCrit");
             game.logger.add(`You killed the ${monster.name}! 💀`, "kill");
             game.removeMonster(monster);
+            
+            // 近接キルのフレーバーテキストを更新
+            const currentRoom = game.getCurrentRoom();
+            const monsterCount = game.getMonstersInRoom(currentRoom).length;
+            game.logger.updateRoomInfo(currentRoom, monsterCount, false, true);  // meleeKillフラグを追加
             
             if (result.codexPoints > 0) {
                 this.codex += result.codexPoints;

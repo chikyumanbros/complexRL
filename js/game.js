@@ -9,7 +9,7 @@ class Game {
         this.codexSystem = new CodexSystem();
         this.renderer = new Renderer(this);
         this.inputHandler = new InputHandler(this);
-        this.logger = new Logger();
+        this.logger = new Logger(this);
         this.mode = GAME_CONSTANTS.MODES.GAME;
         this.turn = 0;
         this.monsters = [];
@@ -22,6 +22,9 @@ class Game {
         this.explored = this.initializeExplored();  // 踏破情報を追加
         
         this.init();
+
+        // 初期パネルの設定
+        this.logger.renderLookPanel();
     }
 
     initializeExplored() {
@@ -44,7 +47,7 @@ class Game {
         this.colors = [];
         this.player = new Player(0, 0, this);
         this.codexSystem = new CodexSystem();
-        this.logger = new Logger();
+        this.logger = new Logger(this);
         this.mode = GAME_CONSTANTS.MODES.GAME;
         this.turn = 0;
         this.monsters = [];
@@ -108,39 +111,30 @@ class Game {
     }
 
     init() {
-        // 危険度の抽選
-        const dangerRoll = Math.random() * 100;
-        if (dangerRoll < 10) {
-            this.dangerLevel = 'SAFE';
-        } else if (dangerRoll < 70) {
-            this.dangerLevel = 'NORMAL';  // NEUTRALからNORMALに修正
-        } else if (dangerRoll < 90) {
-            this.dangerLevel = 'DANGEROUS';
-        } else {
-            this.dangerLevel = 'DEADLY';
-        }
-
-        // デバッグ用のログを追加
-        console.log(`Initial floor ${this.floorLevel}, Danger Level: ${this.dangerLevel} (Roll: ${dangerRoll})`);
-
-        // フロア生成時にgameインスタンス（this）を渡す
-        this.mapGenerator = new MapGenerator(
-            GAME_CONSTANTS.DIMENSIONS.WIDTH,
-            GAME_CONSTANTS.DIMENSIONS.HEIGHT,
-            this.floorLevel,
-            this  // gameインスタンスを渡す
-        );
-        const mapData = this.mapGenerator.generate();
-        this.map = mapData.map;
-        this.tiles = mapData.tiles;
-        this.colors = mapData.colors;
-        this.rooms = mapData.rooms;  // 部屋の情報を保存
-
-        this.placePlayerInRoom();  // プレイヤーを部屋に配置
-        this.spawnInitialMonsters();
-        this.renderer.renderCodexMenu();
+        // マップ関連の初期化
+        this.map = [];
+        this.tiles = [];
+        this.colors = [];
+        this.rooms = [];
+        this.monsters = [];
+        this.explored = this.initializeExplored();
+        this.totalMonstersSpawned = 0;
+        this.turn = 0;
+        this.floorLevel = 1;
+        this.dangerLevel = 'NORMAL';
+        this.isGameOver = false;
+        
+        // マップ生成（プレイヤーの配置とモンスターの生成を含む）
+        this.generateNewFloor();
+        
+        // 情報の初期化と表示
+        const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
+        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);
+        this.updateRoomInfo();
+        
+        // 入力とレンダリングの設定
         this.renderer.render();
-        this.logger.add("Welcome to complexRL!", "important");
+        this.inputHandler.bindKeys();
     }
 
     placePlayerInRoom() {
@@ -206,6 +200,7 @@ class Game {
         }
 
         this.updateExplored();  // ターン終了時に踏破情報を更新
+        this.updateRoomInfo();  // 部屋の情報を更新
         this.renderer.render();
     }
 
@@ -213,6 +208,14 @@ class Game {
         this.mode = this.mode === GAME_CONSTANTS.MODES.GAME ? 
             GAME_CONSTANTS.MODES.CODEX : 
             GAME_CONSTANTS.MODES.GAME;
+        
+        // モードに応じて適切なパネルを表示
+        if (this.mode === GAME_CONSTANTS.MODES.GAME) {
+            this.logger.renderLookPanel();  // ゲームモードならlookパネル
+        } else {
+            this.renderer.renderCodexMenu(); // Codexモードならcodexメニュー
+        }
+        
         this.renderer.render();
     }
 
@@ -336,6 +339,9 @@ class Game {
         // デバッグ用のログを追加
         console.log(`New floor ${this.floorLevel}, Danger Level: ${this.dangerLevel} (Roll: ${dangerRoll})`);
 
+        // フロア情報をロガーに送る
+        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);
+
         // 新しいフロアの生成時もgameインスタンスを渡す
         const mapGenerator = new MapGenerator(
             this.width,
@@ -356,6 +362,8 @@ class Game {
         
         this.placePlayerInRoom();
         this.spawnInitialMonsters();
+        
+        this.updateRoomInfo();  // 部屋の情報を更新
         
         this.renderer.render();
     }
@@ -457,6 +465,68 @@ class Game {
             const [x, y] = coord.split(',').map(Number);
             return {x, y};
         });
+    }
+
+    updateRoomInfo() {
+        const px = this.player.x;
+        const py = this.player.y;
+        const currentRoom = this.rooms.find(room => 
+            px >= room.x && 
+            px < room.x + room.width && 
+            py >= room.y && 
+            py < room.y + room.height
+        );
+        
+        // モンスターカウントの範囲を設定
+        let monsterCount;
+        if (currentRoom) {
+            // 部屋内の場合は部屋全体のモンスターをカウント
+            monsterCount = this.monsters.filter(monster => 
+                monster.x >= currentRoom.x && 
+                monster.x < currentRoom.x + currentRoom.width && 
+                monster.y >= currentRoom.y && 
+                monster.y < currentRoom.y + currentRoom.height
+            ).length;
+        } else {
+            // 通路の場合は視界範囲内（2マス）のモンスターをカウント
+            monsterCount = this.monsters.filter(monster => 
+                Math.abs(monster.x - px) <= 2 && 
+                Math.abs(monster.y - py) <= 2
+            ).length;
+        }
+
+        this.logger.updateRoomInfo(currentRoom, monsterCount);
+    }
+
+    // プレイヤーが現在いる部屋を取得
+    getCurrentRoom() {
+        if (!this.map) return null;
+        
+        // プレイヤーの現在位置
+        const px = this.player.x;
+        const py = this.player.y;
+        
+        // プレイヤーが部屋にいるかチェック
+        for (const room of this.rooms) {
+            if (px >= room.x && px < room.x + room.width &&
+                py >= room.y && py < room.y + room.height) {
+                return room;
+            }
+        }
+        
+        return null; // 部屋にいない場合（通路にいる場合）
+    }
+
+    // 指定された部屋内のモンスターを取得
+    getMonstersInRoom(room) {
+        if (!room) return [];
+        
+        return this.monsters.filter(monster => 
+            monster.x >= room.x && 
+            monster.x < room.x + room.width &&
+            monster.y >= room.y && 
+            monster.y < room.y + room.height
+        );
     }
 }
 

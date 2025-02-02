@@ -376,7 +376,6 @@ class Monster {
         // 逃げ場がない場合、プレイヤーが隣接していれば攻撃
         if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
             this.attackPlayer(game.player, game);
-            game.logger.add(`${this.name} was cornered and attacked!`, "monsterInfo");
         }
         return false; // 逃走失敗
     }

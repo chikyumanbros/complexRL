@@ -35,6 +35,10 @@ class InputHandler {
         // タブキーのデフォルト動作を防ぐ
         if (key === 'tab') {
             event.preventDefault();
+            // lookモードが有効な場合は解除
+            if (this.lookMode) {
+                this.endLookMode();
+            }
             this.game.toggleMode();
             return;
         }
@@ -82,11 +86,20 @@ class InputHandler {
                 return;
             }
             
-            if (adjacentDoors.length === 1) {
-                // ドアが1つの場合は直接操作
-                this.operateDoor(adjacentDoors[0], key);
+            // 隣接するドアが1つ、または操作可能なドアが1つの場合は直接操作
+            const operableDoors = adjacentDoors.filter(door => 
+                (key === 'o' && door.tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) ||
+                (key === 'c' && door.tile === GAME_CONSTANTS.TILES.DOOR.OPEN)
+            );
+
+            if (operableDoors.length === 1) {
+                // 操作可能なドアが1つの場合は直接操作
+                this.operateDoor(operableDoors[0], key);
+            } else if (operableDoors.length === 0) {
+                this.game.logger.add(`No door to ${key === 'o' ? 'open' : 'close'} nearby.`, "warning");
+                return;
             } else {
-                // 複数のドアがある場合は方向選択モードに入る
+                // 複数の操作可能なドアがある場合のみ方向選択モードに入る
                 this.game.logger.add("Choose direction to operate door. (Press direction key)", "info");
                 this.mode = 'doorOperation';
                 this.pendingDoorOperation = key;
@@ -320,11 +333,13 @@ class InputHandler {
     }
 
     startLookMode() {
+        this.lookMode = true;  // lookModeフラグを設定
         this.targetingMode = 'look';
         this.targetX = this.game.player.x;
         this.targetY = this.game.player.y;
-        this.game.logger.add("Look mode - Use arrow keys to move cursor, ENTER to examine, ESC to cancel", "info");
+        this.game.logger.add("Look mode - Use arrow keys to move cursor, ESC to cancel", "info");
         this.game.renderer.highlightTarget(this.targetX, this.targetY);
+        this.examineTarget(); // 初期位置の情報を表示
     }
 
     handleLookMode(key) {
@@ -333,26 +348,19 @@ class InputHandler {
 
         switch (key) {
             case 'arrowleft':
-            case 'h':
-                dx = -1;
-                break;
+            case 'h': dx = -1; break;
             case 'arrowright':
-            case 'l':
-                dx = 1;
-                break;
+            case 'l': dx = 1; break;
             case 'arrowup':
-            case 'k':
-                dy = -1;
-                break;
+            case 'k': dy = -1; break;
             case 'arrowdown':
-            case 'j':
-                dy = 1;
-                break;
+            case 'j': dy = 1; break;
+            case 'y': dx = -1; dy = -1; break;
+            case 'u': dx = 1; dy = -1; break;
+            case 'b': dx = -1; dy = 1; break;
+            case 'n': dx = 1; dy = 1; break;
             case 'escape':
                 this.endLookMode();
-                return;
-            case 'enter':
-                this.examineTarget();
                 return;
         }
 
@@ -363,32 +371,59 @@ class InputHandler {
                 this.targetX = newX;
                 this.targetY = newY;
                 this.game.renderer.highlightTarget(this.targetX, this.targetY);
+                this.examineTarget();
             }
         }
     }
 
     examineTarget() {
         const monster = this.game.getMonsterAt(this.targetX, this.targetY);
+        let lookInfo = '';
+
         if (monster) {
             const healthPercent = Math.floor((monster.hp / monster.maxHp) * 100);
-            const messages = [
+            let status = [];
+            
+            // 基本情報
+            lookInfo = [
                 `${monster.name} (Level ${monster.level}):`,
-                `HP: ${monster.hp}/${monster.maxHp} (${healthPercent}%)`,
+                `HP: ${monster.hp}/${monster.maxHp} (${healthPercent}%)`
+            ];
+
+            // 状態異常の確認と表示
+            if (monster.hasStartedFleeing) {
+                status.push("Fleeing");
+            }
+            if (monster.isSleeping) {  // isSleeping を使用
+                status.push("Sleeping");
+            }
+
+            // ステータス情報の追加（存在する場合）
+            if (status.length > 0) {
+                lookInfo.push(`Status: ${status.join(", ")}`);
+            }
+
+            // 戦闘関連の情報
+            lookInfo.push(
                 `Attack Power: ${monster.attackPower.base}+${monster.attackPower.diceCount}d${monster.attackPower.diceSides}`,
                 `Accuracy: ${monster.accuracy}%`,
                 `Perception: ${monster.perception}`,
                 `Codex Points: ${monster.codexPoints}`
-            ];
-            messages.forEach(msg => this.game.logger.add(msg, "monsterInfo"));
+            );
+
+            lookInfo = lookInfo.join('\n');
         } else if (this.targetX === this.game.player.x && this.targetY === this.game.player.y) {
-            this.game.logger.add("You see yourself here.", "playerInfo");
+            lookInfo = "You see yourself here.";
         } else {
-            const tile = this.game.map[this.targetY][this.targetX];
-            this.game.logger.add(`You see ${tile === 'floor' ? 'a floor' : 'a wall'} here.`, "info");
+            const tile = this.game.tiles[this.targetY][this.targetX];
+            lookInfo = `You see ${tile === 'floor' ? 'a floor' : 'a wall'} here.`;
         }
+
+        this.game.logger.updateLookInfo(lookInfo);
     }
 
     endLookMode() {
+        this.lookMode = false;  // lookModeフラグを解除
         this.targetingMode = null;
         this.game.renderer.clearHighlight();
         this.game.logger.add("Exited look mode.", "info");
@@ -431,10 +466,8 @@ class InputHandler {
         const player = this.game.player;
         const targetPos = { x: this.targetX, y: this.targetY };
         
-        // ルックモードの場合は別処理
+        // ルックモードの場合は何もせずに終了（examineTargetは移動時に行われる）
         if (this.targetingMode === 'look') {
-            this.examineTarget();
-            this.endLookMode();
             return;
         }
         
@@ -549,6 +582,10 @@ class InputHandler {
                 if (result.killed) {
                     this.game.logger.add(`The door has destroyed ${monster.name}! 💥`, "kill");
                     this.game.removeMonster(monster);
+                    // ドアキルが発生したことをLoggerに通知
+                    const currentRoom = this.game.getCurrentRoom();
+                    const monsterCount = this.game.getMonstersInRoom(currentRoom).length;
+                    this.game.logger.updateRoomInfo(currentRoom, monsterCount, true);
                 }
             } else {
                 this.game.tiles[door.y][door.x] = GAME_CONSTANTS.TILES.DOOR.CLOSED;

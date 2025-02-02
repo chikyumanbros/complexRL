@@ -225,9 +225,29 @@ const GAME_CONSTANTS = {
     },
 
     DANGER_LEVELS: {
-        SAFE: { name: 'Serene', levelModifier: -1, color: '#2ecc71' },
-        NORMAL: { name: 'Neutral', levelModifier: 0, color: '#f1c40f' },
-        DANGEROUS: { name: 'Perilous', levelModifier: 1, color: '#e74c3c' },
-        DEADLY: { name: 'Fatal', levelModifier: 2, color: '#8e44ad' }
+        SAFE: { 
+            name: 'Serene', 
+            levelModifier: -1, 
+            color: '#2ecc71',
+            flavor: "A gentle breeze carries the scent of ancient stone. The air feels unusually peaceful, almost protective."
+        },
+        NORMAL: { 
+            name: 'Neutral', 
+            levelModifier: 0, 
+            color: '#f1c40f',
+            flavor: "The familiar musty scent of the dungeon fills the air. Distant echoes remind you to remain vigilant."
+        },
+        DANGEROUS: { 
+            name: 'Perilous', 
+            levelModifier: 1, 
+            color: '#e74c3c',
+            flavor: "The shadows seem to writhe with malicious intent. Every sound carries an undertone of danger."
+        },
+        DEADLY: { 
+            name: 'Fatal', 
+            levelModifier: 2, 
+            color: '#8e44ad',
+            flavor: "An oppressive darkness weighs heavily on your soul. The very air seems to pulse with deadly energy."
+        }
     }
 }; 

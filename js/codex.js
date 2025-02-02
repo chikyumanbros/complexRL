@@ -311,10 +311,12 @@ class CodexSystem {
         currentCat.skills.forEach(skill => {
             const canAfford = player.codex >= skill.cost;
             const alreadyLearned = Array.from(player.skills.entries()).some(([_, skillData]) => skillData.id === skill.id);
-            const skillColor = alreadyLearned ? '#666' : (canAfford ? '#2ecc71' : '#e74c3c');
             
-            display += `<span style="color: ${skillColor}">[${skill.id}] ${skill.name} (${skill.cost} CP)\n`;
-            display += `    ${skill.desc}</span>\n`;
+            if (!alreadyLearned) {  // 未習得のスキルのみ表示
+                const skillColor = canAfford ? '#2ecc71' : '#e74c3c';
+                display += `<span style="color: ${skillColor}">[${skill.id}] ${skill.name} (${skill.cost} CP)\n`;
+                display += `    ${skill.desc}</span>\n`;
+            }
         });
         display += '\n';
         
@@ -421,14 +423,43 @@ function createCodexMenu() {
     title.style.marginBottom = "10px";
     menu.appendChild(title);
     
-    codexData.forEach((entry, index) => {
-        const menuItem = document.createElement('div');
-        menuItem.textContent = `${index + 1}. ${entry.title}`;
-        menuItem.style.cursor = 'pointer';
-        menuItem.style.marginBottom = '5px';
-        menuItem.addEventListener('click', () => showCodexEntry(index));
-        menu.appendChild(menuItem);
-    });
+    // カテゴリごとにスキルを表示
+    for (const categoryKey in game.codexSystem.categories) {
+        const category = game.codexSystem.categories[categoryKey];
+        
+        // カテゴリヘッダーを作成
+        const categoryHeader = document.createElement('div');
+        categoryHeader.textContent = `== ${category.name} ==`;
+        categoryHeader.style.color = "#88ccff";
+        categoryHeader.style.marginTop = "10px";
+        categoryHeader.style.marginBottom = "5px";
+        menu.appendChild(categoryHeader);
+        
+        // カテゴリ内のスキルをフィルタリングして表示
+        category.skills
+            .filter(skill => !Array.from(game.player.skills.values()).includes(skill.id))
+            .forEach(skill => {
+                const menuItem = document.createElement('div');
+                const canAfford = game.player.codex >= skill.cost;
+                
+                menuItem.textContent = `${skill.name} (${skill.cost} CP)`;
+                menuItem.style.cursor = 'pointer';
+                menuItem.style.marginBottom = '5px';
+                menuItem.style.marginLeft = '10px';
+                menuItem.style.color = canAfford ? '#2ecc71' : '#e74c3c';
+                
+                // ツールチップとしてスキルの説明を追加
+                menuItem.title = skill.desc;
+                
+                menuItem.addEventListener('click', () => {
+                    game.codexSystem.currentCategory = categoryKey;
+                    game.codexSystem.inputMode = 'skill';
+                    game.codexSystem.updateInputBuffer(skill.id);
+                });
+                
+                menu.appendChild(menuItem);
+            });
+    }
     
     return menu;
 } 
