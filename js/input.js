@@ -416,7 +416,19 @@ class InputHandler {
             lookInfo = "You see yourself here.";
         } else {
             const tile = this.game.tiles[this.targetY][this.targetX];
-            lookInfo = `You see ${tile === 'floor' ? 'a floor' : 'a wall'} here.`;
+            if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                lookInfo = "You see a closed door here.";
+            } else if (tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
+                lookInfo = "You see an open door here.";
+            } else if (tile === GAME_CONSTANTS.STAIRS.CHAR) {
+                lookInfo = "You see stairs leading down here.";
+            } else if (GAME_CONSTANTS.TILES.FLOOR.includes(tile)) {
+                lookInfo = "You see a floor here.";
+            } else if (GAME_CONSTANTS.TILES.WALL.includes(tile)) {
+                lookInfo = "You see a wall here.";
+            } else {
+                lookInfo = `You see ${tile} here.`;
+            }
         }
 
         this.game.logger.updateLookInfo(lookInfo);
