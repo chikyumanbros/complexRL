@@ -220,126 +220,80 @@ class Game {
     }
 
     spawnInitialMonsters() {
-        // 基本モンスター数を設定
-        const baseMonsters = 30;  // 基本値
-        
-        // フロアレベルによるボーナス
-        const floorBonus = Math.floor(this.floorLevel * 2);  // フロアごとに2体ずつ増加
-        
-        // 危険度による補正
-        let dangerModifier = 0;
-        switch (this.dangerLevel) {
-            case 'SAFE':
-                dangerModifier = -10;  // 安全: 基本値から10体減少
-                break;
-            case 'NORMAL':
-                dangerModifier = 0;    // 通常: 変化なし
-                break;
-            case 'DANGEROUS':
-                dangerModifier = 10;   // 危険: 基本値から10体増加
-                break;
-            case 'DEADLY':
-                dangerModifier = 20;   // 致命的: 基本値から20体増加
-                break;
-        }
-        
-        // ランダムな変動を追加
-        const randomVariation = Math.floor(Math.random() * 6);  // 0-5のランダム変動
-        
-        // 最終的な生成数を計算（最小値は5体を保証）
-        const numMonsters = Math.max(5, 
-            baseMonsters + floorBonus + dangerModifier + randomVariation
-        );
+        const dangerData = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
+        const baseCount = Math.floor(3 + this.floorLevel * 0.5);
+        const monsterCount = Math.max(1, baseCount + dangerData.levelModifier);
 
-        // デバッグ用のログを追加
-        console.log(`Spawning monsters:`, {
-            base: baseMonsters,
-            floorBonus,
-            dangerModifier,
-            randomVariation,
-            total: numMonsters
-        });
+        for (let i = 0; i < monsterCount; i++) {
+            const validRooms = this.rooms.filter(room => {
+                // プレイヤーがいる部屋は除外
+                if (this.player.x >= room.x && this.player.x < room.x + room.width &&
+                    this.player.y >= room.y && this.player.y < room.y + room.height) {
+                    return false;
+                }
+                return true;
+            });
 
-        // モンスターの生成
-        for (let i = 0; i < numMonsters; i++) {
-            if (this.totalMonstersSpawned >= this.maxTotalMonsters) {
-                break;
-            }
-            this.spawnMonster();
-        }
-    }
+            if (validRooms.length === 0) continue;
 
-    spawnMonster() {
-        if (this.totalMonstersSpawned >= this.maxTotalMonsters) {
-            return false;
-        }
+            const room = validRooms[Math.floor(Math.random() * validRooms.length)];
+            let attempts = 50;
+            let monster = null;
 
-        let attempts = 50;
-        while (attempts > 0) {
-            const x = Math.floor(Math.random() * this.width);
-            const y = Math.floor(Math.random() * this.height);
-            
-            // プレイヤーの開始部屋にいないことを確認
-            if (this.playerStartRoom && this.isPositionInRoom(x, y, this.playerStartRoom)) {
-                attempts--;
-                continue;
-            }
+            while (attempts > 0 && !monster) {
+                const x = room.x + Math.floor(Math.random() * room.width);
+                const y = room.y + Math.floor(Math.random() * room.height);
 
-            if (this.map[y][x] === 'floor' && !this.isOccupied(x, y)) {
-                // フロア階層と危険度を考慮してモンスターを生成
-                const dangerModifier = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel].levelModifier;
-                const adjustedFloorLevel = this.floorLevel + dangerModifier;
-                const monster = Monster.spawnRandomMonster(x, y, adjustedFloorLevel);
-                
-                this.monsters.push(monster);
-                this.totalMonstersSpawned++;
+                // プレイヤーからの距離をチェック
+                const dx = x - this.player.x;
+                const dy = y - this.player.y;
+                const distanceToPlayer = Math.sqrt(dx * dx + dy * dy);
 
-                // 群れ生成の処理
-                const monsterTemplate = GAME_CONSTANTS.MONSTERS[monster.type];
-                if (monsterTemplate.pack && Math.random() < monsterTemplate.pack.chance) {
-                    const packSize = Math.floor(
-                        Math.random() * 
-                        (monsterTemplate.pack.max - monsterTemplate.pack.min + 1) + 
-                        monsterTemplate.pack.min
-                    );
+                // プレイヤーからの安全距離（SAFE_RADIUS）以上離れているか確認
+                if (distanceToPlayer >= GAME_CONSTANTS.ROOM.SAFE_RADIUS && 
+                    this.map[y][x] === 'floor' && 
+                    !this.getMonsterAt(x, y)) {
+                    
+                    monster = Monster.spawnRandomMonster(x, y, this.floorLevel);
+                    this.monsters.push(monster);
+                    this.totalMonstersSpawned++;
 
-                    // 周囲のマスに群れを生成
-                    for (let i = 0; i < packSize - 1; i++) {
-                        const positions = this.getAdjacentPositions(x, y, 3); // 3マス以内の範囲で生成
-                        for (const pos of positions) {
-                            if (this.totalMonstersSpawned >= this.maxTotalMonsters) break;
-                            if (this.map[pos.y][pos.x] === 'floor' && !this.isOccupied(pos.x, pos.y)) {
-                                const packMember = new Monster(monster.type, pos.x, pos.y);
-                                this.monsters.push(packMember);
-                                this.totalMonstersSpawned++;
-                                break;
+                    // パックスポーンの処理
+                    const template = GAME_CONSTANTS.MONSTERS[monster.type];
+                    if (template.pack && Math.random() < template.pack.chance) {
+                        const packSize = template.pack.min + 
+                            Math.floor(Math.random() * (template.pack.max - template.pack.min + 1));
+                        
+                        // パックメンバーのスポーン
+                        for (let j = 0; j < packSize - 1; j++) {
+                            let packAttempts = 10;
+                            while (packAttempts > 0) {
+                                const packX = x + Math.floor(Math.random() * 3) - 1;
+                                const packY = y + Math.floor(Math.random() * 3) - 1;
+                                
+                                // パックメンバーもプレイヤーから安全距離を保つ
+                                const packDx = packX - this.player.x;
+                                const packDy = packY - this.player.y;
+                                const packDistance = Math.sqrt(packDx * packDx + packDy * packDy);
+                                
+                                if (packDistance >= GAME_CONSTANTS.ROOM.SAFE_RADIUS && 
+                                    this.isValidPosition(packX, packY) && 
+                                    this.map[packY][packX] === 'floor' && 
+                                    !this.getMonsterAt(packX, packY)) {
+                                    
+                                    const packMember = Monster.spawnRandomMonster(packX, packY, this.floorLevel);
+                                    this.monsters.push(packMember);
+                                    this.totalMonstersSpawned++;
+                                    break;
+                                }
+                                packAttempts--;
                             }
                         }
                     }
                 }
-                return true;
-            }
-            attempts--;
-        }
-        return false;
-    }
-
-    // 指定された位置から指定範囲内の有効な位置をランダムに取得
-    getAdjacentPositions(centerX, centerY, radius) {
-        const positions = [];
-        for (let y = centerY - radius; y <= centerY + radius; y++) {
-            for (let x = centerX - radius; x <= centerX + radius; x++) {
-                if (y >= 0 && y < this.height && x >= 0 && x < this.width) {
-                    // 中心からの距離を計算
-                    const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
-                    if (distance <= radius) {
-                        positions.push({x, y});
-                    }
-                }
+                attempts--;
             }
         }
-        // ランダムに並び替え
-        return positions.sort(() => Math.random() - 0.5);
     }
 
     gameOver() {
@@ -569,6 +523,11 @@ class Game {
             monster.y >= room.y && 
             monster.y < room.y + room.height
         );
+    }
+
+    // 新規: 座標の有効性をチェックするメソッド
+    isValidPosition(x, y) {
+        return x >= 0 && x < this.width && y >= 0 && y < this.height;
     }
 }
 

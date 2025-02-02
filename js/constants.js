@@ -57,7 +57,8 @@ const GAME_CONSTANTS = {
         MAX_SIZE: 15,
         MIN_COUNT: 10,
         MAX_COUNT: 15,
-        PADDING: 2
+        PADDING: 2,
+        SAFE_RADIUS: 3
     },
 
     FORMULAS: {

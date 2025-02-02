@@ -266,6 +266,9 @@ class Player {
         }
 
         this.nextAttackModifier = null;
+
+        // 戦闘位置を記録
+        game.lastCombatLocation = { x: monster.x, y: monster.y };
     }
 
     getHealthStatus(currentHp, maxHp) {

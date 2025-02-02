@@ -94,10 +94,25 @@ class Monster {
         if (this.isSleeping) {
             const dx = game.player.x - this.x;
             const dy = game.player.y - this.y;
-            // プレイヤーが隣接している場合は起床
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            let wakeupChance = 0;
+            
+            // プレイヤーが隣接している場合は高確率で起床
             if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
+                wakeupChance = 80 + this.perception * 2;
+            } 
+            // 近くで戦闘が行われた場合
+            else if (game.lastCombatLocation && distance <= this.perception) {
+                const combatDx = game.lastCombatLocation.x - this.x;
+                const combatDy = game.lastCombatLocation.y - this.y;
+                const combatDistance = Math.sqrt(combatDx * combatDx + combatDy * combatDy);
+                wakeupChance = Math.max(0, (this.perception - combatDistance) * 15);
+            }
+            
+            if (wakeupChance > 0 && Math.random() * 100 < wakeupChance) {
                 this.isSleeping = false;
-                game.logger.add(`${this.name} wakes up!`, "monsterInfo");
+                game.logger.add(`${this.name} wakes up! 👁️`, "monsterInfo");
             }
             return; // 睡眠中は行動しない
         }
@@ -117,10 +132,15 @@ class Monster {
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         // プレイヤーが視界内にいるか、近距離で音が聞こえる場合
+        // 閉じた扉越しの場合は音の伝達距離を半減
+        const soundRange = Math.min(3, this.perception / 2);
+        const hasDoorBetween = this.hasClosedDoorBetween(game, game.player.x, game.player.y);
+        const effectiveSoundRange = hasDoorBetween ? soundRange / 2 : soundRange;
+
         if ((distance <= this.perception && this.hasLineOfSight(game)) || 
-            (distance <= Math.min(3, this.perception / 2))) {  // 近距離なら壁越しでも気付く
+            (distance <= effectiveSoundRange)) {
             if (!this.hasSpottedPlayer) {
-                const spotType = distance <= Math.min(3, this.perception / 2) ? "hears" : "spots";
+                const spotType = distance <= effectiveSoundRange ? "hears" : "spots";
                 game.logger.add(`${this.name} ${spotType} you!`, "monsterInfo");
                 this.hasSpottedPlayer = true;
             }
@@ -237,8 +257,10 @@ class Monster {
         // プレイヤーの位置を除く全ての点をチェック
         for (let i = 0; i < points.length - 1; i++) {
             const point = points[i];
-            if (game.map[point.y][point.x] !== 'floor') {
-                return false;  // 壁があったら視線が通らない
+            // 壁または閉じた扉があれば視線が通らない
+            if (game.map[point.y][point.x] !== 'floor' || 
+                game.tiles[point.y][point.x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                return false;
             }
         }
         return true;
@@ -378,5 +400,18 @@ class Monster {
             this.attackPlayer(game.player, game);
         }
         return false; // 逃走失敗
+    }
+
+    // 新規: プレイヤーとの間に閉じた扉があるかチェックするメソッド
+    hasClosedDoorBetween(game, targetX, targetY) {
+        const points = this.getLinePoints(this.x, this.y, targetX, targetY);
+        
+        for (let i = 0; i < points.length - 1; i++) {
+            const point = points[i];
+            if (game.tiles[point.y][point.x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                return true;
+            }
+        }
+        return false;
     }
 } 
