@@ -63,9 +63,9 @@ class Monster {
     }
 
     act(game) {
-        // 自然回復の処理
+        // 自然回復の処理（flee状態でも回復するように修正）
         if (this.hp < this.maxHp) {
-            const successChance = 15 + Math.floor(this.stats.con / 5);
+            const successChance = 20 + Math.floor(this.stats.con / 5);
             const successRoll = Math.floor(Math.random() * 100);
             
             if (successRoll <= successChance) {
@@ -239,13 +239,12 @@ class Monster {
             name: this.name,
             level: this.level,
             hp: `${this.hp}/${this.maxHp}`,
-            mp: `${this.mp}/${this.maxMp}`,
             stats: this.stats,
             derived: {
                 attack: `${this.attackPower.base}+${this.attackPower.diceCount}d${this.attackPower.diceSides}`,
-                defense: this.defense,
-                accuracy: this.accuracy,
-                evasion: this.evasion
+                defense: `${this.defense.base}+${this.defense.diceCount}d${this.defense.diceSides}`,
+                accuracy: Math.floor(this.accuracy),
+                evasion: Math.floor(this.evasion)
             }
         };
     }
@@ -313,7 +312,11 @@ class Monster {
         const possibleMoves = [
             { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 },
             { x: 1, y: 1 }, { x: -1, y: 1 }, { x: 1, y: -1 }, { x: -1, y: -1 }
-        ];
+        ].filter(move => {
+            const newX = this.x + move.x;
+            const newY = this.y + move.y;
+            return !game.getMonsterAt(newX, newY);
+        });
 
         let bestMove = null;
         let bestDistance = Infinity;
@@ -322,7 +325,7 @@ class Monster {
             const newX = this.x + move.x;
             const newY = this.y + move.y;
             
-            if (this.canMoveTo(newX, newY, game) && !game.getMonsterAt(newX, newY)) {
+            if (this.canMoveTo(newX, newY, game)) {
                 const newDistance = Math.abs(targetX - newX) + Math.abs(targetY - newY);
                 if (newDistance < bestDistance) {
                     bestDistance = newDistance;
@@ -331,29 +334,46 @@ class Monster {
             }
         }
 
-        if (bestMove) {
-            this.x += bestMove.x;
-            this.y += bestMove.y;
+        // 移動できない場合はその場で待機（ログ追加）
+        if (!bestMove) {
+            game.logger.add(`${this.name}は動けない！`, "monsterInfo");
+            return;
         }
+
+        this.x += bestMove.x;
+        this.y += bestMove.y;
     }
 
-    static spawnRandomMonster(x, y, floorLevel) {
-        const monsterTypes = Object.keys(GAME_CONSTANTS.MONSTERS);
-        const weightedTypes = [];
-        
-        // フロア階層に応じて出現モンスターを制限
-        monsterTypes.forEach(type => {
-            const level = GAME_CONSTANTS.MONSTERS[type].level;
-            if (level <= Math.floor(floorLevel + 2)) {  // 現在のフロア+2までのレベルのモンスターを許可
-                const weight = Math.max(0, 10 - (level - floorLevel));  // レベル差が小さいほど出現率が高い
-                weightedTypes.push(...Array(weight).fill(type));
-            }
+    static spawnRandomMonster(x, y, floorLevel, dangerLevel = 'NORMAL') {
+        // 危険度に基づくレベル修正
+        const dangerData = GAME_CONSTANTS.DANGER_LEVELS[dangerLevel];
+        const effectiveLevel = Math.max(1, floorLevel + dangerData.levelModifier);
+
+        // 出現可能なモンスターの種類をフィルタリング
+        const availableTypes = Object.entries(GAME_CONSTANTS.MONSTERS)
+            .filter(([_, data]) => data.level <= effectiveLevel + 2)  // 効果レベル+2までのモンスターを許可
+            .map(([type, _]) => type);
+
+        // レベルに近いモンスターが出やすいように重み付け
+        const weightedTypes = availableTypes.map(type => {
+            const levelDiff = Math.abs(GAME_CONSTANTS.MONSTERS[type].level - effectiveLevel);
+            const weight = Math.max(0, 10 - levelDiff * 2);  // レベル差が大きいほど重みが小さく
+            return { type, weight };
         });
 
-        const selectedType = weightedTypes[
-            Math.floor(Math.random() * weightedTypes.length)
-        ];
-        return new Monster(selectedType, x, y);
+        // 重み付けに基づいてモンスターを選択
+        const totalWeight = weightedTypes.reduce((sum, { weight }) => sum + weight, 0);
+        let random = Math.random() * totalWeight;
+        
+        for (const { type, weight } of weightedTypes) {
+            random -= weight;
+            if (random <= 0) {
+                return new Monster(type, x, y);
+            }
+        }
+
+        // フォールバック（通常は実行されない）
+        return new Monster(availableTypes[0], x, y);
     }
 
     // 逃走すべきか判断するメソッド
@@ -365,6 +385,12 @@ class Monster {
     flee(game) {
         const dx = game.player.x - this.x;
         const dy = game.player.y - this.y;
+        
+        // プレイヤーが隣接している場合は攻撃
+        if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
+            this.attackPlayer(game.player, game);
+            return true;
+        }
         
         // プレイヤーの反対方向に移動
         const moveDirections = [];
@@ -395,10 +421,6 @@ class Monster {
             }
         }
 
-        // 逃げ場がない場合、プレイヤーが隣接していれば攻撃
-        if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
-            this.attackPlayer(game.player, game);
-        }
         return false; // 逃走失敗
     }
 

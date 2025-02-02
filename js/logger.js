@@ -119,7 +119,7 @@ class Logger {
         const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[dangerLevel];
         this.floorInfo = {
             flavor: dangerInfo.flavor,
-            danger: dangerLevel  // 危険度を保存
+            danger: Object.keys(GAME_CONSTANTS.DANGER_LEVELS).indexOf(dangerLevel)  // 数値インデックスに変換
         };
         if (this.game.mode === GAME_CONSTANTS.MODES.GAME) {
             this.renderLookPanel();
@@ -246,8 +246,12 @@ class Logger {
                 colorKey = 'caution';
             }
             // フレーバーテキストを.で分割して改行を追加
-            const flavorText = this.floorInfo.flavor.split('.').join('.\n').trim();
-            display += `<span style="color: ${this.messageColors.floorInfo[colorKey]}">${flavorText}</span>\n`;
+            const flavorLines = this.floorInfo.flavor.split('.');
+            const coloredLines = flavorLines
+                .filter(line => line.trim())  // 空行を除外
+                .map(line => `<span style="color: ${this.messageColors.floorInfo[colorKey]}">${line.trim()}.</span>`)
+                .join('\n');
+            display += `${coloredLines}\n`;
         }
         
         display += "\n=== SURROUNDINGS ===\n\n";

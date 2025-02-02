@@ -279,36 +279,45 @@ class MapGenerator {
             for (let x = room.x + 1; x < room.x + room.width - 1; x++) {
                 if (room.y - 1 >= 0 && this.map[room.y - 1][x] === 'floor' &&
                     // 角から1マス以上離れていることを確認
-                    x > room.x + 1 && x < room.x + room.width - 2) {
+                    x > room.x + 1 && x < room.x + room.width - 2 &&
+                    // 左右の2マスが壁であることを確認
+                    this.map[room.y - 1][x - 1] === 'wall' &&
+                    this.map[room.y - 1][x + 1] === 'wall') {
                     candidates.push({ x, y: room.y - 1 });
                 }
             }
 
-            // 下の壁：元は room.y + room.height - 1、通路側は room.y + room.height
+            // 下の壁
             const yBottom = room.y + room.height - 1;
             for (let x = room.x + 1; x < room.x + room.width - 1; x++) {
                 if (yBottom + 1 < this.height && this.map[yBottom + 1][x] === 'floor' &&
-                    // 角から1マス以上離れていることを確認
-                    x > room.x + 1 && x < room.x + room.width - 2) {
+                    x > room.x + 1 && x < room.x + room.width - 2 &&
+                    // 左右の2マスが壁であることを確認
+                    this.map[yBottom + 1][x - 1] === 'wall' &&
+                    this.map[yBottom + 1][x + 1] === 'wall') {
                     candidates.push({ x, y: yBottom + 1 });
                 }
             }
 
-            // 左の壁：元は room.x、通路側は room.x - 1
+            // 左の壁
             for (let y = room.y + 1; y < room.y + room.height - 1; y++) {
                 if (room.x - 1 >= 0 && this.map[y][room.x - 1] === 'floor' &&
-                    // 角から1マス以上離れていることを確認
-                    y > room.y + 1 && y < room.y + room.height - 2) {
+                    y > room.y + 1 && y < room.y + room.height - 2 &&
+                    // 上下の2マスが壁であることを確認
+                    this.map[y - 1][room.x - 1] === 'wall' &&
+                    this.map[y + 1][room.x - 1] === 'wall') {
                     candidates.push({ x: room.x - 1, y });
                 }
             }
 
-            // 右の壁：元は room.x + room.width - 1、通路側は room.x + room.width
+            // 右の壁
             const xRight = room.x + room.width - 1;
             for (let y = room.y + 1; y < room.y + room.height - 1; y++) {
                 if (xRight + 1 < this.width && this.map[y][xRight + 1] === 'floor' &&
-                    // 角から1マス以上離れていることを確認
-                    y > room.y + 1 && y < room.y + room.height - 2) {
+                    y > room.y + 1 && y < room.y + room.height - 2 &&
+                    // 上下の2マスが壁であることを確認
+                    this.map[y - 1][xRight + 1] === 'wall' &&
+                    this.map[y + 1][xRight + 1] === 'wall') {
                     candidates.push({ x: xRight + 1, y });
                 }
             }

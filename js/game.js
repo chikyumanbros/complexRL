@@ -221,22 +221,48 @@ class Game {
 
     spawnInitialMonsters() {
         const dangerData = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
-        const baseCount = Math.floor(3 + this.floorLevel * 0.5);
-        const monsterCount = Math.max(1, baseCount + dangerData.levelModifier);
+        
+        // 基本値を増加しつつ、既存の危険度修正値を活用
+        const baseCount = Math.floor(5 + this.floorLevel * 1.5);
+        const monsterCount = Math.max(3, baseCount + dangerData.levelModifier);
+
+        console.log(`Attempting to spawn ${monsterCount} monsters on floor ${this.floorLevel} (${this.dangerLevel})`);
+        console.log(`Base count: ${baseCount}, Danger modifier: ${dangerData.levelModifier}`);
 
         for (let i = 0; i < monsterCount; i++) {
             const validRooms = this.rooms.filter(room => {
                 // プレイヤーがいる部屋は除外
-                if (this.player.x >= room.x && this.player.x < room.x + room.width &&
-                    this.player.y >= room.y && this.player.y < room.y + room.height) {
-                    return false;
-                }
-                return true;
+                const isPlayerRoom = this.player.x >= room.x && 
+                                   this.player.x < room.x + room.width &&
+                                   this.player.y >= room.y && 
+                                   this.player.y < room.y + room.height;
+                return !isPlayerRoom;
             });
 
-            if (validRooms.length === 0) continue;
+            console.log(`Found ${validRooms.length} valid rooms for spawning`);
+            if (validRooms.length === 0) {
+                console.log('No valid rooms found for monster spawning');
+                continue;
+            }
 
-            const room = validRooms[Math.floor(Math.random() * validRooms.length)];
+            // 各部屋のモンスター数を制限するためのチェック
+            const roomCounts = new Map();
+            validRooms.forEach(room => {
+                const count = this.monsters.filter(m => 
+                    m.x >= room.x && m.x < room.x + room.width &&
+                    m.y >= room.y && m.y < room.y + room.height
+                ).length;
+                roomCounts.set(room, count);
+            });
+
+            // モンスターが少ない部屋を優先（部屋の面積に応じた制限）
+            const availableRooms = validRooms.filter(room => 
+                roomCounts.get(room) < Math.floor(room.width * room.height / 16)
+            );
+            
+            if (availableRooms.length === 0) continue;
+
+            const room = availableRooms[Math.floor(Math.random() * availableRooms.length)];
             let attempts = 50;
             let monster = null;
 
@@ -249,14 +275,16 @@ class Game {
                 const dy = y - this.player.y;
                 const distanceToPlayer = Math.sqrt(dx * dx + dy * dy);
 
-                // プレイヤーからの安全距離（SAFE_RADIUS）以上離れているか確認
-                if (distanceToPlayer >= GAME_CONSTANTS.ROOM.SAFE_RADIUS && 
-                    this.map[y][x] === 'floor' && 
-                    !this.getMonsterAt(x, y)) {
-                    
-                    monster = Monster.spawnRandomMonster(x, y, this.floorLevel);
+                const isValidSpawn = this.isValidPosition(x, y) && 
+                                   this.map[y][x] === 'floor' && 
+                                   !this.getMonsterAt(x, y) &&
+                                   distanceToPlayer >= GAME_CONSTANTS.ROOM.SAFE_RADIUS;
+
+                if (isValidSpawn) {
+                    monster = Monster.spawnRandomMonster(x, y, this.floorLevel, this.dangerLevel);
                     this.monsters.push(monster);
                     this.totalMonstersSpawned++;
+                    console.log(`Spawned ${monster.name} (Level ${monster.level}) at (${x}, ${y})`);
 
                     // パックスポーンの処理
                     const template = GAME_CONSTANTS.MONSTERS[monster.type];
@@ -264,10 +292,14 @@ class Game {
                         const packSize = template.pack.min + 
                             Math.floor(Math.random() * (template.pack.max - template.pack.min + 1));
                         
+                        console.log(`Attempting to spawn pack of size ${packSize} for ${monster.name}`);
+                        
                         // パックメンバーのスポーン
                         for (let j = 0; j < packSize - 1; j++) {
                             let packAttempts = 10;
-                            while (packAttempts > 0) {
+                            let packSpawned = false;
+                            
+                            while (packAttempts > 0 && !packSpawned) {
                                 const packX = x + Math.floor(Math.random() * 3) - 1;
                                 const packY = y + Math.floor(Math.random() * 3) - 1;
                                 
@@ -276,24 +308,49 @@ class Game {
                                 const packDy = packY - this.player.y;
                                 const packDistance = Math.sqrt(packDx * packDx + packDy * packDy);
                                 
-                                if (packDistance >= GAME_CONSTANTS.ROOM.SAFE_RADIUS && 
-                                    this.isValidPosition(packX, packY) && 
-                                    this.map[packY][packX] === 'floor' && 
-                                    !this.getMonsterAt(packX, packY)) {
-                                    
-                                    const packMember = Monster.spawnRandomMonster(packX, packY, this.floorLevel);
+                                const isValidPackSpawn = this.isValidPosition(packX, packY) && 
+                                                       this.map[packY][packX] === 'floor' && 
+                                                       !this.getMonsterAt(packX, packY) &&
+                                                       packDistance >= GAME_CONSTANTS.ROOM.SAFE_RADIUS;
+                                
+                                if (isValidPackSpawn) {
+                                    const packMember = new Monster(monster.type, packX, packY);
                                     this.monsters.push(packMember);
                                     this.totalMonstersSpawned++;
-                                    break;
+                                    packSpawned = true;
+                                    console.log(`Spawned pack member (Level ${packMember.level}) at (${packX}, ${packY})`);
                                 }
                                 packAttempts--;
+                            }
+                            
+                            if (!packSpawned) {
+                                console.log('Failed to spawn pack member');
                             }
                         }
                     }
                 }
                 attempts--;
             }
+
+            if (!monster) {
+                console.log(`Failed to spawn monster after ${50 - attempts} attempts`);
+            }
         }
+
+        // 最終的なモンスター数の確認
+        const monstersPerRoom = new Map();
+        this.rooms.forEach(room => {
+            const count = this.monsters.filter(m => 
+                m.x >= room.x && m.x < room.x + room.width &&
+                m.y >= room.y && m.y < room.y + room.height
+            ).length;
+            monstersPerRoom.set(room, count);
+        });
+
+        console.log(`Total monsters spawned: ${this.monsters.length}`);
+        console.log('Monsters per room:', Array.from(monstersPerRoom.entries()).map(([room, count]) => 
+            `Room at (${room.x},${room.y}): ${count} monsters`
+        ));
     }
 
     gameOver() {

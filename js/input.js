@@ -407,6 +407,7 @@ class InputHandler {
             lookInfo.push(
                 `Attack Power: ${monster.attackPower.base}+${monster.attackPower.diceCount}d${monster.attackPower.diceSides}`,
                 `Accuracy: ${monster.accuracy}%`,
+                `Evasion: ${monster.evasion}%`,
                 `Perception: ${monster.perception}`,
                 `Codex Points: ${monster.codexPoints}`
             );
