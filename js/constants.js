@@ -225,7 +225,7 @@ const GAME_CONSTANTS = {
             name: 'Ghost',
             stats: {
                 str: 4,
-                dex: 12,
+                dex: 18,
                 con: 4,
                 int: 14,
                 wis: 16
