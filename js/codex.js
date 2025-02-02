@@ -10,10 +10,9 @@ class CodexSystem {
                         name: 'Power Strike',
                         desc: 'Channel STR for power, sacrificing DEX accuracy (Base: DMG +50%, ACC -30%, scales with STR/DEX)',
                         cost: 25,
-                        cooldown: 4,
+                        cooldown: 8,
                         isFreeAction: true,  // フリーアクションとして設定
                         requiresTarget: false,
-                        slot: '1',  // デフォルトスロット
                         learned: false,  // スキルの習得状態を追加
                         getEffectText: (player) => {
                             // STR 10で1.5倍になるように調整
@@ -26,47 +25,53 @@ class CodexSystem {
                             const damageBonus = 1 + (0.5 * player.stats.str / 10);
                             const accuracyPenalty = -0.3 * (player.stats.dex / 10);
 
+                            // 既存の修正値があれば組み合わせる
+                            const currentMod = player.nextAttackModifier || { damageMod: 1, accuracyMod: 0 };
                             player.nextAttackModifier = {
-                                name: 'Power Strike',
-                                damageMod: damageBonus,
-                                accuracyMod: accuracyPenalty,
+                                name: 'Combined Strike',
+                                damageMod: currentMod.damageMod * damageBonus,
+                                accuracyMod: currentMod.accuracyMod + accuracyPenalty,
                                 duration: 1
                             };
+                            
                             game.logger.add(
                                 `You prepare a powerful strike! ${this.findSkillById('powerStrike').getEffectText(player)} 💪`, 
                                 "playerInfo"
                             );
-                            // 即時にレンダリングを更新
                             game.renderer.render();
                             game.renderer.showNextAttackModifierEffect(player.x, player.y);
+                            return true;
                         }
                     },
                     { 
                         id: 'quick', 
                         name: 'Quick Slash', 
                         cost: 20, 
-                        desc: 'Fast attack with bonus hit chance',
+                        cooldown: 12,
+                        desc: 'Swift attack that improves accuracy. (Base: ACC +20%, no DMG penalty)',
                         getEffectText: (player) => {
                             return `[ACC: +20%]`;
                         },
                         isFreeAction: true,
                         requiresTarget: false,
-                        slot: '2',
                         learned: false,
                         effect: (game, player) => {
+                            // 既存の修正値があれば組み合わせる
+                            const currentMod = player.nextAttackModifier || { damageMod: 1, accuracyMod: 0 };
                             player.nextAttackModifier = {
-                                name: 'Quick Slash',
-                                damageMod: 1,
-                                accuracyMod: 0.2,
+                                name: 'Combined Strike',
+                                damageMod: currentMod.damageMod,
+                                accuracyMod: currentMod.accuracyMod + 0.2,
                                 duration: 1
                             };
+                            
                             game.logger.add(
                                 `You prepare a quick strike! ${this.findSkillById('quick').getEffectText(player)} ⚡`, 
                                 "playerInfo"
                             );
-                            // 即時にレンダリングを更新
                             game.renderer.render();
                             game.renderer.showNextAttackModifierEffect(player.x, player.y);
+                            return true;
                         }
                     }
                 ]
@@ -80,7 +85,7 @@ class CodexSystem {
                         name: 'Jump',
                         desc: 'Jump over enemies. Range based on DEX/CON. (Base: 3, +1 per 3 DEX over CON)',
                         cost: 30,
-                        cooldown: 15,
+                        cooldown: 30,
                         isFreeAction: false,
                         requiresTarget: true,
                         maxRange: 3,
@@ -212,7 +217,7 @@ class CodexSystem {
                         name: 'Meditation',
                         desc: 'Meditate to recover HP. Move to cancel. (Heal: WIS/2 per turn, Max turns: WIS)',
                         cost: 30,
-                        cooldown: 50,
+                        cooldown: 100,
                         isFreeAction: false,
                         requiresTarget: false,
                         getEffectText: (player) => {
@@ -296,14 +301,14 @@ class CodexSystem {
             }
         }
 
-        if (player.codex < skill.cost) {
+        if (player.codexPoints < skill.cost) {
             return "Not enough CODEX points!";
         }
 
         // スキルを自動的に次の利用可能なスロットに割り当て
         const availableSlot = this.getNextAvailableSlot(player);
         if (availableSlot) {
-            player.codex -= skill.cost;
+            player.codexPoints -= skill.cost;
             player.assignSkill(skillId, availableSlot);
             this.inputMode = 'category';  // カテゴリ選択モードに戻る
             return true;
@@ -320,7 +325,7 @@ class CodexSystem {
         const currentCat = this.categories[this.currentCategory];
         const skill = currentCat.skills.find(s => s.id === this.pendingSkill);
         
-        player.codex -= skill.cost;
+        player.codexPoints -= skill.cost;
         player.removeSkill(slotNumber);
         player.assignSkill(this.pendingSkill, slotNumber);
         
@@ -354,7 +359,7 @@ class CodexSystem {
         // 選択されたカテゴリのスキル一覧を表示
         display += `Available ${currentCat.name} Skills:\n`;
         currentCat.skills.forEach(skill => {
-            const canAfford = player.codex >= skill.cost;
+            const canAfford = player.codexPoints >= skill.cost;
             const alreadyLearned = Array.from(player.skills.entries()).some(([_, skillData]) => skillData.id === skill.id);
             
             if (!alreadyLearned) {  // 未習得のスキルのみ表示
@@ -372,7 +377,7 @@ class CodexSystem {
             if (this.suggestions.length > 0) {
                 display += 'Suggestions:\n';
                 this.suggestions.forEach(skill => {
-                    const canAfford = player.codex >= skill.cost;
+                    const canAfford = player.codexPoints >= skill.cost;
                     const alreadyLearned = Array.from(player.skills.entries()).some(([_, skillData]) => skillData.id === skill.id);
                     const skillColor = alreadyLearned ? '#666' : (canAfford ? '#2ecc71' : '#e74c3c');
                     
@@ -485,7 +490,7 @@ function createCodexMenu() {
             .filter(skill => !Array.from(game.player.skills.values()).includes(skill.id))
             .forEach(skill => {
                 const menuItem = document.createElement('div');
-                const canAfford = game.player.codex >= skill.cost;
+                const canAfford = game.player.codexPoints >= skill.cost;
                 
                 menuItem.textContent = `${skill.name} (${skill.cost} CP)`;
                 menuItem.style.cursor = 'pointer';

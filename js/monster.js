@@ -336,7 +336,6 @@ class Monster {
 
         // 移動できない場合はその場で待機（ログ追加）
         if (!bestMove) {
-            game.logger.add(`${this.name}は動けない！`, "monsterInfo");
             return;
         }
 

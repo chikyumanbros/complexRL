@@ -332,7 +332,8 @@ class Player {
         // スキルの実行が成功した場合のみ、以降の処理を行う
         if (effectResult === true) {
             // クールダウンの設定
-            skillData.remainingCooldown = skill.cooldown + 1;
+            // フリーアクションの場合は+1しない
+            skillData.remainingCooldown = skill.isFreeAction ? skill.cooldown : skill.cooldown + 1;
 
             // スキルがフリーアクションでない場合はターンを消費
             if (!skill.isFreeAction) {

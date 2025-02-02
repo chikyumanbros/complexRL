@@ -274,7 +274,10 @@ class Renderer {
             // 攻撃修正がある場合は表示を変更
             if (player.nextAttackModifier) {
                 const modifiedDamage = Math.floor(player.attackPower.base * player.nextAttackModifier.damageMod);
-                attackText = `<span style="color: ${player.nextAttackModifier.damageMod > 1 ? '#2ecc71' : '#e74c3c'}">${modifiedDamage}+${player.attackPower.diceCount}d${player.attackPower.diceSides}</span>`;
+                // damageMod が 1.0 の場合は通常の色を使用
+                const damageColor = player.nextAttackModifier.damageMod > 1 ? '#2ecc71' : 
+                                   player.nextAttackModifier.damageMod < 1 ? '#e74c3c' : 'inherit';
+                attackText = `<span style="color: ${damageColor}">${modifiedDamage}+${player.attackPower.diceCount}d${player.attackPower.diceSides}</span>`;
             }
             attackElement.innerHTML = attackText;
         }
