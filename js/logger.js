@@ -245,12 +245,14 @@ class Logger {
             } else if (this.floorInfo.danger >= 1) {
                 colorKey = 'caution';
             }
+            
             // フレーバーテキストを.で分割して改行を追加
             const flavorLines = this.floorInfo.flavor.split('.');
             const coloredLines = flavorLines
                 .filter(line => line.trim())  // 空行を除外
-                .map(line => `<span style="color: ${this.messageColors.floorInfo[colorKey]}">${line.trim()}.</span>`)
-                .join('\n');
+                .map(line => `<span style="color: ${this.messageColors.floorInfo[colorKey]}">${line.trim()}.</span><br>`)  // <br>タグを追加
+                .join('');  // 改行は<br>タグで行うのでjoinの区切り文字は不要
+            
             display += `${coloredLines}\n`;
         }
         
