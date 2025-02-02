@@ -111,7 +111,12 @@ const GAME_CONSTANTS = {
                 wis: 8
             },
             level: 1,
-            codexPoints: 2
+            codexPoints: 2,
+            pack: {
+                chance: 0.7,    // 70%の確率で群れ生成
+                min: 5,         // 最小2匹
+                max: 15          // 最大4匹
+            }
         },
         BAT: {
             char: 'b',
@@ -124,7 +129,12 @@ const GAME_CONSTANTS = {
                 wis: 10
             },
             level: 2,
-            codexPoints: 3
+            codexPoints: 3,
+            pack: {
+                chance: 0.6,
+                min: 5,
+                max: 15
+            }
         },
         SNAKE: {
             char: 's',
@@ -137,6 +147,11 @@ const GAME_CONSTANTS = {
                 wis: 12
             },
             level: 3,
+            pack: {
+                chance: 0.4,
+                min: 2,
+                max: 7
+            }
         },
         GOBLIN: {
             char: 'g',
@@ -149,6 +164,11 @@ const GAME_CONSTANTS = {
                 wis: 6
             },
             level: 2,
+            pack: {
+                chance: 0.5,
+                min: 2,
+                max: 4
+            }
         },
         SPIDER: {
             char: 'a',
@@ -161,6 +181,11 @@ const GAME_CONSTANTS = {
                 wis: 14
             },
             level: 3,
+            pack: {
+                chance: 0.4,
+                min: 2,
+                max: 10
+            }
         },
         SKELETON: {
             char: 'k',
@@ -173,6 +198,11 @@ const GAME_CONSTANTS = {
                 wis: 6
             },
             level: 4,
+            pack: {
+                chance: 0.3,
+                min: 2,
+                max: 5
+            }
         },
         ZOMBIE: {
             char: 'z',
@@ -185,6 +215,11 @@ const GAME_CONSTANTS = {
                 wis: 4
             },
             level: 4,
+            pack: {
+                chance: 0.4,
+                min: 2,
+                max: 10
+            }
         },
         GHOST: {
             char: 'h',
@@ -197,6 +232,11 @@ const GAME_CONSTANTS = {
                 wis: 16
             },
             level: 5,
+            pack: {
+                chance: 0.2,
+                min: 2,
+                max: 5
+            }
         },
         TROLL: {
             char: 'T',
@@ -209,6 +249,11 @@ const GAME_CONSTANTS = {
                 wis: 8
             },
             level: 6,
+            pack: {
+                chance: 0.1,    // トロルは稀にしか群れを作らない
+                min: 2,
+                max: 3
+            }
         },
         DRAGON_WHELP: {
             char: 'D',
@@ -221,6 +266,11 @@ const GAME_CONSTANTS = {
                 wis: 14
             },
             level: 7,
+            pack: {
+                chance: 0.15,   // ドラゴンの子供も稀にペアで現れる
+                min: 2,
+                max: 2
+            }
         }
     },
 

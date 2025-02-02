@@ -24,18 +24,20 @@ class CodexSystem {
                         },
                         effect: (game, player) => {
                             const damageBonus = 1 + (0.5 * player.stats.str / 10);
-                            const accuracyPenalty = -0.3 * (player.stats.dex / 10);  // 負の値として設定
+                            const accuracyPenalty = -0.3 * (player.stats.dex / 10);
 
                             player.nextAttackModifier = {
                                 name: 'Power Strike',
                                 damageMod: damageBonus,
-                                accuracyMod: accuracyPenalty,  // 命中率の低下を追加
+                                accuracyMod: accuracyPenalty,
                                 duration: 1
                             };
                             game.logger.add(
                                 `You prepare a powerful strike! ${this.findSkillById('powerStrike').getEffectText(player)} 💪`, 
                                 "playerInfo"
                             );
+                            // 即時にレンダリングを更新
+                            game.renderer.render();
                         }
                     },
                     { 
@@ -61,6 +63,8 @@ class CodexSystem {
                                 `You prepare a quick strike! ${this.findSkillById('quick').getEffectText(player)} ⚡`, 
                                 "playerInfo"
                             );
+                            // 即時にレンダリングを更新
+                            game.renderer.render();
                         }
                     }
                 ]

@@ -184,8 +184,9 @@ class Logger {
                 monsterColor = this.messageColors.monsters.none;
             }
 
-            roomInfo = `<span style="color: ${brightnessColor}">${roomInfo}</span>\n` +
-                      (combatDesc ? `<span style="color: ${this.messageColors.monsters.many}">${combatDesc}</span>\n` : '') +
+            // 各説明文の後に改行を追加（<br>を使用）
+            roomInfo = `<span style="color: ${brightnessColor}">${roomInfo}</span><br>` +
+                      (combatDesc ? `<span style="color: ${this.messageColors.monsters.many}">${combatDesc}</span><br>` : '') +
                       `<span style="color: ${monsterColor}">${monsterDesc}</span>`;
 
             this.roomInfo = roomInfo;
@@ -244,7 +245,9 @@ class Logger {
             } else if (this.floorInfo.danger >= 1) {
                 colorKey = 'caution';
             }
-            display += `<span style="color: ${this.messageColors.floorInfo[colorKey]}">${this.floorInfo.flavor}</span>\n`;
+            // フレーバーテキストを.で分割して改行を追加
+            const flavorText = this.floorInfo.flavor.split('.').join('.\n').trim();
+            display += `<span style="color: ${this.messageColors.floorInfo[colorKey]}">${flavorText}</span>\n`;
         }
         
         display += "\n=== SURROUNDINGS ===\n\n";

@@ -29,7 +29,7 @@ class Player {
         this.codex = 25;
         this.nextAttackModifier = null;  // 次の攻撃の修正値
         this.meditation = null;  // メディテーション状態を追加
-        this.codexPoints = 0;  // codexポイントを初期化
+        this.codexPoints = 25;  // codexポイントを初期化
 
         // 治療関連のパラメータを定数ファイルから取得
         this.healingDice = GAME_CONSTANTS.FORMULAS.HEALING_DICE(this.stats);

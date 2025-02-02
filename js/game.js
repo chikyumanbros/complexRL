@@ -293,11 +293,53 @@ class Game {
                 
                 this.monsters.push(monster);
                 this.totalMonstersSpawned++;
+
+                // 群れ生成の処理
+                const monsterTemplate = GAME_CONSTANTS.MONSTERS[monster.type];
+                if (monsterTemplate.pack && Math.random() < monsterTemplate.pack.chance) {
+                    const packSize = Math.floor(
+                        Math.random() * 
+                        (monsterTemplate.pack.max - monsterTemplate.pack.min + 1) + 
+                        monsterTemplate.pack.min
+                    );
+
+                    // 周囲のマスに群れを生成
+                    for (let i = 0; i < packSize - 1; i++) {
+                        const positions = this.getAdjacentPositions(x, y, 3); // 3マス以内の範囲で生成
+                        for (const pos of positions) {
+                            if (this.totalMonstersSpawned >= this.maxTotalMonsters) break;
+                            if (this.map[pos.y][pos.x] === 'floor' && !this.isOccupied(pos.x, pos.y)) {
+                                const packMember = new Monster(monster.type, pos.x, pos.y);
+                                this.monsters.push(packMember);
+                                this.totalMonstersSpawned++;
+                                break;
+                            }
+                        }
+                    }
+                }
                 return true;
             }
             attempts--;
         }
         return false;
+    }
+
+    // 指定された位置から指定範囲内の有効な位置をランダムに取得
+    getAdjacentPositions(centerX, centerY, radius) {
+        const positions = [];
+        for (let y = centerY - radius; y <= centerY + radius; y++) {
+            for (let x = centerX - radius; x <= centerX + radius; x++) {
+                if (y >= 0 && y < this.height && x >= 0 && x < this.width) {
+                    // 中心からの距離を計算
+                    const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+                    if (distance <= radius) {
+                        positions.push({x, y});
+                    }
+                }
+            }
+        }
+        // ランダムに並び替え
+        return positions.sort(() => Math.random() - 0.5);
     }
 
     gameOver() {

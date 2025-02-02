@@ -211,11 +211,37 @@ class Renderer {
         // 攻撃力と防御力の詳細表示
         const attackElement = document.getElementById('attack');
         if (attackElement) {
-            attackElement.textContent = `${player.attackPower.base}+${player.attackPower.diceCount}d${player.attackPower.diceSides}`;
+            let attackText = `${player.attackPower.base}+${player.attackPower.diceCount}d${player.attackPower.diceSides}`;
+            
+            // 攻撃修正がある場合は表示を変更
+            if (player.nextAttackModifier) {
+                const modifiedDamage = Math.floor(player.attackPower.base * player.nextAttackModifier.damageMod);
+                attackText = `<span style="color: ${player.nextAttackModifier.damageMod > 1 ? '#2ecc71' : '#e74c3c'}">${modifiedDamage}+${player.attackPower.diceCount}d${player.attackPower.diceSides}</span>`;
+            }
+            attackElement.innerHTML = attackText;
         }
         const defenseElement = document.getElementById('defense');
         if (defenseElement) {
             defenseElement.textContent = `${player.defense.base}+${player.defense.diceCount}d${player.defense.diceSides}`;
+        }
+
+        // 命中率の表示を追加
+        const accuracyElement = document.getElementById('accuracy');
+        if (accuracyElement) {
+            let accText = `${player.accuracy}%`;
+            
+            // 命中修正がある場合は表示を変更
+            if (player.nextAttackModifier && player.nextAttackModifier.accuracyMod) {
+                const modifiedAcc = Math.floor(player.accuracy * (1 + player.nextAttackModifier.accuracyMod));
+                accText = `<span style="color: ${player.nextAttackModifier.accuracyMod > 0 ? '#2ecc71' : '#e74c3c'}">${modifiedAcc}%</span>`;
+            }
+            accuracyElement.innerHTML = accText;
+        }
+
+        // 回避率、知覚の表示を追加
+        const evasionElement = document.getElementById('evasion');
+        if (evasionElement) {
+            evasionElement.textContent = `${player.evasion}%`;
         }
         
         // スキル一覧の表示を更新（1-9のスロットのみ）
