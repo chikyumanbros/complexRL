@@ -8,11 +8,11 @@ class Player {
         this.xp = 0;                  // 経験値の初期化
         this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
         this.stats = {
-            str: 12,
-            dex: 12,
-            con: 12,
-            int: 12,
-            wis: 12
+            str: 10,
+            dex: 10,
+            con: 10,
+            int: 10,
+            wis: 10
         };
 
         // HPの計算
@@ -26,7 +26,7 @@ class Player {
         this.evasion = GAME_CONSTANTS.FORMULAS.EVASION(this.stats);
 
         this.skills = new Map();  // スキルマップの初期化
-        this.codex = 25;
+        this.codex = 30;
         this.nextAttackModifier = null;  // 次の攻撃の修正値
         this.meditation = null;  // メディテーション状態を追加
         this.codexPoints = 25;  // codexポイントを初期化
@@ -37,6 +37,8 @@ class Player {
 
         // 各種パラメータの計算
         this.updateDerivedStats();
+
+        this.lastPosition = null;  // 前回の位置を記録するプロパティを追加
     }
 
     // 新規: 必要経験値を計算するメソッド
@@ -167,7 +169,10 @@ class Player {
     takeDamage(amount) {
         const damage = Math.max(1, amount);
         this.hp -= damage;
-
+        
+        // ダメージを受けた時にステータスパネルをフラッシュ
+        this.game.renderer.flashStatusPanel();
+        
         if (this.hp <= 0) {
             this.hp = 0;
             // レンダリングを先に行い、HPが0の状態を表示
@@ -176,10 +181,25 @@ class Player {
             this.game.gameOver();
         }
 
-        return { damage };
+        return {
+            damage: damage,
+            killed: this.hp <= 0,
+            evaded: false
+        };
     }
 
     attackMonster(monster, game) {
+        // 既存のエフェクトタイマーをクリア
+        if (this.attackEffectTimer) {
+            clearTimeout(this.attackEffectTimer);
+            game.lastAttackLocation = null;
+        }
+
+        // 攻撃位置を設定
+        game.lastAttackLocation = { x: monster.x, y: monster.y };
+        game.renderer.render();
+
+        // 通常の攻撃処理
         const attackType = this.nextAttackModifier ? this.nextAttackModifier.name : "attack";
         
         // 命中判定
@@ -267,8 +287,12 @@ class Player {
 
         this.nextAttackModifier = null;
 
-        // 戦闘位置を記録
-        game.lastCombatLocation = { x: monster.x, y: monster.y };
+        // 新しいタイマーを設定
+        this.attackEffectTimer = setTimeout(() => {
+            game.lastAttackLocation = null;
+            game.renderer.render();
+            this.attackEffectTimer = null;
+        }, 200);
     }
 
     getHealthStatus(currentHp, maxHp) {
@@ -290,31 +314,36 @@ class Player {
         }
 
         if (skillSlot === null) {
-            game.logger.add("You don't have that skill!", "warning");
+            game.logger.add("You do not have that skill!", "warning");
             return false;
         }
 
         const skillData = this.skills.get(skillSlot);
         if (skillData.remainingCooldown > 0) {
-            game.logger.add(`Skill is on cooldown! (${skillData.remainingCooldown} turns remaining)`, "warning");
+            game.logger.add(`The skill is on cooldown! (${skillData.remainingCooldown} turns left)`, "warning");
             return false;
         }
 
         const skill = game.codexSystem.findSkillById(skillId);
         if (!skill) return false;
 
-        // スキル効果の実行
-        skill.effect(game, this, target);
+        // スキル効果の実行と結果の取得
+        const effectResult = skill.effect(game, this, target);
         
-        // クールダウンの設定
-        skillData.remainingCooldown = skill.cooldown + 1;
+        // スキルの実行が成功した場合のみ、以降の処理を行う
+        if (effectResult === true) {
+            // クールダウンの設定
+            skillData.remainingCooldown = skill.cooldown + 1;
 
-        // スキルがフリーアクションの場合はターンを消費しない
-        if (!skill.isFreeAction) {
-            game.processTurn();
+            // スキルがフリーアクションでない場合はターンを消費
+            if (!skill.isFreeAction) {
+                game.processTurn();
+            }
+            
+            return true;
         }
-        
-        return true;
+
+        return false;
     }
 
     processTurn() {

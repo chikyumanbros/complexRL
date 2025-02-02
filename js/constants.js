@@ -49,7 +49,7 @@ const GAME_CONSTANTS = {
     
     DIMENSIONS: {
         WIDTH: 60,
-        HEIGHT: 40
+        HEIGHT: 35
     },
     
     ROOM: {

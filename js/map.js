@@ -262,8 +262,8 @@ class MapGenerator {
         const stairsPos = validPositions[Math.floor(Math.random() * validPositions.length)];
         
         // デバッグログ
-        console.log('Valid positions for stairs:', validPositions.length);
-        console.log('Selected position:', stairsPos);
+        //console.log('Valid positions for stairs:', validPositions.length);
+        //console.log('Selected position:', stairsPos);
         
         // 階段の配置
         this.map[stairsPos.y][stairsPos.x] = 'floor';  // 基底マップを床に
@@ -389,7 +389,7 @@ class MapGenerator {
     // 改善した printMap メソッド
     printMap() {
         if (!this.tiles) {
-            console.log("マップが生成されていません");
+            //console.log("マップが生成されていません");
             return;
         }
         for (let y = 0; y < this.height; y++) {
@@ -401,7 +401,7 @@ class MapGenerator {
                 // 背景を黒にして見やすく（必要に応じて調整可能）
                 styles.push(`color: ${this.colors[y][x]}; background-color: black; font-weight: bold;`);
             }
-            console.log(rowStr, ...styles);
+            //console.log(rowStr, ...styles);
         }
     }
 } 

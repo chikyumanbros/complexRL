@@ -19,6 +19,9 @@ class InputHandler {
     }
 
     handleInput(event) {
+        // 新しい入力があった時点でエフェクトをクリーンアップ
+        this.game.renderer.clearEffects();
+
         if (event.ctrlKey || event.altKey || event.metaKey) return;
         
         const key = event.key.toLowerCase();
@@ -27,7 +30,6 @@ class InputHandler {
         if (this.game.isGameOver) {
             if (key === 'enter') {
                 this.game.reset();  // ゲームをリセット
-                return;
             }
             return;  // その他のキー入力を無視
         }
@@ -585,21 +587,32 @@ class InputHandler {
                 const massiveDamage = monster.hp + 999;
                 const result = monster.takeDamage(massiveDamage);
                 this.game.logger.add(`The closing door crushes ${monster.name} for massive damage! ⚡`, "playerCrit");
-                if (this.game.renderer.flashTile) {
-                    this.game.renderer.flashTile(door.x, door.y, GAME_CONSTANTS.COLORS.DOOR);
-                }
-                this.game.tiles[door.y][door.x] = GAME_CONSTANTS.TILES.FLOOR[
-                    Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
-                ];
-                this.game.colors[door.y][door.x] = GAME_CONSTANTS.COLORS.FLOOR;
-                if (result.killed) {
-                    this.game.logger.add(`The door has destroyed ${monster.name}! 💥`, "kill");
-                    this.game.removeMonster(monster);
-                    // ドアキルが発生したことをLoggerに通知
-                    const currentRoom = this.game.getCurrentRoom();
-                    const monsterCount = this.game.getMonstersInRoom(currentRoom).length;
-                    this.game.logger.updateRoomInfo(currentRoom, monsterCount, true);
-                }
+                
+                // ドアキル位置を記録
+                this.game.lastDoorKillLocation = { x: door.x, y: door.y };
+                
+                // 遅延してタイルを更新
+                setTimeout(() => {
+                    this.game.lastDoorKillLocation = null;
+                    this.game.tiles[door.y][door.x] = GAME_CONSTANTS.TILES.FLOOR[
+                        Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+                    ];
+                    this.game.colors[door.y][door.x] = GAME_CONSTANTS.COLORS.FLOOR;
+                    
+                    if (result.killed) {
+                        this.game.logger.add(`The door has destroyed ${monster.name}! 💥`, "kill");
+                        this.game.removeMonster(monster);
+                        const currentRoom = this.game.getCurrentRoom();
+                        const monsterCount = this.game.getMonstersInRoom(currentRoom).length;
+                        this.game.logger.updateRoomInfo(currentRoom, monsterCount, true);
+                    }
+                    
+                    this.game.renderer.render();
+                }, 400);
+
+                // 即座にレンダリングしてエフェクトを表示
+                this.game.renderer.render();
+
             } else {
                 this.game.tiles[door.y][door.x] = GAME_CONSTANTS.TILES.DOOR.CLOSED;
                 this.game.colors[door.y][door.x] = GAME_CONSTANTS.COLORS.DOOR;

@@ -20,6 +20,7 @@ class Game {
         this.floorLevel = 1;  // 階層を追加
         this.dangerLevel = 'NORMAL';  // 危険度を追加
         this.explored = this.initializeExplored();  // 踏破情報を追加
+        this.lastAttackLocation = null;  // 攻撃位置を追跡するためのプロパティを追加
         
         this.init();
 
@@ -226,8 +227,8 @@ class Game {
         const baseCount = Math.floor(5 + this.floorLevel * 1.5);
         const monsterCount = Math.max(3, baseCount + dangerData.levelModifier);
 
-        console.log(`Attempting to spawn ${monsterCount} monsters on floor ${this.floorLevel} (${this.dangerLevel})`);
-        console.log(`Base count: ${baseCount}, Danger modifier: ${dangerData.levelModifier}`);
+        //console.log(`Attempting to spawn ${monsterCount} monsters on floor ${this.floorLevel} (${this.dangerLevel})`);
+        //console.log(`Base count: ${baseCount}, Danger modifier: ${dangerData.levelModifier}`);
 
         for (let i = 0; i < monsterCount; i++) {
             const validRooms = this.rooms.filter(room => {
@@ -239,9 +240,9 @@ class Game {
                 return !isPlayerRoom;
             });
 
-            console.log(`Found ${validRooms.length} valid rooms for spawning`);
+            //console.log(`Found ${validRooms.length} valid rooms for spawning`);
             if (validRooms.length === 0) {
-                console.log('No valid rooms found for monster spawning');
+                //console.log('No valid rooms found for monster spawning');
                 continue;
             }
 
@@ -284,7 +285,7 @@ class Game {
                     monster = Monster.spawnRandomMonster(x, y, this.floorLevel, this.dangerLevel);
                     this.monsters.push(monster);
                     this.totalMonstersSpawned++;
-                    console.log(`Spawned ${monster.name} (Level ${monster.level}) at (${x}, ${y})`);
+                    //console.log(`Spawned ${monster.name} (Level ${monster.level}) at (${x}, ${y})`);
 
                     // パックスポーンの処理
                     const template = GAME_CONSTANTS.MONSTERS[monster.type];
@@ -292,7 +293,7 @@ class Game {
                         const packSize = template.pack.min + 
                             Math.floor(Math.random() * (template.pack.max - template.pack.min + 1));
                         
-                        console.log(`Attempting to spawn pack of size ${packSize} for ${monster.name}`);
+                        //console.log(`Attempting to spawn pack of size ${packSize} for ${monster.name}`);
                         
                         // パックメンバーのスポーン
                         for (let j = 0; j < packSize - 1; j++) {
@@ -318,13 +319,13 @@ class Game {
                                     this.monsters.push(packMember);
                                     this.totalMonstersSpawned++;
                                     packSpawned = true;
-                                    console.log(`Spawned pack member (Level ${packMember.level}) at (${packX}, ${packY})`);
+                                    //console.log(`Spawned pack member (Level ${packMember.level}) at (${packX}, ${packY})`);
                                 }
                                 packAttempts--;
                             }
                             
                             if (!packSpawned) {
-                                console.log('Failed to spawn pack member');
+                                //console.log('Failed to spawn pack member');
                             }
                         }
                     }
@@ -333,7 +334,7 @@ class Game {
             }
 
             if (!monster) {
-                console.log(`Failed to spawn monster after ${50 - attempts} attempts`);
+                //console.log(`Failed to spawn monster after ${50 - attempts} attempts`);
             }
         }
 
@@ -347,10 +348,10 @@ class Game {
             monstersPerRoom.set(room, count);
         });
 
-        console.log(`Total monsters spawned: ${this.monsters.length}`);
-        console.log('Monsters per room:', Array.from(monstersPerRoom.entries()).map(([room, count]) => 
-            `Room at (${room.x},${room.y}): ${count} monsters`
-        ));
+        //console.log(`Total monsters spawned: ${this.monsters.length}`);
+        //console.log('Monsters per room:', Array.from(monstersPerRoom.entries()).map(([room, count]) => 
+        //    `Room at (${room.x},${room.y}): ${count} monsters`
+        //));
     }
 
     gameOver() {
@@ -390,7 +391,7 @@ class Game {
         }
 
         // デバッグ用のログを追加
-        console.log(`New floor ${this.floorLevel}, Danger Level: ${this.dangerLevel} (Roll: ${dangerRoll})`);
+        //console.log(`New floor ${this.floorLevel}, Danger Level: ${this.dangerLevel} (Roll: ${dangerRoll})`);
 
         // フロア情報をロガーに送る
         this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);

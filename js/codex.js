@@ -38,6 +38,7 @@ class CodexSystem {
                             );
                             // 即時にレンダリングを更新
                             game.renderer.render();
+                            game.renderer.showNextAttackModifierEffect(player.x, player.y);
                         }
                     },
                     { 
@@ -65,6 +66,7 @@ class CodexSystem {
                             );
                             // 即時にレンダリングを更新
                             game.renderer.render();
+                            game.renderer.showNextAttackModifierEffect(player.x, player.y);
                         }
                     }
                 ]
@@ -76,37 +78,66 @@ class CodexSystem {
                     {
                         id: 'jump',
                         name: 'Jump',
-                        desc: 'Jump up to 3 tiles in any direction. Can jump over enemies.',
+                        desc: 'Jump over enemies. Range based on DEX/CON. (Base: 3, +1 per 3 DEX over CON)',
                         cost: 30,
                         cooldown: 15,
                         isFreeAction: false,
                         requiresTarget: true,
                         maxRange: 3,
                         getEffectText: (player) => {
-                            return `[Range: 3]`;
+                            const jumpRange = Math.floor((player.stats.dex - player.stats.con) / 3) + 3;
+                            return `[Range: ${jumpRange}]`;
                         },
-                        effect: (game, player, targetPos) => {
-                            if (!targetPos) return false;
+                        effect: (game, player, target) => {
+                            // 視界範囲チェック
+                            const visibleTiles = game.getVisibleTiles();
+                            const isVisible = visibleTiles.some(tile => 
+                                tile.x === target.x && tile.y === target.y
+                            );
                             
-                            const dx = targetPos.x - player.x;
-                            const dy = targetPos.y - player.y;
-                            const distance = Math.max(Math.abs(dx), Math.abs(dy));
-                            
-                            if (distance > 3) {  // maxRangeを直接使用せず、固定値で確認
-                                game.logger.add("Target is too far! (Maximum range: 3)", "warning");
+                            if (!isVisible) {
+                                game.logger.add("Can't jump to unseen location!", "warning");
                                 return false;
                             }
 
-                            // 移動先が床であることを確認
-                            if (game.map[targetPos.y][targetPos.x] !== 'floor') {
+                            // ジャンプ範囲を計算（DEXとCONから算出）
+                            const jumpRange = Math.floor((player.stats.dex - player.stats.con) / 3) + 3;
+                            
+                            // 距離チェック
+                            const dx = target.x - player.x;
+                            const dy = target.y - player.y;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            
+                            if (distance > jumpRange) {
+                                game.logger.add("Too far to jump!", "warning");
+                                return false;
+                            }
+
+                            // 移動先の有効性チェック
+                            if (game.map[target.y][target.x] !== 'floor') {
                                 game.logger.add("Can't jump there!", "warning");
                                 return false;
                             }
 
-                            // 移動を実行
-                            player.x = targetPos.x;
-                            player.y = targetPos.y;
-                            game.logger.add("You make a swift jump! 🦘", "playerInfo");
+                            // モンスターがいる場所にはジャンプできない
+                            if (game.getMonsterAt(target.x, target.y)) {
+                                game.logger.add("Can't jump onto a monster!", "warning");
+                                return false;
+                            }
+
+                            // ジャンプ前の位置を保存
+                            const fromX = player.x;
+                            const fromY = player.y;
+
+                            // エフェクトを表示
+                            game.renderer.showMovementTrailEffect(fromX, fromY, target.x, target.y);
+
+                            // ジャンプの実行
+                            player.x = target.x;
+                            player.y = target.y;
+                            
+                            game.logger.add("Jump!", "playerAction");
+                            
                             return true;
                         }
                     }
@@ -185,27 +216,37 @@ class CodexSystem {
                         isFreeAction: false,
                         requiresTarget: false,
                         getEffectText: (player) => {
-                            const healPerTurn = Math.floor(player.stats.wis / 5);  // 計算式をWIS/2に変更
-                            const maxTurns = player.stats.wis;
+                            const healPerTurn = Math.floor(player.stats.wis / 3);  // effect関数と同じ計算式
+                            const maxTurns = Math.floor(player.stats.wis / 2);     // effect関数と同じ計算式
                             return `[${healPerTurn} HP/turn, ${maxTurns} turns]`;
                         },
-                        effect: function(game, player) {
-                            const healPerTurn = Math.floor(player.stats.wis / 5);
-                            const maxTurns = player.stats.wis;
-                            
+                        effect: (game, player) => {
+                            // If HP is at maximum value, cannot meditate
+                            if (player.hp >= player.maxHp) {
+                                game.logger.add("Cannot meditate as HP is full.", "warning");
+                                return false;
+                            }
+
+                            if (player.meditation && player.meditation.active) {
+                                game.logger.add("Already meditating！", "warning");
+                                return false;
+                            }
+
                             player.meditation = {
                                 active: true,
-                                healPerTurn: healPerTurn,
-                                turnsRemaining: maxTurns,
-                                totalHealed: 0,
-                                initialDelay: true  // 初回遅延フラグを追加
+                                initialDelay: true,
+                                healPerTurn: Math.floor(player.stats.wis / 3),
+                                turnsRemaining: Math.floor(player.stats.wis / 2),
+                                totalHealed: 0
                             };
-                            
-                            game.logger.add(`You begin to meditate... (+${healPerTurn} HP/turn) 🧘`, "playerInfo");
+
+                            game.logger.add("Started meditating... 🧘", "playerInfo");
+                            game.renderer.render();
+                            return true;
                         }
                     }
                 ]
-            }
+            },
         };
         this.currentCategory = 'combat';
         this.selectionMode = 'normal';

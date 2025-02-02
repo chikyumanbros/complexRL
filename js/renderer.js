@@ -2,6 +2,7 @@ class Renderer {
     constructor(game) {
         this.game = game;
         this.highlightedTile = null;
+        this.movementEffects = null;
     }
 
     highlightTarget(x, y) {
@@ -15,9 +16,27 @@ class Renderer {
     }
 
     render() {
+        // 移動エフェクトの状態を追加
+        if (!this.movementEffects) {
+            this.movementEffects = new Set();
+        }
+
         this.renderMap();
         this.renderStatus();
         this.renderMode();
+
+        // 瞑想エフェクトの適用
+        if (this.game.player.meditation && this.game.player.meditation.active) {
+            this.showMeditationEffect(this.game.player.x, this.game.player.y);
+        }
+
+        // 移動エフェクトの適用
+        this.movementEffects.forEach(effect => {
+            const tile = document.querySelector(`#game span[data-x="${effect.x}"][data-y="${effect.y}"]`);
+            if (tile) {
+                tile.classList.add('movement-trail');
+            }
+        });
 
         // ターゲットのハイライト表示
         if (this.highlightedTile) {
@@ -28,8 +47,15 @@ class Renderer {
                 Math.abs(this.highlightedTile.y - player.y)
             );
 
-            // 範囲内なら緑、範囲外なら赤でハイライト
-            const color = distance <= 3 && tile === 'floor' ? '#2ecc7144' : '#e74c3c44';
+            let color;
+            if (this.game.inputHandler.targetingMode === 'look') {
+                color = '#ffffff33';
+            } else {
+                const skillId = this.game.inputHandler.targetingMode;
+                const skill = this.game.codexSystem.findSkillById(skillId);
+                const range = skill ? skill.range : 1; // スキルがない場合は近接攻撃として扱う
+                color = distance <= range && tile === 'floor' ? '#2ecc7144' : '#e74c3c44';
+            }
             
             const cell = document.querySelector(
                 `#game-container [data-x="${this.highlightedTile.x}"][data-y="${this.highlightedTile.y}"]`
@@ -54,68 +80,100 @@ class Renderer {
                 const isVisible = visibleTiles.has(`${x},${y}`);
                 const isExplored = this.game.explored[y][x];
                 
-                // 未踏破かつ視界外のタイルは表示しない
                 if (!isVisible && !isExplored) {
                     display += '<span style="color: black; background-color: black"> </span>';
                     continue;
                 }
 
-                const currentRoom = this.getCurrentRoom(this.game.player.x, this.game.player.y);
-                const visibility = currentRoom ? currentRoom.brightness : 3;
-                
-                // プレイヤーからの距離をユークリッド距離で計算
-                const dx = x - this.game.player.x;
-                const dy = y - this.game.player.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                // 視界範囲外の場合は暗く表示
-                const isVisibleTile = isVisible;
-                
-                const isHighlighted = this.highlightedTile && 
-                    this.highlightedTile.x === x && 
-                    this.highlightedTile.y === y;
-                
-                let bgColor = '';
-                if (isHighlighted) {
-                    const player = this.game.player;
-                    if (this.game.inputHandler.targetingMode === 'look') {
-                        bgColor = '#ffffff33';
-                    } else {
-                        const skillId = this.game.inputHandler.targetingMode;
-                        const skill = this.game.codexSystem.findSkillById(skillId);
-                        const range = skill.range || 3;
-                        bgColor = distance <= range && this.game.map[y][x] === 'floor' 
-                            ? '#2ecc7144' 
-                            : '#e74c3c44';
-                    }
-                }
-
                 let content = '';
                 let style = '';
+                let classes = [];
+                let backgroundColor = '';
 
-                if (x === this.game.player.x && y === this.game.player.y) {
-                    content = this.game.player.char;
-                    style = `color: white; background-color: ${bgColor}`;
-                } else {
-                    const monster = this.game.getMonsterAt(x, y);
-                    if (monster && isVisible) {  // モンスターは視界内の場合のみ表示
-                        const color = GAME_CONSTANTS.COLORS.MONSTER[monster.type];
-                        const animation = monster.isSleeping ? 'sleeping-monster 1s infinite' : 'none';
-                        content = monster.char;
-                        style = `color: ${color}; background-color: ${bgColor}; font-weight: ${isHighlighted ? 'bold' : 'normal'}; animation: ${animation}`;
+                // data属性を let で宣言
+                let dataAttrs = `data-x="${x}" data-y="${y}"`;
+
+                // ドアキルエフェクトのチェック
+                const isDoorKillTarget = this.game.lastDoorKillLocation && 
+                                       this.game.lastDoorKillLocation.x === x && 
+                                       this.game.lastDoorKillLocation.y === y;
+                
+                if (isDoorKillTarget) {
+                    classes.push('door-kill');
+                }
+
+                // ルックモードまたはスキルターゲティングのハイライト
+                if (this.highlightedTile && 
+                    this.highlightedTile.x === x && 
+                    this.highlightedTile.y === y) {
+                    if (this.game.inputHandler.targetingMode === 'look') {
+                        backgroundColor = 'rgba(255, 255, 255, 0.2)';
                     } else {
-                        const color = this.game.colors[y][x];
-                        content = this.game.tiles[y][x];
-                        style = `color: ${color}; background-color: ${bgColor}`;
+                        const player = this.game.player;
+                        const skillId = this.game.inputHandler.targetingMode;
+                        const skill = this.game.codexSystem.findSkillById(skillId);
+                        const range = skill ? skill.range || 3 : 3;
+                        const distance = Math.max(
+                            Math.abs(this.highlightedTile.x - player.x),
+                            Math.abs(this.highlightedTile.y - player.y)
+                        );
+                        backgroundColor = distance <= range && this.game.map[y][x] === 'floor' 
+                            ? 'rgba(46, 204, 113, 0.2)' 
+                            : 'rgba(231, 76, 60, 0.2)';
                     }
                 }
 
-                // 視界範囲外の場合は暗く表示
-                if (!isVisibleTile) {
-                    style += '; opacity: 0.3';
+                // 攻撃エフェクトの確認
+                const isAttackTarget = this.game.lastAttackLocation && 
+                                     this.game.lastAttackLocation.x === x && 
+                                     this.game.lastAttackLocation.y === y;
+                
+                if (isAttackTarget) {
+                    classes.push('melee-attack');
                 }
 
-                display += `<span style="${style}">${content}</span>`;
+                // プレイヤー、モンスター、タイルの表示
+                if (x === this.game.player.x && y === this.game.player.y) {
+                    content = this.game.player.char;
+                    style = 'color: white';
+                    
+                } else {
+                    const monster = this.game.getMonsterAt(x, y);
+                    if (monster && isVisible) {
+                        content = monster.char;
+                        style = `color: ${GAME_CONSTANTS.COLORS.MONSTER[monster.type]}`;
+                        
+                        // モンスターの状態に応じたスタイル
+                        if (monster.isSleeping) {
+                            style += '; animation: sleeping-monster 1s infinite';
+                        }
+                        if (monster.hasStartedFleeing) {
+                            style += '; opacity: 0.8';
+                        }
+                    } else {
+                        content = this.game.tiles[y][x];
+                        const tile = this.game.tiles[y][x];
+                        
+                        // 特殊タイルの色設定
+                        if (tile === GAME_CONSTANTS.STAIRS.CHAR) {
+                            style = `color: ${GAME_CONSTANTS.STAIRS.COLOR}`;
+                        } else {
+                            style = `color: ${this.game.colors[y][x]}`;
+                        }
+                    }
+                }
+
+                // 視界外のタイルは暗く表示
+                if (!isVisible) {
+                    style += '; opacity: 0.5';
+                }
+
+                if (backgroundColor) {
+                    style += `; background-color: ${backgroundColor}`;
+                }
+
+                const classString = classes.length > 0 ? `class="${classes.join(' ')}"` : '';
+                display += `<span ${dataAttrs} ${classString} style="${style}">${content}</span>`;
             }
             display += '\n';
         }
@@ -272,5 +330,82 @@ class Renderer {
     renderCodexMenu() {
         const display = this.game.codexSystem.getMenuDisplay(this.game.player);  // プレイヤーオブジェクトを渡す
         document.getElementById('available-skills').innerHTML = display.replace(/\n/g, '<br>');
+    }
+
+    // 新規: エフェクトをクリーンアップするメソッド
+    clearEffects() {
+        if (this.game.lastAttackLocation) {
+            this.game.lastAttackLocation = null;
+            this.render();
+        }
+        
+        // スキル使用エフェクトのクリーンアップ
+        const playerChar = document.querySelector('#game-container [data-player="true"]');
+        if (playerChar) {
+            playerChar.classList.remove('next-attack-modifier');
+        }
+    }
+
+    flashStatusPanel() {
+        const statusPanel = document.getElementById('status-panel');
+        if (statusPanel) {
+            statusPanel.classList.add('damage-flash');
+            setTimeout(() => {
+                statusPanel.classList.remove('damage-flash');
+            }, 200);
+        }
+    }
+
+    // 新しいメソッドを追加
+    showNextAttackModifierEffect(x, y) {
+        const playerChar = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
+        console.log('Player char element:', playerChar); // デバッグ用
+        if (playerChar) {
+            playerChar.classList.add('next-attack-modifier');
+            console.log('Added next-attack-modifier class'); // デバッグ用
+            setTimeout(() => {
+                playerChar.classList.remove('next-attack-modifier');
+                console.log('Removed next-attack-modifier class'); // デバッグ用
+            }, 500);
+        }
+    }
+    // meditation エフェクト用の新しいメソッドを追加
+    showMeditationEffect(x, y) {
+        const playerChar = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
+        if (playerChar && this.game.player.meditation && this.game.player.meditation.active) {
+            playerChar.classList.add('meditation-effect');
+        }
+    }
+    // 移動エフェクト用の新しいメソッドを追加
+    showMovementTrailEffect(fromX, fromY, toX, toY) {
+        // 既存のエフェクトをクリア
+        this.movementEffects = new Set();
+        
+        // 始点から終点までの軌跡を計算
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const steps = Math.max(Math.abs(dx), Math.abs(dy));
+        
+        // 軌跡の各ポイントを計算
+        for (let i = 0; i <= steps; i++) {
+            const x = Math.round(fromX + (dx * i / steps));
+            const y = Math.round(fromY + (dy * i / steps));
+            this.movementEffects.add({x, y});
+            
+            // 各ポイントのエフェクトを時間差で消す
+            setTimeout(() => {
+                this.movementEffects.delete({x, y});
+                this.render();
+            }, 100 + (i * 50)); // 時間差で消えていく
+        }
+
+        // 強制的に再レンダリング
+        this.render();
+
+        // 全エフェクトを一定時間後にクリア
+        setTimeout(() => {
+            this.movementEffects.clear();
+            this.render();
+        }, 100 + (steps * 50) + 100);
     }
 } 
