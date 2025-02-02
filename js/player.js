@@ -26,10 +26,9 @@ class Player {
         this.evasion = GAME_CONSTANTS.FORMULAS.EVASION(this.stats);
 
         this.skills = new Map();  // スキルマップの初期化
-        this.codex = 30;
+        this.codexPoints = 0;  // codexポイントのみを使用
         this.nextAttackModifier = null;  // 次の攻撃の修正値
         this.meditation = null;  // メディテーション状態を追加
-        this.codexPoints = 25;  // codexポイントを初期化
 
         // 治療関連のパラメータを定数ファイルから取得
         this.healingDice = GAME_CONSTANTS.FORMULAS.HEALING_DICE(this.stats);
@@ -257,7 +256,7 @@ class Player {
             game.logger.updateRoomInfo(currentRoom, monsterCount, false, true);  // meleeKillフラグを追加
             
             if (result.codexPoints > 0) {
-                this.codex += result.codexPoints;
+                this.codexPoints += result.codexPoints;
                 game.logger.add(`Gained ${result.codexPoints} Codex points! 📚✨`, "important");
             }
 

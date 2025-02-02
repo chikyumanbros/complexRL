@@ -261,9 +261,9 @@ class Renderer {
                 statElement.textContent = player.stats[stat];
             }
         }
-        const codexElement = document.getElementById('codex');
+        const codexElement = document.getElementById('codexPoints');
         if (codexElement) {
-            codexElement.textContent = player.codex;
+            codexElement.textContent = player.codexPoints;
         }
 
         // 攻撃力と防御力の詳細表示

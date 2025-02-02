@@ -362,7 +362,7 @@ class Game {
         const monstersKilled = this.maxTotalMonsters - this.monsters.length;
         const finalScore = {
             monstersKilled: monstersKilled,
-            codexPoints: this.player.codex,
+            codexPoints: this.player.codexPoints,
             turns: this.turn
         };
 

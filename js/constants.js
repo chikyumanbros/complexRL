@@ -112,7 +112,6 @@ const GAME_CONSTANTS = {
                 wis: 8
             },
             level: 1,
-            codexPoints: 2,
             pack: {
                 chance: 0.7,    // 70%の確率で群れ生成
                 min: 5,         // 最小2匹
@@ -130,7 +129,6 @@ const GAME_CONSTANTS = {
                 wis: 10
             },
             level: 2,
-            codexPoints: 3,
             pack: {
                 chance: 0.6,
                 min: 5,
