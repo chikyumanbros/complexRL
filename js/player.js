@@ -5,7 +5,7 @@ class Player {
         this.game = game;
         this.char = '@';
         this.level = 1;
-        this.codexPoints = 20;  // codexポイントのみを使用
+        this.codexPoints = 0;  // codexポイントのみを使用
         this.xp = 0;                  // 経験値の初期化
         this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
         this.stats = {
@@ -228,6 +228,10 @@ class Player {
             game.logger.add(`Critical ${attackType}! ${monster.name} takes ${result.damage} damage!`, "playerCrit");
             game.logger.add(`You killed the ${monster.name}!`, "kill");
             game.removeMonster(monster);
+
+            // ここでcodexPointsを加算する
+            this.codexPoints += result.codexPoints;
+            game.logger.add(`Gained ${result.codexPoints} codex points!`, "playerInfo");
 
             // 経験値計算
             const levelDiff = monster.level - this.level;
