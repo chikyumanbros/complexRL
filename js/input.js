@@ -233,7 +233,7 @@ class InputHandler {
 
         // 移動キーが押された時点でメディテーションを解除
         if ((dx !== 0 || dy !== 0) && player.meditation && player.meditation.active) {
-            this.game.logger.add(`Meditation cancelled. (Total healed: ${player.meditation.totalHealed}) 🧘❌`, "playerInfo");
+            this.game.logger.add(`Meditation cancelled. (Total healed: ${player.meditation.totalHealed})`, "playerInfo");
             player.meditation = null;
         }
 
@@ -596,7 +596,7 @@ class InputHandler {
             if (monster) {
                 const massiveDamage = monster.hp + 999;
                 const result = monster.takeDamage(massiveDamage);
-                this.game.logger.add(`The closing door crushes ${monster.name} for massive damage! ⚡`, "playerCrit");
+                this.game.logger.add(`The closing door crushes ${monster.name} for massive damage!`, "playerCrit");
                 
                 // ドアキル位置を記録
                 this.game.lastDoorKillLocation = { x: door.x, y: door.y };
@@ -610,7 +610,7 @@ class InputHandler {
                     this.game.colors[door.y][door.x] = GAME_CONSTANTS.COLORS.FLOOR;
                     
                     if (result.killed) {
-                        this.game.logger.add(`The door has destroyed ${monster.name}! 💥`, "kill");
+                        this.game.logger.add(`The door has destroyed ${monster.name}!`, "kill");
                         this.game.removeMonster(monster);
                         const currentRoom = this.game.getCurrentRoom();
                         const monsterCount = this.game.getMonstersInRoom(currentRoom).length;
