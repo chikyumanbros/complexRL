@@ -5,14 +5,14 @@ class Player {
         this.game = game;
         this.char = '@';
         this.level = 1;
-        this.xp = 0;                  // 経験値の初期化
+        this.xp = 14;                  // 経験値の初期化
         this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
         this.stats = {
-            str: 10,
-            dex: 10,
-            con: 10,
-            int: 10,
-            wis: 10
+            str: 20,
+            dex: 20,
+            con: 20,
+            int: 20,
+            wis: 20
         };
 
         // HPの計算
@@ -68,18 +68,20 @@ class Player {
         this.level++;
         this.xpToNextLevel = this.calculateRequiredXP(this.level);
         
-        // レベルアップ時のステータス選択を処理
+        // レベルアップ時のログ出力
         this.game.logger.add(`Level up! You are now level ${this.level}. 🎉`, "important");
         this.game.logger.add("Choose a stat to increase:", "playerInfo");
         this.game.logger.add("[S]trength | [D]exterity | [C]onstitution | [I]ntelligence | [W]isdom", "playerInfo");
         
-        // ゲームの入力モードをステータス選択モードに変更
+        // 常に最新のプレイヤーの座標からエフェクト発生
+        this.game.renderer.showLevelUpEffect(this.game.player.x, this.game.player.y);
+        this.game.renderer.showLightPillarEffect(this.game.player.x, this.game.player.y);
+        
         this.game.setInputMode('statSelect', {
             callback: (stat) => {
                 // 選択されたステータスを増加
                 this.stats[stat] += 1;
                 
-                // ステータス上昇のログを表示
                 const statNames = {
                     str: "Strength",
                     dex: "Dexterity",
@@ -89,7 +91,7 @@ class Player {
                 };
                 this.game.logger.add(`${statNames[stat]} increased to ${this.stats[stat]}! 💪`, "playerInfo");
                 
-                // 派生パラメータを再計算
+                // 派生パラメータの再計算
                 this.maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(this.stats, this.level);
                 this.hp = this.maxHp;
                 this.attackPower = GAME_CONSTANTS.FORMULAS.ATTACK(this.stats);
@@ -97,10 +99,10 @@ class Player {
                 this.accuracy = GAME_CONSTANTS.FORMULAS.ACCURACY(this.stats);
                 this.evasion = GAME_CONSTANTS.FORMULAS.EVASION(this.stats);
                 
-                // 画面を即座に更新
+                // 画面更新
                 this.game.renderer.render();
                 
-                // 通常の入力モードに戻す
+                // 入力モードを通常に戻す
                 this.game.setInputMode('normal');
             }
         });

@@ -11,7 +11,7 @@ body {
     flex-direction: column;
     
     gap: 10px;
-    max-width: 1600px;
+    max-width: 1800px;
     margin: 0 auto;
 }
 
@@ -25,6 +25,7 @@ body {
     background: #000;
     color: #cfcfcf;
     padding: 10px;
+    width: 900px;
     font-size: 14px;
     font-family: 'Press Start 2P';
 }
@@ -41,7 +42,7 @@ body {
 #skills-panel {
     background: black;
     padding: 10px;
-    width: 450px;
+    width: 530px;
     font-size: 12px;
     line-height: 1.5;
     color: rgb(207, 207, 207);
@@ -50,7 +51,7 @@ body {
 .bottom-panels {
     display: flex;
     gap: 10px;
-    height: 350px;
+    height: 345px;
 }
 
 #log-panel {
@@ -213,13 +214,13 @@ h3 {
     color: #66ccff;
     margin: 0;
     font-size: 10px;
-    letter-spacing: 4px;
+    letter-spacing: 2px;
     text-transform: uppercase;
 }
 
 .version {
     color: #666;
-    font-size: 10px;
+    font-size: 8px;
     margin-top: 5px;
 }
 
@@ -451,7 +452,6 @@ h3 {
         opacity: 0;
     }
 }
-
 /* エフェクトの重なり順を確保 */
 #game span {
     position: relative;
@@ -459,4 +459,53 @@ h3 {
 
 #game span.movement-trail {
     z-index: 1000;
+}
+
+/* レベルアップエフェクト用の粒子 */
+.levelup-particle {
+    position: absolute;
+    width: 10px;
+    height: 8px;
+    background: gold;
+    border-radius: 60%;
+    pointer-events: none;
+    opacity: 1;
+    transform: translate(-50%, -50%);
+    animation: levelUpExplosion 1s ease-out forwards;
+}
+
+/* キーフレーム: 粒子が広がりながらフェードアウト */
+@keyframes levelUpExplosion {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--dx), var(--dy)) scale(0);
+        opacity: 0;
+    }
+}
+
+/* プレイヤーから発生する光の柱エフェクト */
+.light-pillar {
+    position: absolute;
+    width: 20px;
+    height: 80px;
+    background: linear-gradient(180deg, rgba(255, 244, 224, 0.648), rgba(76, 255, 40, 0.595));
+    transform-origin: bottom;
+    transform: translateX(-50%) scaleY(0);
+    animation: lightPillarGrow 0.8s ease-out forwards;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+@keyframes lightPillarGrow {
+    0% {
+        transform: translateX(-50%) scaleY(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(-50%) scaleY(1);
+        opacity: 0;
+    }
 }

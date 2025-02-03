@@ -165,7 +165,7 @@ class Renderer {
 
                 // 視界外のタイルは暗く表示
                 if (!isVisible) {
-                    style += '; opacity: 0.5';
+                    style += '; opacity: 0.4';
                 }
 
                 if (backgroundColor) {
@@ -410,5 +410,84 @@ class Renderer {
             this.movementEffects.clear();
             this.render();
         }, 100 + (steps * 50) + 100);
+    }
+
+    showLevelUpEffect(x, y) {
+        const particleLayer = document.getElementById('particle-layer');
+        if (!particleLayer) return;
+
+        // 画面上でプレイヤータイルの要素を取得（data-x, data-y属性で識別）
+        const playerTile = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
+        let centerX, centerY;
+        if (playerTile) {
+            // #game-container（エフェクトレイヤーの親要素）からの相対位置を計算
+            const gameContainer = document.getElementById('game-container');
+            const containerRect = gameContainer ? gameContainer.getBoundingClientRect() : { left: 0, top: 0 };
+            const tileRect = playerTile.getBoundingClientRect();
+            centerX = tileRect.left - containerRect.left + tileRect.width / 2;
+            centerY = tileRect.top - containerRect.top + tileRect.height / 2;
+        } else {
+            // もしプレイヤータイルが見つからない場合は、fallbackとして計算（あまり推奨されません）
+            const tileElement = document.querySelector('#game span');
+            const tileSize = tileElement ? tileElement.offsetWidth : 14;
+            centerX = x * tileSize + tileSize / 2;
+            centerY = y * tileSize + tileSize / 2;
+        }
+
+        const particleCount = 20;
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('levelup-particle');
+            particle.style.left = centerX + "px";
+            particle.style.top = centerY + "px";
+
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 20 + Math.random() * 30;
+            const dx = Math.cos(angle) * distance;
+            const dy = Math.sin(angle) * distance;
+            particle.style.setProperty('--dx', dx + "px");
+            particle.style.setProperty('--dy', dy + "px");
+
+            particleLayer.appendChild(particle);
+            particle.addEventListener('animationend', () => {
+                particle.remove();
+            });
+        }
+    }
+
+    showLightPillarEffect(x, y) {
+        const particleLayer = document.getElementById('particle-layer');
+        if (!particleLayer) return;
+
+        // 現在のプレイヤータイル要素（data-x, data-y 属性で識別）を取得
+        const playerTile = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
+        let centerX, centerY;
+        if (playerTile) {
+            const gameContainer = document.getElementById('game-container');
+            // gameContainer が存在しない場合、フォールバックとして { left: 0, top: 0 } を利用
+            const containerRect = gameContainer ? gameContainer.getBoundingClientRect() : { left: 0, top: 0 };
+            const tileRect = playerTile.getBoundingClientRect();
+            centerX = tileRect.left - containerRect.left + tileRect.width / 2;
+            centerY = tileRect.top - containerRect.top + tileRect.height / 2;
+        } else {
+            const tileElement = document.querySelector('#game span');
+            const tileSize = tileElement ? tileElement.offsetWidth : 14;
+            centerX = x * tileSize + tileSize / 2;
+            centerY = y * tileSize + tileSize / 2;
+        }
+        
+        // particleLayer の高さから、プレイヤーの中心の下端の位置（bottom）を計算
+        const bottomValue = particleLayer.offsetHeight - centerY;
+        
+        const pillar = document.createElement('div');
+        pillar.classList.add('light-pillar');
+        pillar.style.left = centerX + "px";
+        pillar.style.bottom = bottomValue + "px";
+        
+        particleLayer.appendChild(pillar);
+        
+        pillar.addEventListener('animationend', () => {
+            pillar.remove();
+        });
     }
 } 

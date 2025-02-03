@@ -49,7 +49,7 @@ const GAME_CONSTANTS = {
     
     DIMENSIONS: {
         WIDTH: 60,
-        HEIGHT: 35
+        HEIGHT: 40
     },
     
     ROOM: {
@@ -64,7 +64,7 @@ const GAME_CONSTANTS = {
     FORMULAS: {
         MAX_HP: (stats, level) => Math.floor((stats.con * 2 + stats.str / 5) * (1 + level * 0.2)),
         ATTACK: (stats) => ({
-            base: Math.floor(stats.str - stats.dex / 2),
+            base: Math.max(0, Math.floor(stats.str - stats.dex / 2)),
             diceCount: Math.floor(stats.dex / 5),
             diceSides: Math.floor(stats.str / 5) * 3
         }),
