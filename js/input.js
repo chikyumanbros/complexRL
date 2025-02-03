@@ -641,10 +641,5 @@ class InputHandler {
             console.warn("'game-mode' element not found. Please add <div id=\"game-mode\"></div> to your HTML.");
             return;
         }
-        if (document.body.classList.contains('codex-mode')) {
-            gameModeElem.textContent = "CODEX MODE";
-        } else {
-            gameModeElem.textContent = "GAME MODE";
-        }
     }
 } 
