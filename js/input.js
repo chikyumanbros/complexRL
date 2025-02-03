@@ -23,7 +23,7 @@ class InputHandler {
         this.game.renderer.clearEffects();
 
         if (event.ctrlKey || event.altKey || event.metaKey) return;
-        
+
         const key = event.key.toLowerCase();
 
         // ゲームオーバー時の処理
@@ -41,6 +41,7 @@ class InputHandler {
             if (this.lookMode) {
                 this.endLookMode();
             }
+            this.toggleCodexMode();
             this.game.toggleMode();
             return;
         }
@@ -51,10 +52,12 @@ class InputHandler {
             return;
         }
 
-        if (this.game.mode === 'game') {
-            this.handleGameModeInput(key);
-        } else if (this.game.mode === 'codex') {
+        // Codexモードの場合はCodex用の入力処理を行う
+        if (document.body.classList.contains('codex-mode')) {
             this.handleCodexModeInput(key);
+        } else {
+            // 通常のゲームモードの場合はゲーム用の入力処理を行う
+            this.handleGameModeInput(key);
         }
     }
 
@@ -76,20 +79,20 @@ class InputHandler {
             this.handleLookMode(key);
             return;
         }
-        
+
         const player = this.game.player;
-        
+
         // ドア操作 (oで開け、cで閉じる)
         if (key === 'o' || key === 'c') {
             const adjacentDoors = this.findAdjacentDoors();
-            
+
             if (adjacentDoors.length === 0) {
                 this.game.logger.add("No door to operate nearby.", "warning");
                 return;
             }
-            
+
             // 隣接するドアが1つ、または操作可能なドアが1つの場合は直接操作
-            const operableDoors = adjacentDoors.filter(door => 
+            const operableDoors = adjacentDoors.filter(door =>
                 (key === 'o' && door.tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) ||
                 (key === 'c' && door.tile === GAME_CONSTANTS.TILES.DOOR.OPEN)
             );
@@ -107,18 +110,18 @@ class InputHandler {
                 this.pendingDoorOperation = key;
                 return;
             }
-            
+
             this.game.processTurn();
             this.game.renderer.render();
             return;
         }
-        
+
         // ドア操作の方向選択モード
         if (this.mode === 'doorOperation') {
             let dx = 0;
             let dy = 0;
-            
-            switch(key) {
+
+            switch (key) {
                 case 'arrowleft':
                 case 'h': dx = -1; break;
                 case 'arrowright':
@@ -140,7 +143,7 @@ class InputHandler {
 
             const x = this.game.player.x + dx;
             const y = this.game.player.y + dy;
-            
+
             const door = this.findAdjacentDoors().find(d => d.x === x && d.y === y);
             if (door) {
                 this.operateDoor(door, this.pendingDoorOperation);
@@ -149,12 +152,12 @@ class InputHandler {
             } else {
                 this.game.logger.add("No door in that direction.", "warning");
             }
-            
+
             this.mode = 'normal';
             this.pendingDoorOperation = null;
             return;
         }
-        
+
         // ターゲット選択モード中の処理
         if (this.targetingMode) {
             this.handleTargetingMode(key);
@@ -211,7 +214,7 @@ class InputHandler {
         // 移動キーの処理
         let dx = 0;
         let dy = 0;
-        switch(key) {
+        switch (key) {
             case 'ArrowLeft':
             case 'h': dx = -1; break;
             case 'ArrowRight':
@@ -268,7 +271,7 @@ class InputHandler {
     handleCodexModeInput(key) {
         const codex = this.game.codexSystem;
         const keyLower = key.toLowerCase();
-        
+
         if (codex.selectionMode === 'replace') {
             if (keyLower === 'escape') {
                 codex.selectionMode = 'normal';
@@ -393,7 +396,7 @@ class InputHandler {
 
             const healthPercent = Math.floor((monster.hp / monster.maxHp) * 100);
             let status = [];
-            
+
             // 基本情報
             lookInfo = [
                 `${monster.name} (Level ${monster.level}):`,
@@ -415,13 +418,13 @@ class InputHandler {
 
             // 戦闘関連の情報
             lookInfo.push(
-                `Attack Power: ${monster.attackPower.base}+${monster.attackPower.diceCount}d${monster.attackPower.diceSides}`,
-                `Defense: ${monster.defense.base}+${monster.defense.diceCount}d${monster.defense.diceSides}`,
-                `Speed: ${GAME_CONSTANTS.FORMULAS.SPEED(monster.stats)}`,
-                `Accuracy: ${monster.accuracy}%`,
-                `Evasion: ${monster.evasion}%`,
-                `Perception: ${monster.perception}`,
-                `Codex Points: ${monster.codexPoints}`
+                `ATK: ${monster.attackPower.base}+${monster.attackPower.diceCount}d${monster.attackPower.diceSides}`,
+                `DEF: ${monster.defense.base}+${monster.defense.diceCount}d${monster.defense.diceSides}`,
+                `SPD: ${GAME_CONSTANTS.FORMULAS.SPEED(monster.stats)}`,
+                `ACC: ${monster.accuracy}%`,
+                `EVA: ${monster.evasion}%`,
+                `PER: ${monster.perception}`,
+                `CODEX: ${monster.codexPoints}`
             );
 
             lookInfo = lookInfo.join('\n');
@@ -460,13 +463,13 @@ class InputHandler {
 
         switch (key) {
             case 'y': dx = -1; dy = -1; break;
-            case 'u': dx = 1;  dy = -1; break;
-            case 'b': dx = -1; dy = 1;  break;
-            case 'n': dx = 1;  dy = 1;  break;
+            case 'u': dx = 1; dy = -1; break;
+            case 'b': dx = -1; dy = 1; break;
+            case 'n': dx = 1; dy = 1; break;
             case 'h': dx = -1; break;
-            case 'l': dx = 1;  break;
+            case 'l': dx = 1; break;
             case 'k': dy = -1; break;
-            case 'j': dy = 1;  break;
+            case 'j': dy = 1; break;
             case 'enter':
             case ' ':
                 this.confirmTarget();
@@ -490,22 +493,22 @@ class InputHandler {
     confirmTarget() {
         const player = this.game.player;
         const targetPos = { x: this.targetX, y: this.targetY };
-        
+
         // ルックモードの場合は何もせずに終了（examineTargetは移動時に行われる）
         if (this.targetingMode === 'look') {
             return;
         }
-        
+
         // スキルの取得
         const skill = this.game.codexSystem.findSkillById(this.targetingMode);
         const range = skill.range || 3; // デフォルトの範囲を3に設定
-        
+
         // 距離チェック
         const distance = Math.max(
             Math.abs(this.targetX - player.x),
             Math.abs(this.targetY - player.y)
         );
-        
+
         // 範囲外の場合は早期リターン
         if (distance > range || this.game.map[this.targetY][this.targetX] !== 'floor') {
             this.game.logger.add("Invalid target location!", "warning");
@@ -517,7 +520,7 @@ class InputHandler {
         const result = player.useSkill(this.targetingMode, targetPos, this.game);
         this.targetingMode = null;
         this.game.renderer.clearHighlight();
-        
+
         // スキル使用が成功した場合のみターンを進める
         if (result) {
             this.game.processTurn();
@@ -561,27 +564,27 @@ class InputHandler {
     findAdjacentDoors() {
         const player = this.game.player;
         const doors = [];
-        
+
         const adjacentOffsets = [
-            {dx: -1, dy: -1}, {dx: 0, dy: -1}, {dx: 1, dy: -1},
-            {dx: -1, dy: 0},                    {dx: 1, dy: 0},
-            {dx: -1, dy: 1},  {dx: 0, dy: 1},  {dx: 1, dy: 1}
+            { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 },
+            { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
+            { dx: -1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 1, dy: 1 }
         ];
 
         for (let offset of adjacentOffsets) {
             const x = player.x + offset.dx;
             const y = player.y + offset.dy;
-            
+
             if (x < 0 || x >= this.game.width || y < 0 || y >= this.game.height)
                 continue;
 
             const tile = this.game.tiles[y][x];
-            if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED || 
+            if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
                 tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
-                doors.push({x, y, tile});
+                doors.push({ x, y, tile });
             }
         }
-        
+
         return doors;
     }
 
@@ -597,10 +600,10 @@ class InputHandler {
                 const massiveDamage = monster.hp + 999;
                 const result = monster.takeDamage(massiveDamage);
                 this.game.logger.add(`The closing door crushes ${monster.name} for massive damage!`, "playerCrit");
-                
+
                 // ドアキル位置を記録
                 this.game.lastDoorKillLocation = { x: door.x, y: door.y };
-                
+
                 // 遅延してタイルを更新
                 setTimeout(() => {
                     this.game.lastDoorKillLocation = null;
@@ -608,7 +611,7 @@ class InputHandler {
                         Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
                     ];
                     this.game.colors[door.y][door.x] = GAME_CONSTANTS.COLORS.FLOOR;
-                    
+
                     if (result.killed) {
                         this.game.logger.add(`The door has destroyed ${monster.name}!`, "kill");
                         this.game.removeMonster(monster);
@@ -616,7 +619,7 @@ class InputHandler {
                         const monsterCount = this.game.getMonstersInRoom(currentRoom).length;
                         this.game.logger.updateRoomInfo(currentRoom, monsterCount, true);
                     }
-                    
+
                     this.game.renderer.render();
                 }, 400);
 
@@ -628,6 +631,20 @@ class InputHandler {
                 this.game.colors[door.y][door.x] = GAME_CONSTANTS.COLORS.DOOR;
                 this.game.logger.add("You closed the door.", "playerInfo");
             }
+        }
+    }
+
+    toggleCodexMode() {
+        document.body.classList.toggle('codex-mode');
+        const gameModeElem = document.getElementById('game-mode');
+        if (!gameModeElem) {
+            console.warn("'game-mode' element not found. Please add <div id=\"game-mode\"></div> to your HTML.");
+            return;
+        }
+        if (document.body.classList.contains('codex-mode')) {
+            gameModeElem.textContent = "CODEX MODE";
+        } else {
+            gameModeElem.textContent = "GAME MODE";
         }
     }
 } 

@@ -23,7 +23,6 @@ class Renderer {
 
         this.renderMap();
         this.renderStatus();
-        this.renderMode();
 
         // 瞑想エフェクトの適用
         if (this.game.player.meditation && this.game.player.meditation.active) {
@@ -327,11 +326,6 @@ class Renderer {
                 : 'NO SKILLS';
             skillsElement.innerHTML = skillsDisplay;
         }
-    }
-
-    renderMode() {
-        const modeText = this.game.mode === GAME_CONSTANTS.MODES.GAME ? 'GAME MODE' : 'CODEX MODE';
-        document.getElementById('game-mode').textContent = modeText;
     }
 
     renderCodexMenu() {

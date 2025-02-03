@@ -514,21 +514,3 @@ function createCodexMenu() {
     
     return menu;
 }
-
-function toggleCodexMode() {
-    document.body.classList.toggle('codex-mode');
-    const gameModeElem = document.getElementById('game-mode');
-    if (document.body.classList.contains('codex-mode')) {
-        gameModeElem.textContent = "CODEX MODE";
-    } else {
-        gameModeElem.textContent = "GAME MODE";
-    }
-}
-
-// TABキーでモードを切り替える（必要に応じて、既存の入力処理と統合してください）
-document.addEventListener('keydown', (event) => {
-    if (event.key === 'Tab') {
-        event.preventDefault();
-        toggleCodexMode();
-    }
-}); 
