@@ -5,14 +5,14 @@ class Player {
         this.game = game;
         this.char = '@';
         this.level = 1;
-        this.xp = 14;                  // 経験値の初期化
+        this.xp = 0;                  // 経験値の初期化
         this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
         this.stats = {
-            str: 20,
-            dex: 20,
-            con: 20,
-            int: 20,
-            wis: 20
+            str: 10,
+            dex: 10,
+            con: 10,
+            int: 10,
+            wis: 10
         };
 
         // HPの計算
