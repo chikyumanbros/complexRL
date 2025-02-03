@@ -49,7 +49,7 @@ const GAME_CONSTANTS = {
     
     DIMENSIONS: {
         WIDTH: 60,
-        HEIGHT: 40
+        HEIGHT: 35
     },
     
     ROOM: {
@@ -69,11 +69,11 @@ const GAME_CONSTANTS = {
             diceSides: Math.floor(stats.str / 5) * 3
         }),
         DEFENSE: (stats) => ({
-            base: Math.floor(stats.con - stats.str / 2),
+            base: Math.max(1, Math.floor(stats.con - stats.str / 2)),
             diceCount: Math.floor(stats.str / 5),
             diceSides: Math.floor(stats.con / 5) * 3
         }),
-        ACCURACY: (stats) => Math.floor(60 + stats.dex * 1.5),
+        ACCURACY: (stats) => Math.floor(50 + stats.dex * 1.5),
         EVASION: (stats) => Math.floor(stats.dex * 1.2),
         PERCEPTION: (stats) => Math.floor(3 + stats.wis * 0.4),
         rollDamage: (attack, defense) => {
@@ -93,11 +93,12 @@ const GAME_CONSTANTS = {
             count: Math.floor(1 + stats.con / 20),
             sides: Math.floor(1 + stats.con / 20)
         }),
-        HEAL_MODIFIER: (stats) => Math.floor((stats.con - stats.str) / 2),
+        HEAL_MODIFIER: (stats) => Math.max(1, Math.floor((stats.con - stats.str) / 2)),
         SLEEP_CHANCE: (stats) => {
             // intが低いほど眠りやすい。最大50%の確率で眠る
             return Math.min(50, Math.max(0, 50 - stats.int * 8));
         },
+        SPEED: (stats) => Math.max(1, Math.floor(stats.dex - ((stats.str + stats.con) / 10)))
     },
 
     MONSTERS: {
@@ -157,7 +158,7 @@ const GAME_CONSTANTS = {
             name: 'Goblin',
             stats: {
                 str: 10,
-                dex: 14,
+                dex: 10,
                 con: 9,
                 int: 8,
                 wis: 6

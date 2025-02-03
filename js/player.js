@@ -5,6 +5,7 @@ class Player {
         this.game = game;
         this.char = '@';
         this.level = 1;
+        this.codexPoints = 20;  // codexポイントのみを使用
         this.xp = 0;                  // 経験値の初期化
         this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
         this.stats = {
@@ -26,7 +27,6 @@ class Player {
         this.evasion = GAME_CONSTANTS.FORMULAS.EVASION(this.stats);
 
         this.skills = new Map();  // スキルマップの初期化
-        this.codexPoints = 0;  // codexポイントのみを使用
         this.nextAttackModifier = null;  // 次の攻撃の修正値
         this.meditation = null;  // メディテーション状態を追加
 
@@ -69,7 +69,7 @@ class Player {
         this.xpToNextLevel = this.calculateRequiredXP(this.level);
         
         // レベルアップ時のログ出力
-        this.game.logger.add(`Level up! You are now level ${this.level}. 🎉`, "important");
+        this.game.logger.add(`Level up! You are now level ${this.level}.`, "important");
         this.game.logger.add("Choose a stat to increase:", "playerInfo");
         this.game.logger.add("[S]trength | [D]exterity | [C]onstitution | [I]ntelligence | [W]isdom", "playerInfo");
         
@@ -89,7 +89,7 @@ class Player {
                     int: "Intelligence",
                     wis: "Wisdom"
                 };
-                this.game.logger.add(`${statNames[stat]} increased to ${this.stats[stat]}! 💪`, "playerInfo");
+                this.game.logger.add(`${statNames[stat]} increased to ${this.stats[stat]}!`, "playerInfo");
                 
                 // 派生パラメータの再計算
                 this.maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(this.stats, this.level);
@@ -111,7 +111,7 @@ class Player {
     move(dx, dy, map) {
         // 移動時にメディテーションを解除
         if (this.meditation && this.meditation.active) {
-            this.game.logger.add(`Meditation cancelled. (Total healed: ${this.meditation.totalHealed}) 🧘❌`, "playerInfo");
+            this.game.logger.add(`Meditation cancelled. (Total healed: ${this.meditation.totalHealed})`, "playerInfo");
             this.meditation = null;
         }
 
@@ -189,46 +189,28 @@ class Player {
         };
     }
 
-    attackMonster(monster, game) {
-        // 既存のエフェクトタイマーをクリア
-        if (this.attackEffectTimer) {
-            clearTimeout(this.attackEffectTimer);
-            game.lastAttackLocation = null;
-        }
-
-        // 攻撃位置を設定
-        game.lastAttackLocation = { x: monster.x, y: monster.y };
-        game.renderer.render();
-
-        // 通常の攻撃処理
+    // プレイヤーの攻撃処理をまとめるためのヘルパーメソッド
+    resolvePlayerAttack(monster, game) {
         const attackType = this.nextAttackModifier ? this.nextAttackModifier.name : "attack";
-        
-        // 命中判定
         let hitChance = this.accuracy;
-        if (this.nextAttackModifier && this.nextAttackModifier.accuracyMod) {  // accuracyMod に変更
-            hitChance *= (1 + this.nextAttackModifier.accuracyMod);  // 乗算に変更
+        if (this.nextAttackModifier && this.nextAttackModifier.accuracyMod) {
+            hitChance *= (1 + this.nextAttackModifier.accuracyMod);
         }
-        
         const roll = Math.floor(Math.random() * 100);
         game.logger.add(`You ${attackType} ${monster.name} (ACC: ${Math.floor(hitChance)}% | Roll: ${roll})`, "playerInfo");
-
         if (roll >= hitChance) {
-            game.logger.add(`Your ${attackType} misses! ⚔️❌`, "playerMiss");
-            this.nextAttackModifier = null;
+            game.logger.add(`Your ${attackType} misses!`, "playerMiss");
             return;
         }
 
         // 回避判定
         const evadeRoll = Math.random() * 100;
         const evadeChance = monster.evasion || 0;
-        
         if (evadeRoll < evadeChance) {
-            game.logger.add(`${monster.name} dodges your ${attackType}! (EVA: ${Math.floor(evadeChance)}% | Roll: ${Math.floor(evadeRoll)}) ⚔️↪️`, "monsterEvade");
-            this.nextAttackModifier = null;
+            game.logger.add(`${monster.name} dodges your ${attackType}! (EVA: ${Math.floor(evadeChance)}% | Roll: ${Math.floor(evadeRoll)})`, "monsterEvade");
             return;
         }
 
-        // ダメージ計算
         let damageMultiplier = 1;
         if (this.nextAttackModifier && this.nextAttackModifier.damageMod) {
             damageMultiplier = this.nextAttackModifier.damageMod;
@@ -236,59 +218,72 @@ class Player {
 
         const baseDamage = GAME_CONSTANTS.FORMULAS.rollDamage(this.attackPower, monster.defense);
         const damage = Math.floor(baseDamage * damageMultiplier);
-
         const result = monster.takeDamage(damage);
         const healthStatus = `HP: ${monster.hp}/${monster.maxHp}`;
-
-        // 攻撃の詳細をログに追加（修正後の計算式を反映）
-        const attackRoll = this.attackPower.base + 
-            `+${this.attackPower.diceCount}d${this.attackPower.diceSides}` + 
+        const attackRollStr = this.attackPower.base + `+${this.attackPower.diceCount}d${this.attackPower.diceSides}` +
             (damageMultiplier !== 1 ? ` ×${damageMultiplier.toFixed(1)}` : '');
-        const defenseRoll = monster.defense.base + 
-            `+${monster.defense.diceCount}d${monster.defense.diceSides}`;
-        
-        if (result.killed) {
-            game.logger.add(`Critical ${attackType}! ${monster.name} takes ${result.damage} damage! ⚔️💥`, "playerCrit");
-            game.logger.add(`You killed the ${monster.name}! 💀`, "kill");
-            game.removeMonster(monster);
-            
-            // 近接キルのフレーバーテキストを更新
-            const currentRoom = game.getCurrentRoom();
-            const monsterCount = game.getMonstersInRoom(currentRoom).length;
-            game.logger.updateRoomInfo(currentRoom, monsterCount, false, true);  // meleeKillフラグを追加
-            
-            if (result.codexPoints > 0) {
-                this.codexPoints += result.codexPoints;
-                game.logger.add(`Gained ${result.codexPoints} Codex points! 📚✨`, "important");
-            }
+        const defenseRollStr = monster.defense.base + `+${monster.defense.diceCount}d${monster.defense.diceSides}`;
 
-            // モンスターから得られる経験値の計算
+        if (result.killed) {
+            game.logger.add(`Critical ${attackType}! ${monster.name} takes ${result.damage} damage!`, "playerCrit");
+            game.logger.add(`You killed the ${monster.name}!`, "kill");
+            game.removeMonster(monster);
+
+            // 経験値計算
             const levelDiff = monster.level - this.level;
-            const baseXP = Math.floor(monster.level); 
-            
-            // レベル差によるボーナス/ペナルティ
+            const baseXP = Math.floor(monster.level);
             const levelMultiplier = levelDiff > 0 
-                ? 1 + (levelDiff * 0.2)  // 高レベルモンスターからのボーナス
-                : Math.max(0.1, 1 + (levelDiff * 0.1));  // 低レベルモンスターからのペナルティ（最低10%）
-            
-            // 知力ボーナスの計算（10を基準値として、1ポイントにつき3%のボーナス）
+                ? 1 + (levelDiff * 0.2)
+                : Math.max(0.1, 1 + (levelDiff * 0.1));
             const intBonus = 1 + Math.max(0, (this.stats.int - 10) * 0.03);
-            
             const xpGained = Math.max(1, Math.floor(baseXP * levelMultiplier * intBonus));
-            
             if (intBonus > 1) {
-                game.logger.add(`Intelligence bonus: ${Math.floor((intBonus - 1) * 100)}% more XP! 📚`, "playerInfo");
+                game.logger.add(`Intelligence bonus: ${Math.floor((intBonus - 1) * 100)}% more XP!`, "playerInfo");
             }
-            
             this.addExperience(xpGained);
         } else {
-            game.logger.add(`${attackType} hits! ${monster.name} takes ${result.damage} damage! ` +
-                `(ATK: ${attackRoll} vs DEF: ${defenseRoll}) ⚔️ (${healthStatus})`, "playerHit");
+            game.logger.add(`${attackType} hits! ${monster.name} takes ${result.damage} damage! (ATK: ${attackRollStr} vs DEF: ${defenseRollStr})  (${healthStatus})`, "playerHit");
+        }
+        this.nextAttackModifier = null;
+    }
+
+    // プレイヤーの攻撃にSPEEDによる処理順序を組み込む
+    attackMonster(monster, game) {
+        // 基本のSPDを定数から計算
+        const basePlayerSpeed = GAME_CONSTANTS.FORMULAS.SPEED(this.stats);
+        // 次の攻撃修正値に speedMod がある場合、それを反映した有効速度を計算する
+        const effectivePlayerSpeed = (this.nextAttackModifier && this.nextAttackModifier.speedMod)
+            ? Math.floor(basePlayerSpeed * (1 + this.nextAttackModifier.speedMod))
+            : basePlayerSpeed;
+        const monsterSpeed = GAME_CONSTANTS.FORMULAS.SPEED(monster.stats);
+        game.logger.add(`Speed Order: Player (${effectivePlayerSpeed}) vs ${monster.name} (${monsterSpeed})`);
+
+        if (effectivePlayerSpeed >= monsterSpeed) {
+            // プレイヤーの攻撃が先行する場合
+            this.resolvePlayerAttack(monster, game);
+            if (monster.hp > 0) {
+                game.logger.add(`${monster.name} attempts a counterattack!`, "monsterInfo");
+                monster.attackPlayer(this, game);
+                // このターン内での通常行動をスキップするためフラグをセット
+                monster.hasActedThisTurn = true;
+            }
+        } else {
+            // モンスターの攻撃が先行する場合（先制反撃）
+            game.logger.add(`${monster.name} acts preemptively!`, "monsterInfo");
+            monster.attackPlayer(this, game);
+            monster.hasActedThisTurn = true;
+            if (this.hp > 0 && monster.hp > 0) {
+                this.resolvePlayerAttack(monster, game);
+            }
         }
 
-        this.nextAttackModifier = null;
-
-        // 新しいタイマーを設定
+        // 攻撃エフェクトの処理（少しのタイマー後に画面更新）
+        if (this.attackEffectTimer) {
+            clearTimeout(this.attackEffectTimer);
+            game.lastAttackLocation = null;
+        }
+        game.lastAttackLocation = { x: monster.x, y: monster.y };
+        game.renderer.render();
         this.attackEffectTimer = setTimeout(() => {
             game.lastAttackLocation = null;
             game.renderer.render();
@@ -370,15 +365,15 @@ class Player {
 
             if (actualHeal > 0) {
                 this.meditation.totalHealed += actualHeal;
-                this.game.logger.add(`Meditation heals ${actualHeal} HP (+${this.meditation.totalHealed} total) 💚`, "heal");
+                this.game.logger.add(`Meditation heals ${actualHeal} HP (+${this.meditation.totalHealed} total)`, "heal");
             }
 
             this.meditation.turnsRemaining--;
 
             if (this.hp >= this.maxHp || this.meditation.turnsRemaining <= 0) {
                 const endMessage = this.hp >= this.maxHp 
-                    ? `HP fully restored! Meditation complete. 🧘✨`
-                    : `Meditation complete. (Total healed: ${this.meditation.totalHealed}) 🧘✨`;
+                    ? `HP fully restored! Meditation complete.`
+                    : `Meditation complete. (Total healed: ${this.meditation.totalHealed})`;
                 
                 this.game.logger.add(endMessage, "playerInfo");
                 this.meditation = null;
@@ -406,7 +401,7 @@ class Player {
                 const actualHeal = this.hp - oldHp;
                 this.game.logger.add(
                     `Natural healing: ${this.healingDice.count}d${this.healingDice.sides}` +
-                    `${this.healModifier >= 0 ? '+' : ''}${this.healModifier} → +${actualHeal} HP 💚`, 
+                    `${this.healModifier >= 0 ? '+' : ''}${this.healModifier} → +${actualHeal} HP`, 
                     "heal"
                 );
             }

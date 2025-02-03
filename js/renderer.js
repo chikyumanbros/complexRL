@@ -285,6 +285,10 @@ class Renderer {
         if (defenseElement) {
             defenseElement.textContent = `${player.defense.base}+${player.defense.diceCount}d${player.defense.diceSides}`;
         }
+        const speedElement = document.getElementById('speed');
+        if (speedElement) {
+            speedElement.textContent = `${GAME_CONSTANTS.FORMULAS.SPEED(player.stats)}`;
+        }
 
         // 命中率の表示を追加
         const accuracyElement = document.getElementById('accuracy');

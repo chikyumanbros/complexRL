@@ -35,7 +35,7 @@ class CodexSystem {
                             };
                             
                             game.logger.add(
-                                `You prepare a powerful strike! ${this.findSkillById('powerStrike').getEffectText(player)} 💪`, 
+                                `You prepare a powerful strike! ${this.findSkillById('powerStrike').getEffectText(player)} `, 
                                 "playerInfo"
                             );
                             game.renderer.render();
@@ -48,25 +48,26 @@ class CodexSystem {
                         name: 'Quick Slash', 
                         cost: 20, 
                         cooldown: 12,
-                        desc: 'Swift attack that improves accuracy. (Base: ACC +20%, no DMG penalty)',
+                        desc: 'Swift attack that improves accuracy and speed. (Base: ACC +20%, SPD +20%)',
                         getEffectText: (player) => {
-                            return `[ACC: +20%]`;
+                            return `[ACC: +20%, SPD: +20%]`;
                         },
                         isFreeAction: true,
                         requiresTarget: false,
                         learned: false,
                         effect: (game, player) => {
-                            // 既存の修正値があれば組み合わせる
-                            const currentMod = player.nextAttackModifier || { damageMod: 1, accuracyMod: 0 };
+                            // 既存の修正値があれば組み合わせ、なければ新規に初期値を設定する
+                            const currentMod = player.nextAttackModifier || { damageMod: 1, accuracyMod: 0, speedMod: 0 };
                             player.nextAttackModifier = {
                                 name: 'Combined Strike',
                                 damageMod: currentMod.damageMod,
                                 accuracyMod: currentMod.accuracyMod + 0.2,
+                                speedMod: currentMod.speedMod + 0.2,  // SPD +20% の効果を追加
                                 duration: 1
                             };
                             
                             game.logger.add(
-                                `You prepare a quick strike! ${this.findSkillById('quick').getEffectText(player)} ⚡`, 
+                                `You prepare a quick strike! ${this.findSkillById('quick').getEffectText(player)}`, 
                                 "playerInfo"
                             );
                             game.renderer.render();
@@ -245,7 +246,7 @@ class CodexSystem {
                                 totalHealed: 0
                             };
 
-                            game.logger.add("Started meditating... 🧘", "playerInfo");
+                            game.logger.add("Started meditating...", "playerInfo");
                             game.renderer.render();
                             return true;
                         }
@@ -512,4 +513,22 @@ function createCodexMenu() {
     }
     
     return menu;
-} 
+}
+
+function toggleCodexMode() {
+    document.body.classList.toggle('codex-mode');
+    const gameModeElem = document.getElementById('game-mode');
+    if (document.body.classList.contains('codex-mode')) {
+        gameModeElem.textContent = "CODEX MODE";
+    } else {
+        gameModeElem.textContent = "GAME MODE";
+    }
+}
+
+// TABキーでモードを切り替える（必要に応じて、既存の入力処理と統合してください）
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Tab') {
+        event.preventDefault();
+        toggleCodexMode();
+    }
+}); 

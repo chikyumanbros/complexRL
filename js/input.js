@@ -383,6 +383,14 @@ class InputHandler {
         let lookInfo = '';
 
         if (monster) {
+            // 万が一、攻撃力や防御力の情報が未定義の場合は、定数ファイルの計算式を利用して補完する
+            if (!monster.attackPower) {
+                monster.attackPower = GAME_CONSTANTS.FORMULAS.ATTACK(monster.stats);
+            }
+            if (!monster.defense) {
+                monster.defense = GAME_CONSTANTS.FORMULAS.DEFENSE(monster.stats);
+            }
+
             const healthPercent = Math.floor((monster.hp / monster.maxHp) * 100);
             let status = [];
             
@@ -408,6 +416,8 @@ class InputHandler {
             // 戦闘関連の情報
             lookInfo.push(
                 `Attack Power: ${monster.attackPower.base}+${monster.attackPower.diceCount}d${monster.attackPower.diceSides}`,
+                `Defense: ${monster.defense.base}+${monster.defense.diceCount}d${monster.defense.diceSides}`,
+                `Speed: ${GAME_CONSTANTS.FORMULAS.SPEED(monster.stats)}`,
                 `Accuracy: ${monster.accuracy}%`,
                 `Evasion: ${monster.evasion}%`,
                 `Perception: ${monster.perception}`,

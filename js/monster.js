@@ -63,6 +63,12 @@ class Monster {
     }
 
     act(game) {
+        // もしこのターン中に既に行動済みなら、処理をスキップする
+        if (this.hasActedThisTurn) {
+            delete this.hasActedThisTurn;
+            return;
+        }
+        // ここから通常の自然回復、睡眠状態、追跡・攻撃処理などを実行
         // 自然回復の処理（flee状態でも回復するように修正）
         if (this.hp < this.maxHp) {
             const successChance = 20 + Math.floor(this.stats.con / 5);
@@ -112,7 +118,7 @@ class Monster {
             
             if (wakeupChance > 0 && Math.random() * 100 < wakeupChance) {
                 this.isSleeping = false;
-                game.logger.add(`${this.name} wakes up! 👁️`, "monsterInfo");
+                game.logger.add(`${this.name} wakes up!`, "monsterInfo");
             }
             return; // 睡眠中は行動しない
         }
@@ -243,6 +249,7 @@ class Monster {
             derived: {
                 attack: `${this.attackPower.base}+${this.attackPower.diceCount}d${this.attackPower.diceSides}`,
                 defense: `${this.defense.base}+${this.defense.diceCount}d${this.defense.diceSides}`,
+                speed: `${GAME_CONSTANTS.FORMULAS.SPEED(this.stats)}`,
                 accuracy: Math.floor(this.accuracy),
                 evasion: Math.floor(this.evasion)
             }
