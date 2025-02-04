@@ -22,15 +22,19 @@ class CodexSystem {
                             return `[DMG: +${Math.floor((damageBonus-1)*100)}%, ACC: ${Math.floor((accuracyPenalty-1)*100)}%]`;
                         },
                         effect: (game, player) => {
+                            // 既にPower Strikeが有効な場合は使用できない
+                            if (player.nextAttackModifier && player.nextAttackModifier.name === 'Power Strike') {
+                                game.logger.add("Power Strike is already active!", "warning");
+                                return false;
+                            }
+
                             const damageBonus = 1 + (0.5 * player.stats.str / 10);
                             const accuracyPenalty = -0.3 * (player.stats.dex / 10);
 
-                            // 既存の修正値があれば組み合わせる
-                            const currentMod = player.nextAttackModifier || { damageMod: 1, accuracyMod: 0 };
                             player.nextAttackModifier = {
-                                name: 'Combined Strike',
-                                damageMod: currentMod.damageMod * damageBonus,
-                                accuracyMod: currentMod.accuracyMod + accuracyPenalty,
+                                name: 'Power Strike',
+                                damageMod: damageBonus,
+                                accuracyMod: accuracyPenalty,
                                 duration: 1
                             };
                             
@@ -56,13 +60,17 @@ class CodexSystem {
                         requiresTarget: false,
                         learned: false,
                         effect: (game, player) => {
-                            // 既存の修正値があれば組み合わせ、なければ新規に初期値を設定する
-                            const currentMod = player.nextAttackModifier || { damageMod: 1, accuracyMod: 0, speedMod: 0 };
+                            // 既にQuick Slashが有効な場合は使用できない
+                            if (player.nextAttackModifier && player.nextAttackModifier.name === 'Quick Slash') {
+                                game.logger.add("Quick Slash is already active!", "warning");
+                                return false;
+                            }
+
                             player.nextAttackModifier = {
-                                name: 'Combined Strike',
-                                damageMod: currentMod.damageMod,
-                                accuracyMod: currentMod.accuracyMod + 0.2,
-                                speedMod: currentMod.speedMod + 0.2,  // SPD +20% の効果を追加
+                                name: 'Quick Slash',
+                                damageMod: 1,
+                                accuracyMod: 0.2,
+                                speedMod: 0.2,
                                 duration: 1
                             };
                             

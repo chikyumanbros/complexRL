@@ -5,15 +5,15 @@ class Player {
         this.game = game;
         this.char = '@';
         this.level = 1;
-        this.codexPoints = 0;  // codexポイントのみを使用
+        this.codexPoints = 100;  // codexポイントのみを使用
         this.xp = 0;                  // 経験値の初期化
         this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
         this.stats = {
-            str: 10,
-            dex: 10,
-            con: 10,
-            int: 10,
-            wis: 10
+            str: 12,
+            dex: 12,
+            con: 12,
+            int: 12,
+            wis: 12
         };
 
         // HPの計算
@@ -395,7 +395,7 @@ class Player {
             if (!skill.isFreeAction) {
                 game.processTurn();
             }
-            
+            game.renderer.renderStatus();
             return true;
         }
 
