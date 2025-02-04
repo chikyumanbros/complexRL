@@ -106,9 +106,15 @@ class Game {
         // 初期メッセージ
         this.logger.add("Welcome to complexRL!", "important");
 
-        // 画面を更新
+        // モードをゲームモードに設定
+        this.mode = GAME_CONSTANTS.MODES.GAME;
+
+        // 画面を更新（lookパネルを表示）
         this.renderer.render();
-        this.renderer.renderCodexMenu();
+        this.logger.renderLookPanel();  // lookパネルを表示
+        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);  // Loggerのメソッドを呼び出す
+        this.updateRoomInfo();  // 周辺情報を更新
+        this.updateExplored();  // 踏破情報を更新
     }
 
     init() {
@@ -190,8 +196,8 @@ class Game {
         // 生存しているモンスターのみが行動
         this.monsters = this.monsters.filter(monster => monster.hp > 0);
         
-        // モンスターの行動
-        for (const monster of this.monsters) {
+        // モンスターの行動フェーズ
+        for (const monster of this.monsters) {            
             monster.act(this);
             
             // プレイヤーが死亡した場合
@@ -355,9 +361,6 @@ class Game {
     }
 
     gameOver() {
-        this.isGameOver = true;
-        this.mode = GAME_CONSTANTS.MODES.GAME_OVER;
-        
         // 最終スコアの計算
         const monstersKilled = this.maxTotalMonsters - this.monsters.length;
         const finalScore = {
@@ -366,15 +369,15 @@ class Game {
             turns: this.turn
         };
 
-        // ゲームオーバーメッセージ
-        this.logger.add("=================", "important");
-        this.logger.add("GAME OVER", "death");
-        this.logger.add("Final Score:", "important");
-        this.logger.add(`Monsters Defeated: ${monstersKilled}`, "important");
-        this.logger.add(`Codex Points: ${this.player.codex}`, "important");
-        this.logger.add(`Survived Turns: ${this.turn}`, "important");
-        this.logger.add("=================", "important");
-        this.logger.add("Press Enter to restart", "info");
+        // レンダリングを実行して最終状態を表示
+        this.renderer.render();
+
+        // ゲームオーバー状態を設定
+        this.isGameOver = true;
+        this.mode = GAME_CONSTANTS.MODES.GAME_OVER;
+
+        // Loggerを通じてゲームオーバーメッセージを表示
+        this.logger.showGameOverMessage(finalScore);
     }
 
     generateNewFloor() {

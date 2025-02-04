@@ -168,72 +168,121 @@ class Player {
     }
 
     takeDamage(amount) {
+        // 周囲のモンスター数によるペナルティを計算
+        const surroundingMonsters = this.countSurroundingMonsters(this.game);
+        const penaltyPerMonster = 15; // 1体につき15%のペナルティ
+        // 2体以上からペナルティ適用（surroundingMonsters - 1）
+        const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
+
+        // 回避率にペナルティを適用
+        this.evasion = Math.floor(this.evasion * (1 - surroundingPenalty));
+
         const damage = Math.max(1, amount);
         this.hp -= damage;
         
         // ダメージを受けた時にステータスパネルをフラッシュ
         this.game.renderer.flashStatusPanel();
-        
-        if (this.hp <= 0) {
-            this.hp = 0;
-            // レンダリングを先に行い、HPが0の状態を表示
-            this.game.renderer.render();
-            // その後でゲームオーバー処理
-            this.game.gameOver();
-        }
 
-        return {
+        // ダメージ結果を返す
+        const result = {
             damage: damage,
             killed: this.hp <= 0,
             evaded: false
         };
+
+        if (surroundingPenalty > 0) {
+            this.game.logger.add(`Surrounded! (-${Math.floor(surroundingPenalty * 100)}% evasion)`, "warning");
+        }
+
+        // HPが0以下になった場合の処理
+        if (result.killed) {
+            this.hp = 0;
+            this.game.renderer.render();
+            setTimeout(() => {
+                this.game.gameOver();
+            }, 50);
+        }
+
+        return result;
     }
 
     // プレイヤーの攻撃処理をまとめるためのヘルパーメソッド
     resolvePlayerAttack(monster, game) {
+        // 周囲のモンスター数によるペナルティを計算
+        const surroundingMonsters = this.countSurroundingMonsters(game);
+        const penaltyPerMonster = 15; // 1体につき15%のペナルティ
+        // 2体以上からペナルティ適用（surroundingMonsters - 1）
+        const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
+
+        // 機会攻撃の判定
+        const isOpportunityAttack = monster.hasStartedFleeing && monster.checkEscapeRoute(game);
+        
         const attackType = this.nextAttackModifier ? this.nextAttackModifier.name : "attack";
-        let hitChance = this.accuracy;
+        let hitChance = Math.floor(this.accuracy * (1 - surroundingPenalty));
+        let damageMultiplier = 1;
+        
+        // 機会攻撃時は命中率-30%とダメージ1.5倍
+        if (isOpportunityAttack) {
+            hitChance *= 0.7;  // 30%減少
+            damageMultiplier = 1.5;  // ダメージ1.5倍
+            game.logger.add(`Opportunity attack! (-30% accuracy, +50% damage)`, "playerInfo");
+        }
+
+        if (surroundingPenalty > 0) {
+            game.logger.add(`Surrounded by ${surroundingMonsters} enemies! (-${Math.floor(surroundingPenalty * 100)}% accuracy)`, "warning");
+        }
+        
         if (this.nextAttackModifier && this.nextAttackModifier.accuracyMod) {
             hitChance *= (1 + this.nextAttackModifier.accuracyMod);
         }
+        
         const roll = Math.floor(Math.random() * 100);
         game.logger.add(`You ${attackType} ${monster.name} (ACC: ${Math.floor(hitChance)}% | Roll: ${roll})`, "playerInfo");
+        
         if (roll >= hitChance) {
             game.logger.add(`Your ${attackType} misses!`, "playerMiss");
             return;
         }
 
-        // 回避判定
-        const evadeRoll = Math.random() * 100;
-        const evadeChance = monster.evasion || 0;
-        if (evadeRoll < evadeChance) {
-            game.logger.add(`${monster.name} dodges your ${attackType}! (EVA: ${Math.floor(evadeChance)}% | Roll: ${Math.floor(evadeRoll)})`, "monsterEvade");
-            return;
+        // 逃走中のモンスターは機会攻撃を受けた場合、回避判定をスキップ
+        if (!monster.hasStartedFleeing) {
+            // 通常の回避判定
+            const evadeRoll = Math.random() * 100;
+            const evadeChance = monster.evasion || 0;
+            if (evadeRoll < evadeChance) {
+                game.logger.add(`${monster.name} dodges your ${attackType}! (EVA: ${Math.floor(evadeChance)}% | Roll: ${Math.floor(evadeRoll)})`, "monsterEvade");
+                return;
+            }
         }
 
-        let damageMultiplier = 1;
         if (this.nextAttackModifier && this.nextAttackModifier.damageMod) {
-            damageMultiplier = this.nextAttackModifier.damageMod;
+            damageMultiplier *= this.nextAttackModifier.damageMod;
         }
 
         const baseDamage = GAME_CONSTANTS.FORMULAS.rollDamage(this.attackPower, monster.defense);
         const damage = Math.floor(baseDamage * damageMultiplier);
-        const result = monster.takeDamage(damage);
+        const result = monster.takeDamage(damage, game);
         const healthStatus = `HP: ${monster.hp}/${monster.maxHp}`;
         const attackRollStr = this.attackPower.base + `+${this.attackPower.diceCount}d${this.attackPower.diceSides}` +
             (damageMultiplier !== 1 ? ` ×${damageMultiplier.toFixed(1)}` : '');
         const defenseRollStr = monster.defense.base + `+${monster.defense.diceCount}d${monster.defense.diceSides}`;
 
+        if (result.isOpportunityAttack) {
+            game.logger.add(`Opportunity attack hits! ${monster.name} takes ${result.damage} damage! (ATK: ${attackRollStr} vs DEF: ${defenseRollStr})`, "playerCrit");
+        }
+
         if (result.killed) {
-            game.logger.add(`Critical ${attackType}! ${monster.name} takes ${result.damage} damage!`, "playerCrit");
-            game.logger.add(`You killed the ${monster.name}!`, "kill");
+            const attackRollStr = this.attackPower.base + `+${this.attackPower.diceCount}d${this.attackPower.diceSides}` +
+                (damageMultiplier !== 1 ? ` ×${damageMultiplier.toFixed(1)}` : '');
+            const defenseRollStr = monster.defense.base + `+${monster.defense.diceCount}d${monster.defense.diceSides}`;
+            game.logger.add(`You killed the ${monster.name} with ${result.damage} damage! (ATK: ${attackRollStr} vs DEF: ${defenseRollStr})`, "kill");
             game.removeMonster(monster);
 
-            // ここでcodexPointsを加算する
+            // codexPointsを加算
             this.codexPoints += result.codexPoints;
             game.logger.add(`Gained ${result.codexPoints} codex points!`, "playerInfo");
 
-            // 経験値計算
+            // 経験値計算と表示
             const levelDiff = monster.level - this.level;
             const baseXP = Math.floor(monster.level);
             const levelMultiplier = levelDiff > 0 
@@ -245,17 +294,24 @@ class Player {
                 game.logger.add(`Intelligence bonus: ${Math.floor((intBonus - 1) * 100)}% more XP!`, "playerInfo");
             }
             this.addExperience(xpGained);
-        } else {
+        } else if (!result.isOpportunityAttack) {
             game.logger.add(`${attackType} hits! ${monster.name} takes ${result.damage} damage! (ATK: ${attackRollStr} vs DEF: ${defenseRollStr})  (${healthStatus})`, "playerHit");
         }
+
         this.nextAttackModifier = null;
     }
 
     // プレイヤーの攻撃にSPEEDによる処理順序を組み込む
     attackMonster(monster, game) {
-        // 基本のSPDを定数から計算
+        // 機会攻撃の条件をチェック（逃走中で逃げ場がある場合）
+        if (monster.hasStartedFleeing && monster.checkEscapeRoute(game)) {
+            // 機会攻撃の場合は、イニシアチブ判定や反撃なしで直接攻撃を解決
+            this.resolvePlayerAttack(monster, game);
+            return;
+        }
+
+        // 通常の攻撃処理（イニシアチブ判定あり）
         const basePlayerSpeed = GAME_CONSTANTS.FORMULAS.SPEED(this.stats);
-        // 次の攻撃修正値に speedMod がある場合、それを反映した有効速度を計算する
         const effectivePlayerSpeed = (this.nextAttackModifier && this.nextAttackModifier.speedMod)
             ? Math.floor(basePlayerSpeed * (1 + this.nextAttackModifier.speedMod))
             : basePlayerSpeed;
@@ -268,7 +324,6 @@ class Player {
             if (monster.hp > 0) {
                 game.logger.add(`${monster.name} attempts a counterattack!`, "monsterInfo");
                 monster.attackPlayer(this, game);
-                // このターン内での通常行動をスキップするためフラグをセット
                 monster.hasActedThisTurn = true;
             }
         } else {
@@ -281,7 +336,7 @@ class Player {
             }
         }
 
-        // 攻撃エフェクトの処理（少しのタイマー後に画面更新）
+        // 攻撃エフェクトの処理
         if (this.attackEffectTimer) {
             clearTimeout(this.attackEffectTimer);
             game.lastAttackLocation = null;
@@ -422,6 +477,23 @@ class Player {
 
     // 変更: 経験値情報を含むように getStatus を更新
     getStatus() {
+        // 周囲のモンスター数によるペナルティを計算
+        const surroundingMonsters = this.countSurroundingMonsters(this.game);
+        const penaltyPerMonster = 15; // 1体につき15%のペナルティ
+        const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
+
+        // ペナルティ適用後の値を計算
+        const penalizedAccuracy = Math.floor(this.accuracy * (1 - surroundingPenalty));
+        const penalizedEvasion = Math.floor(this.evasion * (1 - surroundingPenalty));
+
+        // ペナルティがある場合は赤色で表示
+        const formatStat = (original, penalized) => {
+            if (penalized < original) {
+                return `<span style="color: #e74c3c">${penalized}</span>`;
+            }
+            return original;
+        };
+
         return {
             name: "Player",
             level: this.level,
@@ -431,8 +503,9 @@ class Player {
             derived: {
                 attack: `${this.attackPower.base}+${this.attackPower.diceCount}d${this.attackPower.diceSides}`,
                 defense: `${this.defense.base}+${this.defense.diceCount}d${this.defense.diceSides}`,
-                accuracy: this.accuracy,
-                evasion: this.evasion
+                speed: `${GAME_CONSTANTS.FORMULAS.SPEED(this.stats)}`,
+                accuracy: formatStat(this.accuracy, penalizedAccuracy),
+                evasion: formatStat(this.evasion, penalizedEvasion),
             }
         };
     }
@@ -445,5 +518,21 @@ class Player {
             return true;
         }
         return false;
+    }
+
+    // 新規メソッド: プレイヤーの周囲のモンスター数をカウント
+    countSurroundingMonsters(game) {
+        let count = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                const checkX = this.x + dx;
+                const checkY = this.y + dy;
+                if (game.getMonsterAt(checkX, checkY)) {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 } 

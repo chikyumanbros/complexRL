@@ -295,4 +295,15 @@ class Logger {
         this.messages = [];
         this.logElement.innerHTML = '';
     }
+
+    showGameOverMessage(finalScore) {
+        this.add("=================", "important");
+        this.add("GAME OVER", "death");
+        this.add("Final Score:", "important");
+        this.add(`Monsters Defeated: ${finalScore.monstersKilled}`, "important");
+        this.add(`Codex Points: ${finalScore.codexPoints}`, "important");
+        this.add(`Survived Turns: ${finalScore.turns}`, "important");
+        this.add("=================", "important");
+        this.add("Press Enter to restart", "info");
+    }
 } 

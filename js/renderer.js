@@ -200,6 +200,11 @@ class Renderer {
     renderStatus() {
         const player = this.game.player;
         
+        // 周囲のモンスター数によるペナルティを計算
+        const surroundingMonsters = player.countSurroundingMonsters(this.game);
+        const penaltyPerMonster = 15; // 1体につき15%のペナルティ
+        const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
+
         // floor-level の更新
         const floorLevelElement = document.getElementById('floor-level');
         if (floorLevelElement) {
@@ -246,12 +251,6 @@ class Renderer {
         if (xpElement) {
             xpElement.textContent = `${player.xp}/${player.xpToNextLevel}`;
         }
-        const xpTextElement = document.getElementById('xp-text');
-        if (xpTextElement) {
-            const xpBars = Math.ceil((player.xp / player.xpToNextLevel) * 20);
-            const xpText = '|'.repeat(xpBars).padEnd(20, ' ');
-            xpTextElement.textContent = xpText;
-        }
         
         // その他のステータスの更新
         for (let stat in player.stats) {
@@ -263,6 +262,31 @@ class Renderer {
         const codexElement = document.getElementById('codexPoints');
         if (codexElement) {
             codexElement.textContent = player.codexPoints;
+        }
+
+        // 命中率の表示を更新
+        const accuracyElement = document.getElementById('accuracy');
+        if (accuracyElement) {
+            const baseAccuracy = Math.floor(player.accuracy * (1 - surroundingPenalty));
+            let accText = surroundingPenalty > 0 
+                ? `<span style="color: #e74c3c">${baseAccuracy}%</span>`
+                : `${baseAccuracy}%`;
+            
+            // 命中修正がある場合は表示を変更
+            if (player.nextAttackModifier && player.nextAttackModifier.accuracyMod) {
+                const modifiedAcc = Math.floor(baseAccuracy * (1 + player.nextAttackModifier.accuracyMod));
+                accText = `<span style="color: ${player.nextAttackModifier.accuracyMod > 0 ? '#2ecc71' : '#e74c3c'}">${modifiedAcc}%</span>`;
+            }
+            accuracyElement.innerHTML = accText;
+        }
+
+        // 回避率の表示を更新
+        const evasionElement = document.getElementById('evasion');
+        if (evasionElement) {
+            const baseEvasion = Math.floor(player.evasion * (1 - surroundingPenalty));
+            evasionElement.innerHTML = surroundingPenalty > 0 
+                ? `<span style="color: #e74c3c">${baseEvasion}%</span>`
+                : `${baseEvasion}%`;
         }
 
         // 攻撃力と防御力の詳細表示
@@ -289,25 +313,6 @@ class Renderer {
             speedElement.textContent = `${GAME_CONSTANTS.FORMULAS.SPEED(player.stats)}`;
         }
 
-        // 命中率の表示を追加
-        const accuracyElement = document.getElementById('accuracy');
-        if (accuracyElement) {
-            let accText = `${player.accuracy}%`;
-            
-            // 命中修正がある場合は表示を変更
-            if (player.nextAttackModifier && player.nextAttackModifier.accuracyMod) {
-                const modifiedAcc = Math.floor(player.accuracy * (1 + player.nextAttackModifier.accuracyMod));
-                accText = `<span style="color: ${player.nextAttackModifier.accuracyMod > 0 ? '#2ecc71' : '#e74c3c'}">${modifiedAcc}%</span>`;
-            }
-            accuracyElement.innerHTML = accText;
-        }
-
-        // 回避率、知覚の表示を追加
-        const evasionElement = document.getElementById('evasion');
-        if (evasionElement) {
-            evasionElement.textContent = `${player.evasion}%`;
-        }
-        
         // スキル一覧の表示を更新（1-9のスロットのみ）
         const skillsElement = document.getElementById('skills');
         if (skillsElement) {
@@ -325,6 +330,49 @@ class Renderer {
                     .join('<br>')
                 : 'NO SKILLS';
             skillsElement.innerHTML = skillsDisplay;
+        }
+
+        // 視界内のモンスターリストの表示を更新
+        const monstersInSightElement = document.getElementById('nearby-enemies');
+        if (monstersInSightElement) {
+            const visibleTiles = new Set(
+                this.game.getVisibleTiles().map(({x, y}) => `${x},${y}`)
+            );
+            
+            const visibleMonsters = this.game.monsters.filter(monster => 
+                visibleTiles.has(`${monster.x},${monster.y}`)
+            );
+
+            if (visibleMonsters.length > 0) {
+                const monsterList = visibleMonsters.map(monster => {
+                    const healthPercentage = (monster.hp / monster.maxHp) * 100;
+                    
+                    // HPの割合に応じてクラスを決定
+                    let healthClass;
+                    if (healthPercentage > 75) {
+                        healthClass = 'healthy';
+                    } else if (healthPercentage > 50) {
+                        healthClass = 'cautious';
+                    } else if (healthPercentage > 25) {
+                        healthClass = 'wounded';
+                    } else {
+                        healthClass = 'danger';
+                    }
+
+                    const sleepStatus = monster.isSleeping ? ' Zzz' : '';
+                    const fleeingStatus = monster.hasStartedFleeing ? ' >>>' : '';
+                    const monsterSymbol = monster.char ? monster.char : 'M';
+                    const monsterColor = GAME_CONSTANTS.COLORS.MONSTER[monster.type];
+                    
+                    return `<span style="color: ${monsterColor}">` +
+                           `${monsterSymbol} ${monster.name}</span>` +
+                           ` [<span class="${healthClass}">${monster.hp}/${monster.maxHp}</span>]` +
+                           `${sleepStatus}${fleeingStatus}`;
+                }).join('<br>');
+                monstersInSightElement.innerHTML = monsterList;
+            } else {
+                monstersInSightElement.innerHTML = 'No monsters in sight';
+            }
         }
     }
 
@@ -487,5 +535,66 @@ class Renderer {
         pillar.addEventListener('animationend', () => {
             pillar.remove();
         });
+    }
+
+    updateStatusPanel(status) {
+        const panel = document.getElementById('status-panel');
+        
+        // floor-levelの更新
+        const floorLevelElement = document.getElementById('floor-level');
+        if (floorLevelElement) {
+            const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.game.dangerLevel];
+            floorLevelElement.innerHTML = `${this.game.floorLevel} <span style="color: ${dangerInfo.color}">[${dangerInfo.name}]</span>`;
+        }
+
+        // レベルの更新
+        const levelElement = document.getElementById('level');
+        if (levelElement) {
+            levelElement.textContent = status.level;
+        }
+
+        // HPの更新
+        const hpElement = document.getElementById('hp');
+        const maxHpElement = document.getElementById('max-hp');
+        if (hpElement && maxHpElement) {
+            hpElement.textContent = status.hp.split('/')[0];
+            maxHpElement.textContent = status.hp.split('/')[1];
+        }
+
+        // 基本ステータスの更新
+        for (const [key, value] of Object.entries(status.stats)) {
+            const element = document.getElementById(key);
+            if (element) {
+                element.textContent = value;
+            }
+        }
+
+        // 派生ステータスの更新
+        for (const [key, value] of Object.entries(status.derived)) {
+            const element = document.getElementById(key);
+            if (element) {
+                element.innerHTML = value; // HTMLタグを解釈するためにinnerHTMLを使用
+            }
+        }
+
+        // XPの更新
+        const xpElement = document.getElementById('xp');
+        if (xpElement) {
+            xpElement.textContent = status.xp;
+        }
+
+        // Codex pointsの更新
+        const codexElement = document.getElementById('codexPoints');
+        if (codexElement) {
+            codexElement.textContent = this.game.player.codexPoints;
+        }
+
+        if (this.statusPanelFlashing) {
+            panel.classList.add('flash');
+            setTimeout(() => {
+                panel.classList.remove('flash');
+                this.statusPanelFlashing = false;
+            }, 100);
+        }
     }
 } 
