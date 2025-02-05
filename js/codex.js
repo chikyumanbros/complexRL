@@ -97,7 +97,7 @@ class CodexSystem {
                         cooldown: 30,
                         isFreeAction: false,
                         requiresTarget: true,
-                        maxRange: 3,
+                        range: 3,  // この値はgetEffectTextとeffectで計算される実際の範囲によって上書きされます
                         getEffectText: (player) => {
                             const jumpRange = Math.floor((player.stats.dex - player.stats.con) / 3) + 3;
                             return `[Range: ${jumpRange}]`;
@@ -117,10 +117,10 @@ class CodexSystem {
                             // ジャンプ範囲を計算（DEXとCONから算出）
                             const jumpRange = Math.floor((player.stats.dex - player.stats.con) / 3) + 3;
                             
-                            // 距離チェック
-                            const dx = target.x - player.x;
-                            const dy = target.y - player.y;
-                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            // 距離チェック（チェビシェフ距離を使用）
+                            const dx = Math.abs(target.x - player.x);
+                            const dy = Math.abs(target.y - player.y);
+                            const distance = Math.max(dx, dy);  // チェビシェフ距離の計算
                             
                             if (distance > jumpRange) {
                                 game.logger.add("Too far to jump!", "warning");
