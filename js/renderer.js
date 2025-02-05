@@ -1,3 +1,7 @@
+// ==============================================
+// Renderer Class: Main Rendering and Effects Management
+// This class handles map rendering, status updates, and visual effects for the game.
+// ==============================================
 class Renderer {
     constructor(game) {
         this.game = game;
@@ -16,7 +20,7 @@ class Renderer {
     }
 
     render() {
-        // 移動エフェクトの状態を追加
+        // Initialize movement effects state
         if (!this.movementEffects) {
             this.movementEffects = new Set();
         }
@@ -24,12 +28,12 @@ class Renderer {
         this.renderMap();
         this.renderStatus();
 
-        // 瞑想エフェクトの適用
+        // Apply meditation effect
         if (this.game.player.meditation && this.game.player.meditation.active) {
             this.showMeditationEffect(this.game.player.x, this.game.player.y);
         }
 
-        // 移動エフェクトの適用
+        // Apply movement effects
         this.movementEffects.forEach(effect => {
             const tile = document.querySelector(`#game span[data-x="${effect.x}"][data-y="${effect.y}"]`);
             if (tile) {
@@ -37,7 +41,7 @@ class Renderer {
             }
         });
 
-        // ターゲットのハイライト表示
+        // Display highlighted target
         if (this.highlightedTile) {
             const tile = this.game.map[this.highlightedTile.y][this.highlightedTile.x];
             const player = this.game.player;
@@ -52,7 +56,7 @@ class Renderer {
             } else {
                 const skillId = this.game.inputHandler.targetingMode;
                 const skill = this.game.codexSystem.findSkillById(skillId);
-                const range = skill ? skill.range : 1; // スキルがない場合は近接攻撃として扱う
+                const range = skill ? skill.range : 1; // Treat as melee attack if the skill is not found
                 color = distance <= range && tile === 'floor' ? '#2ecc7144' : '#e74c3c44';
             }
             
@@ -89,10 +93,10 @@ class Renderer {
                 let classes = [];
                 let backgroundColor = '';
 
-                // data属性を let で宣言
+                // Declare data attributes with let
                 let dataAttrs = `data-x="${x}" data-y="${y}"`;
 
-                // ドアキルエフェクトのチェック
+                // Check for door-kill effect
                 const isDoorKillTarget = this.game.lastDoorKillLocation && 
                                        this.game.lastDoorKillLocation.x === x && 
                                        this.game.lastDoorKillLocation.y === y;
@@ -101,7 +105,7 @@ class Renderer {
                     classes.push('door-kill');
                 }
 
-                // ルックモードまたはスキルターゲティングのハイライト
+                // Highlight for look mode or skill targeting
                 if (this.highlightedTile && 
                     this.highlightedTile.x === x && 
                     this.highlightedTile.y === y) {
@@ -122,7 +126,7 @@ class Renderer {
                     }
                 }
 
-                // 攻撃エフェクトの確認
+                // Check for melee attack effect
                 const isAttackTarget = this.game.lastAttackLocation && 
                                      this.game.lastAttackLocation.x === x && 
                                      this.game.lastAttackLocation.y === y;
@@ -131,7 +135,7 @@ class Renderer {
                     classes.push('melee-attack');
                 }
 
-                // プレイヤー、モンスター、タイルの表示
+                // Render player, monster, and tile
                 if (x === this.game.player.x && y === this.game.player.y) {
                     content = this.game.player.char;
                     style = 'color: white';
@@ -142,7 +146,7 @@ class Renderer {
                         content = monster.char;
                         style = `color: ${GAME_CONSTANTS.COLORS.MONSTER[monster.type]}`;
                         
-                        // モンスターの状態に応じたスタイル
+                        // Apply styles based on monster state
                         if (monster.isSleeping) {
                             style += '; animation: sleeping-monster 1s infinite';
                         }
@@ -153,7 +157,7 @@ class Renderer {
                         content = this.game.tiles[y][x];
                         const tile = this.game.tiles[y][x];
                         
-                        // 特殊タイルの色設定
+                        // Set color for special tiles
                         if (tile === GAME_CONSTANTS.STAIRS.CHAR) {
                             style = `color: ${GAME_CONSTANTS.STAIRS.COLOR}`;
                         } else {
@@ -162,7 +166,7 @@ class Renderer {
                     }
                 }
 
-                // 視界外のタイルは暗く表示
+                // Display tiles outside vision as dark
                 if (!isVisible) {
                     style += '; opacity: 0.4';
                 }
@@ -190,29 +194,29 @@ class Renderer {
         const monster = this.game.getMonsterAt(x, y);
         if (monster) {
             if (monster.isSleeping) {
-                return 'rgba(100, 100, 255, 0.3)';  // 睡眠中のモンスターは青みがかった背景
+                return 'rgba(100, 100, 255, 0.3)';  // Blueish background for sleeping monsters
             }
-            return 'rgba(255, 100, 100, 0.3)';  // 通常のモンスターは赤みがかった背景
+            return 'rgba(255, 100, 100, 0.3)';  // Reddish background for normal monsters
         }
-        return 'rgba(255, 255, 255, 0.2)';  // 通常のハイライト
+        return 'rgba(255, 255, 255, 0.2)';  // Standard highlight
     }
 
     renderStatus() {
         const player = this.game.player;
         
-        // 周囲のモンスター数によるペナルティを計算
+        // Calculate penalty based on surrounding monsters count (15% penalty per monster, limited to 60%)
         const surroundingMonsters = player.countSurroundingMonsters(this.game);
-        const penaltyPerMonster = 15; // 1体につき15%のペナルティ
+        const penaltyPerMonster = 15; // 15% penalty per monster
         const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
 
-        // floor-level の更新
+        // Update floor level element
         const floorLevelElement = document.getElementById('floor-level');
         if (floorLevelElement) {
             const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.game.dangerLevel];
             floorLevelElement.innerHTML = `${this.game.floorLevel} <span style="color: ${dangerInfo.color}">[${dangerInfo.name}]</span>`;
         }
         
-        // HPの数値とバー表示の更新
+        // Update HP numerical and bar display
         const hpElementValue = document.getElementById('hp');
         if (hpElementValue) {
             hpElementValue.textContent = player.hp;
@@ -226,9 +230,9 @@ class Renderer {
             const hpBars = Math.ceil((player.hp / player.maxHp) * 15);
             const hpText = '|'.repeat(hpBars).padEnd(15, ' ');
             hpTextElement.textContent = hpText;
-            // HPの割合に応じたクラスの追加
+            // Add class based on HP percentage
             const hpPercentage = (player.hp / player.maxHp) * 100;
-            hpTextElement.className = ''; // 既存のクラスをクリア
+            hpTextElement.className = ''; // Clear existing classes
             if (hpPercentage > 75) {
                 hpTextElement.classList.add('healthy');
             } else if (hpPercentage > 50) {
@@ -240,19 +244,19 @@ class Renderer {
             }
         }
 
-        // プレイヤーのレベルの更新
+        // Update player level display
         const levelElement = document.getElementById('level');
         if (levelElement) {
             levelElement.textContent = player.level;
         }
         
-        // 経験値の数値とバー表示の更新
+        // Update XP numerical and bar display
         const xpElement = document.getElementById('xp');
         if (xpElement) {
             xpElement.textContent = `${player.xp}/${player.xpToNextLevel}`;
         }
         
-        // その他のステータスの更新
+        // Update other stats display
         for (let stat in player.stats) {
             const statElement = document.getElementById(stat);
             if (statElement) {
@@ -264,7 +268,7 @@ class Renderer {
             codexElement.textContent = player.codexPoints;
         }
 
-        // 命中率の表示を更新
+        // Update accuracy display
         const accuracyElement = document.getElementById('accuracy');
         if (accuracyElement) {
             const baseAccuracy = Math.floor(player.accuracy * (1 - surroundingPenalty));
@@ -272,7 +276,7 @@ class Renderer {
                 ? `<span style="color: #e74c3c">${baseAccuracy}%</span>`
                 : `${baseAccuracy}%`;
             
-            // 命中修正がある場合は表示を変更
+            // Change display if there's an accuracy modifier
             if (player.nextAttackModifier && player.nextAttackModifier.accuracyMod) {
                 const modifiedAcc = Math.floor(baseAccuracy * (1 + player.nextAttackModifier.accuracyMod));
                 accText = `<span style="color: ${player.nextAttackModifier.accuracyMod > 0 ? '#2ecc71' : '#e74c3c'}">${modifiedAcc}%</span>`;
@@ -280,7 +284,7 @@ class Renderer {
             accuracyElement.innerHTML = accText;
         }
 
-        // 回避率の表示を更新
+        // Update evasion display
         const evasionElement = document.getElementById('evasion');
         if (evasionElement) {
             const baseEvasion = Math.floor(player.evasion * (1 - surroundingPenalty));
@@ -289,15 +293,15 @@ class Renderer {
                 : `${baseEvasion}%`;
         }
 
-        // 攻撃力と防御力の詳細表示
+        // Update detailed attack and defense values display
         const attackElement = document.getElementById('attack');
         if (attackElement) {
             let attackText = `${player.attackPower.base}+${player.attackPower.diceCount}d${player.attackPower.diceSides}`;
             
-            // 攻撃修正がある場合は表示を変更
+            // Change display if there is an attack modifier
             if (player.nextAttackModifier) {
                 const modifiedDamage = Math.floor(player.attackPower.base * player.nextAttackModifier.damageMod);
-                // damageMod が 1.0 の場合は通常の色を使用
+                // Use normal color if damageMod is 1.0
                 const damageColor = player.nextAttackModifier.damageMod > 1 ? '#2ecc71' : 
                                    player.nextAttackModifier.damageMod < 1 ? '#e74c3c' : 'inherit';
                 attackText = `<span style="color: ${damageColor}">${modifiedDamage}+${player.attackPower.diceCount}d${player.attackPower.diceSides}</span>`;
@@ -313,7 +317,7 @@ class Renderer {
             speedElement.textContent = `${GAME_CONSTANTS.FORMULAS.SPEED(player.stats)}`;
         }
 
-        // スキル一覧の表示を更新（1-9のスロットのみ）
+        // Update skill list display (only slots 1-9)
         const skillsElement = document.getElementById('skills');
         if (skillsElement) {
             const skillsDisplay = player.skills.size > 0 
@@ -332,7 +336,7 @@ class Renderer {
             skillsElement.innerHTML = skillsDisplay;
         }
 
-        // 視界内のモンスターリストの表示を更新
+        // Update visible monsters list display
         const monstersInSightElement = document.getElementById('nearby-enemies');
         if (monstersInSightElement) {
             const visibleTiles = new Set(
@@ -347,7 +351,7 @@ class Renderer {
                 const monsterList = visibleMonsters.map(monster => {
                     const healthPercentage = (monster.hp / monster.maxHp) * 100;
                     
-                    // HPの割合に応じてクラスを決定
+                    // Determine class based on HP percentage
                     let healthClass;
                     if (healthPercentage > 75) {
                         healthClass = 'healthy';
@@ -377,18 +381,18 @@ class Renderer {
     }
 
     renderCodexMenu() {
-        const display = this.game.codexSystem.getMenuDisplay(this.game.player);  // プレイヤーオブジェクトを渡す
+        const display = this.game.codexSystem.getMenuDisplay(this.game.player);  // Pass the player object
         document.getElementById('available-skills').innerHTML = display.replace(/\n/g, '<br>');
     }
 
-    // 新規: エフェクトをクリーンアップするメソッド
+    // New: Method to clean up effects
     clearEffects() {
         if (this.game.lastAttackLocation) {
             this.game.lastAttackLocation = null;
             this.render();
         }
         
-        // スキル使用エフェクトのクリーンアップ
+        // Clean up skill usage effect
         const playerChar = document.querySelector('#game-container [data-player="true"]');
         if (playerChar) {
             playerChar.classList.remove('next-attack-modifier');
@@ -405,53 +409,53 @@ class Renderer {
         }
     }
 
-    // 新しいメソッドを追加
+    // New method for next attack modifier effect
     showNextAttackModifierEffect(x, y) {
         const playerChar = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
-        console.log('Player char element:', playerChar); // デバッグ用
+        console.log('Player char element:', playerChar); // Debug log
         if (playerChar) {
             playerChar.classList.add('next-attack-modifier');
-            console.log('Added next-attack-modifier class'); // デバッグ用
+            console.log('Added next-attack-modifier class'); // Debug log
             setTimeout(() => {
                 playerChar.classList.remove('next-attack-modifier');
-                console.log('Removed next-attack-modifier class'); // デバッグ用
+                console.log('Removed next-attack-modifier class'); // Debug log
             }, 500);
         }
     }
-    // meditation エフェクト用の新しいメソッドを追加
+    // New method for meditation effect
     showMeditationEffect(x, y) {
         const playerChar = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
         if (playerChar && this.game.player.meditation && this.game.player.meditation.active) {
             playerChar.classList.add('meditation-effect');
         }
     }
-    // 移動エフェクト用の新しいメソッドを追加
+    // New method for movement trail effect
     showMovementTrailEffect(fromX, fromY, toX, toY) {
-        // 既存のエフェクトをクリア
+        // Clear existing effects
         this.movementEffects = new Set();
         
-        // 始点から終点までの軌跡を計算
+        // Calculate trail from start to end
         const dx = toX - fromX;
         const dy = toY - fromY;
         const steps = Math.max(Math.abs(dx), Math.abs(dy));
         
-        // 軌跡の各ポイントを計算
+        // Calculate each point in the trail
         for (let i = 0; i <= steps; i++) {
             const x = Math.round(fromX + (dx * i / steps));
             const y = Math.round(fromY + (dy * i / steps));
             this.movementEffects.add({x, y});
             
-            // 各ポイントのエフェクトを時間差で消す
+            // Remove effect from each point with a delay
             setTimeout(() => {
                 this.movementEffects.delete({x, y});
                 this.render();
-            }, 100 + (i * 50)); // 時間差で消えていく
+            }, 100 + (i * 50)); // Remove sequentially with a time delay
         }
 
-        // 強制的に再レンダリング
+        // Force re-rendering
         this.render();
 
-        // 全エフェクトを一定時間後にクリア
+        // Clear all effects after a constant time delay
         setTimeout(() => {
             this.movementEffects.clear();
             this.render();
@@ -462,18 +466,18 @@ class Renderer {
         const particleLayer = document.getElementById('particle-layer');
         if (!particleLayer) return;
 
-        // 画面上でプレイヤータイルの要素を取得（data-x, data-y属性で識別）
+        // Retrieve player tile element using data-x, data-y attributes
         const playerTile = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
         let centerX, centerY;
         if (playerTile) {
-            // #game-container（エフェクトレイヤーの親要素）からの相対位置を計算
+            // Calculate relative position from #game-container (effect layer's parent)
             const gameContainer = document.getElementById('game-container');
             const containerRect = gameContainer ? gameContainer.getBoundingClientRect() : { left: 0, top: 0 };
             const tileRect = playerTile.getBoundingClientRect();
             centerX = tileRect.left - containerRect.left + tileRect.width / 2;
             centerY = tileRect.top - containerRect.top + tileRect.height / 2;
         } else {
-            // もしプレイヤータイルが見つからない場合は、fallbackとして計算（あまり推奨されません）
+            // Fallback calculation if player tile is not found (not recommended)
             const tileElement = document.querySelector('#game span');
             const tileSize = tileElement ? tileElement.offsetWidth : 14;
             centerX = x * tileSize + tileSize / 2;
@@ -505,12 +509,12 @@ class Renderer {
         const particleLayer = document.getElementById('particle-layer');
         if (!particleLayer) return;
 
-        // 現在のプレイヤータイル要素（data-x, data-y 属性で識別）を取得
+        // Retrieve current player tile element (identified by data-x, data-y attributes)
         const playerTile = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
         let centerX, centerY;
         if (playerTile) {
             const gameContainer = document.getElementById('game-container');
-            // gameContainer が存在しない場合、フォールバックとして { left: 0, top: 0 } を利用
+            // If gameContainer does not exist, fallback to { left: 0, top: 0 }
             const containerRect = gameContainer ? gameContainer.getBoundingClientRect() : { left: 0, top: 0 };
             const tileRect = playerTile.getBoundingClientRect();
             centerX = tileRect.left - containerRect.left + tileRect.width / 2;
@@ -522,7 +526,7 @@ class Renderer {
             centerY = y * tileSize + tileSize / 2;
         }
         
-        // particleLayer の高さから、プレイヤーの中心の下端の位置（bottom）を計算
+        // Calculate bottom position relative to player center based on particleLayer height
         const bottomValue = particleLayer.offsetHeight - centerY;
         
         const pillar = document.createElement('div');
@@ -540,20 +544,20 @@ class Renderer {
     updateStatusPanel(status) {
         const panel = document.getElementById('status-panel');
         
-        // floor-levelの更新
+        // Update floor level element
         const floorLevelElement = document.getElementById('floor-level');
         if (floorLevelElement) {
             const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.game.dangerLevel];
             floorLevelElement.innerHTML = `${this.game.floorLevel} <span style="color: ${dangerInfo.color}">[${dangerInfo.name}]</span>`;
         }
 
-        // レベルの更新
+        // Update level display
         const levelElement = document.getElementById('level');
         if (levelElement) {
             levelElement.textContent = status.level;
         }
 
-        // HPの更新
+        // Update HP display
         const hpElement = document.getElementById('hp');
         const maxHpElement = document.getElementById('max-hp');
         if (hpElement && maxHpElement) {
@@ -561,7 +565,7 @@ class Renderer {
             maxHpElement.textContent = status.hp.split('/')[1];
         }
 
-        // 基本ステータスの更新
+        // Update base stats
         for (const [key, value] of Object.entries(status.stats)) {
             const element = document.getElementById(key);
             if (element) {
@@ -569,21 +573,21 @@ class Renderer {
             }
         }
 
-        // 派生ステータスの更新
+        // Update derived stats (using innerHTML to allow HTML tags)
         for (const [key, value] of Object.entries(status.derived)) {
             const element = document.getElementById(key);
             if (element) {
-                element.innerHTML = value; // HTMLタグを解釈するためにinnerHTMLを使用
+                element.innerHTML = value;
             }
         }
 
-        // XPの更新
+        // Update XP display
         const xpElement = document.getElementById('xp');
         if (xpElement) {
             xpElement.textContent = status.xp;
         }
 
-        // Codex pointsの更新
+        // Update Codex points display
         const codexElement = document.getElementById('codexPoints');
         if (codexElement) {
             codexElement.textContent = this.game.player.codexPoints;
@@ -606,16 +610,16 @@ class Renderer {
     getHelpDisplay() {
         let display = '';
 
-        // メインタイトル (中央揃え)
+        // Main title (centered)
         display += `<div style="color: #ffd700; font-size: 14px; text-align: center;">=== CONTROLS ===</div>\n\n`;
 
-        // カテゴリごとに表示
+        // Display by category
         const categories = Object.entries(GAME_CONSTANTS.CONTROLS);
         categories.forEach(([category, data], idx) => {
-            // カテゴリタイトル
+            // Category title
             display += `<div style="color: #66ccff; font-size: 12px; margin-top: 15px;">=== ${data.title} ===</div>\n`;
             
-            // キーと説明（インデントを付与）
+            // Key and description (with indent)
             data.keys.forEach(keyInfo => {
                 display += `<div style="margin-left: 10px;">`;
                 display += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[${keyInfo.key}]</span>`;
@@ -623,13 +627,13 @@ class Renderer {
                 display += `</div>\n`;
             });
             
-            // 複数のカテゴリの場合は、カテゴリ毎に改行
+            // Add line break between categories if multiple exist
             if (idx < categories.length - 1) {
                 display += `<br>\n`;
             }
         });
         
-        // フッター
+        // Footer
         display += `<br><div style="color: #e74c3c; text-align: center;">=== TIPS ===</div>\n\n`;
         display += `<div style="text-align: center;">Press [ESC] to return to game</div>\n`;
         

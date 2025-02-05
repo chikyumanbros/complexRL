@@ -1,4 +1,10 @@
+// ====================
+// Class: InputHandler
+// ====================
 class InputHandler {
+    // ----------------------
+    // Constructor & Properties
+    // ----------------------
     constructor(game) {
         this.game = game;
         this.targetingMode = null;  // ターゲット選択モード用
@@ -10,6 +16,9 @@ class InputHandler {
         this.mode = 'normal';  // 通常モード
     }
 
+    // ----------------------
+    // Key Binding Methods
+    // ----------------------
     bindKeys() {
         document.addEventListener('keydown', this.boundHandleInput);
     }
@@ -18,15 +27,18 @@ class InputHandler {
         document.removeEventListener('keydown', this.boundHandleInput);
     }
 
+    // ----------------------
+    // Main Input Handler Method
+    // ----------------------
     handleInput(event) {
-        // 新しい入力があった時点でエフェクトをクリーンアップ
+        // --- Clean up visual effects on new input ---
         this.game.renderer.clearEffects();
 
         if (event.ctrlKey || event.altKey || event.metaKey) return;
 
         const key = event.key.toLowerCase();
 
-        // ゲームオーバー時の処理
+        // --- Game Over Input Handling ---
         if (this.game.isGameOver) {
             if (key === 'enter') {
                 this.game.reset();  // ゲームをリセット
@@ -37,13 +49,13 @@ class InputHandler {
             return;  // その他のキー入力を無視
         }
 
-        // ?キーでヘルプ表示
+        // --- Help Mode Activation ---
         if (key === '?') {
             this.game.enterHelpMode();  // 変更: 新しいメソッドを使用
             return;
         }
 
-        // ヘルプモード時はESCキーで戻る
+        // --- Help Mode Cancellation (First Block) ---
         if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
             if (key === 'escape') {
                 this.game.toggleMode();  // 変更: toggleModeを使用
@@ -51,7 +63,7 @@ class InputHandler {
             return;
         }
 
-        // ヘルプモード時はESCキーで戻る
+        // --- Help Mode Cancellation (Second Block) ---
         if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
             if (key === 'escape') {
                 this.game.mode = GAME_CONSTANTS.MODES.GAME;
@@ -60,7 +72,7 @@ class InputHandler {
             return;
         }
 
-        // タブキーのデフォルト動作を防ぐ
+        // --- Tab Key Handling for Codex & Mode Toggle ---
         if (key === 'tab') {
             event.preventDefault();
             // lookモードが有効な場合は解除
@@ -72,21 +84,23 @@ class InputHandler {
             return;
         }
 
-        // ステータス選択モード時の処理を追加
+        // --- Stat Selection Mode Handling ---
         if (this.mode === 'statSelect') {
             this.handleStatSelection(key);
             return;
         }
 
-        // Codexモードの場合はCodex用の入力処理を行う
+        // --- Codex Mode vs Game Mode Input Handling ---
         if (document.body.classList.contains('codex-mode')) {
             this.handleCodexModeInput(key);
         } else {
-            // 通常のゲームモードの場合はゲーム用の入力処理を行う
             this.handleGameModeInput(key);
         }
     }
 
+    // ----------------------
+    // Targeting Mode Methods
+    // ----------------------
     startTargeting(skillId) {
         const player = this.game.player;
         this.targetingMode = skillId;
@@ -99,8 +113,11 @@ class InputHandler {
         this.game.logger.add("Select target location. (ENTER to confirm, ESC to cancel)", "info");
     }
 
+    // ----------------------
+    // Game Mode Input Handling
+    // ----------------------
     handleGameModeInput(key) {
-        // ルックモード中の処理
+        // --- Look Mode Processing ---
         if (this.lookMode) {
             this.handleLookMode(key);
             return;
@@ -108,7 +125,7 @@ class InputHandler {
 
         const player = this.game.player;
 
-        // ドア操作 (oで開け、cで閉じる)
+        // --- Door Operation (Open/Close) ---
         if (key === 'o' || key === 'c') {
             const adjacentDoors = this.findAdjacentDoors();
 
@@ -117,20 +134,20 @@ class InputHandler {
                 return;
             }
 
-            // 隣接するドアが1つ、または操作可能なドアが1つの場合は直接操作
+            // Filter for operable doors based on the key
             const operableDoors = adjacentDoors.filter(door =>
                 (key === 'o' && door.tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) ||
                 (key === 'c' && door.tile === GAME_CONSTANTS.TILES.DOOR.OPEN)
             );
 
             if (operableDoors.length === 1) {
-                // 操作可能なドアが1つの場合は直接操作
+                // Directly operate if exactly one door is available
                 this.operateDoor(operableDoors[0], key);
             } else if (operableDoors.length === 0) {
                 this.game.logger.add(`No door to ${key === 'o' ? 'open' : 'close'} nearby.`, "warning");
                 return;
             } else {
-                // 複数の操作可能なドアがある場合のみ方向選択モードに入る
+                // Multiple doors available: Enter door operation directional mode
                 this.game.logger.add("Choose direction to operate door. (Press direction key)", "info");
                 this.mode = 'doorOperation';
                 this.pendingDoorOperation = key;
@@ -142,7 +159,7 @@ class InputHandler {
             return;
         }
 
-        // ドア操作の方向選択モード
+        // --- Door Operation: Directional Input Handling ---
         if (this.mode === 'doorOperation') {
             let dx = 0;
             let dy = 0;
@@ -184,13 +201,13 @@ class InputHandler {
             return;
         }
 
-        // ターゲット選択モード中の処理
+        // --- Targeting Mode Handling ---
         if (this.targetingMode) {
             this.handleTargetingMode(key);
             return;
         }
 
-        // 階段を降りる
+        // --- Stair Descent Handling ---
         if (key === '>') {
             if (this.game.tiles[player.y][player.x] === GAME_CONSTANTS.STAIRS.CHAR) {
                 player.descendStairs();
@@ -201,13 +218,13 @@ class InputHandler {
             }
         }
 
-        // ルックモード開始
+        // --- Initiate Look Mode ---
         if (key === ';') {
             this.startLookMode();
             return;
         }
 
-        // 数字キーが押された場合（スキル使用）
+        // --- Skill Usage via Number Keys ---
         if (/^[1-9]$/.test(key)) {
             const skillData = player.skills.get(key);
             if (!skillData) {
@@ -215,20 +232,20 @@ class InputHandler {
                 return;
             }
 
-            // クールダウンチェックを先に行う
+            // Check for cooldown before skill activation
             if (skillData.remainingCooldown > 0) {
                 this.game.logger.add(
                     `Skill is on cooldown! (${skillData.remainingCooldown} turns remaining)`,
                     "warning"
                 );
-                return;  // クールダウン中は何もせずに終了
+                return;
             }
 
             const skill = this.game.codexSystem.findSkillById(skillData.id);
             if (skill.requiresTarget) {
                 this.startTargeting(skillData.id);
             } else {
-                // スキルを使用し、フリーアクションでない場合のみターンを進める
+                // Use the skill and process turn if it's not a free action
                 const result = player.useSkill(skillData.id, null, this.game);
                 if (result && !skill.isFreeAction) {
                     this.game.processTurn();
@@ -237,7 +254,7 @@ class InputHandler {
             return;
         }
 
-        // 移動キーの処理
+        // --- Movement Handling ---
         let dx = 0;
         let dy = 0;
         switch (key) {
@@ -260,7 +277,7 @@ class InputHandler {
             default: return;
         }
 
-        // 移動キーが押された時点でメディテーションを解除
+        // --- Cancel Meditation if Moving ---
         if ((dx !== 0 || dy !== 0) && player.meditation && player.meditation.active) {
             this.game.logger.add(`Meditation cancelled. (Total healed: ${player.meditation.totalHealed})`, "playerInfo");
             player.meditation = null;
@@ -281,7 +298,9 @@ class InputHandler {
         }
     }
 
-    // 隣接するモンスターを探す
+    // ----------------------
+    // Utility Method: Find Nearby Monster
+    // ----------------------
     findNearbyMonster() {
         const player = this.game.player;
         for (const monster of this.game.monsters) {
@@ -294,6 +313,9 @@ class InputHandler {
         return null;
     }
 
+    // ----------------------
+    // Codex Mode Input Handling
+    // ----------------------
     handleCodexModeInput(key) {
         const codex = this.game.codexSystem;
         const keyLower = key.toLowerCase();
@@ -317,7 +339,7 @@ class InputHandler {
             return;
         }
 
-        // スペースキーでモード切り替え
+        // --- Toggle Codex Input Mode with Space ---
         if (key === ' ') {
             codex.toggleInputMode();
             this.game.renderer.renderCodexMenu();
@@ -325,7 +347,7 @@ class InputHandler {
         }
 
         if (codex.inputMode === 'category') {
-            // カテゴリー切り替えモード
+            // --- Category Selection Mode ---
             for (let cat in codex.categories) {
                 if (keyLower === codex.categories[cat].key) {
                     codex.currentCategory = cat;
@@ -334,7 +356,7 @@ class InputHandler {
                 }
             }
         } else {
-            // スキル入力モード
+            // --- Skill Input Mode ---
             if (key === 'backspace') {
                 codex.updateInputBuffer(codex.inputBuffer.slice(0, -1));
                 this.game.renderer.renderCodexMenu();
@@ -363,6 +385,9 @@ class InputHandler {
         }
     }
 
+    // ----------------------
+    // Look Mode Methods
+    // ----------------------
     startLookMode() {
         this.lookMode = true;  // lookModeフラグを設定
         this.targetingMode = 'look';
@@ -410,7 +435,7 @@ class InputHandler {
     examineTarget() {
         let monster = this.game.getMonsterAt(this.targetX, this.targetY);
 
-        // lookモードでない場合、直近の戦闘対象のモンスターの情報を表示
+        // --- If not in Look Mode, display last combat monster's info ---
         if (!this.lookMode && this.game.lastCombatMonster && this.game.lastCombatMonster.hp > 0) {
             monster = this.game.lastCombatMonster;
             this.targetX = monster.x;
@@ -419,7 +444,7 @@ class InputHandler {
 
         let lookInfo = '';
         if (monster) {
-            // 万が一、攻撃力や防御力の情報が未定義の場合は、定数ファイルの計算式を利用して補完する
+            // Fallback: compute attack and defense if undefined
             if (!monster.attackPower) {
                 monster.attackPower = GAME_CONSTANTS.FORMULAS.ATTACK(monster.stats);
             }
@@ -430,14 +455,14 @@ class InputHandler {
             const healthPercent = Math.floor((monster.hp / monster.maxHp) * 100);
             let status = [];
 
-            // 基本情報
+            // --- Basic Information ---
             lookInfo = [
                 `${monster.name} (Level ${monster.level}):`,
                 `HP: ${monster.hp}/${monster.maxHp}`,
                 `Distance: ${Math.max(Math.abs(this.game.player.x - monster.x), Math.abs(this.game.player.y - monster.y))} tiles`
             ];
 
-            // 状態異常の確認と表示
+            // --- Status Effects ---
             if (monster.hasStartedFleeing) {
                 status.push("Fleeing");
             }
@@ -445,12 +470,11 @@ class InputHandler {
                 status.push("Sleeping");
             }
 
-            // ステータス情報の追加（存在する場合）
             if (status.length > 0) {
                 lookInfo.push(`Status: ${status.join(", ")}`);
             }
 
-            // 戦闘関連の情報
+            // --- Combat Details ---
             lookInfo.push(
                 `ATK: ${monster.attackPower.base}+${monster.attackPower.diceCount}d${monster.attackPower.diceSides}`,
                 `DEF: ${monster.defense.base}+${monster.defense.diceCount}d${monster.defense.diceSides}`,
@@ -490,6 +514,9 @@ class InputHandler {
         this.game.logger.add("Exited look mode.", "info");
     }
 
+    // ----------------------
+    // Targeting Mode Navigation
+    // ----------------------
     handleTargetingMode(key) {
         let dx = 0;
         let dy = 0;
@@ -527,22 +554,21 @@ class InputHandler {
         const player = this.game.player;
         const targetPos = { x: this.targetX, y: this.targetY };
 
-        // ルックモードの場合は何もせずに終了（examineTargetは移動時に行われる）
+        // --- Ignore confirmation if in Look Mode ---
         if (this.targetingMode === 'look') {
             return;
         }
 
-        // スキルの取得
+        // --- Acquire Skill Information ---
         const skill = this.game.codexSystem.findSkillById(this.targetingMode);
         const range = skill.range || 3; // デフォルトの範囲を3に設定
 
-        // 距離チェック
+        // --- Validate Target Distance and Tile ---
         const distance = Math.max(
             Math.abs(this.targetX - player.x),
             Math.abs(this.targetY - player.y)
         );
 
-        // 範囲外の場合は早期リターン
         if (distance > range || this.game.map[this.targetY][this.targetX] !== 'floor') {
             this.game.logger.add("Invalid target location!", "warning");
             this.targetingMode = null;
@@ -554,7 +580,7 @@ class InputHandler {
         this.targetingMode = null;
         this.game.renderer.clearHighlight();
 
-        // スキル使用が成功した場合のみターンを進める
+        // --- Process Turn if Skill Use is Successful ---
         if (result) {
             this.game.processTurn();
         }
@@ -566,7 +592,9 @@ class InputHandler {
         this.game.logger.add("Targeting cancelled.", "info");
     }
 
-    // 新規: ステータス選択の処理
+    // ----------------------
+    // Stat Selection Handling
+    // ----------------------
     handleStatSelection(key) {
         const statMap = {
             's': 'str',
@@ -585,7 +613,7 @@ class InputHandler {
         }
     }
 
-    // 新規: ステータス選択モードを設定
+    // --- Set Mode and associated callbacks (e.g., statSelect) ---
     setMode(mode, options = {}) {
         this.mode = mode;
         if (mode === 'statSelect') {
@@ -593,7 +621,9 @@ class InputHandler {
         }
     }
 
-    // 新しいヘルパーメソッド
+    // ----------------------
+    // Utility: Find Adjacent Doors
+    // ----------------------
     findAdjacentDoors() {
         const player = this.game.player;
         const doors = [];
@@ -621,7 +651,9 @@ class InputHandler {
         return doors;
     }
 
-    // ドア操作の実装を分離
+    // ----------------------
+    // Door Operation Implementation
+    // ----------------------
     operateDoor(door, operation) {
         if (operation === 'o' && door.tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
             this.game.tiles[door.y][door.x] = GAME_CONSTANTS.TILES.DOOR.OPEN;
@@ -634,10 +666,10 @@ class InputHandler {
                 const result = monster.takeDamage(massiveDamage);
                 this.game.logger.add(`The closing door crushes ${monster.name} for massive damage!`, "playerCrit");
 
-                // ドアキル位置を記録
+                // --- Record Door Kill Location ---
                 this.game.lastDoorKillLocation = { x: door.x, y: door.y };
 
-                // 遅延してタイルを更新
+                // --- Delayed Tile Update ---
                 setTimeout(() => {
                     this.game.lastDoorKillLocation = null;
                     this.game.tiles[door.y][door.x] = GAME_CONSTANTS.TILES.FLOOR[
@@ -656,7 +688,7 @@ class InputHandler {
                     this.game.renderer.render();
                 }, 400);
 
-                // 即座にレンダリングしてエフェクトを表示
+                // --- Immediate Rendering for Effect Display ---
                 this.game.renderer.render();
 
             } else {
@@ -667,6 +699,9 @@ class InputHandler {
         }
     }
 
+    // ----------------------
+    // Misc: Toggle Codex Mode
+    // ----------------------
     toggleCodexMode() {
         document.body.classList.toggle('codex-mode');
         const gameModeElem = document.getElementById('game-mode');
@@ -675,4 +710,4 @@ class InputHandler {
             return;
         }
     }
-} 
+}

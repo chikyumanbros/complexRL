@@ -5,7 +5,7 @@ class Game {
         this.map = [];
         this.tiles = [];
         this.colors = [];
-        this.player = new Player(0, 0, this);  // 座標は後で設定
+        this.player = new Player(0, 0, this);  // Coordinates will be set later
         this.codexSystem = new CodexSystem();
         this.renderer = new Renderer(this);
         this.inputHandler = new InputHandler(this);
@@ -15,16 +15,16 @@ class Game {
         this.monsters = [];
         this.totalMonstersSpawned = 0;
         this.maxTotalMonsters = 100;
-        this.rooms = [];  // 部屋の情報を保持
+        this.rooms = [];  // Stores room information
         this.isGameOver = false;
-        this.floorLevel = 1;  // 階層を追加
-        this.dangerLevel = 'NORMAL';  // 危険度を追加
-        this.explored = this.initializeExplored();  // 踏破情報を追加
-        this.lastAttackLocation = null;  // 攻撃位置を追跡するためのプロパティを追加
+        this.floorLevel = 1;  // Added floor level
+        this.dangerLevel = 'NORMAL';  // Added danger level
+        this.explored = this.initializeExplored();  // Added explored information
+        this.lastAttackLocation = null;  // Added property to track last attack location
         
         this.init();
 
-        // 初期パネルの設定
+        // Set up initial panel
         this.logger.renderLookPanel();
     }
 
@@ -37,12 +37,12 @@ class Game {
     }
 
     reset() {
-        // 入力ハンドラを先にクリーンアップ
+        // Clean up the input handler first
         if (this.inputHandler) {
             this.inputHandler.unbindKeys();
         }
 
-        // 状態を完全に初期化
+        // Fully reset the state
         this.map = [];
         this.tiles = [];
         this.colors = [];
@@ -56,11 +56,11 @@ class Game {
         this.maxTotalMonsters = 30;
         this.rooms = [];
         this.isGameOver = false;
-        this.floorLevel = 1;  // 階層を追加
-        this.dangerLevel = 'NORMAL';  // 危険度を追加
+        this.floorLevel = 1;  // Added floor level
+        this.dangerLevel = 'NORMAL';  // Added danger level
         this.explored = this.initializeExplored();
 
-        // DOMをクリア
+        // Clear the DOM
         const gameElement = document.getElementById('game');
         const messageLogElement = document.getElementById('message-log');
         const codexMenuElement = document.getElementById('codex-menu');
@@ -69,7 +69,7 @@ class Game {
 
         if (gameElement) {
             gameElement.innerHTML = '';
-            // ゲームコンテナの再構築
+            // Rebuild the game container
             gameElement.id = 'game';
             gameElement.style.whiteSpace = 'pre';
         }
@@ -77,13 +77,13 @@ class Game {
         if (codexMenuElement) codexMenuElement.innerHTML = '';
         if (availableSkillsElement) availableSkillsElement.innerHTML = '';
         if (statusElement) {
-            // ステータス表示のリセット
+            // Reset status display
             document.getElementById('hp').textContent = '0';
             document.getElementById('max-hp').textContent = '0';
             document.getElementById('hp-text').textContent = '';
         }
 
-        // マップを生成し直す
+        // Regenerate the map
         const mapGenerator = new MapGenerator(this.width, this.height, this.floorLevel, this);
         const mapData = mapGenerator.generate();
         this.map = mapData.map;
@@ -91,34 +91,34 @@ class Game {
         this.colors = mapData.colors;
         this.rooms = mapData.rooms;
 
-        // プレイヤーを配置し直す
+        // Reposition the player
         this.placePlayerInRoom();
 
-        // 新しい入力ハンドラを作成
+        // Create a new input handler
         this.inputHandler = new InputHandler(this);
 
-        // モンスターを再配置
+        // Reposition monsters
         this.spawnInitialMonsters();
 
-        // レンダラーを再初期化
+        // Reinitialize the renderer
         this.renderer = new Renderer(this);
 
-        // 初期メッセージ
+        // Display initial message
         this.logger.add("Welcome to complexRL!", "important");
 
-        // モードをゲームモードに設定
+        // Set mode to GAME mode
         this.mode = GAME_CONSTANTS.MODES.GAME;
 
-        // 画面を更新（lookパネルを表示）
+        // Update the screen (display the look panel)
         this.renderer.render();
-        this.logger.renderLookPanel();  // lookパネルを表示
-        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);  // Loggerのメソッドを呼び出す
-        this.updateRoomInfo();  // 周辺情報を更新
-        this.updateExplored();  // 踏破情報を更新
+        this.logger.renderLookPanel();  // Display look panel
+        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);  // Update floor info in Logger
+        this.updateRoomInfo();  // Update surrounding room information
+        this.updateExplored();  // Update explored information
     }
 
     init() {
-        // マップ関連の初期化
+        // Initialize map-related properties
         this.map = [];
         this.tiles = [];
         this.colors = [];
@@ -131,38 +131,38 @@ class Game {
         this.dangerLevel = 'NORMAL';
         this.isGameOver = false;
         
-        // マップ生成（プレイヤーの配置とモンスターの生成を含む）
+        // Generate a new floor (including player placement and monster generation)
         this.generateNewFloor();
         
-        // 情報の初期化と表示
+        // Initialize and display information
         const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
         this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);
         this.updateRoomInfo();
         
-        // 入力とレンダリングの設定
+        // Setup input handling and rendering
         this.renderer.render();
         this.inputHandler.bindKeys();
     }
 
     placePlayerInRoom() {
         if (!this.rooms || this.rooms.length === 0) {
-            // 部屋がない場合はデフォルトの位置に配置
+            // If there are no rooms, place the player at a default position
             this.player.x = Math.floor(this.width / 2);
             this.player.y = Math.floor(this.height / 2);
             return;
         }
 
-        // ランダムな部屋を選択
+        // Select a random room
         const randomRoom = this.rooms[Math.floor(Math.random() * this.rooms.length)];
         
-        // 部屋の中央付近にプレイヤーを配置
+        // Place the player near the center of the room
         const centerX = Math.floor(randomRoom.x + randomRoom.width / 2);
         const centerY = Math.floor(randomRoom.y + randomRoom.height / 2);
         
         this.player.x = centerX;
         this.player.y = centerY;
         
-        // プレイヤーの開始部屋を記録
+        // Record the player's starting room
         this.playerStartRoom = randomRoom;
     }
 
@@ -190,24 +190,26 @@ class Game {
     processTurn() {
         this.turn++;
         
-        // プレイヤーのクールダウン処理
+        // Process player's cooldown
         this.player.processTurn();
 
-        // 生存しているモンスターのみが行動
+        // Only allow alive monsters to act
         this.monsters = this.monsters.filter(monster => monster.hp > 0);
         
-        // モンスターの行動フェーズ
+        // Monster action phase
         for (const monster of this.monsters) {            
             monster.act(this);
             
-            // プレイヤーが死亡した場合
+            // If the player dies
             if (this.player.hp <= 0) {
                 return;
             }
         }
 
-        this.updateExplored();  // ターン終了時に踏破情報を更新
-        this.updateRoomInfo();  // 部屋の情報を更新
+        // Update explored information at the end of the turn
+        this.updateExplored();
+        // Update room information
+        this.updateRoomInfo();
         this.renderer.render();
     }
 
@@ -229,7 +231,7 @@ class Game {
         this.renderer.render();
     }
 
-    // ヘルプモードに切り替える新しいメソッド
+    // New method to switch to help mode
     enterHelpMode() {
         this.mode = GAME_CONSTANTS.MODES.HELP;
         document.body.classList.add('help-mode');
@@ -240,7 +242,7 @@ class Game {
     spawnInitialMonsters() {
         const dangerData = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
         
-        // 基本値を増加しつつ、既存の危険度修正値を活用
+        // Increase base count while incorporating the danger modifier
         const baseCount = Math.floor(5 + this.floorLevel * 1.5);
         const monsterCount = Math.max(3, baseCount + dangerData.levelModifier);
 
@@ -249,7 +251,7 @@ class Game {
 
         for (let i = 0; i < monsterCount; i++) {
             const validRooms = this.rooms.filter(room => {
-                // プレイヤーがいる部屋は除外
+                // Exclude the room that contains the player
                 const isPlayerRoom = this.player.x >= room.x && 
                                    this.player.x < room.x + room.width &&
                                    this.player.y >= room.y && 
@@ -263,7 +265,7 @@ class Game {
                 continue;
             }
 
-            // 各部屋のモンスター数を制限するためのチェック
+            // Check to limit the number of monsters per room
             const roomCounts = new Map();
             validRooms.forEach(room => {
                 const count = this.monsters.filter(m => 
@@ -273,7 +275,7 @@ class Game {
                 roomCounts.set(room, count);
             });
 
-            // モンスターが少ない部屋を優先（部屋の面積に応じた制限）
+            // Prioritize rooms with fewer monsters (based on room area)
             const availableRooms = validRooms.filter(room => 
                 roomCounts.get(room) < Math.floor(room.width * room.height / 16)
             );
@@ -288,7 +290,7 @@ class Game {
                 const x = room.x + Math.floor(Math.random() * room.width);
                 const y = room.y + Math.floor(Math.random() * room.height);
 
-                // プレイヤーからの距離をチェック
+                // Check distance from the player.
                 const dx = x - this.player.x;
                 const dy = y - this.player.y;
                 const distanceToPlayer = Math.sqrt(dx * dx + dy * dy);
@@ -304,7 +306,7 @@ class Game {
                     this.totalMonstersSpawned++;
                     //console.log(`Spawned ${monster.name} (Level ${monster.level}) at (${x}, ${y})`);
 
-                    // パックスポーンの処理
+                    // Handle pack spawning.
                     const template = GAME_CONSTANTS.MONSTERS[monster.type];
                     if (template.pack && Math.random() < template.pack.chance) {
                         const packSize = template.pack.min + 
@@ -312,7 +314,7 @@ class Game {
                         
                         //console.log(`Attempting to spawn pack of size ${packSize} for ${monster.name}`);
                         
-                        // パックメンバーのスポーン
+                        // Spawn pack members.
                         for (let j = 0; j < packSize - 1; j++) {
                             let packAttempts = 10;
                             let packSpawned = false;
@@ -321,7 +323,7 @@ class Game {
                                 const packX = x + Math.floor(Math.random() * 3) - 1;
                                 const packY = y + Math.floor(Math.random() * 3) - 1;
                                 
-                                // パックメンバーもプレイヤーから安全距離を保つ
+                                // Ensure pack members maintain a safe distance from the player.
                                 const packDx = packX - this.player.x;
                                 const packDy = packY - this.player.y;
                                 const packDistance = Math.sqrt(packDx * packDx + packDy * packDy);
@@ -355,7 +357,7 @@ class Game {
             }
         }
 
-        // 最終的なモンスター数の確認
+        // Final check on the total number of monsters.
         const monstersPerRoom = new Map();
         this.rooms.forEach(room => {
             const count = this.monsters.filter(m => 
@@ -372,7 +374,7 @@ class Game {
     }
 
     gameOver() {
-        // 最終スコアの計算
+        // Calculate final score.
         const monstersKilled = this.maxTotalMonsters - this.monsters.length;
         const finalScore = {
             monstersKilled: monstersKilled,
@@ -380,42 +382,42 @@ class Game {
             turns: this.turn
         };
 
-        // レンダリングを実行して最終状態を表示
+        // Render the final state.
         this.renderer.render();
 
-        // ゲームオーバー状態を設定
+        // Set game over state.
         this.isGameOver = true;
         this.mode = GAME_CONSTANTS.MODES.GAME_OVER;
 
-        // Loggerを通じてゲームオーバーメッセージを表示
+        // Display game over message via Logger.
         this.logger.showGameOverMessage(finalScore);
     }
 
     generateNewFloor() {
-        // 危険度の抽選
+        // Determine danger level by random roll.
         const dangerRoll = Math.random() * 100;
         if (dangerRoll < 10) {
             this.dangerLevel = 'SAFE';
         } else if (dangerRoll < 70) {
-            this.dangerLevel = 'NORMAL';  // NEUTRALからNORMALに修正
+            this.dangerLevel = 'NORMAL';  // Changed from NEUTRAL to NORMAL
         } else if (dangerRoll < 90) {
             this.dangerLevel = 'DANGEROUS';
         } else {
             this.dangerLevel = 'DEADLY';
         }
 
-        // デバッグ用のログを追加
+        // Add debug log.
         //console.log(`New floor ${this.floorLevel}, Danger Level: ${this.dangerLevel} (Roll: ${dangerRoll})`);
 
-        // フロア情報をロガーに送る
+        // Send floor information to Logger.
         this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);
 
-        // 新しいフロアの生成時もgameインスタンスを渡す
+        // Pass the game instance when generating a new floor.
         const mapGenerator = new MapGenerator(
             this.width,
             this.height,
             this.floorLevel,
-            this  // gameインスタンスを渡す
+            this  // Pass the game instance.
         );
         const mapData = mapGenerator.generate();
         
@@ -431,7 +433,8 @@ class Game {
         this.placePlayerInRoom();
         this.spawnInitialMonsters();
         
-        this.updateRoomInfo();  // 部屋の情報を更新
+        // Update room information.
+        this.updateRoomInfo();
         
         this.renderer.render();
     }
@@ -440,7 +443,7 @@ class Game {
         this.inputHandler.setMode(mode, options);
     }
 
-    // プレイヤーの視界内のタイルを踏破済みとしてマーク
+    // Mark tiles within the player's visible range as explored.
     updateExplored() {
         const visibleTiles = this.getVisibleTiles();
         visibleTiles.forEach(({x, y}) => {
@@ -448,20 +451,20 @@ class Game {
         });
     }
 
-    // 視線が通るかチェック
+    // Check if there is a clear line of sight.
     hasLineOfSight(x1, y1, x2, y2) {
         const points = this.getLinePoints(x1, y1, x2, y2);
         
-        // 始点と終点を除いた中間点をチェック
+        // Check the intermediate points, excluding the start and end.
         for (let i = 1; i < points.length - 1; i++) {
             const {x, y} = points[i];
             
-            // 壁または閉じたドアの場合、視界をブロック
+            // Block line of sight if there is a wall or closed door.
             if (this.map[y][x] === 'wall' || this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
                 return false;
             }
             
-            // 斜め視線の場合は隣接壁のチェック
+            // For diagonal line of sight, check adjacent walls.
             if (i > 0) {
                 const prev = points[i - 1];
                 if (prev.x !== x && prev.y !== y) {
@@ -474,7 +477,7 @@ class Game {
         return true;
     }
 
-    // 2点間の線上の座標を取得（ブレゼンハムのアルゴリズム）
+    // Get coordinates along the line between two points (Bresenham's algorithm).
     getLinePoints(x1, y1, x2, y2) {
         const points = [];
         const dx = Math.abs(x2 - x1);
@@ -502,26 +505,26 @@ class Game {
         return points;
     }
 
-    // プレイヤーから見える全タイルを取得
+    // Retrieve all tiles visible to the player.
     getVisibleTiles() {
         const visibleTiles = new Set();
         const px = this.player.x;
         const py = this.player.y;
         const currentRoom = this.renderer.getCurrentRoom(px, py);
         
-        // 部屋の中にいる場合は部屋の明るさ、通路にいる場合は視界を制限
-        const visibility = currentRoom ? currentRoom.brightness : 3;  // 通路では視界3マスに制限
+        // Use room brightness if inside a room; limit view if in a corridor.
+        const visibility = currentRoom ? currentRoom.brightness : 3;  // Limit view in corridors to 3 tiles.
 
         for (let y = Math.max(0, py - visibility); y <= Math.min(this.height - 1, py + visibility); y++) {
             for (let x = Math.max(0, px - visibility); x <= Math.min(this.width - 1, px + visibility); x++) {
-                // ユークリッド距離を使用して円形の視界を作成
+                // Create a circular field of view using Euclidean distance.
                 const dx = x - px;
                 const dy = y - py;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                // 視界範囲を少し広めに取り、端を少しぼかす
+                // Slightly expand the FOV and blur the edges.
                 if (distance <= visibility + 0.5 && this.hasLineOfSight(px, py, x, y)) {
-                    // 端の部分をランダムに欠けさせて自然な円形に
+                    // Randomly omit some edge tiles for a more natural circle.
                     if (distance <= visibility || Math.random() < 0.5) {
                         visibleTiles.add(`${x},${y}`);
                     }
@@ -545,10 +548,10 @@ class Game {
             py < room.y + room.height
         );
         
-        // モンスターカウントの範囲を設定
+        // Set the range for counting monsters.
         let monsterCount;
         if (currentRoom) {
-            // 部屋内の場合は部屋全体のモンスターをカウント
+            // In a room, count monsters throughout the room.
             monsterCount = this.monsters.filter(monster => 
                 monster.x >= currentRoom.x && 
                 monster.x < currentRoom.x + currentRoom.width && 
@@ -556,7 +559,7 @@ class Game {
                 monster.y < currentRoom.y + currentRoom.height
             ).length;
         } else {
-            // 通路の場合は視界範囲内（2マス）のモンスターをカウント
+            // In a corridor, count monsters within a 2-tile radius.
             monsterCount = this.monsters.filter(monster => 
                 Math.abs(monster.x - px) <= 2 && 
                 Math.abs(monster.y - py) <= 2
@@ -566,15 +569,15 @@ class Game {
         this.logger.updateRoomInfo(currentRoom, monsterCount);
     }
 
-    // プレイヤーが現在いる部屋を取得
+    // Get the room in which the player is currently located.
     getCurrentRoom() {
         if (!this.map) return null;
         
-        // プレイヤーの現在位置
+        // Get the player's current coordinates.
         const px = this.player.x;
         const py = this.player.y;
         
-        // プレイヤーが部屋にいるかチェック
+        // Check if the player is inside a room.
         for (const room of this.rooms) {
             if (px >= room.x && px < room.x + room.width &&
                 py >= room.y && py < room.y + room.height) {
@@ -582,10 +585,10 @@ class Game {
             }
         }
         
-        return null; // 部屋にいない場合（通路にいる場合）
+        return null; // Return null if not in a room (i.e., in a corridor).
     }
 
-    // 指定された部屋内のモンスターを取得
+    // Retrieve monsters within the specified room.
     getMonstersInRoom(room) {
         if (!room) return [];
         
@@ -597,11 +600,11 @@ class Game {
         );
     }
 
-    // 新規: 座標の有効性をチェックするメソッド
+    // New: Method to check if a coordinate is valid.
     isValidPosition(x, y) {
         return x >= 0 && x < this.width && y >= 0 && y < this.height;
     }
 }
 
-// ゲームの開始
+// Start the game.
 const game = new Game();

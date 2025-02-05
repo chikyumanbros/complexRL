@@ -1,5 +1,8 @@
+// ========================== Monster Class ==========================
 class Monster {
+    // -------------------------- Constructor: Initialization --------------------------
     constructor(type, x, y, game) {
+        // --- Template Initialization ---
         const template = GAME_CONSTANTS.MONSTERS[type];
         this.type = type;
         this.x = x;
@@ -10,6 +13,7 @@ class Monster {
         this.level = template.level;
         this.exp = template.exp;
         
+        // --- Stat Variation ---
         // ステータスをコピーして変動を加える
         this.stats = {};
         for (const [stat, value] of Object.entries(template.stats)) {
@@ -18,12 +22,14 @@ class Monster {
             this.stats[stat] = Math.max(1, value + variation);
         }
         
+        // --- Codex Points Calculation ---
         // codexPointsを計算（一時的な計算式）
         const basePoints = 1;
         const wisBonus = 1 + Math.max(0, (this.stats.wis - 10) * 0.125);
         const levelBonus = 1 + ((this.level - 1) * 0.5);
         this.codexPoints = Math.max(1, Math.floor(basePoints * wisBonus * levelBonus));
         
+        // --- Derived Parameters ---
         // 派生パラメータを計算
         this.maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(this.stats, this.level);
         this.hp = this.maxHp;
@@ -33,16 +39,18 @@ class Monster {
         this.evasion = GAME_CONSTANTS.FORMULAS.EVASION(this.stats);
         this.perception = GAME_CONSTANTS.FORMULAS.PERCEPTION(this.stats);
         
+        // --- Tracking Parameters ---
         // 追跡関連のパラメータを追加
         this.hasSpottedPlayer = false;
         this.lastKnownPlayerX = null;
         this.lastKnownPlayerY = null;
         this.trackingTurns = 0;  // 追跡継続ターン数
         this.maxTrackingTurns = 5;  // 最大追跡ターン数
-                // 睡眠状態の初期化（知能が低いほど眠りやすい）
-                const sleepChance = GAME_CONSTANTS.FORMULAS.SLEEP_CHANCE(this.stats);
+        // 睡眠状態の初期化（知能が低いほど眠りやすい）
+        const sleepChance = GAME_CONSTANTS.FORMULAS.SLEEP_CHANCE(this.stats);
         this.isSleeping = Math.random() * 100 < sleepChance;
         
+        // --- Fleeing Parameters ---
         // 逃走関連のパラメータを追加
         // 知能が高いほど早めに逃走、力が高いほど粘り強く戦う
         const baseThreshold = 0.3; // 基本閾値30%
@@ -50,18 +58,22 @@ class Monster {
         const strModifier = (10 - this.stats.str) * 0.01; // 力による修正（±1%ずつ）
         this.fleeThreshold = Math.min(0.8, Math.max(0.1, baseThreshold + wisModifier + strModifier));
         this.hasStartedFleeing = false;
-
+        
+        // --- Healing Parameters ---
         // 回復関連のパラメータを追加
         this.healingDice = GAME_CONSTANTS.FORMULAS.HEALING_DICE(this.stats);
         this.healModifier = GAME_CONSTANTS.FORMULAS.HEAL_MODIFIER(this.stats);
     }
 
+    // ========================== takeDamage Method ==========================
     takeDamage(amount, game) {
         const damage = Math.max(1, amount);
         
+        // --- Damage Processing ---
         // 通常のダメージ処理
         this.hp -= damage;
 
+        // --- Result Construction ---
         // 結果オブジェクトを作成
         const result = {
             damage: damage,
@@ -71,6 +83,7 @@ class Monster {
             newlyFled: false
         };
 
+        // --- Fleeing Trigger ---
         // ダメージを受けた後にHPが閾値を下回った場合、flee状態にする
         if (!this.hasStartedFleeing && this.shouldFlee()) {
             this.hasStartedFleeing = true;
@@ -80,6 +93,7 @@ class Monster {
         return result;
     }
 
+    // ========================== checkEscapeRoute Method ==========================
     // 逃げ場があるかチェックする新しいメソッド
     checkEscapeRoute(game) {
         const dx = game.player.x - this.x;
@@ -105,13 +119,16 @@ class Monster {
         return false;
     }
 
+    // ========================== act Method (Monster's Turn Actions) ==========================
     act(game) {
+        // --- Action Reset ---
         // 既に行動済みの場合はスキップ
         if (this.hasActedThisTurn) {
             this.hasActedThisTurn = false;  // 次のターンのために状態をリセット
             return;
         }
         
+        // --- Natural Healing ---
         // 自然回復の処理を最初に実行
         if (this.hp < this.maxHp) {
             const successChance = 20 + Math.floor(this.stats.con / 5);
@@ -138,12 +155,14 @@ class Monster {
             }
         }
 
+        // --- Fleeing Action ---
         // flee状態の場合は逃走処理を実行して終了
         if (this.hasStartedFleeing) {
             this.flee(game);
             return;
         }
 
+        // --- Sleep State Check ---
         // 睡眠状態チェック
         if (this.isSleeping) {
             const dx = game.player.x - this.x;
@@ -171,6 +190,7 @@ class Monster {
             return; // 睡眠中は行動しない
         }
 
+        // --- Player Detection and Pursuit ---
         const dx = game.player.x - this.x;
         const dy = game.player.y - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -184,6 +204,7 @@ class Monster {
         if ((distance <= this.perception && this.hasLineOfSight(game)) || 
             (distance <= effectiveSoundRange)) {
             if (!this.hasSpottedPlayer) {
+                // --- Player Spotted ---
                 // プレイヤーの視界内にいる場合
                 const isVisibleToPlayer = game.getVisibleTiles()
                     .some(tile => tile.x === this.x && tile.y === this.y);
@@ -206,7 +227,7 @@ class Monster {
             
             this.pursueTarget(game, game.player.x, game.player.y);
         } 
-        // プレイヤーが視界外だが追跡中の場合
+        // --- Pursuing When Player Out of Sight ---
         else if (this.trackingTurns > 0 && this.lastKnownPlayerX !== null) {
             this.trackingTurns--;
             this.pursueTarget(game, this.lastKnownPlayerX, this.lastKnownPlayerY);
@@ -218,7 +239,7 @@ class Monster {
                 this.lastKnownPlayerY = null;
             }
         }
-        // 通常の徘徊
+        // --- Wandering Behavior ---
         else {
             this.hasSpottedPlayer = false;
             this.lastKnownPlayerX = null;
@@ -243,13 +264,14 @@ class Monster {
         }
     }
 
+    // ========================== canMoveTo Utility Method ==========================
     canMoveTo(x, y, game) {
-        // マップ範囲外のチェック
+        // --- Map Boundary Check ---
         if (x < 0 || x >= game.map[0].length || y < 0 || y >= game.map.length) {
             return false;
         }
         
-        // 閉じたドアのチェックを追加
+        // --- Closed Door Check ---
         if (game.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
             return false;
         }
@@ -257,7 +279,9 @@ class Monster {
         return game.map[y][x] === 'floor';
     }
 
+    // ========================== attackPlayer Method ==========================
     attackPlayer(player, game) {
+        // --- Combat Setup ---
         // 攻撃時に自身を戦闘対象として設定し、look情報を更新
         game.lastCombatMonster = this;
         game.inputHandler.examineTarget();
@@ -271,7 +295,7 @@ class Monster {
             return;
         }
 
-        // 回避判定
+        // --- Evade Check ---
         const evadeRoll = Math.random() * 100;
         const evadeChance = player.evasion;
         if (evadeRoll < evadeChance) {
@@ -279,7 +303,7 @@ class Monster {
             return;
         }
 
-        // ダメージロール処理を詳細に記録
+        // --- Damage Roll Calculation ---
         let attackRolls = [];
         let damage = this.attackPower.base;
         for (let i = 0; i < this.attackPower.diceCount; i++) {
@@ -299,7 +323,7 @@ class Monster {
         const finalDamage = Math.max(1, damage - defense);
         const result = player.takeDamage(finalDamage);
         
-        // ダメージログを詳細に表示
+        // --- Damage Logging ---
         game.logger.add(
             `${this.name} hits you for ${result.damage} damage! ` +
             `(ATK: ${this.attackPower.base}+[${attackRolls.join(',')}] ` +
@@ -308,6 +332,7 @@ class Monster {
         );
     }
 
+    // ========================== getStatus Method ==========================
     getStatus() {
         return {
             name: this.name,
@@ -324,6 +349,7 @@ class Monster {
         };
     }
 
+    // ========================== hasLineOfSight Method ==========================
     // 視線チェックメソッドを追加
     hasLineOfSight(game) {
         const points = this.getLinePoints(this.x, this.y, game.player.x, game.player.y);
@@ -340,6 +366,7 @@ class Monster {
         return true;
     }
 
+    // ========================== getLinePoints Utility Method ==========================
     // 2点間の経路上の全ての点を取得
     getLinePoints(x0, y0, x1, y1) {
         const points = [];
@@ -371,9 +398,9 @@ class Monster {
         return points;
     }
 
+    // ========================== pursueTarget Method ==========================
     // 目標に向かって移動するメソッド
     pursueTarget(game, targetX, targetY) {
-
         const dx = targetX - this.x;
         const dy = targetY - this.y;
 
@@ -384,7 +411,7 @@ class Monster {
             return;
         }
 
-        // より賢い経路選択
+        // --- Better Path Selection ---
         const possibleMoves = [
             { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 },
             { x: 1, y: 1 }, { x: -1, y: 1 }, { x: 1, y: -1 }, { x: -1, y: -1 }
@@ -416,24 +443,28 @@ class Monster {
         }
     }
 
+    // ========================== spawnRandomMonster Static Method ==========================
     static spawnRandomMonster(x, y, floorLevel, dangerLevel = 'NORMAL', game) {
+        // --- Level Adjustment Based on Danger ---
         // 危険度に基づくレベル修正
         const dangerData = GAME_CONSTANTS.DANGER_LEVELS[dangerLevel];
         const effectiveLevel = Math.max(1, floorLevel + dangerData.levelModifier);
 
+        // --- Filter Available Monster Types ---
         // 出現可能なモンスターの種類をフィルタリング
         const availableTypes = Object.entries(GAME_CONSTANTS.MONSTERS)
-            .filter(([_, data]) => data.level <= effectiveLevel + 2)  // 効果レベル+2までのモンスターを許可
+            .filter(([_, data]) => data.level <= effectiveLevel + 2)
             .map(([type, _]) => type);
 
+        // --- Weighting Based on Level Difference ---
         // レベルに近いモンスターが出やすいように重み付け
         const weightedTypes = availableTypes.map(type => {
             const levelDiff = Math.abs(GAME_CONSTANTS.MONSTERS[type].level - effectiveLevel);
-            const weight = Math.max(0, 10 - levelDiff * 2);  // レベル差が大きいほど重みが小さく
+            const weight = Math.max(0, 10 - levelDiff * 2);
             return { type, weight };
         });
 
-        // 重み付けに基づいてモンスターを選択
+        // --- Random Selection Based on Weight ---
         const totalWeight = weightedTypes.reduce((sum, { weight }) => sum + weight, 0);
         let random = Math.random() * totalWeight;
         
@@ -448,17 +479,20 @@ class Monster {
         return new Monster(availableTypes[0], x, y, game);
     }
 
+    // ========================== shouldFlee Method ==========================
     // 逃走すべきか判断するメソッド
     shouldFlee() {
         return (this.hp / this.maxHp) <= this.fleeThreshold;
     }
 
+    // ========================== flee Method ==========================
     // 逃走行動を実行するメソッド
     flee(game) {
         const dx = game.player.x - this.x;
         const dy = game.player.y - this.y;
         const currentDistance = Math.sqrt(dx * dx + dy * dy);
         
+        // --- Evaluate All Directions ---
         // 全方向の移動候補を評価
         const candidates = [];
         
@@ -487,15 +521,18 @@ class Monster {
             }
         }
         
+        // --- Sorting Candidates by Distance ---
         // 距離でソート
         candidates.sort((a, b) => b.distance - a.distance);
         
+        // --- Fallback Attack if No Escape ---
         // 逃げ場がない場合のみ攻撃
         if (candidates.length === 0 && Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
             this.attackPlayer(game.player, game);
             return false;
         }
         
+        // --- Execute Best Escape Move ---
         // 最も遠ざかる移動を実行
         if (candidates.length > 0) {
             const best = candidates[0];
@@ -507,6 +544,7 @@ class Monster {
         return false;
     }
 
+    // ========================== hasClosedDoorBetween Method ==========================
     // 新規: プレイヤーとの間に閉じた扉があるかチェックするメソッド
     hasClosedDoorBetween(game, targetX, targetY) {
         const points = this.getLinePoints(this.x, this.y, targetX, targetY);

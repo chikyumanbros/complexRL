@@ -1,31 +1,36 @@
 const GAME_CONSTANTS = {
+    // TILES Section: Terrain tiles and doors
     TILES: {
         FLOOR: ['.', '^', '~'],
-        WALL: ['#','?', '=', '$', '*'],
+        WALL: ['#', '?', '=', '$', '*'],
         DOOR: {
             OPEN: '/',
             CLOSED: '+'
         }
     },
+
+    // STAIRS Section: Stairs properties
     STAIRS: {
         CHAR: '>',
         COLOR: '#FFFF00',
     },
+
+    // COLORS Section: Color definitions for various elements
     COLORS: {
         FLOOR: '#222',
         WALL_VARIATIONS: [
-            '#445',  // 基本の青灰色
-            '#544',  // 赤灰色
-            '#454',  // 緑灰色
-            '#455',  // 青緑灰色
-            '#554',  // 黄灰色
-            '#545',  // 紫灰色
-            '#556',  // 水色がかった灰色
-            '#655',  // オレンジがかった灰色
-            '#565',  // エメラルドがかった灰色
-            '#665',  // 金がかった灰色
+            '#445',  // Basic blue-gray
+            '#544',  // Red-gray
+            '#454',  // Green-gray
+            '#455',  // Blue-green-gray
+            '#554',  // Yellow-gray
+            '#545',  // Purple-gray
+            '#556',  // Light bluish-gray
+            '#655',  // Orangish-gray
+            '#565',  // Emerald-tinted gray
+            '#665',  // Golden-tinted gray
         ],
-        WALL: '#445',  // デフォルトの壁の色（後方互換性のため残す）
+        WALL: '#445',  // Default wall color (kept for backward compatibility)
         DOOR: '#8B4513',
         HEAL: '#2ed573',
         MONSTER: {
@@ -41,19 +46,22 @@ const GAME_CONSTANTS = {
             DRAGON_WHELP: '#d33'
         },
     },
-    
+
+    // MODES Section: Game mode identifiers
     MODES: {
         GAME: 'game',
         CODEX: 'codex',
         GAME_OVER: 'game_over',
         HELP: 'help'
     },
-    
+
+    // DIMENSIONS Section: Game board dimensions
     DIMENSIONS: {
         WIDTH: 60,
         HEIGHT: 35
     },
-    
+
+    // ROOM Section: Room generation parameters
     ROOM: {
         MIN_SIZE: 5,
         MAX_SIZE: 15,
@@ -63,6 +71,7 @@ const GAME_CONSTANTS = {
         SAFE_RADIUS: 3
     },
 
+    // FORMULAS Section: Calculations for character stats and actions
     FORMULAS: {
         MAX_HP: (stats, level) => Math.floor((stats.con * 2 + stats.str / 5) * (1 + level * 0.2)),
         ATTACK: (stats) => ({
@@ -97,12 +106,13 @@ const GAME_CONSTANTS = {
         }),
         HEAL_MODIFIER: (stats) => Math.max(1, Math.floor((stats.con - stats.str) / 2)),
         SLEEP_CHANCE: (stats) => {
-            // intが低いほど眠りやすい。最大50%の確率で眠る
+            // Lower intelligence increases sleepiness. Maximum 50% chance.
             return Math.min(50, Math.max(0, 50 - stats.int * 8));
         },
         SPEED: (stats) => Math.max(1, Math.floor(stats.dex - ((stats.str + stats.con) / 10)))
     },
 
+    // MONSTERS Section: Monster definitions and attributes
     MONSTERS: {
         RAT: {
             char: 'r',
@@ -116,9 +126,9 @@ const GAME_CONSTANTS = {
             },
             level: 1,
             pack: {
-                chance: 0.7,    // 70%の確率で群れ生成
-                min: 5,         // 最小2匹
-                max: 15          // 最大4匹
+                chance: 0.7,    // 70% chance to form a pack
+                min: 5,         // Minimum 2 creatures
+                max: 15         // Maximum 4 creatures
             }
         },
         BAT: {
@@ -252,7 +262,7 @@ const GAME_CONSTANTS = {
             },
             level: 6,
             pack: {
-                chance: 0.1,    // トロルは稀にしか群れを作らない
+                chance: 0.1,    // Trolls rarely form packs
                 min: 2,
                 max: 3
             }
@@ -269,13 +279,14 @@ const GAME_CONSTANTS = {
             },
             level: 7,
             pack: {
-                chance: 0.15,   // ドラゴンの子供も稀にペアで現れる
+                chance: 0.15,   // Dragon whelps rarely appear in pairs
                 min: 2,
                 max: 2
             }
         }
     },
 
+    // DANGER_LEVELS Section: Danger level configurations
     DANGER_LEVELS: {
         SAFE: { 
             name: 'Serene', 
@@ -303,6 +314,7 @@ const GAME_CONSTANTS = {
         }
     },
 
+    // CONTROLS Section: Key bindings for game controls
     CONTROLS: {
         MOVEMENT: {
             title: "Movement",
@@ -329,4 +341,4 @@ const GAME_CONSTANTS = {
             ]
         }
     }
-}; 
+};

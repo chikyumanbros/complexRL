@@ -1,4 +1,5 @@
 class Player {
+    // ===== Constructor and Initialization =====
     constructor(x = 0, y = 0, game) {
         this.x = x;
         this.y = y;
@@ -40,6 +41,7 @@ class Player {
         this.lastPosition = null;  // 前回の位置を記録するプロパティを追加
     }
 
+    // ===== Experience and Leveling Methods =====
     // 新規: 必要経験値を計算するメソッド
     calculateRequiredXP(level) {
         // 基本値を30に増加
@@ -108,6 +110,7 @@ class Player {
         });
     }
 
+    // ===== Movement Methods =====
     move(dx, dy, map) {
         // 移動時にメディテーションを解除
         if (this.meditation && this.meditation.active) {
@@ -147,6 +150,7 @@ class Player {
         return isFloor || isStairs;
     }
 
+    // ===== Skill Management Methods =====
     hasEmptySkillSlot() {
         return Array.from(this.skills.keys()).length < 10;
     }
@@ -169,6 +173,7 @@ class Player {
         this.skills.delete(slot);
     }
 
+    // ===== Damage Handling Methods =====
     takeDamage(amount) {
         // 周囲のモンスター数によるペナルティを計算
         const surroundingMonsters = this.countSurroundingMonsters(this.game);
@@ -208,6 +213,7 @@ class Player {
         return result;
     }
 
+    // ===== Combat Resolution Methods =====
     // プレイヤーの攻撃処理をまとめるためのヘルパーメソッド
     resolvePlayerAttack(monster, game) {
         // 戦闘開始時に最後の戦闘対象を更新
@@ -384,6 +390,7 @@ class Player {
         game.inputHandler.examineTarget();
     }
 
+    // ===== Utility and Status Methods =====
     getHealthStatus(currentHp, maxHp) {
         const percentage = (currentHp / maxHp) * 100;
         if (percentage > 75) return "Healthy";
@@ -549,6 +556,7 @@ class Player {
         };
     }
 
+    // ===== Floor Navigation and Surroundings Methods =====
     descendStairs() {
         if (this.game.tiles[this.y][this.x] === GAME_CONSTANTS.STAIRS.CHAR) {
             this.game.floorLevel++;

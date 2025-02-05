@@ -4,11 +4,11 @@ class Logger {
         this.codexPanelElement = document.getElementById('available-skills');
         this.messages = [];
         this.currentLookInfo = null;
-        this.game = game;  // gameの参照を保持
-        this.floorInfo = null;  // フロア情報を保持
-        this.roomInfo = null;  // 部屋情報を保持
-        this.currentRoom = null;  // 現在の部屋を保持
-        this.currentMonsterCount = 0;  // 現在のモンスター数を保持
+        this.game = game;  // Store reference to the game
+        this.floorInfo = null;  // Store floor information
+        this.roomInfo = null;  // Store room information
+        this.currentRoom = null;  // Store current room
+        this.currentMonsterCount = 0;  // Store current monster count
         this.roomDescriptions = {
             bright: [
                 "The room is brightly lit, every corner clearly visible.",
@@ -74,26 +74,26 @@ class Logger {
             ]
         };
         this.messageColors = {
-            bright: '#d4af37',      // アンティークゴールド
-            moderate: '#8b8b8b',    // 落ち着いたグレー
-            dim: '#4a4a4a',         // 暗めのグレー
-            corridor: '#696969',    // ミディアムグレー
+            bright: '#d4af37',      // Antique Gold
+            moderate: '#8b8b8b',    // Calm Gray
+            dim: '#4a4a4a',         // Darker Gray
+            corridor: '#696969',    // Medium Gray
             monsters: {
-                many: '#8b0000',    // ダークレッド
-                several: '#cd853f', // ペルー（落ち着いた茶色）
-                one: '#bc8f8f',     // ローズブラウン
-                none: '#556b2f'     // ダークオリーブグリーン
+                many: '#8b0000',    // Dark Red
+                several: '#cd853f', // Peru (calm brown)
+                one: '#bc8f8f',     // Rosy Brown
+                none: '#556b2f'     // Dark Olive Green
             },
             floorInfo: {
-                safe: '#90EE90',    // ライトグリーン（安全な場所）
-                caution: '#FFD700',  // ゴールド（注意が必要）
-                danger: '#FF6B6B',   // サーモンピンク（危険）
-                deadly: '#FF4500'    // オレンジレッド（致命的）
+                safe: '#90EE90',    // Light Green (safe)
+                caution: '#FFD700',  // Gold (caution)
+                danger: '#FF6B6B',   // Salmon Pink (danger)
+                deadly: '#FF4500'    // Orange Red (deadly)
             },
             lookInfo: {
-                monster: '#deb887', // バーリーウッド
-                player: '#b8860b',  // ダークゴールデンロッド
-                tile: '#708090'     // スレートグレー
+                monster: '#deb887', // Burlywood
+                player: '#b8860b',  // Dark Goldenrod
+                tile: '#708090'     // Slate Gray
             }
         };
     }
@@ -101,12 +101,12 @@ class Logger {
     add(message, type = 'info') {
         const messageDiv = document.createElement('div');
         messageDiv.textContent = message;
-        messageDiv.className = type;  // CSSクラスを適用
+        messageDiv.className = type;  // Apply CSS class
         this.logElement.appendChild(messageDiv);
         this.logElement.scrollTop = this.logElement.scrollHeight;
     }
 
-    // look情報の更新
+    // Update look information
     updateLookInfo(info) {
         this.currentLookInfo = info;
         if (this.game && this.game.mode === GAME_CONSTANTS.MODES.GAME) {
@@ -114,19 +114,19 @@ class Logger {
         }
     }
 
-    // フロア情報を更新
+    // Update floor information
     updateFloorInfo(floorLevel, dangerLevel) {
         const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[dangerLevel];
         this.floorInfo = {
             flavor: dangerInfo.flavor,
-            danger: Object.keys(GAME_CONSTANTS.DANGER_LEVELS).indexOf(dangerLevel)  // 数値インデックスに変換
+            danger: Object.keys(GAME_CONSTANTS.DANGER_LEVELS).indexOf(dangerLevel)  // Convert to numeric index
         };
         if (this.game.mode === GAME_CONSTANTS.MODES.GAME) {
             this.renderLookPanel();
         }
     }
 
-    // パネルの表示を更新
+    // Update panel display
     updatePanel(game) {
         this.game = game;
         if (game.mode === GAME_CONSTANTS.MODES.CODEX) {
@@ -136,7 +136,7 @@ class Logger {
         }
     }
 
-    // 部屋情報を更新
+    // Update room information
     updateRoomInfo(room, monsterCount, isDoorKill = false, isMeleeKill = false) {
         if (this.shouldUpdateRoomInfo(room, monsterCount) || isDoorKill || isMeleeKill) {
             let roomInfo = '';
@@ -144,7 +144,7 @@ class Logger {
             let monsterColor = '';
             
             if (room) {
-                // 明るさの描写とその色を選択
+                // Select brightness description and corresponding color
                 if (room.brightness >= 5) {
                     roomInfo = this.getRandomDescription('bright');
                     brightnessColor = this.messageColors.bright;
@@ -160,7 +160,7 @@ class Logger {
                 brightnessColor = this.messageColors.corridor;
             }
 
-            // 戦闘の描写を追加
+            // Add combat description
             let combatDesc = '';
             if (isDoorKill) {
                 combatDesc = this.getRandomDescription('doorKill');
@@ -168,7 +168,7 @@ class Logger {
                 combatDesc = this.getRandomDescription('meleeKill');
             }
 
-            // モンスターの気配の描写とその色を選択（部屋/通路共通）
+            // Select monster presence description and its color (for both room and corridor)
             let monsterDesc = '';
             if (monsterCount > 3) {
                 monsterDesc = this.getRandomDescription('monsters.many');
@@ -184,10 +184,10 @@ class Logger {
                 monsterColor = this.messageColors.monsters.none;
             }
 
-            // 各説明文の後に改行を追加（<br>を使用）
+            // Append line breaks (<br>) after each description
             roomInfo = `<span style="color: ${brightnessColor}">${roomInfo}</span><br>` +
-                      (combatDesc ? `<span style="color: ${this.messageColors.monsters.many}">${combatDesc}</span><br>` : '') +
-                      `<span style="color: ${monsterColor}">${monsterDesc}</span>`;
+                       (combatDesc ? `<span style="color: ${this.messageColors.monsters.many}">${combatDesc}</span><br>` : '') +
+                       `<span style="color: ${monsterColor}">${monsterDesc}</span>`;
 
             this.roomInfo = roomInfo;
             this.currentRoom = room;
@@ -200,17 +200,17 @@ class Logger {
     }
 
     shouldUpdateRoomInfo(room, monsterCount) {
-        // 初回は必ず更新
+        // Always update on first time
         if (!this.currentRoom && !room) {
             return this.currentMonsterCount !== monsterCount;
         }
         
-        // 部屋から通路、または通路から部屋への移動時
+        // When transitioning from a room to a corridor or vice versa
         if ((!this.currentRoom && room) || (this.currentRoom && !room)) {
             return true;
         }
         
-        // 部屋の中での変化
+        // Changes within the room
         if (this.currentRoom && room) {
             return this.currentRoom.x !== room.x || 
                    this.currentRoom.y !== room.y || 
@@ -218,7 +218,7 @@ class Logger {
                    this.currentMonsterCount !== monsterCount;
         }
         
-        // 通路での変化（モンスター数の変化時のみ更新）
+        // In corridors, update only if the monster count changes
         if (!this.currentRoom && !room) {
             return this.currentMonsterCount !== monsterCount;
         }
@@ -231,7 +231,7 @@ class Logger {
         return descriptions[Math.floor(Math.random() * descriptions.length)];
     }
 
-    // look情報パネルのレンダリング
+    // Render look information panel
     renderLookPanel() {
         if (!this.codexPanelElement) return;
 
@@ -246,12 +246,12 @@ class Logger {
                 colorKey = 'caution';
             }
             
-            // フレーバーテキストを.で分割して改行を追加
+            // Split flavor text by '.' and add line breaks
             const flavorLines = this.floorInfo.flavor.split('.');
             const coloredLines = flavorLines
-                .filter(line => line.trim())  // 空行を除外
-                .map(line => `<span style="color: ${this.messageColors.floorInfo[colorKey]}">${line.trim()}.</span><br>`)  // <br>タグを追加
-                .join('');  // 改行は<br>タグで行うのでjoinの区切り文字は不要
+                .filter(line => line.trim())
+                .map(line => `<span style="color: ${this.messageColors.floorInfo[colorKey]}">${line.trim()}.</span><br>`)
+                .join('');
             
             display += `${coloredLines}\n`;
         }
@@ -263,15 +263,15 @@ class Logger {
         
         display += "\n=== LOOK INFO ===\n\n";
         if (this.currentLookInfo) {
-            // モンスター情報の場合
+            // If it's monster information
             if (this.currentLookInfo.includes("Level")) {
                 display += `<span style="color: ${this.messageColors.lookInfo.monster}">${this.currentLookInfo}</span>`;
             }
-            // プレイヤー情報の場合
+            // If it's player information
             else if (this.currentLookInfo.includes("yourself")) {
                 display += `<span style="color: ${this.messageColors.lookInfo.player}">${this.currentLookInfo}</span>`;
             }
-            // タイル情報の場合
+            // If it's tile information
             else {
                 display += `<span style="color: ${this.messageColors.lookInfo.tile}">${this.currentLookInfo}</span>`;
             }

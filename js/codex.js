@@ -1,11 +1,15 @@
+/* ========================== CodexSystem Class Definition ========================== */
 class CodexSystem {
     constructor() {
+        // ==== Initialize Skill Categories ====
         this.categories = {
+            // ---- Combat Skills ----
             combat: {
                 key: 'c',
                 name: 'COMBAT',
                 skills: [
                     { 
+                        // --- Power Strike Skill ---
                         id: 'powerStrike',
                         name: 'Power Strike',
                         desc: 'Channel STR for power, sacrificing DEX accuracy (Base: DMG +50%, ACC -30%, scales with STR/DEX)',
@@ -19,7 +23,7 @@ class CodexSystem {
                             const damageBonus = 1 + (0.5 * player.stats.str / 10);
                             // DEX 10で-30%になるように調整
                             const accuracyPenalty = 1 - (0.3 * player.stats.dex / 10);
-                            return `[DMG: +${Math.floor((damageBonus-1)*100)}%, ACC: ${Math.floor((accuracyPenalty-1)*100)}%]`;
+                            return `[DMG: +${Math.floor((damageBonus - 1) * 100)}%, ACC: ${Math.floor((accuracyPenalty - 1) * 100)}%]`;
                         },
                         effect: (game, player) => {
                             // 既に攻撃修飾効果が有効な場合は使用できない
@@ -48,6 +52,7 @@ class CodexSystem {
                         }
                     },
                     { 
+                        // --- Quick Slash Skill ---
                         id: 'quick', 
                         name: 'Quick Slash', 
                         cost: 20, 
@@ -85,11 +90,13 @@ class CodexSystem {
                     }
                 ]
             },
+            // ---- Movement Skills ----
             movement: {
                 key: 'm',
                 name: 'MOVEMENT',
                 skills: [
                     {
+                        // --- Jump Skill ---
                         id: 'jump',
                         name: 'Jump',
                         desc: 'Jump over enemies. Range based on DEX/CON. (Base: 3, +1 per 3 DEX over CON)',
@@ -103,7 +110,7 @@ class CodexSystem {
                             return `[Range: ${jumpRange}]`;
                         },
                         effect: (game, player, target) => {
-                            // 視界範囲チェック
+                            // ---- Visibility Check ----
                             const visibleTiles = game.getVisibleTiles();
                             const isVisible = visibleTiles.some(tile => 
                                 tile.x === target.x && tile.y === target.y
@@ -114,39 +121,39 @@ class CodexSystem {
                                 return false;
                             }
 
-                            // ジャンプ範囲を計算（DEXとCONから算出）
+                            // ---- Calculate Jump Range ----
                             const jumpRange = Math.floor((player.stats.dex - player.stats.con) / 3) + 3;
                             
-                            // 距離チェック（チェビシェフ距離を使用）
+                            // ---- Distance Check (Chebyshev distance) ----
                             const dx = Math.abs(target.x - player.x);
                             const dy = Math.abs(target.y - player.y);
-                            const distance = Math.max(dx, dy);  // チェビシェフ距離の計算
+                            const distance = Math.max(dx, dy);
                             
                             if (distance > jumpRange) {
                                 game.logger.add("Too far to jump!", "warning");
                                 return false;
                             }
 
-                            // 移動先の有効性チェック
+                            // ---- Check Destination Validity ----
                             if (game.map[target.y][target.x] !== 'floor') {
                                 game.logger.add("Can't jump there!", "warning");
                                 return false;
                             }
 
-                            // モンスターがいる場所にはジャンプできない
+                            // ---- Monster Presence Check ----
                             if (game.getMonsterAt(target.x, target.y)) {
                                 game.logger.add("Can't jump onto a monster!", "warning");
                                 return false;
                             }
 
-                            // ジャンプ前の位置を保存
+                            // ---- Save Current Position ----
                             const fromX = player.x;
                             const fromY = player.y;
 
-                            // エフェクトを表示
+                            // ---- Show Movement Effect ----
                             game.renderer.showMovementTrailEffect(fromX, fromY, target.x, target.y);
 
-                            // ジャンプの実行
+                            // ---- Execute Jump ----
                             player.x = target.x;
                             player.y = target.y;
                             
@@ -157,11 +164,13 @@ class CodexSystem {
                     }
                 ]
             },
+            // ---- Defense Skills ----
             defense: {
                 key: 'd',
                 name: 'DEFENSE',
                 skills: [
                     { 
+                        // --- Shield Block Skill ---
                         id: 'block', 
                         name: 'Shield Block', 
                         cost: 20, 
@@ -174,6 +183,7 @@ class CodexSystem {
                         learned: false
                     },
                     { 
+                        // --- Armor Master Skill ---
                         id: 'armor', 
                         name: 'Armor Master', 
                         cost: 35, 
@@ -187,11 +197,13 @@ class CodexSystem {
                     }
                 ]
             },
+            // ---- Arcane Skills ----
             magic: {
                 key: 'a',
                 name: 'ARCANE',
                 skills: [
                     { 
+                        // --- Magic Bolt Skill ---
                         id: 'bolt', 
                         name: 'Magic Bolt', 
                         cost: 25, 
@@ -204,6 +216,7 @@ class CodexSystem {
                         learned: false
                     },
                     { 
+                        // --- Arcane Shield Skill ---
                         id: 'shield', 
                         name: 'Arcane Shield', 
                         cost: 30, 
@@ -217,11 +230,13 @@ class CodexSystem {
                     }
                 ]
             },
+            // ---- Mind Skills ----
             mind: {  // mental から mind に変更
                 key: 'i',  // 'm' から 'i' に変更 (intelligence/inner の i)
                 name: 'MIND',  // MENTAL から MIND に変更
                 skills: [
                     {
+                        // --- Meditation Skill ---
                         id: 'meditation',
                         name: 'Meditation',
                         desc: 'Meditate to recover HP. Move to cancel. (Heal: WIS/2 per turn, Max turns: WIS)',
@@ -235,7 +250,7 @@ class CodexSystem {
                             return `[${healPerTurn} HP/turn, ${maxTurns} turns]`;
                         },
                         effect: (game, player) => {
-                            // If HP is at maximum value, cannot meditate
+                            // ---- HP Check ----
                             if (player.hp >= player.maxHp) {
                                 game.logger.add("Cannot meditate as HP is full.", "warning");
                                 return false;
@@ -262,6 +277,8 @@ class CodexSystem {
                 ]
             },
         };
+
+        // ==== Initialize Mode and Input Settings ====
         this.currentCategory = 'combat';
         this.selectionMode = 'normal';
         this.pendingSkill = null;
@@ -270,6 +287,7 @@ class CodexSystem {
         this.inputMode = 'category';  // 'category' または 'skill'
     }
 
+    // ===== Input Mode Methods =====
     toggleInputMode() {
         this.inputMode = this.inputMode === 'category' ? 'skill' : 'category';
         this.clearInput();
@@ -299,6 +317,7 @@ class CodexSystem {
         this.suggestions = [];
     }
 
+    // ===== Skill Learning and Replacement Methods =====
     tryLearnSkill(skillId, player) {
         const skill = this.findSkillById(skillId);
         if (!skill) return false;
@@ -344,6 +363,7 @@ class CodexSystem {
         return true;
     }
 
+    // ===== Display Methods =====
     getMenuDisplay(player) {
         if (this.selectionMode === 'replace') {
             return this.getReplacementDisplay(player);
@@ -351,10 +371,10 @@ class CodexSystem {
 
         let display = '';
         
-        // モード表示
+        // ---- Mode Heading ----
         display += `=== ${this.inputMode.toUpperCase()} MODE ===\n\n`;
 
-        // カテゴリ一覧
+        // ---- Categories Heading ----
         display += 'Categories: ';
         for (let cat in this.categories) {
             const category = this.categories[cat];
@@ -365,7 +385,7 @@ class CodexSystem {
         const currentCat = this.categories[this.currentCategory];
         display += `Selected: ${currentCat.name}\n\n`;
         
-        // 選択されたカテゴリのスキル一覧を表示
+        // ---- Available Skills in Current Category ----
         display += `Available ${currentCat.name} Skills:\n`;
         currentCat.skills.forEach(skill => {
             const canAfford = player.codexPoints >= skill.cost;
@@ -380,9 +400,10 @@ class CodexSystem {
         display += '\n';
         
         if (this.inputMode === 'skill') {
+            // ---- Skill Input Heading ----
             display += `Enter skill name: ${this.inputBuffer}_\n\n`;
 
-            // サジェスションの表示
+            // ---- Suggestions Display ----
             if (this.suggestions.length > 0) {
                 display += 'Suggestions:\n';
                 this.suggestions.forEach(skill => {
@@ -397,7 +418,7 @@ class CodexSystem {
             }
         }
 
-        // 現在のスキル一覧
+        // ---- Current Skills Heading ----
         display += 'Current Skills:\n';
         if (player.skills.size === 0) {
             display += 'NO SKILLS\n';
@@ -410,7 +431,7 @@ class CodexSystem {
             });
         }
 
-        // 操作説明
+        // ---- Controls Heading ----
         display += '\n=== CONTROLS ===\n';
         if (this.inputMode === 'category') {
             display += 'Press [SPACE] to enter skill selection mode\n';
@@ -438,6 +459,7 @@ class CodexSystem {
         return display;
     }
 
+    // ===== Utility Methods =====
     findSkillById(skillId) {
         for (const category of Object.values(this.categories)) {
             const skill = category.skills.find(s => s.id === skillId);
@@ -457,6 +479,9 @@ class CodexSystem {
     }
 }
 
+/* ========================== Utility Functions for Codex UI ========================== */
+
+// ===== Function: createCodexEntry =====
 function createCodexEntry(title, content) {
     const entry = document.createElement('div');
     entry.className = 'codex-entry';
@@ -474,19 +499,22 @@ function createCodexEntry(title, content) {
     return entry;
 }
 
+// ===== Function: createCodexMenu =====
 function createCodexMenu() {
     const menu = document.createElement('div');
+    
+    // ---- Menu Title ----
     const title = document.createElement('div');
     title.textContent = "=== CODEX ===";
     title.style.color = "#ffd700";
     title.style.marginBottom = "10px";
     menu.appendChild(title);
     
-    // カテゴリごとにスキルを表示
+    // ---- Category-Based Skill Display ----
     for (const categoryKey in game.codexSystem.categories) {
         const category = game.codexSystem.categories[categoryKey];
         
-        // カテゴリヘッダーを作成
+        // ---- Category Header ----
         const categoryHeader = document.createElement('div');
         categoryHeader.textContent = `== ${category.name} ==`;
         categoryHeader.style.color = "#88ccff";
@@ -494,7 +522,7 @@ function createCodexMenu() {
         categoryHeader.style.marginBottom = "5px";
         menu.appendChild(categoryHeader);
         
-        // カテゴリ内のスキルをフィルタリングして表示
+        // ---- List Skills that are not yet learned ----
         category.skills
             .filter(skill => !Array.from(game.player.skills.values()).includes(skill.id))
             .forEach(skill => {
@@ -507,7 +535,7 @@ function createCodexMenu() {
                 menuItem.style.marginLeft = '10px';
                 menuItem.style.color = canAfford ? '#2ecc71' : '#e74c3c';
                 
-                // ツールチップとしてスキルの説明を追加
+                // ---- Tooltip with Skill Description ----
                 menuItem.title = skill.desc;
                 
                 menuItem.addEventListener('click', () => {
