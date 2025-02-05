@@ -119,6 +119,8 @@ class Player {
         const newY = this.y + dy;
         
         if (this.canMoveTo(newX, newY, map)) {
+            // 移動前の位置を保存
+            this.lastPosition = { x: this.x, y: this.y };
             this.x = newX;
             this.y = newY;
             return true;
@@ -208,6 +210,9 @@ class Player {
 
     // プレイヤーの攻撃処理をまとめるためのヘルパーメソッド
     resolvePlayerAttack(monster, game) {
+        // 戦闘開始時に最後の戦闘対象を更新
+        game.lastCombatMonster = monster;
+        
         // 周囲のモンスター数によるペナルティを計算
         const surroundingMonsters = this.countSurroundingMonsters(game);
         const penaltyPerMonster = 15; // 1体につき15%のペナルティ
@@ -259,9 +264,25 @@ class Player {
             damageMultiplier *= this.nextAttackModifier.damageMod;
         }
 
-        const baseDamage = GAME_CONSTANTS.FORMULAS.rollDamage(this.attackPower, monster.defense);
-        const damage = Math.floor(baseDamage * damageMultiplier);
-        const result = monster.takeDamage(damage, game);
+        // ダメージロール処理を詳細に記録
+        let attackRolls = [];
+        let damage = this.attackPower.base;
+        for (let i = 0; i < this.attackPower.diceCount; i++) {
+            const diceRoll = Math.floor(Math.random() * this.attackPower.diceSides) + 1;
+            attackRolls.push(diceRoll);
+            damage += diceRoll;
+        }
+
+        let defenseRolls = [];
+        let defense = monster.defense.base;
+        for (let i = 0; i < monster.defense.diceCount; i++) {
+            const diceRoll = Math.floor(Math.random() * monster.defense.diceSides) + 1;
+            defenseRolls.push(diceRoll);
+            defense += diceRoll;
+        }
+
+        const finalDamage = Math.floor((damage - defense) * damageMultiplier);
+        const result = monster.takeDamage(finalDamage, game);
         const healthStatus = `HP: ${monster.hp}/${monster.maxHp}`;
         const attackRollStr = this.attackPower.base + `+${this.attackPower.diceCount}d${this.attackPower.diceSides}` +
             (damageMultiplier !== 1 ? ` ×${damageMultiplier.toFixed(1)}` : '');
@@ -272,10 +293,12 @@ class Player {
         }
 
         if (result.killed) {
-            const attackRollStr = this.attackPower.base + `+${this.attackPower.diceCount}d${this.attackPower.diceSides}` +
-                (damageMultiplier !== 1 ? ` ×${damageMultiplier.toFixed(1)}` : '');
-            const defenseRollStr = monster.defense.base + `+${monster.defense.diceCount}d${monster.defense.diceSides}`;
-            game.logger.add(`You killed the ${monster.name} with ${result.damage} damage! (ATK: ${attackRollStr} vs DEF: ${defenseRollStr})`, "kill");
+            game.logger.add(
+                `You killed the ${monster.name} with ${result.damage} damage! ` +
+                `(ATK: ${this.attackPower.base}+[${attackRolls.join(',')}]${damageMultiplier !== 1 ? ` ×${damageMultiplier.toFixed(1)}` : ''} ` +
+                `vs DEF: ${monster.defense.base}+[${defenseRolls.join(',')}])`,
+                "kill"
+            );
             game.removeMonster(monster);
 
             // codexPointsを加算
@@ -295,10 +318,18 @@ class Player {
             }
             this.addExperience(xpGained);
         } else if (!result.isOpportunityAttack) {
-            game.logger.add(`${attackType} hits! ${monster.name} takes ${result.damage} damage! (ATK: ${attackRollStr} vs DEF: ${defenseRollStr})  (${healthStatus})`, "playerHit");
+            game.logger.add(
+                `${attackType} hits! ${monster.name} takes ${result.damage} damage! ` +
+                `(ATK: ${this.attackPower.base}+[${attackRolls.join(',')}]${damageMultiplier !== 1 ? ` ×${damageMultiplier.toFixed(1)}` : ''} ` +
+                `vs DEF: ${monster.defense.base}+[${defenseRolls.join(',')}])  (${healthStatus})`,
+                "playerHit"
+            );
         }
 
         this.nextAttackModifier = null;
+
+        // 戦闘後にlook情報を更新
+        game.inputHandler.examineTarget();
     }
 
     // プレイヤーの攻撃にSPEEDによる処理順序を組み込む
@@ -403,6 +434,11 @@ class Player {
     }
 
     processTurn() {
+        // ターン開始時に前回の位置を更新
+        if (!this.lastPosition) {
+            this.lastPosition = { x: this.x, y: this.y };
+        }
+        
         // スキルのクールダウンを処理
         for (const [_, skill] of this.skills) {
             if (skill.remainingCooldown > 0) {

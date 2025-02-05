@@ -223,8 +223,8 @@ class Renderer {
         }
         const hpTextElement = document.getElementById('hp-text');
         if (hpTextElement) {
-            const hpBars = Math.ceil((player.hp / player.maxHp) * 10);
-            const hpText = '|'.repeat(hpBars).padEnd(10, ' ');
+            const hpBars = Math.ceil((player.hp / player.maxHp) * 15);
+            const hpText = '|'.repeat(hpBars).padEnd(15, ' ');
             hpTextElement.textContent = hpText;
             // HPの割合に応じたクラスの追加
             const hpPercentage = (player.hp / player.maxHp) * 100;

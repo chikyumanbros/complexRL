@@ -382,9 +382,16 @@ class InputHandler {
     }
 
     examineTarget() {
-        const monster = this.game.getMonsterAt(this.targetX, this.targetY);
-        let lookInfo = '';
+        let monster = this.game.getMonsterAt(this.targetX, this.targetY);
 
+        // lookモードでない場合、直近の戦闘対象のモンスターの情報を表示
+        if (!this.lookMode && this.game.lastCombatMonster && this.game.lastCombatMonster.hp > 0) {
+            monster = this.game.lastCombatMonster;
+            this.targetX = monster.x;
+            this.targetY = monster.y;
+        }
+
+        let lookInfo = '';
         if (monster) {
             // 万が一、攻撃力や防御力の情報が未定義の場合は、定数ファイルの計算式を利用して補完する
             if (!monster.attackPower) {
@@ -400,14 +407,15 @@ class InputHandler {
             // 基本情報
             lookInfo = [
                 `${monster.name} (Level ${monster.level}):`,
-                `HP: ${monster.hp}/${monster.maxHp} (${healthPercent}%)`
+                `HP: ${monster.hp}/${monster.maxHp} (${healthPercent}%)`,
+                `Distance: ${Math.max(Math.abs(this.game.player.x - monster.x), Math.abs(this.game.player.y - monster.y))} tiles`
             ];
 
             // 状態異常の確認と表示
             if (monster.hasStartedFleeing) {
                 status.push("Fleeing");
             }
-            if (monster.isSleeping) {  // isSleeping を使用
+            if (monster.isSleeping) {
                 status.push("Sleeping");
             }
 

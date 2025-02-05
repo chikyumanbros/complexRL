@@ -22,9 +22,9 @@ class CodexSystem {
                             return `[DMG: +${Math.floor((damageBonus-1)*100)}%, ACC: ${Math.floor((accuracyPenalty-1)*100)}%]`;
                         },
                         effect: (game, player) => {
-                            // 既にPower Strikeが有効な場合は使用できない
-                            if (player.nextAttackModifier && player.nextAttackModifier.name === 'Power Strike') {
-                                game.logger.add("Power Strike is already active!", "warning");
+                            // 既に攻撃修飾効果が有効な場合は使用できない
+                            if (player.nextAttackModifier) {
+                                game.logger.add(`${player.nextAttackModifier.name} is already in effect!`, "warning");
                                 return false;
                             }
 
@@ -60,9 +60,9 @@ class CodexSystem {
                         requiresTarget: false,
                         learned: false,
                         effect: (game, player) => {
-                            // 既にQuick Slashが有効な場合は使用できない
-                            if (player.nextAttackModifier && player.nextAttackModifier.name === 'Quick Slash') {
-                                game.logger.add("Quick Slash is already active!", "warning");
+                            // 既に攻撃修飾効果が有効な場合は使用できない
+                            if (player.nextAttackModifier) {
+                                game.logger.add(`${player.nextAttackModifier.name} is already in effect!`, "warning");
                                 return false;
                             }
 

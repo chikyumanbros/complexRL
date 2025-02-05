@@ -275,14 +275,31 @@ class Monster {
             return;
         }
 
-        const damage = GAME_CONSTANTS.FORMULAS.rollDamage(this.attackPower, player.defense);
-        const result = player.takeDamage(damage);
+        // ダメージロール処理を詳細に記録
+        let attackRolls = [];
+        let damage = this.attackPower.base;
+        for (let i = 0; i < this.attackPower.diceCount; i++) {
+            const diceRoll = Math.floor(Math.random() * this.attackPower.diceSides) + 1;
+            attackRolls.push(diceRoll);
+            damage += diceRoll;
+        }
+
+        let defenseRolls = [];
+        let defense = player.defense.base;
+        for (let i = 0; i < player.defense.diceCount; i++) {
+            const diceRoll = Math.floor(Math.random() * player.defense.diceSides) + 1;
+            defenseRolls.push(diceRoll);
+            defense += diceRoll;
+        }
+
+        const finalDamage = Math.max(1, damage - defense);
+        const result = player.takeDamage(finalDamage);
         
-        // ダメージログを常に表示（死亡時も含む）
+        // ダメージログを詳細に表示
         game.logger.add(
             `${this.name} hits you for ${result.damage} damage! ` +
-            `(ATK: ${this.attackPower.base}+${this.attackPower.diceCount}d${this.attackPower.diceSides} ` +
-            `vs DEF: ${player.defense.base}+${player.defense.diceCount}d${player.defense.diceSides})`,
+            `(ATK: ${this.attackPower.base}+[${attackRolls.join(',')}] ` +
+            `vs DEF: ${player.defense.base}+[${defenseRolls.join(',')}])`,
             "monsterHit"
         );
     }

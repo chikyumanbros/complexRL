@@ -32,7 +32,7 @@ body {
 #status-panel {
     background: black;
     padding: 10px;
-    width: 250px;
+    width: 300px;
     font-size: 12px;
     line-height: 1.2;
     color: rgb(207, 207, 207);
@@ -41,7 +41,7 @@ body {
 #skills-panel {
     background: black;
     padding: 10px;
-    width: 542px;
+    width: 500px;
     font-size: 10px;
     line-height: 1.2;
     color: rgb(207, 207, 207);
