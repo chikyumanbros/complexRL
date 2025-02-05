@@ -48,7 +48,7 @@ class Renderer {
 
             let color;
             if (this.game.inputHandler.targetingMode === 'look') {
-                color = '#ffffff33';
+                color = '#ffffff';
             } else {
                 const skillId = this.game.inputHandler.targetingMode;
                 const skill = this.game.codexSystem.findSkillById(skillId);
@@ -106,7 +106,7 @@ class Renderer {
                     this.highlightedTile.x === x && 
                     this.highlightedTile.y === y) {
                     if (this.game.inputHandler.targetingMode === 'look') {
-                        backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                        backgroundColor = 'rgba(255, 255, 255, 0.53)';
                     } else {
                         const player = this.game.player;
                         const skillId = this.game.inputHandler.targetingMode;
@@ -596,5 +596,43 @@ class Renderer {
                 this.statusPanelFlashing = false;
             }, 100);
         }
+    }
+
+    renderHelpMenu() {
+        const display = this.getHelpDisplay();
+        document.getElementById('available-skills').innerHTML = display;
+    }
+
+    getHelpDisplay() {
+        let display = '';
+
+        // メインタイトル (中央揃え)
+        display += `<div style="color: #ffd700; font-size: 14px; text-align: center;">=== CONTROLS ===</div>\n\n`;
+
+        // カテゴリごとに表示
+        const categories = Object.entries(GAME_CONSTANTS.CONTROLS);
+        categories.forEach(([category, data], idx) => {
+            // カテゴリタイトル
+            display += `<div style="color: #66ccff; font-size: 12px; margin-top: 15px;">=== ${data.title} ===</div>\n`;
+            
+            // キーと説明（インデントを付与）
+            data.keys.forEach(keyInfo => {
+                display += `<div style="margin-left: 10px;">`;
+                display += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[${keyInfo.key}]</span>`;
+                display += `<span style="color: #ecf0f1;">${keyInfo.desc}</span>`;
+                display += `</div>\n`;
+            });
+            
+            // 複数のカテゴリの場合は、カテゴリ毎に改行
+            if (idx < categories.length - 1) {
+                display += `<br>\n`;
+            }
+        });
+        
+        // フッター
+        display += `<br><div style="color: #e74c3c; text-align: center;">=== TIPS ===</div>\n\n`;
+        display += `<div style="text-align: center;">Press [ESC] to return to game</div>\n`;
+        
+        return display;
     }
 } 

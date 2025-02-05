@@ -258,6 +258,10 @@ class Monster {
     }
 
     attackPlayer(player, game) {
+        // 攻撃時に自身を戦闘対象として設定し、look情報を更新
+        game.lastCombatMonster = this;
+        game.inputHandler.examineTarget();
+
         const hitChance = this.accuracy;
         const roll = Math.floor(Math.random() * 100);
         game.logger.add(`${this.name} attacks! (ACC: ${Math.floor(hitChance)}% | Roll: ${roll})`, "monsterInfo");

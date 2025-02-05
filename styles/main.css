@@ -491,7 +491,8 @@ h3 {
 }
 
 /* codexモード: codexパネルは下端に固定し、上方向に拡大する */
-body.codex-mode #codex-panel {
+body.codex-mode #codex-panel,
+body.help-mode #codex-panel {  /* help-modeを追加 */
     position: absolute;
     bottom: 10px;
     left: 10px;

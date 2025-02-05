@@ -212,17 +212,28 @@ class Game {
     }
 
     toggleMode() {
-        this.mode = this.mode === GAME_CONSTANTS.MODES.GAME ? 
-            GAME_CONSTANTS.MODES.CODEX : 
-            GAME_CONSTANTS.MODES.GAME;
-        
-        // モードに応じて適切なパネルを表示
         if (this.mode === GAME_CONSTANTS.MODES.GAME) {
-            this.logger.renderLookPanel();  // ゲームモードならlookパネル
+            this.mode = GAME_CONSTANTS.MODES.CODEX;
+            document.body.classList.add('codex-mode');
+            this.renderer.renderCodexMenu();
+        } else if (this.mode === GAME_CONSTANTS.MODES.HELP) {
+            this.mode = GAME_CONSTANTS.MODES.GAME;
+            document.body.classList.remove('help-mode');
+            this.logger.renderLookPanel();
         } else {
-            this.renderer.renderCodexMenu(); // Codexモードならcodexメニュー
+            this.mode = GAME_CONSTANTS.MODES.GAME;
+            document.body.classList.remove('codex-mode');
+            this.logger.renderLookPanel();
         }
         
+        this.renderer.render();
+    }
+
+    // ヘルプモードに切り替える新しいメソッド
+    enterHelpMode() {
+        this.mode = GAME_CONSTANTS.MODES.HELP;
+        document.body.classList.add('help-mode');
+        this.renderer.renderHelpMenu();
         this.renderer.render();
     }
 
@@ -594,24 +605,3 @@ class Game {
 
 // ゲームの開始
 const game = new Game();
-
-function showMessage(text, color = '#fff') {
-    const messageElement = document.createElement('div');
-    messageElement.style.color = color;
-    messageElement.textContent = text;
-    messageLog.appendChild(messageElement);
-    messageLog.scrollTop = messageLog.scrollHeight;
-}
-
-function updateStats() {
-    const statsElement = document.getElementById('stats');
-    statsElement.innerHTML = `HP: ${player.hp}/${player.maxHp} | Level: ${player.level} | XP: ${player.xp}/${player.nextLevelXp} | Gold: ${player.gold}`;
-}
-
-function showGameOver() {
-    const gameOverElement = document.createElement('div');
-    gameOverElement.style.color = 'red';
-    gameOverElement.style.fontSize = '24px';
-    gameOverElement.textContent = 'GAME OVER - Press Space to Restart';
-    messageLog.appendChild(gameOverElement);
-} 

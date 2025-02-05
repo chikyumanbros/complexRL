@@ -379,6 +379,9 @@ class Player {
             game.renderer.render();
             this.attackEffectTimer = null;
         }, 200);
+
+        // 攻撃後にlook情報を更新
+        game.inputHandler.examineTarget();
     }
 
     getHealthStatus(currentHp, maxHp) {

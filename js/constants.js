@@ -44,7 +44,9 @@ const GAME_CONSTANTS = {
     
     MODES: {
         GAME: 'game',
-        CODEX: 'codex'
+        CODEX: 'codex',
+        GAME_OVER: 'game_over',
+        HELP: 'help'
     },
     
     DIMENSIONS: {
@@ -298,6 +300,33 @@ const GAME_CONSTANTS = {
             levelModifier: 2, 
             color: '#8e44ad',
             flavor: "An oppressive darkness weighs heavily on your soul. The very air seems to pulse with deadly energy."
+        }
+    },
+
+    CONTROLS: {
+        MOVEMENT: {
+            title: "Movement",
+            keys: [
+                { key: "h/←", desc: "Move left" },
+                { key: "j/↓", desc: "Move down" },
+                { key: "k/↑", desc: "Move up" },
+                { key: "l/→", desc: "Move right" },
+                { key: "y", desc: "Move diagonally up-left" },
+                { key: "u", desc: "Move diagonally up-right" },
+                { key: "b", desc: "Move diagonally down-left" },
+                { key: "n", desc: "Move diagonally down-right" },
+                { key: ".", desc: "Wait one turn" }
+            ]
+        },
+        ACTIONS: {
+            title: "Actions",
+            keys: [
+                { key: "1-9", desc: "Use skill" },
+                { key: "Tab", desc: "Toggle Codex menu" },
+                { key: ";", desc: "Look mode" },
+                { key: "?", desc: "Show this help" },
+                { key: "Esc", desc: "Cancel/Close menu" }
+            ]
         }
     }
 }; 

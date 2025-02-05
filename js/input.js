@@ -31,7 +31,33 @@ class InputHandler {
             if (key === 'enter') {
                 this.game.reset();  // ゲームをリセット
             }
+            if (key === ' ') {
+                this.game.reset();
+            }
             return;  // その他のキー入力を無視
+        }
+
+        // ?キーでヘルプ表示
+        if (key === '?') {
+            this.game.enterHelpMode();  // 変更: 新しいメソッドを使用
+            return;
+        }
+
+        // ヘルプモード時はESCキーで戻る
+        if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
+            if (key === 'escape') {
+                this.game.toggleMode();  // 変更: toggleModeを使用
+            }
+            return;
+        }
+
+        // ヘルプモード時はESCキーで戻る
+        if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
+            if (key === 'escape') {
+                this.game.mode = GAME_CONSTANTS.MODES.GAME;
+                this.game.logger.renderLookPanel();
+            }
+            return;
         }
 
         // タブキーのデフォルト動作を防ぐ
@@ -407,7 +433,7 @@ class InputHandler {
             // 基本情報
             lookInfo = [
                 `${monster.name} (Level ${monster.level}):`,
-                `HP: ${monster.hp}/${monster.maxHp} (${healthPercent}%)`,
+                `HP: ${monster.hp}/${monster.maxHp}`,
                 `Distance: ${Math.max(Math.abs(this.game.player.x - monster.x), Math.abs(this.game.player.y - monster.y))} tiles`
             ];
 
@@ -432,7 +458,6 @@ class InputHandler {
                 `ACC: ${monster.accuracy}%`,
                 `EVA: ${monster.evasion}%`,
                 `PER: ${monster.perception}`,
-                `CODEX: ${monster.codexPoints}`
             );
 
             lookInfo = lookInfo.join('\n');
