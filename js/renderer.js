@@ -611,7 +611,7 @@ class Renderer {
         let display = '';
 
         // Main title (centered)
-        display += `<div style="color: #ffd700; font-size: 14px; text-align: center;">=== CONTROLS ===</div>\n\n`;
+        display += `<div style="color: #ffd700; font-size: 12px; text-align: center;">=== CONTROLS ===</div>\n\n`;
 
         // Display by category
         const categories = Object.entries(GAME_CONSTANTS.CONTROLS);
@@ -633,8 +633,61 @@ class Renderer {
             }
         });
         
+        // Combat System Tips
+        display += `<br><div style="color: #e74c3c; text-align: center;">=== COMBAT SYSTEM ===</div>\n\n`;
+        
+        // Attack Roll
+        display += `<div style="color: #f1c40f;">■ Attack (ATK)</div>\n`;
+        display += `<div style="margin-left: 10px; color: #ecf0f1;">`;
+        display += `Base: STR - (DEX/2)\n`;
+        display += `Dice: (DEX/5)d(STR/5×3)\n`;
+        display += `Total = Base + Dice Roll\n`;
+        display += `</div>\n\n`;
+
+        // Defense Roll
+        display += `<div style="color: #f1c40f;">■ Defense (DEF)</div>\n`;
+        display += `<div style="margin-left: 10px; color: #ecf0f1;">`;
+        display += `Base: CON - (STR/2)\n`;
+        display += `Dice: (STR/5)d(CON/5×3)\n`;
+        display += `Total = Base + Dice Roll\n`;
+        display += `</div>\n\n`;
+
+        // Accuracy and Evasion
+        display += `<div style="color: #f1c40f;">■ Accuracy & Evasion</div>\n`;
+        display += `<div style="margin-left: 10px; color: #ecf0f1;">`;
+        display += `Accuracy (ACC): 50 + (DEX×1.5)\n`;
+        display += `Evasion (EVA): DEX×1.2\n`;
+        display += `</div>\n\n`;
+
+        // Combat Flow with Opportunity Attack details
+        display += `<div style="color: #f1c40f;">■ Combat Flow</div>\n`;
+        display += `<div style="margin-left: 10px; color: #ecf0f1;">`;
+        display += `1. Speed Check (DEX - (STR+CON)/10)\n`;
+        display += `2. Accuracy vs Roll (100)\n`;
+        display += `3. Evasion vs Roll (100)\n`;
+        display += `4. Damage = ATK Roll - DEF Roll\n`;
+        display += `</div>\n\n`;
+
+        // Opportunity Attack explanation
+        display += `<div style="color: #f1c40f;">■ Opportunity Attack</div>\n`;
+        display += `<div style="margin-left: 10px; color: #ecf0f1;">`;
+        display += `Triggers:\n`;
+        display += `・Moving away from adjacent enemies\n`;
+        display += `・Moving through enemy-adjacent tiles\n\n`;
+        display += `Effects:\n`;
+        display += `・Enemy makes an immediate attack\n`;
+        display += `・-30% Accuracy penalty\n`;
+        display += `・+50% Damage bonus\n`;
+        display += `・Multiple enemies can trigger simultaneously\n`;
+        display += `</div>\n\n`;
+
+        // Combat Penalties
+        display += `<div style="color: #f1c40f;">■ Combat Penalties</div>\n`;
+        display += `<div style="margin-left: 10px; color: #ecf0f1;">`;
+        display += `Surrounded: -15% ACC/EVA per enemy (max -60%)\n`;
+        display += `</div>\n\n`;
+        
         // Footer
-        display += `<br><div style="color: #e74c3c; text-align: center;">=== TIPS ===</div>\n\n`;
         display += `<div style="text-align: center;">Press [ESC] to return to game</div>\n`;
         
         return display;

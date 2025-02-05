@@ -6,15 +6,15 @@ class Player {
         this.game = game;
         this.char = '@';
         this.level = 1;
-        this.codexPoints = 100;  // codexポイントのみを使用
+        this.codexPoints = 0;  // codexポイントのみを使用
         this.xp = 0;                  // 経験値の初期化
         this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
         this.stats = {
-            str: 12,
-            dex: 12,
-            con: 12,
-            int: 12,
-            wis: 12
+            str: 10,
+            dex: 10,
+            con: 10,
+            int: 10,
+            wis: 10
         };
 
         // HPの計算
@@ -39,6 +39,7 @@ class Player {
         this.updateDerivedStats();
 
         this.lastPosition = null;  // 前回の位置を記録するプロパティを追加
+        this.autoExploring = false;  // 自動探索フラグを追加
     }
 
     // ===== Experience and Leveling Methods =====
@@ -187,8 +188,14 @@ class Player {
         const damage = Math.max(1, amount);
         this.hp -= damage;
         
+        // HPが0以下になった場合は0に設定
+        if (this.hp <= 0) {
+            this.hp = 0;
+        }
+        
         // ダメージを受けた時にステータスパネルをフラッシュ
         this.game.renderer.flashStatusPanel();
+        this.game.renderer.render();
 
         // ダメージ結果を返す
         const result = {
@@ -201,13 +208,11 @@ class Player {
             this.game.logger.add(`Surrounded! (-${Math.floor(surroundingPenalty * 100)}% evasion)`, "warning");
         }
 
-        // HPが0以下になった場合の処理
+        // HPが0の場合、少し待ってからゲームオーバー処理
         if (result.killed) {
-            this.hp = 0;
-            this.game.renderer.render();
             setTimeout(() => {
                 this.game.gameOver();
-            }, 50);
+            }, 100);
         }
 
         return result;
@@ -252,6 +257,8 @@ class Player {
         
         if (roll >= hitChance) {
             game.logger.add(`Your ${attackType} misses!`, "playerMiss");
+            // 攻撃が外れた場合もnextAttackModifierを消費
+            this.nextAttackModifier = null;
             return;
         }
 
@@ -262,6 +269,8 @@ class Player {
             const evadeChance = monster.evasion || 0;
             if (evadeRoll < evadeChance) {
                 game.logger.add(`${monster.name} dodges your ${attackType}! (EVA: ${Math.floor(evadeChance)}% | Roll: ${Math.floor(evadeRoll)})`, "monsterEvade");
+                // 回避された場合もnextAttackModifierを消費
+                this.nextAttackModifier = null;
                 return;
             }
         }
@@ -331,8 +340,6 @@ class Player {
                 "playerHit"
             );
         }
-
-        this.nextAttackModifier = null;
 
         // 戦闘後にlook情報を更新
         game.inputHandler.examineTarget();
@@ -581,5 +588,188 @@ class Player {
             }
         }
         return count;
+    }
+
+    // 自動探索を開始
+    startAutoExplore() {
+        this.autoExploring = true;
+        this.game.logger.add("Auto-exploring...", "playerInfo");
+        this.continueAutoExplore();
+    }
+
+    // 自動探索を停止
+    stopAutoExplore() {
+        if (this.autoExploring) {
+            this.autoExploring = false;
+            this.game.logger.add("Auto-explore stopped.", "playerInfo");
+        }
+    }
+
+    // 自動探索を継続
+    continueAutoExplore() {
+        if (!this.autoExploring) return;
+
+        // 視界内の敵をチェック
+        const visibleTiles = this.game.getVisibleTiles();
+        const visibleTilesSet = new Set(visibleTiles.map(({x, y}) => `${x},${y}`));
+        
+        // 視界内のモンスターのみをチェック
+        const visibleMonsters = this.game.monsters.filter(monster => {
+            const monsterKey = `${monster.x},${monster.y}`;
+            return visibleTilesSet.has(monsterKey);
+        });
+
+        if (visibleMonsters.length > 0) {
+            this.stopAutoExplore();
+            this.game.logger.add("停止: 敵が視界内に入りました！", "warning");
+            return;
+        }
+
+        // 未探索タイルへの方向を見つける
+        const direction = this.findDirectionToUnexplored();
+        if (!direction) {
+            this.stopAutoExplore();
+            this.game.logger.add("Auto-explore complete: No unexplored areas found.", "playerInfo");
+            return;
+        }
+
+        // 移動実行
+        if (this.move(direction.dx, direction.dy, this.game.map)) {
+            // 移動先が袋小路でないかチェック
+            const adjacentWalls = this.countAdjacentWalls();
+            if (adjacentWalls >= 8) { // 7以上の壁に囲まれている場合は袋小路
+                this.stopAutoExplore();
+                this.game.logger.add("Stopped: Dead end reached.", "playerInfo");
+                return;
+            }
+
+            this.game.processTurn();
+            // 次のターンの自動探索をスケジュール
+            setTimeout(() => this.continueAutoExplore(), 50);
+        } else {
+            this.stopAutoExplore();
+        }
+    }
+
+    // 新規メソッド: 周囲の壁の数をカウント
+    countAdjacentWalls() {
+        let wallCount = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                const newX = this.x + dx;
+                const newY = this.y + dy;
+                
+                // マップ範囲外は壁として扱う
+                if (newX < 0 || newX >= this.game.map[0].length || 
+                    newY < 0 || newY >= this.game.map.length ||
+                    this.game.map[newY][newX] !== 'floor') {
+                    wallCount++;
+                }
+            }
+        }
+        return wallCount;
+    }
+
+    // 未探索タイルへの方向を見つける
+    findDirectionToUnexplored() {
+        const directions = [
+            {dx: -1, dy: -1}, {dx: 0, dy: -1}, {dx: 1, dy: -1},
+            {dx: -1, dy: 0},                    {dx: 1, dy: 0},
+            {dx: -1, dy: 1},  {dx: 0, dy: 1},  {dx: 1, dy: 1}
+        ];
+
+        // 1. まず、隣接する未探索タイルを探す
+        for (let dir of directions) {
+            const newX = this.x + dir.dx;
+            const newY = this.y + dir.dy;
+            
+            if (!this.canMoveTo(newX, newY, this.game.map)) continue;
+
+            // 未探索タイルが見つかれば、その方向を返す
+            if (!this.game.explored[newY][newX]) {
+                return dir;
+            }
+        }
+
+        // 2. 未探索タイルへの最短経路を探す
+        const queue = [{x: this.x, y: this.y, path: []}];
+        const visited = new Set();
+        
+        while (queue.length > 0) {
+            const current = queue.shift();
+            const key = `${current.x},${current.y}`;
+            
+            if (visited.has(key)) continue;
+            visited.add(key);
+
+            // 未探索タイルを見つけた場合、最初の移動方向を返す
+            if (!this.game.explored[current.y][current.x] && 
+                !(current.x === this.x && current.y === this.y)) {
+                const firstStep = current.path[0];
+                return {dx: firstStep.x - this.x, dy: firstStep.y - this.y};
+            }
+
+            // 隣接するマスを探索
+            for (let dir of directions) {
+                const newX = current.x + dir.dx;
+                const newY = current.y + dir.dy;
+                
+                if (!this.canMoveTo(newX, newY, this.game.map)) continue;
+                if (visited.has(`${newX},${newY}`)) continue;
+
+                const newPath = [...current.path];
+                if (newPath.length === 0) {
+                    newPath.push({x: newX, y: newY});
+                }
+                
+                queue.push({
+                    x: newX,
+                    y: newY,
+                    path: newPath
+                });
+            }
+        }
+
+        // 3. 未探索タイルが見つからない場合、未訪問タイルへの経路を探す
+        queue.length = 0;
+        visited.clear();
+        queue.push({x: this.x, y: this.y, path: []});
+
+        while (queue.length > 0) {
+            const current = queue.shift();
+            const key = `${current.x},${current.y}`;
+            
+            if (visited.has(key)) continue;
+            visited.add(key);
+
+            // 探索済みだが未訪問のタイルを見つけた場合
+            if (!this.game.visited[current.y][current.x] && 
+                !(current.x === this.x && current.y === this.y)) {
+                const firstStep = current.path[0];
+                return {dx: firstStep.x - this.x, dy: firstStep.y - this.y};
+            }
+
+            for (let dir of directions) {
+                const newX = current.x + dir.dx;
+                const newY = current.y + dir.dy;
+                
+                if (!this.canMoveTo(newX, newY, this.game.map)) continue;
+                if (visited.has(`${newX},${newY}`)) continue;
+
+                const newPath = [...current.path];
+                if (newPath.length === 0) {
+                    newPath.push({x: newX, y: newY});
+                }
+                
+                queue.push({
+                    x: newX,
+                    y: newY,
+                    path: newPath
+                });
+            }
+        }
+
+        return null;
     }
 } 

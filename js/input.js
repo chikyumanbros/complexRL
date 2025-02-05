@@ -123,6 +123,20 @@ class InputHandler {
             return;
         }
 
+        // 自動探索の開始
+        if (key === 'z') {
+            if (!this.game.player.autoExploring) {
+                this.game.player.startAutoExplore();
+            }
+            return;
+        }
+
+        // 自動探索中は他のキー入力で解除
+        if (this.game.player.autoExploring) {
+            this.game.player.stopAutoExplore();
+            return;
+        }
+
         const player = this.game.player;
 
         // --- Door Operation (Open/Close) ---

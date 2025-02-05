@@ -327,7 +327,8 @@ const GAME_CONSTANTS = {
                 { key: "u", desc: "Move diagonally up-right" },
                 { key: "b", desc: "Move diagonally down-left" },
                 { key: "n", desc: "Move diagonally down-right" },
-                { key: ".", desc: "Wait one turn" }
+                { key: ".", desc: "Wait one turn" },
+                { key: "z", desc: "Auto explore" }
             ]
         },
         ACTIONS: {
