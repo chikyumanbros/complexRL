@@ -613,7 +613,6 @@ class Player {
         const visibleTiles = this.game.getVisibleTiles();
         const visibleTilesSet = new Set(visibleTiles.map(({x, y}) => `${x},${y}`));
         
-        // 視界内のモンスターのみをチェック
         const visibleMonsters = this.game.monsters.filter(monster => {
             const monsterKey = `${monster.x},${monster.y}`;
             return visibleTilesSet.has(monsterKey);
@@ -621,7 +620,7 @@ class Player {
 
         if (visibleMonsters.length > 0) {
             this.stopAutoExplore();
-            this.game.logger.add("停止: 敵が視界内に入りました！", "warning");
+            this.game.logger.add("Enemy spotted in range!", "warning");
             return;
         }
 
@@ -629,46 +628,18 @@ class Player {
         const direction = this.findDirectionToUnexplored();
         if (!direction) {
             this.stopAutoExplore();
-            this.game.logger.add("Auto-explore complete: No unexplored areas found.", "playerInfo");
+            this.game.logger.add("Auto-explore complete: No more areas to explore.", "playerInfo");
             return;
         }
 
         // 移動実行
         if (this.move(direction.dx, direction.dy, this.game.map)) {
-            // 移動先が袋小路でないかチェック
-            const adjacentWalls = this.countAdjacentWalls();
-            if (adjacentWalls >= 8) { // 7以上の壁に囲まれている場合は袋小路
-                this.stopAutoExplore();
-                this.game.logger.add("Stopped: Dead end reached.", "playerInfo");
-                return;
-            }
-
             this.game.processTurn();
             // 次のターンの自動探索をスケジュール
             setTimeout(() => this.continueAutoExplore(), 50);
         } else {
             this.stopAutoExplore();
         }
-    }
-
-    // 新規メソッド: 周囲の壁の数をカウント
-    countAdjacentWalls() {
-        let wallCount = 0;
-        for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-                if (dx === 0 && dy === 0) continue;
-                const newX = this.x + dx;
-                const newY = this.y + dy;
-                
-                // マップ範囲外は壁として扱う
-                if (newX < 0 || newX >= this.game.map[0].length || 
-                    newY < 0 || newY >= this.game.map.length ||
-                    this.game.map[newY][newX] !== 'floor') {
-                    wallCount++;
-                }
-            }
-        }
-        return wallCount;
     }
 
     // 未探索タイルへの方向を見つける
@@ -687,7 +658,7 @@ class Player {
             if (!this.canMoveTo(newX, newY, this.game.map)) continue;
 
             // 未探索タイルが見つかれば、その方向を返す
-            if (!this.game.explored[newY][newX]) {
+            if (this.game.explored && !this.game.explored[newY]?.[newX]) {
                 return dir;
             }
         }
@@ -704,10 +675,10 @@ class Player {
             visited.add(key);
 
             // 未探索タイルを見つけた場合、最初の移動方向を返す
-            if (!this.game.explored[current.y][current.x] && 
+            if (this.game.explored && !this.game.explored[current.y]?.[current.x] && 
                 !(current.x === this.x && current.y === this.y)) {
                 const firstStep = current.path[0];
-                return {dx: firstStep.x - this.x, dy: firstStep.y - this.y};
+                return firstStep ? {dx: firstStep.x - this.x, dy: firstStep.y - this.y} : null;
             }
 
             // 隣接するマスを探索
@@ -732,6 +703,8 @@ class Player {
         }
 
         // 3. 未探索タイルが見つからない場合、未訪問タイルへの経路を探す
+        if (!this.game.visited) return null;
+
         queue.length = 0;
         visited.clear();
         queue.push({x: this.x, y: this.y, path: []});
@@ -744,10 +717,10 @@ class Player {
             visited.add(key);
 
             // 探索済みだが未訪問のタイルを見つけた場合
-            if (!this.game.visited[current.y][current.x] && 
+            if (!this.game.visited[current.y]?.[current.x] && 
                 !(current.x === this.x && current.y === this.y)) {
                 const firstStep = current.path[0];
-                return {dx: firstStep.x - this.x, dy: firstStep.y - this.y};
+                return firstStep ? {dx: firstStep.x - this.x, dy: firstStep.y - this.y} : null;
             }
 
             for (let dir of directions) {
