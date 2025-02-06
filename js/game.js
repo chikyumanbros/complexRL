@@ -512,22 +512,18 @@ class Game {
         const py = this.player.y;
         const currentRoom = this.renderer.getCurrentRoom(px, py);
         
-        // Use room brightness if inside a room; limit view if in a corridor.
-        const visibility = currentRoom ? currentRoom.brightness : 3;  // Limit view in corridors to 3 tiles.
+        // 部屋の中か廊下かによって視界範囲を決定
+        const visibility = currentRoom ? currentRoom.brightness : 3;
 
         for (let y = Math.max(0, py - visibility); y <= Math.min(this.height - 1, py + visibility); y++) {
             for (let x = Math.max(0, px - visibility); x <= Math.min(this.width - 1, px + visibility); x++) {
-                // Create a circular field of view using Euclidean distance.
                 const dx = x - px;
                 const dy = y - py;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                // Slightly expand the FOV and blur the edges.
-                if (distance <= visibility + 0.5 && this.hasLineOfSight(px, py, x, y)) {
-                    // Randomly omit some edge tiles for a more natural circle.
-                    if (distance <= visibility || Math.random() < 0.5) {
-                        visibleTiles.add(`${x},${y}`);
-                    }
+                // ランダム要素を削除し、視界範囲を安定させる
+                if (distance <= visibility && this.hasLineOfSight(px, py, x, y)) {
+                    visibleTiles.add(`${x},${y}`);
                 }
             }
         }

@@ -650,20 +650,20 @@ class Player {
             {dx: -1, dy: 1},  {dx: 0, dy: 1},  {dx: 1, dy: 1}
         ];
 
-        // 1. まず、隣接する未探索タイルを探す
+        // 1. 隣接する未探索タイルを探す（視界チェックなし）
         for (let dir of directions) {
             const newX = this.x + dir.dx;
             const newY = this.y + dir.dy;
             
             if (!this.canMoveTo(newX, newY, this.game.map)) continue;
-
+            
             // 未探索タイルが見つかれば、その方向を返す
             if (this.game.explored && !this.game.explored[newY]?.[newX]) {
                 return dir;
             }
         }
 
-        // 2. 未探索タイルへの最短経路を探す
+        // 2. より遠くの未探索タイルへの経路を探す
         const queue = [{x: this.x, y: this.y, path: []}];
         const visited = new Set();
         
@@ -674,7 +674,7 @@ class Player {
             if (visited.has(key)) continue;
             visited.add(key);
 
-            // 未探索タイルを見つけた場合、最初の移動方向を返す
+            // 未探索タイルを見つけた場合
             if (this.game.explored && !this.game.explored[current.y]?.[current.x] && 
                 !(current.x === this.x && current.y === this.y)) {
                 const firstStep = current.path[0];
@@ -682,47 +682,6 @@ class Player {
             }
 
             // 隣接するマスを探索
-            for (let dir of directions) {
-                const newX = current.x + dir.dx;
-                const newY = current.y + dir.dy;
-                
-                if (!this.canMoveTo(newX, newY, this.game.map)) continue;
-                if (visited.has(`${newX},${newY}`)) continue;
-
-                const newPath = [...current.path];
-                if (newPath.length === 0) {
-                    newPath.push({x: newX, y: newY});
-                }
-                
-                queue.push({
-                    x: newX,
-                    y: newY,
-                    path: newPath
-                });
-            }
-        }
-
-        // 3. 未探索タイルが見つからない場合、未訪問タイルへの経路を探す
-        if (!this.game.visited) return null;
-
-        queue.length = 0;
-        visited.clear();
-        queue.push({x: this.x, y: this.y, path: []});
-
-        while (queue.length > 0) {
-            const current = queue.shift();
-            const key = `${current.x},${current.y}`;
-            
-            if (visited.has(key)) continue;
-            visited.add(key);
-
-            // 探索済みだが未訪問のタイルを見つけた場合
-            if (!this.game.visited[current.y]?.[current.x] && 
-                !(current.x === this.x && current.y === this.y)) {
-                const firstStep = current.path[0];
-                return firstStep ? {dx: firstStep.x - this.x, dy: firstStep.y - this.y} : null;
-            }
-
             for (let dir of directions) {
                 const newX = current.x + dir.dx;
                 const newY = current.y + dir.dy;
