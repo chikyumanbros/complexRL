@@ -454,15 +454,21 @@ class InputHandler {
             this.targetX = monster.x;
             this.targetY = monster.y;
         }
-        
+
         let lookInfo = '';
 
         const container = document.createElement('div');
         container.style.display = 'flex';
         container.style.alignItems = 'flex-start';
         container.style.gap = '20px';
+        // 枠を消すためのスタイルを追加
+        container.style.border = 'none';
+        container.style.padding = '0';
 
         const infoDiv = document.createElement('div');
+        // 情報部分の枠も消す
+        infoDiv.style.border = 'none';
+        infoDiv.style.padding = '0';
 
         if (monster) {
             // Fallback: compute attack and defense if undefined
@@ -507,25 +513,23 @@ class InputHandler {
 
             infoDiv.innerHTML = lookInfo.join('\n');
 
-            // ドット絵表示用のcanvas
+            // スプライト表示用のdivのスタイルも修正
             const spriteDiv = document.createElement('div');
+            spriteDiv.style.border = 'none';
+            spriteDiv.style.padding = '0';
+            
             const canvas = document.createElement('canvas');
-            canvas.width = 128;    // サイズを調整
-            canvas.height = 128;   // サイズを調整
+            canvas.width = 128;
+            canvas.height = 128;
             canvas.style.imageRendering = 'pixelated';
-            canvas.style.border = '1px solid #333';
-            canvas.style.background = '#111';
+            canvas.style.background = 'transparent';  // 背景を透明に
             canvas.style.display = 'block';
-            canvas.style.margin = '10px auto';  // 中央寄せに変更
 
             spriteDiv.appendChild(canvas);
 
             const spriteType = monster.type.toUpperCase();
             if (GAME_CONSTANTS.MONSTER_SPRITES[spriteType]) {
-                console.log(`Drawing sprite for monster type: ${spriteType}`);  // デバッグログ
                 this.drawMonsterSprite(canvas, spriteType);
-            } else {
-                console.warn(`No sprite found for monster type: ${spriteType}`);  // 警告ログ
             }
 
             container.appendChild(infoDiv);
@@ -560,32 +564,26 @@ class InputHandler {
         const ctx = canvas.getContext('2d');
         const sprite = GAME_CONSTANTS.MONSTER_SPRITES[monsterType];
         
-        if (!sprite) {
-            console.warn(`スプライトが見つかりません: ${monsterType}`);
-            return;
-        }
-
-        // デバッグ: スプライトデータの確認
-        console.log('スプライトデータ:', sprite);
-        console.log('スプライト色設定:', GAME_CONSTANTS.SPRITE_COLORS);
+        if (!sprite) return;
 
         // キャンバスをクリア
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#111';
+        ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         const spriteWidth = sprite[0].length;
         const spriteHeight = sprite.length;
-        const pixelSize = Math.floor(canvas.width / spriteWidth);
+        const pixelSize = 8;  // 1ドットのサイズを8pxに固定
+        
+        // キャンバスサイズをスプライトサイズに合わせて調整
+        canvas.width = spriteWidth * pixelSize;
+        canvas.height = spriteHeight * pixelSize;
         
         // スプライトの各ピクセルを描画
         sprite.forEach((row, y) => {
             [...row].forEach((pixel, x) => {
                 const color = GAME_CONSTANTS.SPRITE_COLORS[pixel];
                 if (color) {
-                    // デバッグ: 各ピクセルの描画情報
-                    console.log(`描画: x=${x}, y=${y}, pixel=${pixel}, color=${color}`);
-                    
                     ctx.fillStyle = color;
                     ctx.fillRect(
                         x * pixelSize, 
@@ -797,7 +795,7 @@ class InputHandler {
         document.body.classList.toggle('codex-mode');
         const gameModeElem = document.getElementById('game-mode');
         if (!gameModeElem) {
-            console.warn("'game-mode' element not found. Please add <div id=\"game-mode\"></div> to your HTML.");
+            //console.warn("'game-mode' element not found. Please add <div id=\"game-mode\"></div> to your HTML.");
             return;
         }
     }

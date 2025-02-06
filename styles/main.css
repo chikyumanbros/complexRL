@@ -6,12 +6,6 @@ body {
     font-size: 12px;
 }
 
-canvas {
-    image-rendering: pixelated;  /* ピクセル画像をシャープに表示 */
-    border: 1px solid #333;
-    background: #111;
-}
-
 .container {
     display: flex;
     flex-direction: column;

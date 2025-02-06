@@ -100,7 +100,7 @@ class Logger {
         // lookInfoElementの初期化を変更
         this.lookInfoElement = document.getElementById('available-skills');
         if (!this.lookInfoElement) {
-            console.warn('available-skills要素が見つかりません');
+            //console.warn('available-skills要素が見つかりません');
             return;
         }
     }
@@ -116,7 +116,7 @@ class Logger {
     // Update look information
     updateLookInfo(content) {
         if (!this.lookInfoElement) {
-            console.error('lookInfoElementが初期化されていません');
+            //console.error('lookInfoElementが初期化されていません');
             return;
         }
 

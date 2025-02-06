@@ -345,114 +345,157 @@ const GAME_CONSTANTS = {
 
     // MONSTER_SPRITES Section: Monster sprites
     MONSTER_SPRITES: {
-        RAT: [
-            "    BB    ",
-            "   BBBB   ",
-            "  BBBBBB  ",
-            " BBBBBBBB ",
-            "BBBWBBWBBB",
-            "BBBBRRBBBB",
-            " BBBBBBBB ",
-            "  BBBBBB  "
+        RAT: [  // 灰色の体に茶色の耳としっぽ
+            "                ",
+            "                ",
+            "                ",
+            "               S",
+            "               S",
+            "    SS        S ",
+            "   SSS  SSS  S  ",
+            "   SB SSSSSS  S ",
+            "   SSSSSSSSSS  S",
+            "  SDSSSSSSSSS  S",
+            "  SSSSSSSSSSSS S",
+            "BSSSSSSBBSSSSSS ",
+            " S WBSS  SSSS   ",
+            "     S   SSS    ",
+            "      S    S    ",
+            "          SS    "
         ],
-        BAT: [
-            "B  BBBB  B",
-            "BB BBBB BB",
-            "BBBBBBBBBB",
-            "BBBWBBWBBB",
-            " BBBBBBBB ",
-            "  BBBBBB  ",
-            "   BBBB   ",
-            "    BB    "
+        BAT: [  // 紫色の翼と赤い目
+            "                ",
+            "                ",
+            "                ",
+            "                ",
+            "                ",
+            "  CC C  C CCC   ",
+            " CCCC CC CCCCC  ",
+            " C  CCCCCCC  C  ",
+            "     CCCC       ",
+            "      CCC       ",
+            "       C C      ",
+            "                ",  
+            "                ",
+            "                ",
+            "                ",
+            "                ",
         ],
-        SNAKE: [
-            "   BB     ",
-            "  BBBB    ",
-            " BBBBBB   ",
-            "BBBBWBBB  ",
-            "BBBBBBBBB ",
-            " BBBBBBBB ",
-            "  BBBBBB  ",
-            "   BBBB   "
+        SNAKE: [  // 黄色の模様入り緑色
+            "                ",
+            "                ",
+            "   GGG          ",
+            " GGGDGG         ",
+            " D  GGGG        ",
+            "  D  OOGG       ",
+            "     OOOG       ",
+            "     OOOG       ",
+            "     OOG       G",
+            "    OOG       G ",
+            "    GG       G  ",
+            "   GGG       GG ",
+            "  GGG         GG",
+            "  GGGG        GG",
+            "  GGGGGG    GGG ",
+            "   GGGGGGGGGGG  "
         ],
-        GOBLIN: [
-            "   BBBB   ",
-            "  BBBBBB  ",
-            " BBWBBWBB ",
-            " BBBBBBBB ",
-            "  BBRRRB  ",
-            " BBBBBBBB ",
-            "  BB  BB  ",
-            " BB    BB "
+        GOBLIN: [  // オレンジの服と茶色の棍棒
+            "  OOGG  ",
+            " OWWWGO ",
+            "GODDDDOG",
+            "GORRRROG",
+            " OGDGGO ",
+            "  DDDD  ",
+            " O DD O ",
+            "D    D "
         ],
-        SPIDER: [
-            "BB  BB  BB",
-            " BBBBBBBB ",
-            "  BBBBBB  ",
-            " BWBBBWBB ",
-            "BBBBRRBBBB",
-            " BBBBBBBB ",
-            "BB BB BB  ",
-            "B  B  B   "
+        SPIDER: [  // 赤い体に黒い脚
+            "                ",
+            "                ",
+            "         PPPP   ",
+            "PP     PPPPPPP  ",
+            "P P  PPPPPPPPP  ",
+            "   P PPPPPPPPP  ",
+            " P PP      PPP P",
+            "P PP PPPPP  PPP ",
+            "P  PPR   PR P P ",
+            "  PPRRPPPRRPPP P",
+            " P  PPPPPPPP   P",
+            " P  PP PPP PP  P",
+            " P  B   B    P  ",
+            " P   B B     P  ",
+            "            P   ",
+            "                "
         ],
-        SKELETON: [
-            "  WWWWWW  ",
-            " WWWWWWWW ",
-            "WWWWWWWWWW",
-            "WWWBBWBWWW",
-            "WWWWRRWWWW",
-            " WWWWWWWW ",
-            "  WW  WW  ",
-            " WW    WW "
+        SKELETON: [  // 銀色の鎧の残骸
+            "  SSSS  ",
+            " SWWWWS ",
+            "SSBBBBSS",
+            "SBRRRRBS",
+            " SWWWWS ",
+            "  S  S  ",
+            " W SS W ",
+            "S      S"
         ],
-        ZOMBIE: [
-            "   GGGG   ",
-            "  GGGGGG  ",
-            " GGWGGWGG ",
-            " GGGGGGGG ",
-            "  GGRRRG  ",
-            " GGGGGGGG ",
-            "  GG  GG  ",
-            " GG    GG "
+        ZOMBIE: [  // 腐敗した緑と茶色
+            "  GGDG  ",
+            " GWWGDG ",
+            "GGDDBDDG",
+            "GDDRRRDG",
+            " GDDDDG ",
+            "  D  D  ",
+            " D DD D ",
+            "D    DD"
         ],
-        GHOST: [
-            "   WWWW   ",
-            "  WWWWWW  ",
-            " WWWWWWWW ",
-            "WWWWWWWWWW",
-            "WWWBWWBWWW",
-            "WWWWRRWWWW",
-            " WWWWWWWW ",
-            "  WWWWWW  "
+        GHOST: [  // 青白い発光効果
+            "  CCCC  ",
+            " CWWWWC ",
+            "CCNNNNCC",
+            "CNNNNNNC",
+            " CCNNNN ",
+            "  N  N  ",
+            " C NN C ",
+            "N      N"
         ],
-        TROLL: [
-            "  GGGGGG  ",
-            " GGGGGGGG ",
-            "GGGGGGGGGG",
-            "GGGBWWBGGG",
-            "GGGGRRGGGG",
-            " GGGGGGGG ",
-            "  GG  GG  ",
-            " GG    GG "
+        TROLL: [  // 苔むした緑色の肌
+            "  TTTT  ",
+            " TWWTTT ",
+            "TTDDDDTT",
+            "TDRRRRDT",
+            " TDDDDT ",
+            "  D  D  ",
+            " T DT T ",
+            "D TTTT D"
         ],
-        DRAGON_WHELP: [
-            "  RR  RR  ",
-            " RRRRRRRR ",
-            "RRRRRRRRRR",
-            "RRRWRRWRRR",
-            " RRRRRRR  ",
-            "  RRRRRR  ",
-            " RRRRRRRR ",
-            "RR      RR"
+        DRAGON_WHELP: [  // 炎色の鱗
+            "  OOYY  ",
+            " OWWYYO ",
+            "OOYYRRYY",
+            "OYRRYYRO",
+            " OYRRYO ",
+            "  R  R  ",
+            " Y RR Y ",
+            "R  YY  R"
         ]
     },
 
-    // SPRITE_COLORS Section: Sprite colors
+    // SPRITE_COLORS セクション: スプライト用の色定義（16色対応）
     SPRITE_COLORS: {
-        'B': '#666666',  // グレー（基本色）
-        'W': '#FFFFFF',  // 白（目など）
-        'R': '#FF6666',  // 赤（ドラゴンなど）
-        'G': '#66FF66',  // 緑（トロル、ゴブリンなど）
+        'B': '#474747',  // 暗いグレー（基本色）
+        'W': '#B3B3B3',  // 薄いグレー（目など）
+        'R': '#B34747',  // 暗い赤（ドラゴンなど）
+        'G': '#47B347',  // 暗い緑（トロル、ゴブリンなど）
+        'K': '#242424',  // より暗い黒の代替色（黒は透明で使えるため変更）
+        'N': '#00005A',  // 暗いネイビーブルー
+        'O': '#B37400',  // 暗いオレンジ
+        'Y': '#B3B300',  // 暗い黄色
+        'P': '#5A005A',  // 暗い紫
+        'C': '#00B3B3',  // 暗いシアン
+        'M': '#B300B3',  // 暗いマゼンタ
+        'D': '#741D1D',  // 暗い茶色
+        'T': '#005A5A',  // 暗いティール
+        'S': '#868686',  // 暗いシルバー
+        'L': '#00B300',  // 暗いライム（明るい緑の代わりに）
         ' ': null        // 透明
     }
 };

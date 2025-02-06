@@ -611,13 +611,13 @@ class Renderer {
         let display = '';
 
         // Main title (centered)
-        display += `<div style="color: #ffd700; font-size: 12px; text-align: center;">=== CONTROLS ===</div>\n\n`;
+        display += `<div style="color: #ffd700; font-size: 12px; text-align: left;">=== CONTROLS ===</div>\n\n`;
 
         // Display by category
         const categories = Object.entries(GAME_CONSTANTS.CONTROLS);
         categories.forEach(([category, data], idx) => {
             // Category title
-            display += `<div style="color: #66ccff; font-size: 12px; margin-top: 15px;">=== ${data.title} ===</div>\n`;
+            display += `<div style="color: #66ccff; font-size: 12px; margin-top: 10px;">=== ${data.title} ===</div>\n`;
             
             // Key and description (with indent)
             data.keys.forEach(keyInfo => {
@@ -634,7 +634,7 @@ class Renderer {
         });
         
         // Combat System Tips
-        display += `<br><div style="color: #e74c3c; text-align: center;">=== COMBAT SYSTEM ===</div>\n\n`;
+        display += `<br><div style="color: #e74c3c; text-align: left;">=== COMBAT SYSTEM ===</div>\n\n`;
         
         // Attack Roll
         display += `<div style="color: #f1c40f;">■ Attack (ATK)</div>\n`;
