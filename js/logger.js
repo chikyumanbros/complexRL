@@ -96,6 +96,13 @@ class Logger {
                 tile: '#708090'     // Slate Gray
             }
         };
+
+        // lookInfoElementの初期化を変更
+        this.lookInfoElement = document.getElementById('available-skills');
+        if (!this.lookInfoElement) {
+            console.warn('available-skills要素が見つかりません');
+            return;
+        }
     }
 
     add(message, type = 'info') {
@@ -107,9 +114,14 @@ class Logger {
     }
 
     // Update look information
-    updateLookInfo(info) {
-        this.currentLookInfo = info;
-        if (this.game && this.game.mode === GAME_CONSTANTS.MODES.GAME) {
+    updateLookInfo(content) {
+        if (!this.lookInfoElement) {
+            console.error('lookInfoElementが初期化されていません');
+            return;
+        }
+
+        this.currentLookInfo = content;
+        if (this.game.mode === GAME_CONSTANTS.MODES.GAME) {
             this.renderLookPanel();
         }
     }
@@ -246,40 +258,43 @@ class Logger {
                 colorKey = 'caution';
             }
             
-            // Split flavor text by '.' and add line breaks
             const flavorLines = this.floorInfo.flavor.split('.');
             const coloredLines = flavorLines
                 .filter(line => line.trim())
-                .map(line => `<span style="color: ${this.messageColors.floorInfo[colorKey]}">${line.trim()}.</span><br>`)
-                .join('');
+                .map(line => `<span style="color: ${this.messageColors.floorInfo[colorKey]}">${line.trim()}.</span>`)
+                .join('<br>');
             
-            display += `${coloredLines}\n`;
+            display += `${coloredLines}\n\n`;
         }
         
-        display += "\n=== SURROUNDINGS ===\n\n";
+        display += "=== SURROUNDINGS ===\n\n";
         if (this.roomInfo) {
-            display += `${this.roomInfo}\n`;
+            display += `${this.roomInfo}\n\n`;
         }
         
-        display += "\n=== LOOK INFO ===\n\n";
+        display += "=== LOOK INFO ===\n\n";
         if (this.currentLookInfo) {
-            // If it's monster information
-            if (this.currentLookInfo.includes("Level")) {
-                display += `<span style="color: ${this.messageColors.lookInfo.monster}">${this.currentLookInfo}</span>`;
+            // 既存のコンテンツをクリア
+            this.codexPanelElement.innerHTML = display
+                .replace(/\n\n/g, '<br><br>')
+                .replace(/\n(?!<)/g, '<br>');
+
+            // currentLookInfoが要素の場合は直接追加
+            if (this.currentLookInfo instanceof Element) {
+                this.codexPanelElement.appendChild(this.currentLookInfo);
+            } else {
+                // 文字列の場合は従来通り
+                this.codexPanelElement.innerHTML += this.currentLookInfo;
             }
-            // If it's player information
-            else if (this.currentLookInfo.includes("yourself")) {
-                display += `<span style="color: ${this.messageColors.lookInfo.player}">${this.currentLookInfo}</span>`;
-            }
-            // If it's tile information
-            else {
-                display += `<span style="color: ${this.messageColors.lookInfo.tile}">${this.currentLookInfo}</span>`;
-            }
+            return;
         } else {
             display += `<span style="color: ${this.messageColors.lookInfo.tile}">Use look mode (;) to examine surroundings</span>`;
         }
 
-        this.codexPanelElement.innerHTML = display.replace(/\n(?!<)/g, '<br>');
+        this.codexPanelElement.style.whiteSpace = 'pre-wrap';
+        this.codexPanelElement.innerHTML = display
+            .replace(/\n\n/g, '<br><br>')
+            .replace(/\n(?!<)/g, '<br>');
     }
 
     render() {

@@ -341,5 +341,118 @@ const GAME_CONSTANTS = {
                 { key: "Esc", desc: "Cancel/Close menu" }
             ]
         }
+    },
+
+    // MONSTER_SPRITES Section: Monster sprites
+    MONSTER_SPRITES: {
+        RAT: [
+            "    BB    ",
+            "   BBBB   ",
+            "  BBBBBB  ",
+            " BBBBBBBB ",
+            "BBBWBBWBBB",
+            "BBBBRRBBBB",
+            " BBBBBBBB ",
+            "  BBBBBB  "
+        ],
+        BAT: [
+            "B  BBBB  B",
+            "BB BBBB BB",
+            "BBBBBBBBBB",
+            "BBBWBBWBBB",
+            " BBBBBBBB ",
+            "  BBBBBB  ",
+            "   BBBB   ",
+            "    BB    "
+        ],
+        SNAKE: [
+            "   BB     ",
+            "  BBBB    ",
+            " BBBBBB   ",
+            "BBBBWBBB  ",
+            "BBBBBBBBB ",
+            " BBBBBBBB ",
+            "  BBBBBB  ",
+            "   BBBB   "
+        ],
+        GOBLIN: [
+            "   BBBB   ",
+            "  BBBBBB  ",
+            " BBWBBWBB ",
+            " BBBBBBBB ",
+            "  BBRRRB  ",
+            " BBBBBBBB ",
+            "  BB  BB  ",
+            " BB    BB "
+        ],
+        SPIDER: [
+            "BB  BB  BB",
+            " BBBBBBBB ",
+            "  BBBBBB  ",
+            " BWBBBWBB ",
+            "BBBBRRBBBB",
+            " BBBBBBBB ",
+            "BB BB BB  ",
+            "B  B  B   "
+        ],
+        SKELETON: [
+            "  WWWWWW  ",
+            " WWWWWWWW ",
+            "WWWWWWWWWW",
+            "WWWBBWBWWW",
+            "WWWWRRWWWW",
+            " WWWWWWWW ",
+            "  WW  WW  ",
+            " WW    WW "
+        ],
+        ZOMBIE: [
+            "   GGGG   ",
+            "  GGGGGG  ",
+            " GGWGGWGG ",
+            " GGGGGGGG ",
+            "  GGRRRG  ",
+            " GGGGGGGG ",
+            "  GG  GG  ",
+            " GG    GG "
+        ],
+        GHOST: [
+            "   WWWW   ",
+            "  WWWWWW  ",
+            " WWWWWWWW ",
+            "WWWWWWWWWW",
+            "WWWBWWBWWW",
+            "WWWWRRWWWW",
+            " WWWWWWWW ",
+            "  WWWWWW  "
+        ],
+        TROLL: [
+            "  GGGGGG  ",
+            " GGGGGGGG ",
+            "GGGGGGGGGG",
+            "GGGBWWBGGG",
+            "GGGGRRGGGG",
+            " GGGGGGGG ",
+            "  GG  GG  ",
+            " GG    GG "
+        ],
+        DRAGON_WHELP: [
+            "  RR  RR  ",
+            " RRRRRRRR ",
+            "RRRRRRRRRR",
+            "RRRWRRWRRR",
+            " RRRRRRR  ",
+            "  RRRRRR  ",
+            " RRRRRRRR ",
+            "RR      RR"
+        ]
+    },
+
+    // SPRITE_COLORS Section: Sprite colors
+    SPRITE_COLORS: {
+        'B': '#666666',  // グレー（基本色）
+        'W': '#FFFFFF',  // 白（目など）
+        'R': '#FF6666',  // 赤（ドラゴンなど）
+        'G': '#66FF66',  // 緑（トロル、ゴブリンなど）
+        ' ': null        // 透明
     }
 };

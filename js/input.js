@@ -449,14 +449,21 @@ class InputHandler {
     examineTarget() {
         let monster = this.game.getMonsterAt(this.targetX, this.targetY);
 
-        // --- If not in Look Mode, display last combat monster's info ---
         if (!this.lookMode && this.game.lastCombatMonster && this.game.lastCombatMonster.hp > 0) {
             monster = this.game.lastCombatMonster;
             this.targetX = monster.x;
             this.targetY = monster.y;
         }
-
+        
         let lookInfo = '';
+
+        const container = document.createElement('div');
+        container.style.display = 'flex';
+        container.style.alignItems = 'flex-start';
+        container.style.gap = '20px';
+
+        const infoDiv = document.createElement('div');
+
         if (monster) {
             // Fallback: compute attack and defense if undefined
             if (!monster.attackPower) {
@@ -470,7 +477,7 @@ class InputHandler {
             let status = [];
 
             // --- Basic Information ---
-            lookInfo = [
+            let lookInfo = [
                 `${monster.name} (Level ${monster.level}):`,
                 `HP: ${monster.hp}/${monster.maxHp}`,
                 `Distance: ${Math.max(Math.abs(this.game.player.x - monster.x), Math.abs(this.game.player.y - monster.y))} tiles`
@@ -498,11 +505,37 @@ class InputHandler {
                 `PER: ${monster.perception}`,
             );
 
-            lookInfo = lookInfo.join('\n');
+            infoDiv.innerHTML = lookInfo.join('\n');
+
+            // ドット絵表示用のcanvas
+            const spriteDiv = document.createElement('div');
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;    // サイズを調整
+            canvas.height = 128;   // サイズを調整
+            canvas.style.imageRendering = 'pixelated';
+            canvas.style.border = '1px solid #333';
+            canvas.style.background = '#111';
+            canvas.style.display = 'block';
+            canvas.style.margin = '10px auto';  // 中央寄せに変更
+
+            spriteDiv.appendChild(canvas);
+
+            const spriteType = monster.type.toUpperCase();
+            if (GAME_CONSTANTS.MONSTER_SPRITES[spriteType]) {
+                console.log(`Drawing sprite for monster type: ${spriteType}`);  // デバッグログ
+                this.drawMonsterSprite(canvas, spriteType);
+            } else {
+                console.warn(`No sprite found for monster type: ${spriteType}`);  // 警告ログ
+            }
+
+            container.appendChild(infoDiv);
+            container.appendChild(spriteDiv);
         } else if (this.targetX === this.game.player.x && this.targetY === this.game.player.y) {
-            lookInfo = "You see yourself here.";
+            infoDiv.innerHTML = "You see yourself here.";
+            container.appendChild(infoDiv);
         } else {
             const tile = this.game.tiles[this.targetY][this.targetX];
+            let lookInfo = '';
             if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
                 lookInfo = "You see a closed door here.";
             } else if (tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
@@ -516,9 +549,53 @@ class InputHandler {
             } else {
                 lookInfo = `You see ${tile} here.`;
             }
+            infoDiv.innerHTML = lookInfo;
+            container.appendChild(infoDiv);
         }
 
-        this.game.logger.updateLookInfo(lookInfo);
+        this.game.logger.updateLookInfo(container);
+    }
+
+    drawMonsterSprite(canvas, monsterType) {
+        const ctx = canvas.getContext('2d');
+        const sprite = GAME_CONSTANTS.MONSTER_SPRITES[monsterType];
+        
+        if (!sprite) {
+            console.warn(`スプライトが見つかりません: ${monsterType}`);
+            return;
+        }
+
+        // デバッグ: スプライトデータの確認
+        console.log('スプライトデータ:', sprite);
+        console.log('スプライト色設定:', GAME_CONSTANTS.SPRITE_COLORS);
+
+        // キャンバスをクリア
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#111';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const spriteWidth = sprite[0].length;
+        const spriteHeight = sprite.length;
+        const pixelSize = Math.floor(canvas.width / spriteWidth);
+        
+        // スプライトの各ピクセルを描画
+        sprite.forEach((row, y) => {
+            [...row].forEach((pixel, x) => {
+                const color = GAME_CONSTANTS.SPRITE_COLORS[pixel];
+                if (color) {
+                    // デバッグ: 各ピクセルの描画情報
+                    console.log(`描画: x=${x}, y=${y}, pixel=${pixel}, color=${color}`);
+                    
+                    ctx.fillStyle = color;
+                    ctx.fillRect(
+                        x * pixelSize, 
+                        y * pixelSize, 
+                        pixelSize, 
+                        pixelSize
+                    );
+                }
+            });
+        });
     }
 
     endLookMode() {

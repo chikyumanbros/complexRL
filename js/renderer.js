@@ -695,15 +695,15 @@ class Renderer {
 
     showDeathEffect(x, y, color = '#ff6b6b') {
         const particleLayer = document.getElementById('particle-layer');
-        console.log('Particle layer:', particleLayer); // デバッグログ
+        //console.log('Particle layer:', particleLayer); // デバッグログ
         if (!particleLayer) {
-            console.error('Particle layer not found!'); // エラーログ
+            //console.error('Particle layer not found!'); // エラーログ
             return;
         }
     
         // 対象のタイルの位置を取得
         const targetTile = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
-        console.log('Target tile:', targetTile, 'at', x, y); // デバッグログ
+        //console.log('Target tile:', targetTile, 'at', x, y); // デバッグログ
         
         let centerX, centerY;
         if (targetTile) {
@@ -712,13 +712,13 @@ class Renderer {
             const tileRect = targetTile.getBoundingClientRect();
             centerX = tileRect.left - containerRect.left + tileRect.width / 2;
             centerY = tileRect.top - containerRect.top + tileRect.height / 2;
-            console.log('Position calculated:', centerX, centerY); // デバッグログ
+            //console.log('Position calculated:', centerX, centerY); // デバッグログ
         } else {
             const tileElement = document.querySelector('#game span');
             const tileSize = tileElement ? tileElement.offsetWidth : 14;
             centerX = x * tileSize + tileSize / 2;
             centerY = y * tileSize + tileSize / 2;
-            console.log('Fallback position:', centerX, centerY); // デバッグログ
+            //console.log('Fallback position:', centerX, centerY); // デバッグログ
         }
     
         const particleCount = 50;
@@ -737,11 +737,11 @@ class Renderer {
             particle.style.setProperty('--dy', dy + "px");
     
             particleLayer.appendChild(particle);
-            console.log('Particle created:', i); // デバッグログ
+            //console.log('Particle created:', i); // デバッグログ
             
             particle.addEventListener('animationend', () => {
                 particle.remove();
-                console.log('Particle removed:', i); // デバッグログ
+                //console.log('Particle removed:', i); // デバッグログ
             });
         }
     }
