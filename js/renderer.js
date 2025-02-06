@@ -484,7 +484,7 @@ class Renderer {
             centerY = y * tileSize + tileSize / 2;
         }
 
-        const particleCount = 20;
+        const particleCount = 50;
         for (let i = 0; i < particleCount; i++) {
             const particle = document.createElement('div');
             particle.classList.add('levelup-particle');
@@ -692,4 +692,57 @@ class Renderer {
         
         return display;
     }
-} 
+
+    showDeathEffect(x, y, color = '#ff6b6b') {
+        const particleLayer = document.getElementById('particle-layer');
+        console.log('Particle layer:', particleLayer); // デバッグログ
+        if (!particleLayer) {
+            console.error('Particle layer not found!'); // エラーログ
+            return;
+        }
+    
+        // 対象のタイルの位置を取得
+        const targetTile = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
+        console.log('Target tile:', targetTile, 'at', x, y); // デバッグログ
+        
+        let centerX, centerY;
+        if (targetTile) {
+            const gameContainer = document.getElementById('game-container');
+            const containerRect = gameContainer ? gameContainer.getBoundingClientRect() : { left: 0, top: 0 };
+            const tileRect = targetTile.getBoundingClientRect();
+            centerX = tileRect.left - containerRect.left + tileRect.width / 2;
+            centerY = tileRect.top - containerRect.top + tileRect.height / 2;
+            console.log('Position calculated:', centerX, centerY); // デバッグログ
+        } else {
+            const tileElement = document.querySelector('#game span');
+            const tileSize = tileElement ? tileElement.offsetWidth : 14;
+            centerX = x * tileSize + tileSize / 2;
+            centerY = y * tileSize + tileSize / 2;
+            console.log('Fallback position:', centerX, centerY); // デバッグログ
+        }
+    
+        const particleCount = 50;
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('death-particle');
+            particle.style.left = centerX + "px";
+            particle.style.top = centerY + "px";
+            particle.style.backgroundColor = color;
+    
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 15 + Math.random() * 25;
+            const dx = Math.cos(angle) * distance;
+            const dy = Math.sin(angle) * distance;
+            particle.style.setProperty('--dx', dx + "px");
+            particle.style.setProperty('--dy', dy + "px");
+    
+            particleLayer.appendChild(particle);
+            console.log('Particle created:', i); // デバッグログ
+            
+            particle.addEventListener('animationend', () => {
+                particle.remove();
+                console.log('Particle removed:', i); // デバッグログ
+            });
+        }
+    }
+}

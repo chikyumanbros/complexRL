@@ -191,6 +191,7 @@ class Player {
         // HPが0以下になった場合は0に設定
         if (this.hp <= 0) {
             this.hp = 0;
+            this.game.renderer.showDeathEffect(this.x, this.y);
         }
         
         // ダメージを受けた時にステータスパネルをフラッシュ
@@ -315,6 +316,7 @@ class Player {
                 "kill"
             );
             game.removeMonster(monster);
+            game.renderer.showDeathEffect(monster.x, monster.y);
 
             // codexPointsを加算
             this.codexPoints += result.codexPoints;
