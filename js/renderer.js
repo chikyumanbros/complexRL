@@ -126,14 +126,14 @@ class Renderer {
                     }
                 }
 
-                // Check for melee attack effect
-                const isAttackTarget = this.game.lastAttackLocation && 
-                                     this.game.lastAttackLocation.x === x && 
-                                     this.game.lastAttackLocation.y === y;
-                
-                if (isAttackTarget) {
-                    classes.push('melee-attack');
-                }
+                            // 攻撃エフェクトの条件チェック
+            const isAttackTarget = this.game.lastAttackLocation && 
+            this.game.lastAttackLocation.x === x && 
+            this.game.lastAttackLocation.y === y;
+
+if (isAttackTarget && this.game.lastAttackHit === true) {  // 厳密な比較を使用
+classes.push('melee-attack');
+}
 
                 // Render player, monster, and tile
                 if (x === this.game.player.x && y === this.game.player.y) {
@@ -389,6 +389,7 @@ class Renderer {
     clearEffects() {
         if (this.game.lastAttackLocation) {
             this.game.lastAttackLocation = null;
+            this.game.lastAttackHit = false;  // フラグをリセット
             this.render();
         }
         
@@ -693,7 +694,7 @@ class Renderer {
         return display;
     }
 
-    showDeathEffect(x, y, color = '#ff6b6b') {
+    showDeathEffect(x, y, color = '#9B1111') {
         const particleLayer = document.getElementById('particle-layer');
         //console.log('Particle layer:', particleLayer); // デバッグログ
         if (!particleLayer) {

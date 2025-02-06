@@ -258,6 +258,7 @@ class Player {
         
         if (roll >= hitChance) {
             game.logger.add(`Your ${attackType} misses!`, "playerMiss");
+            game.lastAttackHit = false;  // 攻撃が外れた
             // 攻撃が外れた場合もnextAttackModifierを消費
             this.nextAttackModifier = null;
             return;
@@ -270,11 +271,15 @@ class Player {
             const evadeChance = monster.evasion || 0;
             if (evadeRoll < evadeChance) {
                 game.logger.add(`${monster.name} dodges your ${attackType}! (EVA: ${Math.floor(evadeChance)}% | Roll: ${Math.floor(evadeRoll)})`, "monsterEvade");
+                game.lastAttackHit = false;  // 攻撃が回避された
                 // 回避された場合もnextAttackModifierを消費
                 this.nextAttackModifier = null;
                 return;
             }
         }
+
+        // ダメージが通った場合
+        game.lastAttackHit = true;
 
         if (this.nextAttackModifier && this.nextAttackModifier.damageMod) {
             damageMultiplier *= this.nextAttackModifier.damageMod;

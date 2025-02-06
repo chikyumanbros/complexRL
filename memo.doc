@@ -5,16 +5,6 @@ mapGen.generate();
 // 見やすい状態でデバッグコンソールにマップを出力
 mapGen.printMap();
 
-<h3>CONTROLS</h3>
-                <div class="controls">
-                    <div>y k u</div>
-                    <div>h . l</div>
-                    <div>b j n</div>
-                    <div>door:[o]/[c]</div>
-                    <div>stairs:[>]</div>
-                    <div>look:[;]</div>
-                    <div>codex:[TAB]</div>
-                </div>
+auto save実装
+タイトル、プレーヤーネーム入力、statusパネルへの表示　実装
 
-                lookinfoを都度更新。
-                対象も直近の攻撃対象があればそれを表示。
