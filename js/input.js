@@ -529,7 +529,7 @@ class InputHandler {
 
             const spriteType = monster.type.toUpperCase();
             if (GAME_CONSTANTS.MONSTER_SPRITES[spriteType]) {
-                this.drawMonsterSprite(canvas, spriteType);
+                this.game.renderer.drawMonsterSprite(canvas, spriteType);
             }
 
             container.appendChild(infoDiv);
@@ -558,42 +558,6 @@ class InputHandler {
         }
 
         this.game.logger.updateLookInfo(container);
-    }
-
-    drawMonsterSprite(canvas, monsterType) {
-        const ctx = canvas.getContext('2d');
-        const sprite = GAME_CONSTANTS.MONSTER_SPRITES[monsterType];
-        
-        if (!sprite) return;
-
-        // キャンバスをクリア
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        const spriteWidth = sprite[0].length;
-        const spriteHeight = sprite.length;
-        const pixelSize = 8;  // 1ドットのサイズを8pxに固定
-        
-        // キャンバスサイズをスプライトサイズに合わせて調整
-        canvas.width = spriteWidth * pixelSize;
-        canvas.height = spriteHeight * pixelSize;
-        
-        // スプライトの各ピクセルを描画
-        sprite.forEach((row, y) => {
-            [...row].forEach((pixel, x) => {
-                const color = GAME_CONSTANTS.SPRITE_COLORS[pixel];
-                if (color) {
-                    ctx.fillStyle = color;
-                    ctx.fillRect(
-                        x * pixelSize, 
-                        y * pixelSize, 
-                        pixelSize, 
-                        pixelSize
-                    );
-                }
-            });
-        });
     }
 
     endLookMode() {

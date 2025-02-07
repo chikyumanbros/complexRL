@@ -421,7 +421,7 @@ const GAME_CONSTANTS = {
             "P  PPR   PR P P ",
             "  PPRRPPPRRPPP P",
             " P  PPPPPPPP   P",
-            " P  PP PPP PP  P",
+            " P  BB BBP PP  P",
             " P  B   B    P  ",
             " P   B B     P  ",
             "            P   ",

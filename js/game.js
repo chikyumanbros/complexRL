@@ -455,16 +455,23 @@ class Game {
     hasLineOfSight(x1, y1, x2, y2) {
         const points = this.getLinePoints(x1, y1, x2, y2);
         
-        // Check the intermediate points, excluding the start and end.
+        // 最終地点が壁または扉の場合は、それを見えるようにする
+        const isEndPointWallOrDoor = 
+            this.map[y2][x2] === 'wall' || 
+            this.tiles[y2][x2] === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
+            this.tiles[y2][x2] === GAME_CONSTANTS.TILES.DOOR.OPEN;
+
+        // 中間点をチェック（最終点を除く）
         for (let i = 1; i < points.length - 1; i++) {
             const {x, y} = points[i];
             
-            // Block line of sight if there is a wall or closed door.
-            if (this.map[y][x] === 'wall' || this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+            // 中間点が壁または扉の場合は視線をブロック
+            if (this.map[y][x] === 'wall' || 
+                this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
                 return false;
             }
             
-            // For diagonal line of sight, check adjacent walls.
+            // 斜め視線の場合の追加チェック
             if (i > 0) {
                 const prev = points[i - 1];
                 if (prev.x !== x && prev.y !== y) {
@@ -474,7 +481,9 @@ class Game {
                 }
             }
         }
-        return true;
+
+        // 最終地点が壁/扉の場合はtrue、それ以外は通常の視界判定
+        return isEndPointWallOrDoor || points.length <= 2;
     }
 
     // Get coordinates along the line between two points (Bresenham's algorithm).
@@ -510,20 +519,37 @@ class Game {
         const visibleTiles = new Set();
         const px = this.player.x;
         const py = this.player.y;
-        const currentRoom = this.renderer.getCurrentRoom(px, py);
+        const currentRoom = this.getCurrentRoom();
         
-        // 部屋の中か廊下かによって視界範囲を決定
-        const visibility = currentRoom ? currentRoom.brightness : 3;
+        // 部屋の中か廊下かで基本視界範囲を決定
+        let baseVisibility = currentRoom ? currentRoom.brightness : 3;
+        
+        // 最小視界範囲を2に設定（暗い部屋でも角が見えるように）
+        baseVisibility = Math.max(2, baseVisibility);
+        
+        // 視界範囲を計算（明るさによる補正を適用）
+        const visibility = Math.floor(baseVisibility);
 
-        for (let y = Math.max(0, py - visibility); y <= Math.min(this.height - 1, py + visibility); y++) {
-            for (let x = Math.max(0, px - visibility); x <= Math.min(this.width - 1, px + visibility); x++) {
+        // 視界範囲を少し広げて、部屋の角までカバー
+        const extendedRange = visibility + 1;
+
+        for (let y = Math.max(0, py - extendedRange); y <= Math.min(this.height - 1, py + extendedRange); y++) {
+            for (let x = Math.max(0, px - extendedRange); x <= Math.min(this.width - 1, px + extendedRange); x++) {
                 const dx = x - px;
                 const dy = y - py;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                // ランダム要素を削除し、視界範囲を安定させる
-                if (distance <= visibility && this.hasLineOfSight(px, py, x, y)) {
-                    visibleTiles.add(`${x},${y}`);
+                // 通常の視界範囲チェックを少し緩和
+                if (distance <= extendedRange && this.hasLineOfSight(px, py, x, y)) {
+                    // 壁や扉の場合は、より遠くても見えるようにする
+                    const isBoundary = this.map[y][x] === 'wall' || 
+                                     this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
+                                     this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.OPEN;
+                    
+                    if (distance <= visibility || isBoundary) {
+                        visibleTiles.add(`${x},${y}`);
+                        this.explored[y][x] = true;
+                    }
                 }
             }
         }

@@ -746,4 +746,85 @@ classes.push('melee-attack');
             });
         }
     }
+
+    drawMonsterSprite(canvas, monsterType) {
+        const ctx = canvas.getContext('2d');
+        const sprite = GAME_CONSTANTS.MONSTER_SPRITES[monsterType];
+        
+        if (!sprite) return;
+
+        // キャンバスをクリア
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const spriteWidth = sprite[0].length;
+        const spriteHeight = sprite.length;
+        const pixelSize = 8;  // 1ドットのサイズを8pxに固定
+        
+        // キャンバスサイズをスプライトサイズに合わせて調整
+        canvas.width = spriteWidth * pixelSize;
+        canvas.height = spriteHeight * pixelSize;
+        
+        // スプライトの各ピクセルを描画
+        sprite.forEach((row, y) => {
+            [...row].forEach((pixel, x) => {
+                const color = GAME_CONSTANTS.SPRITE_COLORS[pixel];
+                if (color) {
+                    ctx.fillStyle = color;
+                    ctx.fillRect(
+                        x * pixelSize, 
+                        y * pixelSize, 
+                        pixelSize, 
+                        pixelSize
+                    );
+                }
+            });
+        });
+    }
+
+    previewMonsterSprite(monsterType, containerId, pixelSize = 8) {
+        const sprite = GAME_CONSTANTS.MONSTER_SPRITES[monsterType];
+        if (!sprite) {
+            console.error(`Sprite not found for monster type: ${monsterType}`);
+            return;
+        }
+
+        const spriteWidth = sprite[0].length;
+        const spriteHeight = sprite.length;
+
+        // コンテナ要素を取得
+        const container = document.getElementById(containerId);
+        if (!container) {
+            console.error(`Container element not found with ID: ${containerId}`);
+            return;
+        }
+        container.style.display = 'block';
+
+        // 既存のcanvasがあれば削除
+        const existingCanvas = container.querySelector('canvas');
+        if (existingCanvas) {
+            existingCanvas.remove();
+        }
+
+        // canvas要素を作成
+        const canvas = document.createElement('canvas');
+        canvas.width = spriteWidth * pixelSize;
+        canvas.height = spriteHeight * pixelSize;
+        const ctx = canvas.getContext('2d');
+
+        // スプライトの描画
+        sprite.forEach((row, y) => {
+            [...row].forEach((pixel, x) => {
+                const color = GAME_CONSTANTS.SPRITE_COLORS[pixel];
+                if (color) {
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+                }
+            });
+        });
+
+        // canvasをコンテナに追加
+        container.appendChild(canvas);
+    }
 }

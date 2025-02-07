@@ -618,3 +618,15 @@ body.help-mode #codex-panel {  /* help-modeを追加 */
         opacity: 0;
     }
 }
+
+#sprite-preview-container, #sprite-preview-container2, #sprite-preview-container3, #sprite-preview-container4, #sprite-preview-container5, #sprite-preview-container6, #sprite-preview-container7, #sprite-preview-container8, #sprite-preview-container9 {
+    display: inline-block; /* 横並びに表示 */
+    vertical-align: top;    /* 上端で揃える */
+    margin-right: 10px;     /* プレビュー間の間隔 */
+}
+
+/* 全体コンテナ (必要に応じて追加) */
+.sprite-preview-wrapper {
+    white-space: nowrap; /* 折り返しを禁止 */
+    overflow-x: auto;    /* 横スクロールを許可 */
+}

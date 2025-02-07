@@ -657,58 +657,47 @@ class Player {
             {dx: -1, dy: 1},  {dx: 0, dy: 1},  {dx: 1, dy: 1}
         ];
 
-        // 1. 隣接する未探索タイルを探す（視界チェックなし）
-        for (let dir of directions) {
-            const newX = this.x + dir.dx;
-            const newY = this.y + dir.dy;
-            
-            if (!this.canMoveTo(newX, newY, this.game.map)) continue;
-            
-            // 未探索タイルが見つかれば、その方向を返す
-            if (this.game.explored && !this.game.explored[newY]?.[newX]) {
-                return dir;
-            }
-        }
-
-        // 2. より遠くの未探索タイルへの経路を探す
-        const queue = [{x: this.x, y: this.y, path: []}];
+        // 訪問済みの座標を記録するSet
         const visited = new Set();
-        
+        // 探索キュー（座標と、その地点までの最初の移動方向を保持）
+        const queue = [{
+            x: this.x,
+            y: this.y,
+            firstStep: null
+        }];
+
         while (queue.length > 0) {
             const current = queue.shift();
             const key = `${current.x},${current.y}`;
-            
+
             if (visited.has(key)) continue;
             visited.add(key);
 
             // 未探索タイルを見つけた場合
-            if (this.game.explored && !this.game.explored[current.y]?.[current.x] && 
-                !(current.x === this.x && current.y === this.y)) {
-                const firstStep = current.path[0];
-                return firstStep ? {dx: firstStep.x - this.x, dy: firstStep.y - this.y} : null;
+            if (!this.game.explored[current.y]?.[current.x] && 
+                this.canMoveTo(current.x, current.y, this.game.map)) {
+                return current.firstStep;
             }
 
-            // 隣接するマスを探索
-            for (let dir of directions) {
+            // 隣接マスの探索
+            for (const dir of directions) {
                 const newX = current.x + dir.dx;
                 const newY = current.y + dir.dy;
                 
-                if (!this.canMoveTo(newX, newY, this.game.map)) continue;
-                if (visited.has(`${newX},${newY}`)) continue;
-
-                const newPath = [...current.path];
-                if (newPath.length === 0) {
-                    newPath.push({x: newX, y: newY});
+                // マップ範囲内かつ移動可能なマスのみを対象とする
+                if (this.game.isValidPosition(newX, newY) && 
+                    this.canMoveTo(newX, newY, this.game.map)) {
+                    
+                    queue.push({
+                        x: newX,
+                        y: newY,
+                        // 最初の移動方向を保持（新しい探索なら現在の方向、継続探索なら元の方向）
+                        firstStep: current.firstStep || dir
+                    });
                 }
-                
-                queue.push({
-                    x: newX,
-                    y: newY,
-                    path: newPath
-                });
             }
         }
 
-        return null;
+        return null;  // 到達可能な未探索タイルが見つからない
     }
 } 
