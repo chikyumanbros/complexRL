@@ -56,8 +56,8 @@ class Game {
         this.maxTotalMonsters = 30;
         this.rooms = [];
         this.isGameOver = false;
-        this.floorLevel = 1;
-        this.dangerLevel = 'NORMAL';
+        this.floorLevel = 1;  // Added floor level
+        this.dangerLevel = 'NORMAL';  // Added danger level
         this.explored = this.initializeExplored();
 
         // Clear the DOM
@@ -69,6 +69,7 @@ class Game {
 
         if (gameElement) {
             gameElement.innerHTML = '';
+            // Rebuild the game container
             gameElement.id = 'game';
             gameElement.style.whiteSpace = 'pre';
         }
@@ -76,6 +77,7 @@ class Game {
         if (codexMenuElement) codexMenuElement.innerHTML = '';
         if (availableSkillsElement) availableSkillsElement.innerHTML = '';
         if (statusElement) {
+            // Reset status display
             document.getElementById('hp').textContent = '0';
             document.getElementById('max-hp').textContent = '0';
             document.getElementById('hp-text').textContent = '';
@@ -92,9 +94,6 @@ class Game {
         // Reposition the player
         this.placePlayerInRoom();
 
-        // プレイヤーの初期位置の視界を更新
-        this.updateExplored();
-
         // Create a new input handler
         this.inputHandler = new InputHandler(this);
 
@@ -110,11 +109,12 @@ class Game {
         // Set mode to GAME mode
         this.mode = GAME_CONSTANTS.MODES.GAME;
 
-        // Update the screen
+        // Update the screen (display the look panel)
         this.renderer.render();
-        this.logger.renderLookPanel();
-        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);
-        this.updateRoomInfo();
+        this.logger.renderLookPanel();  // Display look panel
+        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);  // Update floor info in Logger
+        this.updateRoomInfo();  // Update surrounding room information
+        this.updateExplored();  // Update explored information
     }
 
     init() {
@@ -134,13 +134,13 @@ class Game {
         // Generate a new floor (including player placement and monster generation)
         this.generateNewFloor();
         
-        // プレイヤーの初期位置の視界を更新
-        this.updateExplored();
-        
         // Initialize and display information
         const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
         this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);
         this.updateRoomInfo();
+        
+        // プレイヤーの初期位置周辺を探索済みにマーク
+        this.updateExplored();
         
         // Setup input handling and rendering
         this.renderer.render();
@@ -458,23 +458,16 @@ class Game {
     hasLineOfSight(x1, y1, x2, y2) {
         const points = this.getLinePoints(x1, y1, x2, y2);
         
-        // 最終地点が壁または扉の場合は、それを見えるようにする
-        const isEndPointWallOrDoor = 
-            this.map[y2][x2] === 'wall' || 
-            this.tiles[y2][x2] === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
-            this.tiles[y2][x2] === GAME_CONSTANTS.TILES.DOOR.OPEN;
-
-        // 中間点をチェック（最終点を除く）
+        // Check the intermediate points, excluding the start and end.
         for (let i = 1; i < points.length - 1; i++) {
             const {x, y} = points[i];
             
-            // 中間点が壁または扉の場合は視線をブロック
-            if (this.map[y][x] === 'wall' || 
-                this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+            // Block line of sight if there is a wall or closed door.
+            if (this.map[y][x] === 'wall' || this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
                 return false;
             }
             
-            // 斜め視線の場合の追加チェック
+            // For diagonal line of sight, check adjacent walls.
             if (i > 0) {
                 const prev = points[i - 1];
                 if (prev.x !== x && prev.y !== y) {
@@ -484,9 +477,7 @@ class Game {
                 }
             }
         }
-
-        // 最終地点が壁/扉の場合はtrue、それ以外は通常の視界判定
-        return isEndPointWallOrDoor || points.length <= 2;
+        return true;
     }
 
     // Get coordinates along the line between two points (Bresenham's algorithm).
@@ -522,37 +513,31 @@ class Game {
         const visibleTiles = new Set();
         const px = this.player.x;
         const py = this.player.y;
-        const currentRoom = this.getCurrentRoom();
+        const currentRoom = this.renderer.getCurrentRoom(px, py);
         
-        // 部屋の中か廊下かで基本視界範囲を決定
-        let baseVisibility = currentRoom ? currentRoom.brightness : 3;
-        
-        // 最小視界範囲を2に設定（暗い部屋でも角が見えるように）
-        baseVisibility = Math.max(2, baseVisibility);
-        
-        // 視界範囲を計算（明るさによる補正を適用）
-        const visibility = Math.floor(baseVisibility);
+        // 部屋の中か廊下かによって視界範囲を決定
+        const visibility = currentRoom ? currentRoom.brightness : 3;
 
-        // 視界範囲を少し広げて、部屋の角までカバー
-        const extendedRange = visibility + 1;
+        // 視界範囲を1タイル広げて、壁や扉も確実に見えるようにする
+        const extendedVisibility = visibility + 1;
 
-        for (let y = Math.max(0, py - extendedRange); y <= Math.min(this.height - 1, py + extendedRange); y++) {
-            for (let x = Math.max(0, px - extendedRange); x <= Math.min(this.width - 1, px + extendedRange); x++) {
+        for (let y = Math.max(0, py - extendedVisibility); y <= Math.min(this.height - 1, py + extendedVisibility); y++) {
+            for (let x = Math.max(0, px - extendedVisibility); x <= Math.min(this.width - 1, px + extendedVisibility); x++) {
                 const dx = x - px;
                 const dy = y - py;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                // 通常の視界範囲チェックを少し緩和
-                if (distance <= extendedRange && this.hasLineOfSight(px, py, x, y)) {
-                    // 壁や扉の場合は、より遠くても見えるようにする
-                    const isBoundary = this.map[y][x] === 'wall' || 
-                                     this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
-                                     this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.OPEN;
-                    
-                    if (distance <= visibility || isBoundary) {
-                        visibleTiles.add(`${x},${y}`);
-                        this.explored[y][x] = true;
-                    }
+                // 通常の視界範囲チェックに加えて、壁や扉の場合は少し広めに見えるようにする
+                const isWallOrDoor = this.map[y][x] === 'wall' || 
+                                   this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
+                                   this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.OPEN;
+                
+                const visibilityCheck = isWallOrDoor ? 
+                                      distance <= extendedVisibility : 
+                                      distance <= visibility;
+
+                if (visibilityCheck && this.hasLineOfSight(px, py, x, y)) {
+                    visibleTiles.add(`${x},${y}`);
                 }
             }
         }
