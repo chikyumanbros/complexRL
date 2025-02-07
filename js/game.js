@@ -56,8 +56,8 @@ class Game {
         this.maxTotalMonsters = 30;
         this.rooms = [];
         this.isGameOver = false;
-        this.floorLevel = 1;  // Added floor level
-        this.dangerLevel = 'NORMAL';  // Added danger level
+        this.floorLevel = 1;
+        this.dangerLevel = 'NORMAL';
         this.explored = this.initializeExplored();
 
         // Clear the DOM
@@ -69,7 +69,6 @@ class Game {
 
         if (gameElement) {
             gameElement.innerHTML = '';
-            // Rebuild the game container
             gameElement.id = 'game';
             gameElement.style.whiteSpace = 'pre';
         }
@@ -77,7 +76,6 @@ class Game {
         if (codexMenuElement) codexMenuElement.innerHTML = '';
         if (availableSkillsElement) availableSkillsElement.innerHTML = '';
         if (statusElement) {
-            // Reset status display
             document.getElementById('hp').textContent = '0';
             document.getElementById('max-hp').textContent = '0';
             document.getElementById('hp-text').textContent = '';
@@ -94,6 +92,9 @@ class Game {
         // Reposition the player
         this.placePlayerInRoom();
 
+        // プレイヤーの初期位置の視界を更新
+        this.updateExplored();
+
         // Create a new input handler
         this.inputHandler = new InputHandler(this);
 
@@ -109,12 +110,11 @@ class Game {
         // Set mode to GAME mode
         this.mode = GAME_CONSTANTS.MODES.GAME;
 
-        // Update the screen (display the look panel)
+        // Update the screen
         this.renderer.render();
-        this.logger.renderLookPanel();  // Display look panel
-        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);  // Update floor info in Logger
-        this.updateRoomInfo();  // Update surrounding room information
-        this.updateExplored();  // Update explored information
+        this.logger.renderLookPanel();
+        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);
+        this.updateRoomInfo();
     }
 
     init() {
@@ -133,6 +133,9 @@ class Game {
         
         // Generate a new floor (including player placement and monster generation)
         this.generateNewFloor();
+        
+        // プレイヤーの初期位置の視界を更新
+        this.updateExplored();
         
         // Initialize and display information
         const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
