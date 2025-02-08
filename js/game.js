@@ -513,10 +513,15 @@ class Game {
         const visibleTiles = new Set();
         const px = this.player.x;
         const py = this.player.y;
-        const currentRoom = this.renderer.getCurrentRoom(px, py);
+        const currentRoom = this.getCurrentRoom();
         
-        // 部屋の中か廊下かによって視界範囲を決定
-        const visibility = currentRoom ? currentRoom.brightness : 3;
+        // 部屋の明るさに基づいて視界範囲を決定
+        let visibility;
+        if (currentRoom) {
+            visibility = currentRoom.brightness || 5; // デフォルトの部屋の明るさを5に設定
+        } else {
+            visibility = 3; // 廊下の視界範囲は3
+        }
 
         // 視界範囲を1タイル広げて、壁や扉も確実に見えるようにする
         const extendedVisibility = visibility + 1;

@@ -197,39 +197,6 @@ class CodexSystem {
                     }
                 ]
             },
-            // ---- Arcane Skills ----
-            magic: {
-                key: 'a',
-                name: 'ARCANE',
-                skills: [
-                    { 
-                        // --- Magic Bolt Skill ---
-                        id: 'bolt', 
-                        name: 'Magic Bolt', 
-                        cost: 25, 
-                        desc: 'Basic magic attack',
-                        getEffectText: (player) => {
-                            return `[MAG: ${Math.floor(player.stats.int * 0.5)} DMG]`;
-                        },
-                        isFreeAction: false,
-                        requiresTarget: true,
-                        learned: false
-                    },
-                    { 
-                        // --- Arcane Shield Skill ---
-                        id: 'shield', 
-                        name: 'Arcane Shield', 
-                        cost: 30, 
-                        desc: 'Magic barrier',
-                        getEffectText: (player) => {
-                            return `[BARRIER: ${player.stats.int * 2}]`;
-                        },
-                        isFreeAction: true,
-                        requiresTarget: false,
-                        learned: false
-                    }
-                ]
-            },
             // ---- Mind Skills ----
             mind: {  // mental から mind に変更
                 key: 'i',  // 'm' から 'i' に変更 (intelligence/inner の i)
