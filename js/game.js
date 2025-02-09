@@ -402,20 +402,25 @@ class Game {
     }
 
     generateNewFloor() {
-        // Initialize map-related properties
-        this.map = [];
-        this.tiles = [];
-        this.colors = [];
-        this.rooms = [];
-        this.monsters = [];
-        // explored配列を完全に再初期化
-        this.explored = this.initializeExplored();
-        this.totalMonstersSpawned = 0;
-        this.turn = 0;
-        this.dangerLevel = 'NORMAL';
-        this.isGameOver = false;
-        
-        // Generate a new floor (including player placement and monster generation)
+        // Determine danger level by random roll.
+        const dangerRoll = Math.random() * 100;
+        if (dangerRoll < 5) {  // 5%に減少
+            this.dangerLevel = 'SAFE';
+        } else if (dangerRoll < 50) {  // 45%に減少
+            this.dangerLevel = 'NORMAL';
+        } else if (dangerRoll < 80) {  // 30%に増加
+            this.dangerLevel = 'DANGEROUS';
+        } else {  // 20%に増加
+            this.dangerLevel = 'DEADLY';
+        }
+
+        // Add debug log.
+        //console.log(`New floor ${this.floorLevel}, Danger Level: ${this.dangerLevel} (Roll: ${dangerRoll})`);
+
+        // Send floor information to Logger.
+        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);
+
+        // Pass the game instance when generating a new floor.
         const mapGenerator = new MapGenerator(
             this.width,
             this.height,
@@ -429,7 +434,10 @@ class Game {
         this.colors = mapData.colors;
         this.rooms = mapData.rooms;
         
-        // プレイヤーの配置と初期化
+        this.monsters = [];
+        this.totalMonstersSpawned = 0;
+        this.explored = this.initializeExplored();
+        
         this.placePlayerInRoom();
         this.player.autoExploring = false;
         

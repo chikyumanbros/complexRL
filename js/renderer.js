@@ -1,7 +1,3 @@
-// ==============================================
-// Renderer Class: Main Rendering and Effects Management
-// This class handles map rendering, status updates, and visual effects for the game.
-// ==============================================
 class Renderer {
     constructor(game) {
         this.game = game;
@@ -59,7 +55,7 @@ class Renderer {
                 const range = skill ? skill.range : 1; // Treat as melee attack if the skill is not found
                 color = distance <= range && tile === 'floor' ? '#2ecc7144' : '#e74c3c44';
             }
-            
+
             const cell = document.querySelector(
                 `#game-container [data-x="${this.highlightedTile.x}"][data-y="${this.highlightedTile.y}"]`
             );
@@ -72,17 +68,17 @@ class Renderer {
     renderMap() {
         const container = document.getElementById('game');
         container.style.position = 'relative';
-        
+
         const visibleTiles = new Set(
-            this.game.getVisibleTiles().map(({x, y}) => `${x},${y}`)
+            this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
         );
-        
+
         let display = '';
         for (let y = 0; y < this.game.height; y++) {
             for (let x = 0; x < this.game.width; x++) {
                 const isVisible = visibleTiles.has(`${x},${y}`);
                 const isExplored = this.game.explored[y][x];
-                
+
                 if (!isVisible && !isExplored) {
                     display += '<span style="color: black; background-color: black"> </span>';
                     continue;
@@ -97,17 +93,17 @@ class Renderer {
                 let dataAttrs = `data-x="${x}" data-y="${y}"`;
 
                 // Check for door-kill effect
-                const isDoorKillTarget = this.game.lastDoorKillLocation && 
-                                       this.game.lastDoorKillLocation.x === x && 
-                                       this.game.lastDoorKillLocation.y === y;
-                
+                const isDoorKillTarget = this.game.lastDoorKillLocation &&
+                    this.game.lastDoorKillLocation.x === x &&
+                    this.game.lastDoorKillLocation.y === y;
+
                 if (isDoorKillTarget) {
                     classes.push('door-kill');
                 }
 
                 // Highlight for look mode or skill targeting
-                if (this.highlightedTile && 
-                    this.highlightedTile.x === x && 
+                if (this.highlightedTile &&
+                    this.highlightedTile.x === x &&
                     this.highlightedTile.y === y) {
                     if (this.game.inputHandler.targetingMode === 'look') {
                         backgroundColor = 'rgba(255, 255, 255, 0.53)';
@@ -120,32 +116,51 @@ class Renderer {
                             Math.abs(this.highlightedTile.x - player.x),
                             Math.abs(this.highlightedTile.y - player.y)
                         );
-                        backgroundColor = distance <= range && this.game.map[y][x] === 'floor' 
-                            ? 'rgba(46, 204, 113, 0.2)' 
+                        backgroundColor = distance <= range && this.game.map[y][x] === 'floor'
+                            ? 'rgba(46, 204, 113, 0.2)'
                             : 'rgba(231, 76, 60, 0.2)';
                     }
                 }
 
-                            // 攻撃エフェクトの条件チェック
-            const isAttackTarget = this.game.lastAttackLocation && 
-            this.game.lastAttackLocation.x === x && 
-            this.game.lastAttackLocation.y === y;
+                // 攻撃エフェクトの条件チェック
+                const isAttackTarget = this.game.lastAttackLocation &&
+                    this.game.lastAttackLocation.x === x &&
+                    this.game.lastAttackLocation.y === y;
 
-if (isAttackTarget && this.game.lastAttackHit === true) {  // 厳密な比較を使用
-classes.push('melee-attack');
-}
+                if (isAttackTarget && this.game.lastAttackHit === true) {  // 厳密な比較を使用
+                    classes.push('melee-attack');
+                }
 
                 // Render player, monster, and tile
                 if (x === this.game.player.x && y === this.game.player.y) {
                     content = this.game.player.char;
+                    
+                    // HPパーセンテージを計算
+                    const hpPercentage = (this.game.player.hp / this.game.player.maxHp) * 100;
+                    
+                    // デフォルトは白
                     style = 'color: white';
                     
+                    // HPが0の場合は紫
+                    if (this.game.player.hp <= 0) {
+                        style = 'color: #9b59b6'; // 死亡時（紫）
+                    }
+                    // HPが75%以下になった場合のみ色を変更
+                    else if (hpPercentage <= 75) {
+                        if (hpPercentage <= 25) {
+                            style = 'color: #e74c3c'; // danger（赤）
+                        } else if (hpPercentage <= 50) {
+                            style = 'color: #e67e22'; // wounded（オレンジ）
+                        } else {
+                            style = 'color: #f1c40f'; // cautious（黄色）
+                        }
+                    }
                 } else {
                     const monster = this.game.getMonsterAt(x, y);
                     if (monster && isVisible) {
                         content = monster.char;
                         style = `color: ${GAME_CONSTANTS.COLORS.MONSTER[monster.type]}`;
-                        
+
                         // Apply styles based on monster state
                         if (monster.isSleeping) {
                             style += '; animation: sleeping-monster 1s infinite';
@@ -156,7 +171,7 @@ classes.push('melee-attack');
                     } else {
                         content = this.game.tiles[y][x];
                         const tile = this.game.tiles[y][x];
-                        
+
                         // Set color for special tiles
                         if (tile === GAME_CONSTANTS.STAIRS.CHAR) {
                             style = `color: ${GAME_CONSTANTS.STAIRS.COLOR}`;
@@ -184,7 +199,7 @@ classes.push('melee-attack');
     }
 
     getCurrentRoom(x, y) {
-        return this.game.rooms.find(room => 
+        return this.game.rooms.find(room =>
             x >= room.x && x < room.x + room.width &&
             y >= room.y && y < room.y + room.height
         );
@@ -203,7 +218,7 @@ classes.push('melee-attack');
 
     renderStatus() {
         const player = this.game.player;
-        
+
         // Calculate penalty based on surrounding monsters count (15% penalty per monster, limited to 60%)
         const surroundingMonsters = player.countSurroundingMonsters(this.game);
         const penaltyPerMonster = 15; // 15% penalty per monster
@@ -215,7 +230,7 @@ classes.push('melee-attack');
             const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.game.dangerLevel];
             floorLevelElement.innerHTML = `${this.game.floorLevel} <span style="color: ${dangerInfo.color}">[${dangerInfo.name}]</span>`;
         }
-        
+
         // Update HP numerical and bar display
         const hpElementValue = document.getElementById('hp');
         if (hpElementValue) {
@@ -249,13 +264,13 @@ classes.push('melee-attack');
         if (levelElement) {
             levelElement.textContent = player.level;
         }
-        
+
         // Update XP numerical and bar display
         const xpElement = document.getElementById('xp');
         if (xpElement) {
             xpElement.textContent = `${player.xp}/${player.xpToNextLevel}`;
         }
-        
+
         // Update other stats display
         for (let stat in player.stats) {
             const statElement = document.getElementById(stat);
@@ -272,10 +287,10 @@ classes.push('melee-attack');
         const accuracyElement = document.getElementById('accuracy');
         if (accuracyElement) {
             const baseAccuracy = Math.floor(player.accuracy * (1 - surroundingPenalty));
-            let accText = surroundingPenalty > 0 
+            let accText = surroundingPenalty > 0
                 ? `<span style="color: #e74c3c">${baseAccuracy}%</span>`
                 : `${baseAccuracy}%`;
-            
+
             // 修飾効果の累積を計算
             let totalAccuracyMod = 0;
             if (player.nextAttackModifiers && player.nextAttackModifiers.length > 0) {
@@ -292,7 +307,7 @@ classes.push('melee-attack');
         const evasionElement = document.getElementById('evasion');
         if (evasionElement) {
             const baseEvasion = Math.floor(player.evasion * (1 - surroundingPenalty));
-            evasionElement.innerHTML = surroundingPenalty > 0 
+            evasionElement.innerHTML = surroundingPenalty > 0
                 ? `<span style="color: #e74c3c">${baseEvasion}%</span>`
                 : `${baseEvasion}%`;
         }
@@ -301,7 +316,7 @@ classes.push('melee-attack');
         const attackElement = document.getElementById('attack');
         if (attackElement) {
             let attackText = `${player.attackPower.base}+${player.attackPower.diceCount}d${player.attackPower.diceSides}`;
-            
+
             // 修飾効果の累積を計算
             let totalDamageMod = 1;
             if (player.nextAttackModifiers && player.nextAttackModifiers.length > 0) {
@@ -309,8 +324,8 @@ classes.push('melee-attack');
                     if (mod.damageMod) totalDamageMod *= mod.damageMod;
                 }
                 const modifiedDamage = Math.floor(player.attackPower.base * totalDamageMod);
-                const damageColor = totalDamageMod > 1 ? '#2ecc71' : 
-                                   totalDamageMod < 1 ? '#e74c3c' : 'inherit';
+                const damageColor = totalDamageMod > 1 ? '#2ecc71' :
+                    totalDamageMod < 1 ? '#e74c3c' : 'inherit';
                 attackText = `<span style="color: ${damageColor}">${modifiedDamage}+${player.attackPower.diceCount}d${player.attackPower.diceSides}</span>`;
             }
             attackElement.innerHTML = attackText;
@@ -323,7 +338,7 @@ classes.push('melee-attack');
         if (speedElement) {
             let baseSpeed = GAME_CONSTANTS.FORMULAS.SPEED(player.stats);
             let speedText = `${baseSpeed}`;
-            
+
             // 修飾効果の累積を計算
             let totalSpeedMod = 0;
             if (player.nextAttackModifiers && player.nextAttackModifiers.length > 0) {
@@ -341,12 +356,12 @@ classes.push('melee-attack');
         // Update skill list display (only slots 1-9)
         const skillsElement = document.getElementById('skills');
         if (skillsElement) {
-            const skillsDisplay = player.skills.size > 0 
+            const skillsDisplay = player.skills.size > 0
                 ? Array.from(player.skills.entries())
                     .filter(([slot]) => /^[1-9]$/.test(slot))
                     .map(([slot, skillData]) => {
                         const skill = this.game.codexSystem.findSkillById(skillData.id);
-                        const cooldownText = skillData.remainingCooldown > 0 
+                        const cooldownText = skillData.remainingCooldown > 0
                             ? ` (CD: ${skillData.remainingCooldown})`
                             : '';
                         const effectText = skill.getEffectText(player);
@@ -361,17 +376,17 @@ classes.push('melee-attack');
         const monstersInSightElement = document.getElementById('nearby-enemies');
         if (monstersInSightElement) {
             const visibleTiles = new Set(
-                this.game.getVisibleTiles().map(({x, y}) => `${x},${y}`)
+                this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
             );
-            
-            const visibleMonsters = this.game.monsters.filter(monster => 
+
+            const visibleMonsters = this.game.monsters.filter(monster =>
                 visibleTiles.has(`${monster.x},${monster.y}`)
             );
 
             if (visibleMonsters.length > 0) {
                 const monsterList = visibleMonsters.map(monster => {
                     const healthPercentage = (monster.hp / monster.maxHp) * 100;
-                    
+
                     // Determine class based on HP percentage
                     let healthClass;
                     if (healthPercentage > 75) {
@@ -388,16 +403,22 @@ classes.push('melee-attack');
                     const fleeingStatus = monster.hasStartedFleeing ? ' >>>' : '';
                     const monsterSymbol = monster.char ? monster.char : 'M';
                     const monsterColor = GAME_CONSTANTS.COLORS.MONSTER[monster.type];
-                    
+
                     return `<span style="color: ${monsterColor}">` +
-                           `${monsterSymbol} ${monster.name}</span>` +
-                           ` [<span class="${healthClass}">${monster.hp}/${monster.maxHp}</span>]` +
-                           `${sleepStatus}${fleeingStatus}`;
+                        `${monsterSymbol} ${monster.name}</span>` +
+                        ` [<span class="${healthClass}">${monster.hp}/${monster.maxHp}</span>]` +
+                        `${sleepStatus}${fleeingStatus}`;
                 }).join('<br>');
                 monstersInSightElement.innerHTML = monsterList;
             } else {
                 monstersInSightElement.innerHTML = 'No monsters in sight';
             }
+        }
+
+        // Update perception display
+        const perceptionElement = document.getElementById('perception');
+        if (perceptionElement) {
+            perceptionElement.textContent = player.perception;
         }
     }
 
@@ -413,7 +434,7 @@ classes.push('melee-attack');
             this.game.lastAttackHit = false;  // フラグをリセット
             this.render();
         }
-        
+
         // Clean up skill usage effect
         const playerChar = document.querySelector('#game-container [data-player="true"]');
         if (playerChar) {
@@ -455,21 +476,21 @@ classes.push('melee-attack');
     showMovementTrailEffect(fromX, fromY, toX, toY) {
         // Clear existing effects
         this.movementEffects = new Set();
-        
+
         // Calculate trail from start to end
         const dx = toX - fromX;
         const dy = toY - fromY;
         const steps = Math.max(Math.abs(dx), Math.abs(dy));
-        
+
         // Calculate each point in the trail
         for (let i = 0; i <= steps; i++) {
             const x = Math.round(fromX + (dx * i / steps));
             const y = Math.round(fromY + (dy * i / steps));
-            this.movementEffects.add({x, y});
-            
+            this.movementEffects.add({ x, y });
+
             // Remove effect from each point with a delay
             setTimeout(() => {
-                this.movementEffects.delete({x, y});
+                this.movementEffects.delete({ x, y });
                 this.render();
             }, 100 + (i * 50)); // Remove sequentially with a time delay
         }
@@ -547,17 +568,17 @@ classes.push('melee-attack');
             centerX = x * tileSize + tileSize / 2;
             centerY = y * tileSize + tileSize / 2;
         }
-        
+
         // Calculate bottom position relative to player center based on particleLayer height
         const bottomValue = particleLayer.offsetHeight - centerY;
-        
+
         const pillar = document.createElement('div');
         pillar.classList.add('light-pillar');
         pillar.style.left = centerX + "px";
         pillar.style.bottom = bottomValue + "px";
-        
+
         particleLayer.appendChild(pillar);
-        
+
         pillar.addEventListener('animationend', () => {
             pillar.remove();
         });
@@ -565,7 +586,7 @@ classes.push('melee-attack');
 
     updateStatusPanel(status) {
         const panel = document.getElementById('status-panel');
-        
+
         // Update floor level element
         const floorLevelElement = document.getElementById('floor-level');
         if (floorLevelElement) {
@@ -630,88 +651,70 @@ classes.push('melee-attack');
     }
 
     getHelpDisplay() {
-        let display = '';
+        // 左列と右列のコンテンツを別々に作成
+        let leftColumn = '';
+        let rightColumn = '';
 
-        // Main title (centered)
-        display += `<div style="color: #ffd700; font-size: 12px; text-align: left;">=== CONTROLS ===</div>\n\n`;
-
-        // Display by category
+        // 左列：コントロール
+        leftColumn += `<div style="color: #ffd700; font-size: 12px; margin-bottom: 8px;">■ CONTROLS</div>\n`;
         const categories = Object.entries(GAME_CONSTANTS.CONTROLS);
-        categories.forEach(([category, data], idx) => {
-            // Category title
-            display += `<div style="color: #66ccff; font-size: 12px; margin-top: 10px;">=== ${data.title} ===</div>\n`;
-            
-            // Key and description (with indent)
+        categories.forEach(([category, data]) => {
+            leftColumn += `<div style="color: #66ccff; font-size: 11px; margin-top: 6px;">● ${data.title}</div>\n`;
             data.keys.forEach(keyInfo => {
-                display += `<div style="margin-left: 10px;">`;
-                display += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[${keyInfo.key}]</span>`;
-                display += `<span style="color: #ecf0f1;">${keyInfo.desc}</span>`;
-                display += `</div>\n`;
+                leftColumn += `<div style="margin-left: 8px;">`;
+                leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 50px;">[${keyInfo.key}]</span>`;
+                leftColumn += `<span style="color: #ecf0f1;">${keyInfo.desc}</span>`;
+                leftColumn += `</div>\n`;
             });
-            
-            // Add line break between categories if multiple exist
-            if (idx < categories.length - 1) {
-                display += `<br>\n`;
-            }
         });
-        
-        // Combat System Tips
-        display += `<br><div style="color: #e74c3c; text-align: left;">=== COMBAT SYSTEM ===</div>\n\n`;
-        
-        // Attack Roll
-        display += `<div style="color: #f1c40f;">■ Attack (ATK)</div>\n`;
-        display += `<div style="margin-left: 10px; color: #ecf0f1;">`;
-        display += `Base: STR - (DEX/2)\n`;
-        display += `Dice: (DEX/5)d(STR/5×3)\n`;
-        display += `Total = Base + Dice Roll\n`;
-        display += `</div>\n\n`;
 
-        // Defense Roll
-        display += `<div style="color: #f1c40f;">■ Defense (DEF)</div>\n`;
-        display += `<div style="margin-left: 10px; color: #ecf0f1;">`;
-        display += `Base: CON - (STR/2)\n`;
-        display += `Dice: (STR/5)d(CON/5×3)\n`;
-        display += `Total = Base + Dice Roll\n`;
-        display += `</div>\n\n`;
+        // 右列：戦闘システム
+        rightColumn += `<div style="color: #ffd700; font-size: 12px; margin-bottom: 8px;">■ COMBAT SYSTEM</div>\n`;
 
-        // Accuracy and Evasion
-        display += `<div style="color: #f1c40f;">■ Accuracy & Evasion</div>\n`;
-        display += `<div style="margin-left: 10px; color: #ecf0f1;">`;
-        display += `Accuracy (ACC): 50 + (DEX×1.5)\n`;
-        display += `Evasion (EVA): DEX×1.2\n`;
-        display += `</div>\n\n`;
+        // Attack & Defense
+        rightColumn += `<div style="color: #3498db; margin-bottom: 4px;">● Base Stats</div>\n`;
+        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
+        rightColumn += `ATK: STR - (DEX/3)\n`;
+        rightColumn += `DEF: CON - (STR/3)\n`;
+        rightColumn += `</div>\n`;
 
-        // Combat Flow with Opportunity Attack details
-        display += `<div style="color: #f1c40f;">■ Combat Flow</div>\n`;
-        display += `<div style="margin-left: 10px; color: #ecf0f1;">`;
-        display += `1. Speed Check (DEX - (STR+CON)/10)\n`;
-        display += `2. Accuracy vs Roll (100)\n`;
-        display += `3. Evasion vs Roll (100)\n`;
-        display += `4. Damage = ATK Roll - DEF Roll\n`;
-        display += `</div>\n\n`;
+        rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Combat Dice</div>\n`;
+        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
+        rightColumn += `ATK: Base + (DEX/5)d(STR/5×3)\n`;
+        rightColumn += `DEF: Base + (STR/5)d(CON/5×3)\n`;
+        rightColumn += `</div>\n`;
 
-        // Opportunity Attack explanation
-        display += `<div style="color: #f1c40f;">■ Opportunity Attack</div>\n`;
-        display += `<div style="margin-left: 10px; color: #ecf0f1;">`;
-        display += `Triggers:\n`;
-        display += `・Moving away from adjacent enemies\n`;
-        display += `・Moving through enemy-adjacent tiles\n\n`;
-        display += `Effects:\n`;
-        display += `・Enemy makes an immediate attack\n`;
-        display += `・-30% Accuracy penalty\n`;
-        display += `・+50% Damage bonus\n`;
-        display += `・Multiple enemies can trigger simultaneously\n`;
-        display += `</div>\n\n`;
+        rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Hit Chance</div>\n`;
+        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
+        rightColumn += `ACC: 50 + DEX + INT - (CON/3)\n`;
+        rightColumn += `EVA: DEX + INT - (CON/3)\n`;
+        rightColumn += `SPD: DEX - ((STR + CON)/10)\n`;
+        rightColumn += `PER: (DEX + WIS + INT - (STR + CON)/2) / 2\n`;
+        rightColumn += `</div>\n`;
 
-        // Combat Penalties
-        display += `<div style="color: #f1c40f;">■ Combat Penalties</div>\n`;
-        display += `<div style="margin-left: 10px; color: #ecf0f1;">`;
-        display += `Surrounded: -15% ACC/EVA per enemy (max -60%)\n`;
-        display += `</div>\n\n`;
-        
-        // Footer
-        display += `<div style="text-align: center;">Press [ESC] to return to game</div>\n`;
-        
+        rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Combat Flow</div>\n`;
+        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
+        rightColumn += `1. Speed Check\n`;
+        rightColumn += `2. ACC vs Roll(100)\n`;
+        rightColumn += `3. EVA vs Roll(100)\n`;
+        rightColumn += `4. DMG = ATK - DEF\n`;
+        rightColumn += `</div>\n`;
+
+        rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Penalties</div>\n`;
+        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
+        rightColumn += `Surrounded: -15% ACC/EVA per enemy\n`;
+        rightColumn += `(Max: -60%)\n`;
+        rightColumn += `</div>\n`;
+
+        // 2列レイアウトを作成
+        const display = `
+            <div style="display: flex; justify-content: space-between; gap: 20px;">
+                <div style="flex: 1;">${leftColumn}</div>
+                <div style="flex: 1;">${rightColumn}</div>
+            </div>
+            <div style="text-align: center; margin-top: 12px; color: #7f8c8d;">[ESC] to return</div>
+        `;
+
         return display;
     }
 
@@ -722,11 +725,11 @@ classes.push('melee-attack');
             //console.error('Particle layer not found!'); // エラーログ
             return;
         }
-    
+
         // 対象のタイルの位置を取得
         const targetTile = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
         //console.log('Target tile:', targetTile, 'at', x, y); // デバッグログ
-        
+
         let centerX, centerY;
         if (targetTile) {
             const gameContainer = document.getElementById('game-container');
@@ -742,7 +745,7 @@ classes.push('melee-attack');
             centerY = y * tileSize + tileSize / 2;
             //console.log('Fallback position:', centerX, centerY); // デバッグログ
         }
-    
+
         const particleCount = 50;
         for (let i = 0; i < particleCount; i++) {
             const particle = document.createElement('div');
@@ -750,17 +753,17 @@ classes.push('melee-attack');
             particle.style.left = centerX + "px";
             particle.style.top = centerY + "px";
             particle.style.backgroundColor = color;
-    
+
             const angle = Math.random() * Math.PI * 2;
             const distance = 15 + Math.random() * 25;
             const dx = Math.cos(angle) * distance;
             const dy = Math.sin(angle) * distance;
             particle.style.setProperty('--dx', dx + "px");
             particle.style.setProperty('--dy', dy + "px");
-    
+
             particleLayer.appendChild(particle);
             //console.log('Particle created:', i); // デバッグログ
-            
+
             particle.addEventListener('animationend', () => {
                 particle.remove();
                 //console.log('Particle removed:', i); // デバッグログ
@@ -771,7 +774,7 @@ classes.push('melee-attack');
     drawMonsterSprite(canvas, monsterType) {
         const ctx = canvas.getContext('2d');
         const sprite = GAME_CONSTANTS.MONSTER_SPRITES[monsterType];
-        
+
         if (!sprite) return;
 
         // キャンバスをクリア
@@ -782,11 +785,11 @@ classes.push('melee-attack');
         const spriteWidth = sprite[0].length;
         const spriteHeight = sprite.length;
         const pixelSize = 8;  // 1ドットのサイズを8pxに固定
-        
+
         // キャンバスサイズをスプライトサイズに合わせて調整
         canvas.width = spriteWidth * pixelSize;
         canvas.height = spriteHeight * pixelSize;
-        
+
         // スプライトの各ピクセルを描画
         sprite.forEach((row, y) => {
             [...row].forEach((pixel, x) => {
@@ -794,9 +797,9 @@ classes.push('melee-attack');
                 if (color) {
                     ctx.fillStyle = color;
                     ctx.fillRect(
-                        x * pixelSize, 
-                        y * pixelSize, 
-                        pixelSize, 
+                        x * pixelSize,
+                        y * pixelSize,
+                        pixelSize,
                         pixelSize
                     );
                 }

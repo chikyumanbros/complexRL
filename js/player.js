@@ -492,6 +492,11 @@ class Player {
     }
 
     processTurn() {
+        // HPが0以下の場合は何もしない
+        if (this.hp <= 0) {
+            return;
+        }
+
         // ターン開始時に前回の位置を更新
         if (!this.lastPosition) {
             this.lastPosition = { x: this.x, y: this.y };
@@ -562,6 +567,9 @@ class Player {
     }
 
     updateDerivedStats() {
+        // Calculate perception
+        this.perception = GAME_CONSTANTS.FORMULAS.PERCEPTION(this.stats);
+        
         // 必要に応じた派生ステータスの更新処理
     }
 
@@ -600,6 +608,7 @@ class Player {
                 speed: `${GAME_CONSTANTS.FORMULAS.SPEED(this.stats)}`,
                 accuracy: formatStat(this.accuracy, penalizedAccuracy),
                 evasion: formatStat(this.evasion, penalizedEvasion),
+                perception: this.perception
             }
         };
     }

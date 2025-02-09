@@ -49,7 +49,9 @@ class InputHandler {
                         console.log('Is hidden:', isHidden);
                         spritePreview.style.display = isHidden ? 'block' : 'none';
                         
-                        if (isHidden) {
+                        if (!isHidden) {
+                            console.log('Hiding sprite preview...');
+                        } else {
                             console.log('Showing sprite preview...');
                             // HTMLのIDと完全に一致するように修正
                             const monsterSprites = [

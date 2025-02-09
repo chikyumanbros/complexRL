@@ -105,18 +105,18 @@ const GAME_CONSTANTS = {
     FORMULAS: {
         MAX_HP: (stats, level) => Math.floor((stats.con * 2 + stats.str / 5) * (1 + level * 0.2)),
         ATTACK: (stats) => ({
-            base: Math.max(0, Math.floor(stats.str - stats.dex / 2)),
+            base: Math.max(0, Math.floor(stats.str - stats.dex / 3)),
             diceCount: Math.floor(stats.dex / 5),
             diceSides: Math.floor(stats.str / 5) * 3
         }),
         DEFENSE: (stats) => ({
-            base: Math.max(1, Math.floor(stats.con - stats.str / 2)),
+            base: Math.max(1, Math.floor(stats.con - stats.str / 3)),
             diceCount: Math.floor(stats.str / 5),
             diceSides: Math.floor(stats.con / 5) * 3
         }),
-        ACCURACY: (stats) => Math.floor(50 + stats.dex * 1.5),
-        EVASION: (stats) => Math.floor(stats.dex * 1.2),
-        PERCEPTION: (stats) => Math.floor(3 + stats.wis * 0.4),
+        ACCURACY: (stats) => Math.min(100, Math.floor((50 + stats.dex + stats.int) - (stats.con / 3))),
+        EVASION: (stats) => Math.min(100, Math.floor((stats.dex + stats.int) - (stats.con / 3))),
+        PERCEPTION: (stats) => Math.max(3, Math.floor(((stats.dex + stats.wis + stats.int) - ((stats.str + stats.con) / 2)) / 2)),
         rollDamage: (attack, defense) => {
             let damage = attack.base;
             for (let i = 0; i < attack.diceCount; i++) {

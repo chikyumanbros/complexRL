@@ -29,3 +29,7 @@ auto save実装
   - UIはシンプルに
   - 既存の瞑想システムとの自然な統合
 
+        //<div class="title">
+        //    <h1>complexRL</h1>
+        //    <div class="version">v0.1.0</div>
+        // </div>
