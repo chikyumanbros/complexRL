@@ -6,7 +6,11 @@ const GAME_CONSTANTS = {
         DOOR: {
             OPEN: '/',
             CLOSED: '+'
-        }
+        },
+        OBSTACLE: {
+            BLOCKING: ['▨', '▤', '▥', '▧', 'Ж', 'Ш', '='],      // 視線を遮る障害物（柱や大きな岩）
+            TRANSPARENT: ['¤', '†', '‡', '§', '¶', '≡','‖','£'],   // 視線を通す障害物（家具や装飾品）
+        },
     },
 
     // STAIRS Section: Stairs properties
@@ -44,6 +48,26 @@ const GAME_CONSTANTS = {
             GHOST: '#6cf',
             TROLL: '#383',
         },
+        OBSTACLE: {
+            BLOCKING_VARIATIONS: [
+                '#664433',  // 基本の茶色
+                '#553322',  // 暗い茶色
+                '#775544',  // 明るい茶色
+                '#664422',  // 黄みがかった茶色
+                '#663333',  // 赤みがかった茶色
+                '#555533',  // 緑がかった茶色
+            ],
+            TRANSPARENT_VARIATIONS: [
+                '#8B4513',  // 基本の木製色
+                '#A0522D',  // サドルブラウン
+                '#6B4423',  // 暗い木製色
+                '#8B6914',  // 黄みがかった木製色
+                '#7C3607',  // 赤みがかった木製色
+                '#855E42',  // 明るい木製色
+            ],
+            BLOCKING: '#664433',     // 後方互換性のため維持
+            TRANSPARENT: '#8B4513',  // 後方互換性のため維持
+        },
     },
 
     // MODES Section: Game mode identifiers
@@ -67,7 +91,14 @@ const GAME_CONSTANTS = {
         MIN_COUNT: 10,
         MAX_COUNT: 15,
         PADDING: 2,
-        SAFE_RADIUS: 3
+        SAFE_RADIUS: 3,
+        OBSTACLES: {
+            CHANCE: 0.7,           // 部屋に障害物を配置する確率
+            MIN_COUNT: 2,          // 最小障害物数（ランダムパターンの場合のみ使用）
+            MAX_COUNT: 8,          // 最大障害物数（ランダムパターンの場合のみ使用）
+            TRANSPARENT_RATIO: 0.5, // 視線を通す障害物の割合
+            MIN_ROOM_SIZE: 7       // パターン配置に必要な最小部屋サイズ
+        }
     },
 
     // FORMULAS Section: Calculations for character stats and actions

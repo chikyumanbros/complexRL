@@ -168,6 +168,7 @@ class MapGenerator {
     }
 
     carveRoom(room) {
+        // 部屋の床を作成
         for (let y = room.y; y < room.y + room.height; y++) {
             for (let x = room.x; x < room.x + room.width; x++) {
                 if (y < this.height && x < this.width) {
@@ -180,6 +181,129 @@ class MapGenerator {
                 }
             }
         }
+
+        // 部屋のサイズが十分大きい場合のみ障害物を配置
+        if (room.width >= 7 && room.height >= 7 && 
+            Math.random() < GAME_CONSTANTS.ROOM.OBSTACLES.CHANCE) {
+            this.placeObstacles(room);
+        }
+    }
+
+    placeObstacles(room) {
+        // 部屋が最小サイズより小さい場合は処理しない
+        if (room.width < GAME_CONSTANTS.ROOM.OBSTACLES.MIN_ROOM_SIZE || 
+            room.height < GAME_CONSTANTS.ROOM.OBSTACLES.MIN_ROOM_SIZE) {
+            return;
+        }
+
+        // パターンを定義
+        const patterns = [
+            {
+                name: 'corners',
+                getPositions: (room) => [
+                    {x: room.x + 1, y: room.y + 1},
+                    {x: room.x + room.width - 2, y: room.y + 1},
+                    {x: room.x + 1, y: room.y + room.height - 2},
+                    {x: room.x + room.width - 2, y: room.y + room.height - 2}
+                ]
+            },
+            {
+                name: 'cross',
+                getPositions: (room) => {
+                    const centerX = Math.floor(room.x + room.width / 2);
+                    const centerY = Math.floor(room.y + room.height / 2);
+                    return [
+                        {x: centerX, y: centerY},
+                        {x: centerX - 1, y: centerY},
+                        {x: centerX + 1, y: centerY},
+                        {x: centerX, y: centerY - 1},
+                        {x: centerX, y: centerY + 1}
+                    ];
+                }
+            },
+            {
+                name: 'pillars',
+                getPositions: (room) => {
+                    const positions = [];
+                    for (let x = room.x + 2; x < room.x + room.width - 2; x += 2) {
+                        for (let y = room.y + 2; y < room.y + room.height - 2; y += 2) {
+                            positions.push({x, y});
+                        }
+                    }
+                    return positions;
+                }
+            },
+            {
+                name: 'random',
+                getPositions: (room) => {
+                    const positions = [];
+                    const count = GAME_CONSTANTS.ROOM.OBSTACLES.MIN_COUNT + 
+                        Math.floor(Math.random() * (GAME_CONSTANTS.ROOM.OBSTACLES.MAX_COUNT - GAME_CONSTANTS.ROOM.OBSTACLES.MIN_COUNT + 1));
+                    
+                    for (let i = 0; i < count; i++) {
+                        positions.push({
+                            x: room.x + 1 + Math.floor(Math.random() * (room.width - 2)),
+                            y: room.y + 1 + Math.floor(Math.random() * (room.height - 2))
+                        });
+                    }
+                    return positions;
+                }
+            }
+        ];
+
+        // パターンをランダムに選択
+        const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+        const positions = pattern.getPositions(room);
+
+        // 各位置に障害物を配置
+        positions.forEach(({x, y}) => {
+            if (this.isValidObstaclePosition(x, y)) {
+                // 視線を通す/通さない障害物の選択
+                const isTransparent = Math.random() < GAME_CONSTANTS.ROOM.OBSTACLES.TRANSPARENT_RATIO;
+                const obstacleType = isTransparent ? 'TRANSPARENT' : 'BLOCKING';
+                const obstacles = GAME_CONSTANTS.TILES.OBSTACLE[obstacleType];
+                
+                // 障害物タイルをランダムに選択
+                const obstacle = obstacles[Math.floor(Math.random() * obstacles.length)];
+                
+                // 障害物を配置
+                this.map[y][x] = 'obstacle';
+                this.tiles[y][x] = obstacle;
+                
+                // ランダムな色のバリエーションを選択
+                const colorVariations = isTransparent ? 
+                    GAME_CONSTANTS.COLORS.OBSTACLE.TRANSPARENT_VARIATIONS :
+                    GAME_CONSTANTS.COLORS.OBSTACLE.BLOCKING_VARIATIONS;
+                
+                this.colors[y][x] = colorVariations[
+                    Math.floor(Math.random() * colorVariations.length)
+                ];
+            }
+        });
+    }
+
+    isValidObstaclePosition(x, y) {
+        // マップ範囲内チェック
+        if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
+            return false;
+        }
+
+        // 床タイルかチェック（障害物や他の要素がないことを確認）
+        const isFloorTile = GAME_CONSTANTS.TILES.FLOOR.includes(this.tiles[y][x]);
+        if (!isFloorTile) {
+            return false;
+        }
+
+        // プレイヤーの初期位置からの安全距離チェック
+        if (this.game?.player) {
+            const dx = Math.abs(x - this.game.player.x);
+            const dy = Math.abs(y - this.game.player.y);
+            if (dx + dy < GAME_CONSTANTS.ROOM.SAFE_RADIUS) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     connectRooms(rooms) {

@@ -469,16 +469,29 @@ class Game {
         for (let i = 1; i < points.length - 1; i++) {
             const {x, y} = points[i];
             
-            // Block line of sight if there is a wall or closed door.
-            if (this.map[y][x] === 'wall' || this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+            // 視線を遮る障害物かどうかをチェック
+            const isBlockingObstacle = 
+                this.map[y][x] === 'wall' || 
+                this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
+                (this.map[y][x] === 'obstacle' && 
+                 GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][x]));
+            
+            if (isBlockingObstacle) {
                 return false;
             }
             
-            // For diagonal line of sight, check adjacent walls.
+            // 斜めの視線チェック
             if (i > 0) {
                 const prev = points[i - 1];
                 if (prev.x !== x && prev.y !== y) {
-                    if (this.map[prev.y][x] === 'wall' && this.map[y][prev.x] === 'wall') {
+                    const isCornerBlocking = 
+                        (this.map[prev.y][x] === 'wall' && this.map[y][prev.x] === 'wall') ||
+                        (this.map[prev.y][x] === 'obstacle' && 
+                         GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[prev.y][x]) &&
+                         this.map[y][prev.x] === 'obstacle' && 
+                         GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][prev.x]));
+                    
+                    if (isCornerBlocking) {
                         return false;
                     }
                 }

@@ -591,6 +591,10 @@ class InputHandler {
                 lookInfo = "You see a floor here.";
             } else if (GAME_CONSTANTS.TILES.WALL.includes(tile)) {
                 lookInfo = "You see a wall here.";
+            } else if (GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(tile)) {
+                lookInfo = "You see a massive stone pillar blocking your view.";
+            } else if (GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tile)) {
+                lookInfo = "You see some decorative furniture.";
             } else {
                 lookInfo = `You see ${tile} here.`;
             }
