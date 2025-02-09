@@ -227,8 +227,8 @@ classes.push('melee-attack');
         }
         const hpTextElement = document.getElementById('hp-text');
         if (hpTextElement) {
-            const hpBars = Math.ceil((player.hp / player.maxHp) * 15);
-            const hpText = '|'.repeat(hpBars).padEnd(15, ' ');
+            const hpBars = Math.ceil((player.hp / player.maxHp) * 20);
+            const hpText = '|'.repeat(hpBars).padEnd(20, ' ');
             hpTextElement.textContent = hpText;
             // Add class based on HP percentage
             const hpPercentage = (player.hp / player.maxHp) * 100;
@@ -276,10 +276,14 @@ classes.push('melee-attack');
                 ? `<span style="color: #e74c3c">${baseAccuracy}%</span>`
                 : `${baseAccuracy}%`;
             
-            // Change display if there's an accuracy modifier
-            if (player.nextAttackModifier && player.nextAttackModifier.accuracyMod) {
-                const modifiedAcc = Math.floor(baseAccuracy * (1 + player.nextAttackModifier.accuracyMod));
-                accText = `<span style="color: ${player.nextAttackModifier.accuracyMod > 0 ? '#2ecc71' : '#e74c3c'}">${modifiedAcc}%</span>`;
+            // 修飾効果の累積を計算
+            let totalAccuracyMod = 0;
+            if (player.nextAttackModifiers && player.nextAttackModifiers.length > 0) {
+                for (const mod of player.nextAttackModifiers) {
+                    if (mod.accuracyMod) totalAccuracyMod += mod.accuracyMod;
+                }
+                const modifiedAcc = Math.floor(baseAccuracy * (1 + totalAccuracyMod));
+                accText = `<span style="color: ${totalAccuracyMod > 0 ? '#2ecc71' : '#e74c3c'}">${modifiedAcc}%</span>`;
             }
             accuracyElement.innerHTML = accText;
         }
@@ -298,12 +302,15 @@ classes.push('melee-attack');
         if (attackElement) {
             let attackText = `${player.attackPower.base}+${player.attackPower.diceCount}d${player.attackPower.diceSides}`;
             
-            // Change display if there is an attack modifier
-            if (player.nextAttackModifier) {
-                const modifiedDamage = Math.floor(player.attackPower.base * player.nextAttackModifier.damageMod);
-                // Use normal color if damageMod is 1.0
-                const damageColor = player.nextAttackModifier.damageMod > 1 ? '#2ecc71' : 
-                                   player.nextAttackModifier.damageMod < 1 ? '#e74c3c' : 'inherit';
+            // 修飾効果の累積を計算
+            let totalDamageMod = 1;
+            if (player.nextAttackModifiers && player.nextAttackModifiers.length > 0) {
+                for (const mod of player.nextAttackModifiers) {
+                    if (mod.damageMod) totalDamageMod *= mod.damageMod;
+                }
+                const modifiedDamage = Math.floor(player.attackPower.base * totalDamageMod);
+                const damageColor = totalDamageMod > 1 ? '#2ecc71' : 
+                                   totalDamageMod < 1 ? '#e74c3c' : 'inherit';
                 attackText = `<span style="color: ${damageColor}">${modifiedDamage}+${player.attackPower.diceCount}d${player.attackPower.diceSides}</span>`;
             }
             attackElement.innerHTML = attackText;
@@ -314,7 +321,21 @@ classes.push('melee-attack');
         }
         const speedElement = document.getElementById('speed');
         if (speedElement) {
-            speedElement.textContent = `${GAME_CONSTANTS.FORMULAS.SPEED(player.stats)}`;
+            let baseSpeed = GAME_CONSTANTS.FORMULAS.SPEED(player.stats);
+            let speedText = `${baseSpeed}`;
+            
+            // 修飾効果の累積を計算
+            let totalSpeedMod = 0;
+            if (player.nextAttackModifiers && player.nextAttackModifiers.length > 0) {
+                for (const mod of player.nextAttackModifiers) {
+                    if (mod.speedMod) totalSpeedMod += mod.speedMod;
+                }
+                if (totalSpeedMod !== 0) {
+                    const modifiedSpeed = Math.floor(baseSpeed * (1 + totalSpeedMod));
+                    speedText = `<span style="color: ${totalSpeedMod > 0 ? '#2ecc71' : '#e74c3c'}">${modifiedSpeed}</span>`;
+                }
+            }
+            speedElement.innerHTML = speedText;
         }
 
         // Update skill list display (only slots 1-9)
@@ -480,7 +501,7 @@ classes.push('melee-attack');
         } else {
             // Fallback calculation if player tile is not found (not recommended)
             const tileElement = document.querySelector('#game span');
-            const tileSize = tileElement ? tileElement.offsetWidth : 14;
+            const tileSize = tileElement ? tileElement.offsetWidth : 16;
             centerX = x * tileSize + tileSize / 2;
             centerY = y * tileSize + tileSize / 2;
         }
@@ -522,7 +543,7 @@ classes.push('melee-attack');
             centerY = tileRect.top - containerRect.top + tileRect.height / 2;
         } else {
             const tileElement = document.querySelector('#game span');
-            const tileSize = tileElement ? tileElement.offsetWidth : 14;
+            const tileSize = tileElement ? tileElement.offsetWidth : 16;
             centerX = x * tileSize + tileSize / 2;
             centerY = y * tileSize + tileSize / 2;
         }
@@ -716,7 +737,7 @@ classes.push('melee-attack');
             //console.log('Position calculated:', centerX, centerY); // デバッグログ
         } else {
             const tileElement = document.querySelector('#game span');
-            const tileSize = tileElement ? tileElement.offsetWidth : 14;
+            const tileSize = tileElement ? tileElement.offsetWidth : 16;
             centerX = x * tileSize + tileSize / 2;
             centerY = y * tileSize + tileSize / 2;
             //console.log('Fallback position:', centerX, centerY); // デバッグログ

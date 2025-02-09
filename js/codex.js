@@ -26,21 +26,20 @@ class CodexSystem {
                             return `[DMG: +${Math.floor((damageBonus - 1) * 100)}%, ACC: ${Math.floor((accuracyPenalty - 1) * 100)}%]`;
                         },
                         effect: (game, player) => {
-                            // 既に攻撃修飾効果が有効な場合は使用できない
-                            if (player.nextAttackModifier) {
-                                game.logger.add(`${player.nextAttackModifier.name} is already in effect!`, "warning");
-                                return false;
-                            }
-
                             const damageBonus = 1 + (0.5 * player.stats.str / 10);
                             const accuracyPenalty = -0.3 * (player.stats.dex / 10);
 
-                            player.nextAttackModifier = {
+                            // 配列が未初期化の場合は初期化
+                            if (!player.nextAttackModifiers) {
+                                player.nextAttackModifiers = [];
+                            }
+
+                            player.nextAttackModifiers.push({
                                 name: 'Power Strike',
                                 damageMod: damageBonus,
                                 accuracyMod: accuracyPenalty,
                                 duration: 1
-                            };
+                            });
                             
                             game.logger.add(
                                 `You prepare a powerful strike! ${this.findSkillById('powerStrike').getEffectText(player)} `, 
@@ -65,19 +64,18 @@ class CodexSystem {
                         requiresTarget: false,
                         learned: false,
                         effect: (game, player) => {
-                            // 既に攻撃修飾効果が有効な場合は使用できない
-                            if (player.nextAttackModifier) {
-                                game.logger.add(`${player.nextAttackModifier.name} is already in effect!`, "warning");
-                                return false;
+                            // 配列が未初期化の場合は初期化
+                            if (!player.nextAttackModifiers) {
+                                player.nextAttackModifiers = [];
                             }
 
-                            player.nextAttackModifier = {
+                            player.nextAttackModifiers.push({
                                 name: 'Quick Slash',
                                 damageMod: 1,
                                 accuracyMod: 0.2,
                                 speedMod: 0.2,
                                 duration: 1
-                            };
+                            });
                             
                             game.logger.add(
                                 `You prepare a quick strike! ${this.findSkillById('quick').getEffectText(player)}`, 

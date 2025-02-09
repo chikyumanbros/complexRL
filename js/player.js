@@ -6,8 +6,8 @@ class Player {
         this.game = game;
         this.char = '@';
         this.level = 1;
-        this.codexPoints = 0;  // codexポイントのみを使用
-        this.xp = 0;                  // 経験値の初期化
+        this.codexPoints = 100;  // codexポイントのみを使用
+        this.xp = 10;                  // 経験値の初期化
         this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
         this.stats = {
             str: 10,
@@ -28,7 +28,7 @@ class Player {
         this.evasion = GAME_CONSTANTS.FORMULAS.EVASION(this.stats);
 
         this.skills = new Map();  // スキルマップの初期化
-        this.nextAttackModifier = null;  // 次の攻撃の修正値
+        this.nextAttackModifiers = [];  // 攻撃修飾効果の初期化
         this.meditation = null;  // メディテーション状態を追加
 
         // 治療関連のパラメータを定数ファイルから取得
@@ -234,10 +234,46 @@ class Player {
         // 機会攻撃の判定
         const isOpportunityAttack = monster.hasStartedFleeing && monster.checkEscapeRoute(game);
         
-        const attackType = this.nextAttackModifier ? this.nextAttackModifier.name : "attack";
+        // 攻撃タイプの名前を設定
+        const attackType = this.nextAttackModifiers && this.nextAttackModifiers.length > 0 
+            ? (this.nextAttackModifiers.length > 1 
+                ? "Combined Attack" 
+                : this.nextAttackModifiers[0].name)
+            : "attack";
+
         let hitChance = Math.floor(this.accuracy * (1 - surroundingPenalty));
         let damageMultiplier = 1;
         
+        // 全ての修飾効果を累積
+        let totalDamageMod = 1;
+        let totalAccuracyMod = 0;
+        let totalSpeedMod = 0;
+
+        // 効果の説明文を生成
+        let effectDesc = "";
+        if (this.nextAttackModifiers && this.nextAttackModifiers.length > 0) {
+            const effects = [];
+            for (const modifier of this.nextAttackModifiers) {
+                if (modifier.damageMod) {
+                    totalDamageMod *= modifier.damageMod;
+                    effects.push(`DMG: ${((modifier.damageMod - 1) * 100).toFixed(0)}%`);
+                }
+                if (modifier.accuracyMod) {
+                    totalAccuracyMod += modifier.accuracyMod;
+                    effects.push(`ACC: ${(modifier.accuracyMod * 100).toFixed(0)}%`);
+                }
+                if (modifier.speedMod) {
+                    totalSpeedMod += modifier.speedMod;
+                    effects.push(`SPD: ${(modifier.speedMod * 100).toFixed(0)}%`);
+                }
+            }
+            effectDesc = ` [${effects.join(', ')}]`;
+        }
+
+        // 修飾効果を適用
+        damageMultiplier *= totalDamageMod;
+        hitChance += totalAccuracyMod;
+
         // 機会攻撃時は命中率-30%とダメージ1.5倍
         if (isOpportunityAttack) {
             hitChance *= 0.7;  // 30%減少
@@ -249,18 +285,14 @@ class Player {
             game.logger.add(`Surrounded by ${surroundingMonsters} enemies! (-${Math.floor(surroundingPenalty * 100)}% accuracy)`, "warning");
         }
         
-        if (this.nextAttackModifier && this.nextAttackModifier.accuracyMod) {
-            hitChance *= (1 + this.nextAttackModifier.accuracyMod);
-        }
-        
         const roll = Math.floor(Math.random() * 100);
-        game.logger.add(`You ${attackType} ${monster.name} (ACC: ${Math.floor(hitChance)}% | Roll: ${roll})`, "playerInfo");
+        game.logger.add(`You ${attackType}${effectDesc} ${monster.name} (ACC: ${Math.floor(hitChance)}% | Roll: ${roll})`, "playerInfo");
         
         if (roll >= hitChance) {
             game.logger.add(`Your ${attackType} misses!`, "playerMiss");
             game.lastAttackHit = false;  // 攻撃が外れた
-            // 攻撃が外れた場合もnextAttackModifierを消費
-            this.nextAttackModifier = null;
+            // 攻撃が外れた場合もnextAttackModifiersをクリア
+            this.nextAttackModifiers = [];
             return;
         }
 
@@ -272,18 +304,14 @@ class Player {
             if (evadeRoll < evadeChance) {
                 game.logger.add(`${monster.name} dodges your ${attackType}! (EVA: ${Math.floor(evadeChance)}% | Roll: ${Math.floor(evadeRoll)})`, "monsterEvade");
                 game.lastAttackHit = false;  // 攻撃が回避された
-                // 回避された場合もnextAttackModifierを消費
-                this.nextAttackModifier = null;
+                // 回避された場合もnextAttackModifiersをクリア
+                this.nextAttackModifiers = [];
                 return;
             }
         }
 
         // ダメージが通った場合
         game.lastAttackHit = true;
-
-        if (this.nextAttackModifier && this.nextAttackModifier.damageMod) {
-            damageMultiplier *= this.nextAttackModifier.damageMod;
-        }
 
         // ダメージロール処理を詳細に記録
         let attackRolls = [];
@@ -339,6 +367,9 @@ class Player {
                 game.logger.add(`Intelligence bonus: ${Math.floor((intBonus - 1) * 100)}% more XP!`, "playerInfo");
             }
             this.addExperience(xpGained);
+
+            // nextAttackModifiersをクリア
+            this.nextAttackModifiers = [];
         } else if (!result.isOpportunityAttack) {
             game.logger.add(
                 `${attackType} hits! ${monster.name} takes ${result.damage} damage! ` +
@@ -346,6 +377,9 @@ class Player {
                 `vs DEF: ${monster.defense.base}+[${defenseRolls.join(',')}])  (${healthStatus})`,
                 "playerHit"
             );
+
+            // nextAttackModifiersをクリア
+            this.nextAttackModifiers = [];
         }
 
         // 戦闘後にlook情報を更新
@@ -363,8 +397,8 @@ class Player {
 
         // 通常の攻撃処理（イニシアチブ判定あり）
         const basePlayerSpeed = GAME_CONSTANTS.FORMULAS.SPEED(this.stats);
-        const effectivePlayerSpeed = (this.nextAttackModifier && this.nextAttackModifier.speedMod)
-            ? Math.floor(basePlayerSpeed * (1 + this.nextAttackModifier.speedMod))
+        const effectivePlayerSpeed = (this.nextAttackModifiers.length > 0 && this.nextAttackModifiers[0].speedMod)
+            ? Math.floor(basePlayerSpeed * (1 + this.nextAttackModifiers[0].speedMod))
             : basePlayerSpeed;
         const monsterSpeed = GAME_CONSTANTS.FORMULAS.SPEED(monster.stats);
         game.logger.add(`Speed Order: Player (${effectivePlayerSpeed}) vs ${monster.name} (${monsterSpeed})`);
@@ -699,5 +733,32 @@ class Player {
         }
 
         return null;  // 到達可能な未探索タイルが見つからない
+    }
+
+    // ステータス表示用のメソッドを追加
+    getModifiedStats() {
+        const stats = {
+            damage: this.attackPower.base,
+            accuracy: this.accuracy,
+            speed: this.speed
+        };
+
+        if (this.nextAttackModifiers && this.nextAttackModifiers.length > 0) {
+            let totalDamageMod = 1;
+            let totalAccuracyMod = 0;
+            let totalSpeedMod = 0;
+
+            for (const modifier of this.nextAttackModifiers) {
+                if (modifier.damageMod) totalDamageMod *= modifier.damageMod;
+                if (modifier.accuracyMod) totalAccuracyMod += modifier.accuracyMod;
+                if (modifier.speedMod) totalSpeedMod += modifier.speedMod;
+            }
+
+            stats.damage *= totalDamageMod;
+            stats.accuracy += totalAccuracyMod;
+            stats.speed += totalSpeedMod;
+        }
+
+        return stats;
     }
 } 
