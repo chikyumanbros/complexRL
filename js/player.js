@@ -707,9 +707,10 @@ class Player {
             if (visited.has(key)) continue;
             visited.add(key);
 
-            // 未探索タイルを見つけた場合
-            if (!this.game.explored[current.y]?.[current.x] && 
-                this.canMoveTo(current.x, current.y, this.game.map)) {
+            // 未探索タイルの判定を厳密に行う
+            if (this.game.isValidPosition(current.x, current.y) && 
+                !this.game.explored[current.y][current.x] && 
+                this.game.map[current.y][current.x] === 'floor') {
                 return current.firstStep;
             }
 
@@ -718,14 +719,13 @@ class Player {
                 const newX = current.x + dir.dx;
                 const newY = current.y + dir.dy;
                 
-                // マップ範囲内かつ移動可能なマスのみを対象とする
+                // マップ範囲内かつ床タイルのみを対象とする
                 if (this.game.isValidPosition(newX, newY) && 
-                    this.canMoveTo(newX, newY, this.game.map)) {
+                    this.game.map[newY][newX] === 'floor') {
                     
                     queue.push({
                         x: newX,
                         y: newY,
-                        // 最初の移動方向を保持（新しい探索なら現在の方向、継続探索なら元の方向）
                         firstStep: current.firstStep || dir
                     });
                 }

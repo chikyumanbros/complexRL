@@ -72,28 +72,28 @@
                 <div id="available-skills"></div>
             </div>
         </div>
-        <div>
+        <div id="sprite-preview" style="display: none;">
             <h3>SPRITES</h3>
-        </div>
-        <div class="sprite-preview-wrapper" style="display: flex; flex-wrap: wrap; overflow-x: hidden;">
-            <span>RAT</span>
-            <div id="sprite-preview-container" style="display: inline-block;"></div>
-            <span>BAT</span>
-            <div id="sprite-preview-container2" style="display: inline-block;"></div>
-            <span>SNAKE</span>
-            <div id="sprite-preview-container3" style="display: inline-block;"></div>
-            <span>GOBLIN</span>
-            <div id="sprite-preview-container4" style="display: inline-block;"></div>
-            <span>SPIDER</span>
-            <div id="sprite-preview-container5" style="display: inline-block;"></div>
-            <span>SKELETON</span>
-            <div id="sprite-preview-container6" style="display: inline-block;"></div>
-            <span>ZOMBIE</span>
-            <div id="sprite-preview-container7" style="display: inline-block;"></div>
-            <span>GHOST</span>
-            <div id="sprite-preview-container8" style="display: inline-block;"></div>
-            <span>TROLL</span>
-            <div id="sprite-preview-container9" style="display: inline-block;"></div>
+            <div class="sprite-preview-wrapper" style="display: flex; flex-wrap: wrap; overflow-x: hidden;">
+                <span>RAT</span>
+                <div id="sprite-preview-container" style="display: inline-block;"></div>
+                <span>BAT</span>
+                <div id="sprite-preview-container2" style="display: inline-block;"></div>
+                <span>SNAKE</span>
+                <div id="sprite-preview-container3" style="display: inline-block;"></div>
+                <span>GOBLIN</span>
+                <div id="sprite-preview-container4" style="display: inline-block;"></div>
+                <span>SPIDER</span>
+                <div id="sprite-preview-container5" style="display: inline-block;"></div>
+                <span>SKELETON</span>
+                <div id="sprite-preview-container6" style="display: inline-block;"></div>
+                <span>ZOMBIE</span>
+                <div id="sprite-preview-container7" style="display: inline-block;"></div>
+                <span>GHOST</span>
+                <div id="sprite-preview-container8" style="display: inline-block;"></div>
+                <span>TROLL</span>
+                <div id="sprite-preview-container9" style="display: inline-block;"></div>
+            </div>
         </div>
     </div>
     
@@ -108,15 +108,6 @@
     <script src="js/game.js"></script>
     <script>
         const renderer = new Renderer(game);
-        renderer.previewMonsterSprite('RAT', 'sprite-preview-container');
-        renderer.previewMonsterSprite('BAT', 'sprite-preview-container2');
-        renderer.previewMonsterSprite('SNAKE', 'sprite-preview-container3');
-        renderer.previewMonsterSprite('GOBLIN', 'sprite-preview-container4');
-        renderer.previewMonsterSprite('SPIDER', 'sprite-preview-container5');
-        renderer.previewMonsterSprite('SKELETON', 'sprite-preview-container6');
-        renderer.previewMonsterSprite('ZOMBIE', 'sprite-preview-container7');
-        renderer.previewMonsterSprite('GHOST', 'sprite-preview-container8');
-        renderer.previewMonsterSprite('TROLL', 'sprite-preview-container9');
     </script>
 </body>
 </html>

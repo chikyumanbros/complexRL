@@ -2,7 +2,7 @@ const GAME_CONSTANTS = {
     // TILES Section: Terrain tiles and doors
     TILES: {
         FLOOR: ['.', '^', '~'],
-        WALL: ['#', '?', '=', '$', '*'],
+        WALL: ['#', '=', '█', '▓', '▒', '░', '■', 'Ж', 'Ш', 'Щ',],
         DOOR: {
             OPEN: '/',
             CLOSED: '+'

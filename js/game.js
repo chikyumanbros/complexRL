@@ -83,6 +83,11 @@ class Game {
             document.getElementById('hp-text').textContent = '';
         }
 
+        // プレイヤーの自動探索状態をリセット
+        if (this.player) {
+            this.player.autoExploring = false;
+        }
+
         // Regenerate the map
         const mapGenerator = new MapGenerator(this.width, this.height, this.floorLevel, this);
         const mapData = mapGenerator.generate();
@@ -397,30 +402,25 @@ class Game {
     }
 
     generateNewFloor() {
-        // Determine danger level by random roll.
-        const dangerRoll = Math.random() * 100;
-        if (dangerRoll < 10) {
-            this.dangerLevel = 'SAFE';
-        } else if (dangerRoll < 70) {
-            this.dangerLevel = 'NORMAL';  // Changed from NEUTRAL to NORMAL
-        } else if (dangerRoll < 90) {
-            this.dangerLevel = 'DANGEROUS';
-        } else {
-            this.dangerLevel = 'DEADLY';
-        }
-
-        // Add debug log.
-        //console.log(`New floor ${this.floorLevel}, Danger Level: ${this.dangerLevel} (Roll: ${dangerRoll})`);
-
-        // Send floor information to Logger.
-        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);
-
-        // Pass the game instance when generating a new floor.
+        // Initialize map-related properties
+        this.map = [];
+        this.tiles = [];
+        this.colors = [];
+        this.rooms = [];
+        this.monsters = [];
+        // explored配列を完全に再初期化
+        this.explored = this.initializeExplored();
+        this.totalMonstersSpawned = 0;
+        this.turn = 0;
+        this.dangerLevel = 'NORMAL';
+        this.isGameOver = false;
+        
+        // Generate a new floor (including player placement and monster generation)
         const mapGenerator = new MapGenerator(
             this.width,
             this.height,
             this.floorLevel,
-            this  // Pass the game instance.
+            this
         );
         const mapData = mapGenerator.generate();
         
@@ -429,17 +429,24 @@ class Game {
         this.colors = mapData.colors;
         this.rooms = mapData.rooms;
         
-        this.monsters = [];
-        this.totalMonstersSpawned = 0;
-        this.explored = this.initializeExplored();
-        
+        // プレイヤーの配置と初期化
         this.placePlayerInRoom();
+        this.player.autoExploring = false;
+        
+        // モンスターの生成
         this.spawnInitialMonsters();
         
-        // Update room information.
+        // Initialize and display information
+        const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
+        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);
         this.updateRoomInfo();
         
+        // プレイヤーの初期位置周辺を探索済みにマーク
+        this.updateExplored();
+        
+        // Setup input handling and rendering
         this.renderer.render();
+        this.inputHandler.bindKeys();
     }
 
     setInputMode(mode, options = {}) {

@@ -34,9 +34,50 @@ class InputHandler {
         // --- Clean up visual effects on new input ---
         this.game.renderer.clearEffects();
 
-        if (event.ctrlKey || event.altKey || event.metaKey) return;
-
         const key = event.key.toLowerCase();
+
+        // 開発者コマンドの処理を最初に行う
+        if (event.ctrlKey && event.shiftKey) {
+            console.log('Developer command detected:', key);
+            switch (key) {
+                case 's':
+                    event.preventDefault();
+                    const spritePreview = document.getElementById('sprite-preview');
+                    console.log('Sprite preview element:', spritePreview);
+                    if (spritePreview) {
+                        const isHidden = spritePreview.style.display === 'none';
+                        console.log('Is hidden:', isHidden);
+                        spritePreview.style.display = isHidden ? 'block' : 'none';
+                        
+                        if (isHidden) {
+                            console.log('Showing sprite preview...');
+                            // HTMLのIDと完全に一致するように修正
+                            const monsterSprites = [
+                                { type: 'RAT', containerId: 'sprite-preview-container' },
+                                { type: 'BAT', containerId: 'sprite-preview-container2' },
+                                { type: 'SNAKE', containerId: 'sprite-preview-container3' },
+                                { type: 'GOBLIN', containerId: 'sprite-preview-container4' },
+                                { type: 'SPIDER', containerId: 'sprite-preview-container5' },
+                                { type: 'SKELETON', containerId: 'sprite-preview-container6' },
+                                { type: 'ZOMBIE', containerId: 'sprite-preview-container7' },
+                                { type: 'GHOST', containerId: 'sprite-preview-container8' },
+                                { type: 'TROLL', containerId: 'sprite-preview-container9' }
+                            ];
+                            
+                            monsterSprites.forEach(({ type, containerId }) => {
+                                this.game.renderer.previewMonsterSprite(type, containerId);
+                            });
+                        }
+                    }
+                    return;
+            }
+        }
+
+        // 通常のゲーム入力の処理
+        if (this.game.player.isDead) {
+            // ... existing dead player code ...
+            return;
+        }
 
         // --- Game Over Input Handling ---
         if (this.game.isGameOver) {
@@ -517,7 +558,7 @@ class InputHandler {
             const spriteDiv = document.createElement('div');
             spriteDiv.style.border = 'none';
             spriteDiv.style.padding = '0';
-            
+
             const canvas = document.createElement('canvas');
             canvas.width = 128;
             canvas.height = 128;
