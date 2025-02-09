@@ -43,7 +43,6 @@ const GAME_CONSTANTS = {
             ZOMBIE: '#6a6',
             GHOST: '#6cf',
             TROLL: '#383',
-            DRAGON_WHELP: '#d33'
         },
     },
 
@@ -267,23 +266,6 @@ const GAME_CONSTANTS = {
                 max: 3
             }
         },
-        DRAGON_WHELP: {
-            char: 'D',
-            name: 'Dragon Whelp',
-            stats: {
-                str: 16,
-                dex: 14,
-                con: 16,
-                int: 12,
-                wis: 14
-            },
-            level: 7,
-            pack: {
-                chance: 0.15,   // Dragon whelps rarely appear in pairs
-                min: 2,
-                max: 2
-            }
-        }
     },
 
     // DANGER_LEVELS Section: Danger level configurations
@@ -355,7 +337,7 @@ const GAME_CONSTANTS = {
             "   SSS  SSS  S  ",
             "   SB SSSSSS  S ",
             "   SSSSSSSSSS  S",
-            "  SDSSSSSSSSS  S",
+            "  SWSSSSSSSSS  S",
             "  SSSSSSSSSSSS S",
             "BSSSSSSBBSSSSSS ",
             " S WBSS  SSSS   ",
@@ -490,25 +472,23 @@ const GAME_CONSTANTS = {
             "           C    "
         ],
         TROLL: [  // 苔むした緑色の肌
-            "  TTTT  ",
-            " TWWTTT ",
-            "TTDDDDTT",
-            "TDRRRRDT",
-            " TDDDDT ",
-            "  D  D  ",
-            " T DT T ",
-            "D TTTT D"
+            "       kWWW W   ",
+            "    KKKDKWWW W  ",
+            "    K KKKWW W W ",
+            " D   WKKKK W W  ",
+            "DDD  KK KW      ",
+            "DDD    WWW K    ",
+            " D  KWWWWWWKK   ",
+            " D KK WWWW KK   ",
+            " D K  WWWW KK   ",
+            " KK  KKKK KK    ",
+            "     KKKK KK    ",
+            "      DDD       ",
+            "      DDDD      ",
+            "     DD DD      ",
+            "     K    K     ",
+            "   KK     KKK   "
         ],
-        DRAGON_WHELP: [  // 炎色の鱗
-            "  OOYY  ",
-            " OWWYYO ",
-            "OOYYRRYY",
-            "OYRRYYRO",
-            " OYRRYO ",
-            "  R  R  ",
-            " Y RR Y ",
-            "R  YY  R"
-        ]
     },
 
     // SPRITE_COLORS セクション: スプライト用の色定義（16色対応）
@@ -517,7 +497,7 @@ const GAME_CONSTANTS = {
         'W': '#B3B3B3',  // 薄いグレー（目など）
         'R': '#B34747',  // 暗い赤（ドラゴンなど）
         'G': '#47B347',  // 暗い緑（トロル、ゴブリンなど）
-        'K': '#242424',  // より暗い黒の代替色（黒は透明で使えるため変更）
+        'K': '#8B4B65',  // バーガンディ（暖色系の中間色）
         'N': '#00005A',  // 暗いネイビーブルー
         'O': '#B37400',  // 暗いオレンジ
         'Y': '#B3B300',  // 暗い黄色
