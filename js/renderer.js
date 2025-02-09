@@ -3,6 +3,7 @@ class Renderer {
         this.game = game;
         this.highlightedTile = null;
         this.movementEffects = null;
+        this.spriteColorCache = new Map();
     }
 
     highlightTarget(x, y) {
@@ -586,28 +587,45 @@ class Renderer {
 
     updateStatusPanel(status) {
         const panel = document.getElementById('status-panel');
-
+    
         // Update floor level element
         const floorLevelElement = document.getElementById('floor-level');
         if (floorLevelElement) {
             const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.game.dangerLevel];
             floorLevelElement.innerHTML = `${this.game.floorLevel} <span style="color: ${dangerInfo.color}">[${dangerInfo.name}]</span>`;
         }
-
+    
         // Update level display
         const levelElement = document.getElementById('level');
         if (levelElement) {
             levelElement.textContent = status.level;
         }
-
-        // Update HP display
+    
+        // Update HP and Health Status display
         const hpElement = document.getElementById('hp');
         const maxHpElement = document.getElementById('max-hp');
+        const healthStatusElement = document.getElementById('health-status');
         if (hpElement && maxHpElement) {
-            hpElement.textContent = status.hp.split('/')[0];
-            maxHpElement.textContent = status.hp.split('/')[1];
+            const [currentHp, maxHp] = status.hp.split('/');
+            hpElement.textContent = currentHp;
+            maxHpElement.textContent = maxHp;
+    
+            // HPの割合に基づいて色を設定
+            const hpPercentage = (parseInt(currentHp) / parseInt(maxHp)) * 100;
+            let healthColor = '#ffffff'; // デフォルト白
+            if (hpPercentage <= 25) {
+                healthColor = '#e74c3c'; // Near Death（赤）
+            } else if (hpPercentage <= 50) {
+                healthColor = '#e67e22'; // Badly Wounded（オレンジ）
+            } else if (hpPercentage <= 75) {
+                healthColor = '#f1c40f'; // Wounded（黄色）
+            }
+            
+            if (healthStatusElement) {
+                healthStatusElement.innerHTML = `<span style="color: ${healthColor}">${status.healthStatus}</span>`;
+            }
         }
-
+    
         // Update base stats
         for (const [key, value] of Object.entries(status.stats)) {
             const element = document.getElementById(key);
@@ -615,7 +633,7 @@ class Renderer {
                 element.textContent = value;
             }
         }
-
+    
         // Update derived stats (using innerHTML to allow HTML tags)
         for (const [key, value] of Object.entries(status.derived)) {
             const element = document.getElementById(key);
@@ -623,19 +641,19 @@ class Renderer {
                 element.innerHTML = value;
             }
         }
-
+    
         // Update XP display
         const xpElement = document.getElementById('xp');
         if (xpElement) {
             xpElement.textContent = status.xp;
         }
-
+    
         // Update Codex points display
         const codexElement = document.getElementById('codexPoints');
         if (codexElement) {
             codexElement.textContent = this.game.player.codexPoints;
         }
-
+    
         if (this.statusPanelFlashing) {
             panel.classList.add('flash');
             setTimeout(() => {
@@ -771,10 +789,9 @@ class Renderer {
         }
     }
 
-    drawMonsterSprite(canvas, monsterType) {
+    drawMonsterSprite(canvas, monsterType, monsterId = null) {
         const ctx = canvas.getContext('2d');
         const sprite = GAME_CONSTANTS.MONSTER_SPRITES[monsterType];
-
         if (!sprite) return;
 
         // キャンバスをクリア
@@ -784,16 +801,33 @@ class Renderer {
 
         const spriteWidth = sprite[0].length;
         const spriteHeight = sprite.length;
-        const pixelSize = 8;  // 1ドットのサイズを8pxに固定
+        const pixelSize = 8;
 
         // キャンバスサイズをスプライトサイズに合わせて調整
         canvas.width = spriteWidth * pixelSize;
         canvas.height = spriteHeight * pixelSize;
 
-        // スプライトの各ピクセルを描画
+        // キャッシュキーを生成（モンスターIDがある場合は個体別のキーを使用）
+        const cacheKey = monsterId ? `${monsterType}_${monsterId}` : monsterType;
+
+        // このモンスターのカラーキャッシュを取得または生成
+        if (!this.spriteColorCache.has(cacheKey)) {
+            const colorMap = new Map();
+            sprite.forEach((row, y) => {
+                [...row].forEach((pixel, x) => {
+                    const key = `${x},${y}`;
+                    const baseColor = GAME_CONSTANTS.SPRITE_COLORS[pixel];
+                    colorMap.set(key, GAME_CONSTANTS.SPRITE_COLORS.getRandomizedColor(baseColor));
+                });
+            });
+            this.spriteColorCache.set(cacheKey, colorMap);
+        }
+
+        // キャッシュされた色を使用して描画
+        const colorMap = this.spriteColorCache.get(cacheKey);
         sprite.forEach((row, y) => {
             [...row].forEach((pixel, x) => {
-                const color = GAME_CONSTANTS.SPRITE_COLORS[pixel];
+                const color = colorMap.get(`${x},${y}`);
                 if (color) {
                     ctx.fillStyle = color;
                     ctx.fillRect(

@@ -10,11 +10,11 @@ class Player {
         this.xp = 10;                  // 経験値の初期化
         this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
         this.stats = {
-            str: 10,
-            dex: 10,
-            con: 10,
-            int: 10,
-            wis: 10
+            str: 8,
+            dex: 8,
+            con: 8,
+            int: 8,
+            wis: 8
         };
 
         // HPの計算

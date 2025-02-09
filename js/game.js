@@ -23,6 +23,9 @@ class Game {
         this.lastAttackLocation = null;  // Added property to track last attack location
         
         this.init();
+        
+        // 保存されたデータがあれば読み込む
+        this.loadGame();
 
         // Set up initial panel
         this.logger.renderLookPanel();
@@ -219,6 +222,9 @@ class Game {
         // Update room information
         this.updateRoomInfo();
         this.renderer.render();
+
+        // 各ターン終了時にセーブ
+        this.saveGame();
     }
 
     toggleMode() {
@@ -382,6 +388,9 @@ class Game {
     }
 
     gameOver() {
+        // セーブデータを削除
+        localStorage.removeItem('complexRL_saveData');
+
         // Calculate final score.
         const monstersKilled = this.maxTotalMonsters - this.monsters.length;
         const finalScore = {
@@ -646,6 +655,117 @@ class Game {
     // New: Method to check if a coordinate is valid.
     isValidPosition(x, y) {
         return x >= 0 && x < this.width && y >= 0 && y < this.height;
+    }
+
+    // セーブデータを保存
+    saveGame() {
+        if (this.isGameOver) return; // ゲームオーバー時はセーブしない
+
+        const saveData = {
+            player: {
+                x: this.player.x,
+                y: this.player.y,
+                hp: this.player.hp,
+                maxHp: this.player.maxHp,
+                level: this.player.level,
+                xp: this.player.xp,
+                xpToNextLevel: this.player.xpToNextLevel,
+                codexPoints: this.player.codexPoints,
+                stats: this.player.stats,
+                // スキルをシリアライズ可能な形式に変換
+                skills: Array.from(this.player.skills).map(([slot, skill]) => ({
+                    slot,
+                    skillId: skill.id,
+                    remainingCooldown: skill.remainingCooldown
+                }))
+            },
+            monsters: this.monsters.map(monster => ({
+                type: monster.type,
+                x: monster.x,
+                y: monster.y,
+                hp: monster.hp,
+                isSleeping: monster.isSleeping,
+                hasStartedFleeing: monster.hasStartedFleeing
+            })),
+            map: this.map,
+            tiles: this.tiles,
+            colors: this.colors,
+            rooms: this.rooms,
+            explored: this.explored,
+            floorLevel: this.floorLevel,
+            dangerLevel: this.dangerLevel,
+            turn: this.turn
+        };
+
+        try {
+            localStorage.setItem('complexRL_saveData', JSON.stringify(saveData));
+            //console.log('ゲームを保存しました');
+        } catch (e) {
+            console.error('Failed to save game data:', e);
+        }
+    }
+
+    // セーブデータを読み込む
+    loadGame() {
+        try {
+            const savedData = localStorage.getItem('complexRL_saveData');
+            if (!savedData) {
+                this.init();
+                return;
+            }
+
+            const data = JSON.parse(savedData);
+
+            // 初期化を先に行う
+            this.init();
+
+            // プレイヤーの復元
+            this.player.x = data.player.x;
+            this.player.y = data.player.y;
+            this.player.hp = data.player.hp;
+            this.player.maxHp = data.player.maxHp;
+            this.player.level = data.player.level;
+            this.player.xp = data.player.xp;
+            this.player.xpToNextLevel = data.player.xpToNextLevel;
+            this.player.codexPoints = data.player.codexPoints;
+            this.player.stats = data.player.stats;
+            
+            // スキルの復元
+            this.player.skills = new Map();
+            if (Array.isArray(data.player.skills)) {
+                data.player.skills.forEach(skillData => {
+                    this.player.skills.set(skillData.slot, {
+                        id: skillData.skillId,
+                        remainingCooldown: skillData.remainingCooldown
+                    });
+                });
+            }
+
+            // マップデータの復元
+            this.map = data.map;
+            this.tiles = data.tiles;
+            this.colors = data.colors;
+            this.rooms = data.rooms;
+            this.explored = data.explored;
+            this.floorLevel = data.floorLevel;
+            this.dangerLevel = data.dangerLevel;
+            this.turn = data.turn;
+
+            // モンスターの復元
+            this.monsters = data.monsters.map(monsterData => {
+                const monster = new Monster(monsterData.type, monsterData.x, monsterData.y, this);
+                monster.hp = monsterData.hp;
+                monster.isSleeping = monsterData.isSleeping;
+                monster.hasStartedFleeing = monsterData.hasStartedFleeing;
+                return monster;
+            });
+            this.renderer.render();
+            this.logger.add("Previous save data loaded", "important");
+        } catch (e) {
+            console.error('Failed to load save data:', e);
+            // 読み込みに失敗した場合は新規ゲームを開始
+            this.init();
+        }
     }
 }
 

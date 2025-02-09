@@ -139,6 +139,14 @@ class InputHandler {
         } else {
             this.handleGameModeInput(key);
         }
+
+        // Ctrl+R for resetの部分を修正
+        if (event.key.toLowerCase() === 'r' && event.ctrlKey) {
+            event.preventDefault();
+            if (confirm('Are you sure you want to reset the game? All progress will be lost.')) {
+                this.game.reset();
+            }
+        }
     }
 
     // ----------------------
@@ -570,10 +578,8 @@ class InputHandler {
 
             spriteDiv.appendChild(canvas);
 
-            const spriteType = monster.type.toUpperCase();
-            if (GAME_CONSTANTS.MONSTER_SPRITES[spriteType]) {
-                this.game.renderer.drawMonsterSprite(canvas, spriteType);
-            }
+            const renderer = this.game.renderer;
+            renderer.drawMonsterSprite(canvas, monster.type, monster.id);
 
             container.appendChild(infoDiv);
             container.appendChild(spriteDiv);

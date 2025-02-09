@@ -1,7 +1,10 @@
 // ========================== Monster Class ==========================
 class Monster {
+    static nextId = 1;  // クラス変数としてIDカウンターを追加
+
     // -------------------------- Constructor: Initialization --------------------------
     constructor(type, x, y, game) {
+        this.id = Monster.nextId++;  // 一意のIDを割り当て
         // --- Template Initialization ---
         const template = GAME_CONSTANTS.MONSTERS[type];
         this.type = type;
@@ -63,18 +66,31 @@ class Monster {
         // 回復関連のパラメータを追加
         this.healingDice = GAME_CONSTANTS.FORMULAS.HEALING_DICE(this.stats);
         this.healModifier = GAME_CONSTANTS.FORMULAS.HEAL_MODIFIER(this.stats);
+        
+        // モンスター生成時に個体固有の色情報を生成
+        this.spriteColors = {};
+        const sprite = GAME_CONSTANTS.MONSTER_SPRITES[type];
+        if (sprite) {
+            // スプライトで使用される各文字に対して固有の色を生成
+            for (let row of sprite) {
+                for (let char of row) {
+                    if (char !== ' ' && !this.spriteColors[char]) {
+                        const baseColor = GAME_CONSTANTS.SPRITE_COLORS[char];
+                        this.spriteColors[char] = GAME_CONSTANTS.SPRITE_COLORS.getRandomizedColor(baseColor);
+                    }
+                }
+            }
+        }
     }
 
     // ========================== takeDamage Method ==========================
     takeDamage(amount, game) {
         const damage = Math.max(1, amount);
-        
-        // --- Damage Processing ---
-        // 通常のダメージ処理
         this.hp -= damage;
 
-        // --- Result Construction ---
-        // 結果オブジェクトを作成
+        // 派生パラメータの再計算
+        this.updateStats();
+
         const result = {
             damage: damage,
             killed: this.hp <= 0,
@@ -83,14 +99,35 @@ class Monster {
             newlyFled: false
         };
 
-        // --- Fleeing Trigger ---
-        // ダメージを受けた後にHPが閾値を下回った場合、flee状態にする
-        if (!this.hasStartedFleeing && this.shouldFlee()) {
+        // 睡眠状態でない場合のみ、逃走判定を行う
+        if (!this.isSleeping && !this.hasStartedFleeing && this.shouldFlee()) {
             this.hasStartedFleeing = true;
             result.newlyFled = true;
         }
 
         return result;
+    }
+
+    // ========================== updateStats Method ==========================
+    // 新規: モンスターの派生ステータスを更新するメソッド
+    updateStats() {
+        // HPの最大値を超えないように制限
+        this.hp = Math.min(this.hp, this.maxHp);
+        
+        // 攻撃力の再計算
+        this.attackPower = GAME_CONSTANTS.FORMULAS.ATTACK(this.stats);
+        
+        // 防御力の再計算
+        this.defense = GAME_CONSTANTS.FORMULAS.DEFENSE(this.stats);
+        
+        // 命中率の再計算
+        this.accuracy = GAME_CONSTANTS.FORMULAS.ACCURACY(this.stats);
+        
+        // 回避率の再計算
+        this.evasion = GAME_CONSTANTS.FORMULAS.EVASION(this.stats);
+        
+        // 知覚の再計算
+        this.perception = GAME_CONSTANTS.FORMULAS.PERCEPTION(this.stats);
     }
 
     // ========================== checkEscapeRoute Method ==========================

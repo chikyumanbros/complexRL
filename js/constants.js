@@ -524,6 +524,26 @@ const GAME_CONSTANTS = {
 
     // SPRITE_COLORS セクション: スプライト用の色定義（16色対応）
     SPRITE_COLORS: {
+        getRandomizedColor: function(baseColor) {
+            if (!baseColor) return null;
+            
+            // 16進数の色コードをRGBに分解
+            const r = parseInt(baseColor.slice(1,3), 16);
+            const g = parseInt(baseColor.slice(3,5), 16);
+            const b = parseInt(baseColor.slice(5,7), 16);
+            
+            // 各色に±10%のランダムな変動を加える
+            const variation = () => (Math.random() * 0.2 - 0.1);
+            const clamp = (n) => Math.min(255, Math.max(0, Math.round(n)));
+            
+            const newR = clamp(r * (1 + variation()));
+            const newG = clamp(g * (1 + variation()));
+            const newB = clamp(b * (1 + variation()));
+            
+            return `#${newR.toString(16).padStart(2,'0')}${newG.toString(16).padStart(2,'0')}${newB.toString(16).padStart(2,'0')}`;
+        },
+        
+        // 基本色の定義
         'B': '#474747',  // 暗いグレー（基本色）
         'W': '#B3B3B3',  // 薄いグレー（目など）
         'R': '#B34747',  // 暗い赤（ドラゴンなど）
@@ -538,7 +558,7 @@ const GAME_CONSTANTS = {
         'D': '#741D1D',  // 暗い茶色
         'T': '#005A5A',  // 暗いティール
         'S': '#868686',  // 暗いシルバー
-        'L': '#00B300',  // 暗いライム（明るい緑の代わりに）
+        'L': '#00B300',  // 暗いライム
         ' ': null        // 透明
     }
 };
