@@ -152,8 +152,16 @@ class MapGenerator {
         const x = 1 + Math.floor(Math.random() * (this.width - width - 2));
         const y = 1 + Math.floor(Math.random() * (this.height - height - 2));
 
-        // 部屋の明るさをランダムに設定
-        const brightness = Math.random() < 0.3 ? 2 : 5;  // 30%の確率で暗い部屋（視界2マス）、それ以外は通常（視界5マス）
+        // 部屋の明るさを3段階に設定
+        const roll = Math.random();
+        let brightness;
+        if (roll < 0.2) {        // 20%の確率
+            brightness = 2;       // 暗い部屋（視界2マス）
+        } else if (roll < 0.6) { // 40%の確率
+            brightness = 3;       // 中程度の明るさ（視界3マス）
+        } else {                 // 40%の確率
+            brightness = 5;       // 明るい部屋（視界5マス）
+        }
 
         return { x, y, width, height, brightness };
     }

@@ -6,15 +6,15 @@ class Player {
         this.game = game;
         this.char = '@';
         this.level = 1;
-        this.codexPoints = 100;  // codexポイントのみを使用
-        this.xp = 10;                  // 経験値の初期化
+        this.codexPoints = 0;  // codexポイントのみを使用
+        this.xp = 0;                  // 経験値の初期化
         this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
         this.stats = {
-            str: 8,
-            dex: 8,
-            con: 8,
-            int: 8,
-            wis: 8
+            str: 10,
+            dex: 10,
+            con: 10,
+            int: 10,
+            wis: 10
         };
 
         // HPの計算
@@ -383,7 +383,7 @@ class Player {
         }
 
         // 戦闘後にlook情報を更新
-        game.inputHandler.examineTarget();
+        game.renderer.examineTarget(monster.x, monster.y);
     }
 
     // プレイヤーの攻撃にSPEEDによる処理順序を組み込む
@@ -435,16 +435,12 @@ class Player {
         }, 200);
 
         // 攻撃後にlook情報を更新
-        game.inputHandler.examineTarget();
+        game.renderer.examineTarget(monster.x, monster.y);
     }
 
     // ===== Utility and Status Methods =====
     getHealthStatus(currentHp, maxHp) {
-        const percentage = (currentHp / maxHp) * 100;
-        if (percentage > 75) return "Healthy";
-        if (percentage > 50) return "Wounded";
-        if (percentage > 25) return "Badly Wounded";
-        return "Near Death";
+        return GAME_CONSTANTS.HEALTH_STATUS.getStatus(currentHp, maxHp, this.stats);
     }
 
     useSkill(skillId, target, game) {

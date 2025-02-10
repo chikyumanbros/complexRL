@@ -321,7 +321,7 @@ class Monster {
         // --- Combat Setup ---
         // 攻撃時に自身を戦闘対象として設定し、look情報を更新
         game.lastCombatMonster = this;
-        game.inputHandler.examineTarget();
+        game.renderer.examineTarget(this.x, this.y);
 
         const hitChance = this.accuracy;
         const roll = Math.floor(Math.random() * 100);
@@ -593,5 +593,9 @@ class Monster {
             }
         }
         return false;
+    }
+
+    getHealthStatus(currentHp, maxHp) {
+        return GAME_CONSTANTS.HEALTH_STATUS.getStatus(currentHp, maxHp, this.stats);
     }
 } 

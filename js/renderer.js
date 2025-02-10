@@ -136,30 +136,15 @@ class Renderer {
                 if (x === this.game.player.x && y === this.game.player.y) {
                     content = this.game.player.char;
                     
-                    // HPパーセンテージを計算
-                    const hpPercentage = (this.game.player.hp / this.game.player.maxHp) * 100;
-                    
-                    // デフォルトは白
-                    style = 'color: white';
-                    
-                    // HPが0の場合は紫
-                    if (this.game.player.hp <= 0) {
-                        style = 'color: #9b59b6'; // 死亡時（紫）
-                    }
-                    // HPが75%以下になった場合のみ色を変更
-                    else if (hpPercentage <= 75) {
-                        if (hpPercentage <= 25) {
-                            style = 'color: #e74c3c'; // danger（赤）
-                        } else if (hpPercentage <= 50) {
-                            style = 'color: #e67e22'; // wounded（オレンジ）
-                        } else {
-                            style = 'color: #f1c40f'; // cautious（黄色）
-                        }
-                    }
+                    // 体力状態に基づいて色を設定
+                    const healthStatus = this.game.player.getHealthStatus(this.game.player.hp, this.game.player.maxHp);
+                    style = `color: ${healthStatus.color}`;
+
                 } else {
                     const monster = this.game.getMonsterAt(x, y);
                     if (monster && isVisible) {
                         content = monster.char;
+                        // モンスターは元の色を維持
                         style = `color: ${GAME_CONSTANTS.COLORS.MONSTER[monster.type]}`;
 
                         // Apply styles based on monster state
@@ -246,18 +231,17 @@ class Renderer {
             const hpBars = Math.ceil((player.hp / player.maxHp) * 20);
             const hpText = '|'.repeat(hpBars).padEnd(20, ' ');
             hpTextElement.textContent = hpText;
-            // Add class based on HP percentage
-            const hpPercentage = (player.hp / player.maxHp) * 100;
+            // 体力状態に基づいてクラスを設定
+            const healthStatus = player.getHealthStatus(player.hp, player.maxHp);
             hpTextElement.className = ''; // Clear existing classes
-            if (hpPercentage > 75) {
-                hpTextElement.classList.add('healthy');
-            } else if (hpPercentage > 50) {
-                hpTextElement.classList.add('cautious');
-            } else if (hpPercentage > 25) {
-                hpTextElement.classList.add('wounded');
-            } else {
-                hpTextElement.classList.add('danger');
-            }
+            hpTextElement.classList.add(healthStatus.name.toLowerCase().replace(' ', '-'));
+        }
+
+        // 体力状態名の表示を追加
+        const healthStatusElement = document.getElementById('health-status');
+        if (healthStatusElement) {
+            const healthStatus = player.getHealthStatus(player.hp, player.maxHp);
+            healthStatusElement.innerHTML = `<span style="color: ${healthStatus.color}">${healthStatus.name}</span>`;
         }
 
         // Update player level display
@@ -386,19 +370,8 @@ class Renderer {
 
             if (visibleMonsters.length > 0) {
                 const monsterList = visibleMonsters.map(monster => {
-                    const healthPercentage = (monster.hp / monster.maxHp) * 100;
-
-                    // Determine class based on HP percentage
-                    let healthClass;
-                    if (healthPercentage > 75) {
-                        healthClass = 'healthy';
-                    } else if (healthPercentage > 50) {
-                        healthClass = 'cautious';
-                    } else if (healthPercentage > 25) {
-                        healthClass = 'wounded';
-                    } else {
-                        healthClass = 'danger';
-                    }
+                    const healthStatus = monster.getHealthStatus(monster.hp, monster.maxHp);
+                    const healthClass = healthStatus.name.toLowerCase().replace(' ', '-');
 
                     const sleepStatus = monster.isSleeping ? ' Zzz' : '';
                     const fleeingStatus = monster.hasStartedFleeing ? ' >>>' : '';
@@ -884,5 +857,114 @@ class Renderer {
 
         // canvasをコンテナに追加
         container.appendChild(canvas);
+    }
+
+    examineTarget(targetX, targetY, lookMode = false) {
+        let monster = this.game.getMonsterAt(targetX, targetY);
+
+        if (!lookMode && this.game.lastCombatMonster && this.game.lastCombatMonster.hp > 0) {
+            monster = this.game.lastCombatMonster;
+            targetX = monster.x;
+            targetY = monster.y;
+        }
+
+        const container = document.createElement('div');
+        container.style.display = 'flex';
+        container.style.alignItems = 'flex-start';
+        container.style.gap = '50px';
+        container.style.border = 'none';
+        container.style.padding = '0';
+
+        const infoDiv = document.createElement('div');
+        infoDiv.style.border = 'none';
+        infoDiv.style.padding = '0';
+
+        if (monster) {
+            // Fallback: compute attack and defense if undefined
+            if (!monster.attackPower) {
+                monster.attackPower = GAME_CONSTANTS.FORMULAS.ATTACK(monster.stats);
+            }
+            if (!monster.defense) {
+                monster.defense = GAME_CONSTANTS.FORMULAS.DEFENSE(monster.stats);
+            }
+
+            const healthStatus = monster.getHealthStatus(monster.hp, monster.maxHp);
+            let status = [];
+
+            // --- Basic Information ---
+            let lookInfo = [
+                `${monster.name} (Level ${monster.level}):`,
+                `HP: ${monster.hp}/${monster.maxHp} [<span style="color: ${healthStatus.color}">${healthStatus.name}</span>]`,
+                `Distance: ${Math.max(Math.abs(this.game.player.x - targetX), Math.abs(this.game.player.y - targetY))} tiles`
+            ];
+
+            // --- Status Effects ---
+            if (monster.hasStartedFleeing) {
+                status.push("Fleeing");
+            }
+            if (monster.isSleeping) {
+                status.push("Sleeping");
+            }
+
+            if (status.length > 0) {
+                lookInfo.push(`Status: ${status.join(", ")}`);
+            }
+
+            // --- Combat Details ---
+            lookInfo.push(
+                `ATK: ${monster.attackPower.base}+${monster.attackPower.diceCount}d${monster.attackPower.diceSides}`,
+                `DEF: ${monster.defense.base}+${monster.defense.diceCount}d${monster.defense.diceSides}`,
+                `SPD: ${GAME_CONSTANTS.FORMULAS.SPEED(monster.stats)}`,
+                `ACC: ${monster.accuracy}%`,
+                `EVA: ${monster.evasion}%`,
+                `PER: ${monster.perception}`,
+            );
+
+            infoDiv.innerHTML = lookInfo.join('\n');
+
+            const spriteDiv = document.createElement('div');
+            spriteDiv.style.border = 'none';
+            spriteDiv.style.padding = '0';
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            canvas.style.imageRendering = 'pixelated';
+            canvas.style.background = 'transparent';
+            canvas.style.display = 'block';
+
+            spriteDiv.appendChild(canvas);
+            this.drawMonsterSprite(canvas, monster.type, monster.id);
+
+            container.appendChild(infoDiv);
+            container.appendChild(spriteDiv);
+        } else if (targetX === this.game.player.x && targetY === this.game.player.y) {
+            infoDiv.innerHTML = "You see yourself here.";
+            container.appendChild(infoDiv);
+        } else {
+            const tile = this.game.tiles[targetY][targetX];
+            let lookInfo = '';
+            if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                lookInfo = "You see a closed door here.";
+            } else if (tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
+                lookInfo = "You see an open door here.";
+            } else if (tile === GAME_CONSTANTS.STAIRS.CHAR) {
+                lookInfo = "You see stairs leading down here.";
+            } else if (GAME_CONSTANTS.TILES.FLOOR.includes(tile)) {
+                lookInfo = "You see a floor here.";
+            } else if (GAME_CONSTANTS.TILES.WALL.includes(tile)) {
+                lookInfo = "You see a wall here.";
+            } else if (GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(tile)) {
+                lookInfo = "You see a massive stone pillar blocking your view.";
+            } else if (GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tile)) {
+                lookInfo = "You see some decorative furniture.";
+            } else {
+                lookInfo = `You see ${tile} here.`;
+            }
+            infoDiv.innerHTML = lookInfo;
+            container.appendChild(infoDiv);
+        }
+
+        this.game.logger.updateLookInfo(container);
     }
 }

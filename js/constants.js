@@ -560,5 +560,58 @@ const GAME_CONSTANTS = {
         'S': '#868686',  // 暗いシルバー
         'L': '#00B300',  // 暗いライム
         ' ': null        // 透明
-    }
+    },
+
+    // 体力状態の判定システム
+    HEALTH_STATUS: {
+        // 基本となる閾値（%）
+        THRESHOLDS: {
+            HEALTHY: 75,
+            WOUNDED: 50,
+            BADLY_WOUNDED: 25
+        },
+
+        // ステータスによる閾値の修正計算
+        calculateThresholds: function(stats) {
+            // 体力と知恵が高いほど、より低いHP%でも良好な状態を維持できる
+            const conModifier = (stats.con - 10) * 0.5;  // 体力による修正（±0.5%ずつ）
+            const wisModifier = (stats.wis - 10) * 0.3;  // 知恵による修正（±0.3%ずつ）
+            
+            // 閾値に修正を「加算」しているため、高いステータスはより低いHP%まで状態を維持
+            return {
+                HEALTHY: Math.min(90, Math.max(60, this.THRESHOLDS.HEALTHY - conModifier - wisModifier)),
+                WOUNDED: Math.min(65, Math.max(35, this.THRESHOLDS.WOUNDED - conModifier - wisModifier)),
+                BADLY_WOUNDED: Math.min(40, Math.max(10, this.THRESHOLDS.BADLY_WOUNDED - conModifier - wisModifier))
+            };
+        },
+
+        // 体力状態の判定
+        getStatus: function(currentHp, maxHp, stats) {
+            // 死亡判定を最初に行う
+            if (currentHp <= 0) return {
+                name: "Dead",
+                color: "#4a4a4a"  // 暗いグレー
+            };
+
+            const percentage = (currentHp / maxHp) * 100;
+            const thresholds = this.calculateThresholds(stats);
+
+            if (percentage > thresholds.HEALTHY) return {
+                name: "Healthy",
+                color: "#2ecc71"  // 緑色
+            };
+            if (percentage > thresholds.WOUNDED) return {
+                name: "Wounded",
+                color: "#f1c40f"  // 黄色
+            };
+            if (percentage > thresholds.BADLY_WOUNDED) return {
+                name: "Badly Wounded",
+                color: "#e74c3c"  // 赤色
+            };
+            return {
+                name: "Near Death",
+                color: "#8e44ad"  // 紫色
+            };
+        }
+    },
 };

@@ -454,13 +454,13 @@ class InputHandler {
     // Look Mode Methods
     // ----------------------
     startLookMode() {
-        this.lookMode = true;  // lookModeフラグを設定
+        this.lookMode = true;
         this.targetingMode = 'look';
         this.targetX = this.game.player.x;
         this.targetY = this.game.player.y;
         this.game.logger.add("Look mode - Use arrow keys to move cursor, ESC to cancel", "info");
         this.game.renderer.highlightTarget(this.targetX, this.targetY);
-        this.examineTarget(); // 初期位置の情報を表示
+        this.game.renderer.examineTarget(this.targetX, this.targetY, true); // 初期位置の情報を表示
     }
 
     handleLookMode(key) {
@@ -492,125 +492,9 @@ class InputHandler {
                 this.targetX = newX;
                 this.targetY = newY;
                 this.game.renderer.highlightTarget(this.targetX, this.targetY);
-                this.examineTarget();
+                this.game.renderer.examineTarget(this.targetX, this.targetY, true);
             }
         }
-    }
-
-    examineTarget() {
-        let monster = this.game.getMonsterAt(this.targetX, this.targetY);
-
-        if (!this.lookMode && this.game.lastCombatMonster && this.game.lastCombatMonster.hp > 0) {
-            monster = this.game.lastCombatMonster;
-            this.targetX = monster.x;
-            this.targetY = monster.y;
-        }
-
-        let lookInfo = '';
-
-        const container = document.createElement('div');
-        container.style.display = 'flex';
-        container.style.alignItems = 'flex-start';
-        container.style.gap = '20px';
-        // 枠を消すためのスタイルを追加
-        container.style.border = 'none';
-        container.style.padding = '0';
-
-        const infoDiv = document.createElement('div');
-        // 情報部分の枠も消す
-        infoDiv.style.border = 'none';
-        infoDiv.style.padding = '0';
-
-        if (monster) {
-            // Fallback: compute attack and defense if undefined
-            if (!monster.attackPower) {
-                monster.attackPower = GAME_CONSTANTS.FORMULAS.ATTACK(monster.stats);
-            }
-            if (!monster.defense) {
-                monster.defense = GAME_CONSTANTS.FORMULAS.DEFENSE(monster.stats);
-            }
-
-            const healthPercent = Math.floor((monster.hp / monster.maxHp) * 100);
-            let status = [];
-
-            // --- Basic Information ---
-            let lookInfo = [
-                `${monster.name} (Level ${monster.level}):`,
-                `HP: ${monster.hp}/${monster.maxHp}`,
-                `Distance: ${Math.max(Math.abs(this.game.player.x - monster.x), Math.abs(this.game.player.y - monster.y))} tiles`
-            ];
-
-            // --- Status Effects ---
-            if (monster.hasStartedFleeing) {
-                status.push("Fleeing");
-            }
-            if (monster.isSleeping) {
-                status.push("Sleeping");
-            }
-
-            if (status.length > 0) {
-                lookInfo.push(`Status: ${status.join(", ")}`);
-            }
-
-            // --- Combat Details ---
-            lookInfo.push(
-                `ATK: ${monster.attackPower.base}+${monster.attackPower.diceCount}d${monster.attackPower.diceSides}`,
-                `DEF: ${monster.defense.base}+${monster.defense.diceCount}d${monster.defense.diceSides}`,
-                `SPD: ${GAME_CONSTANTS.FORMULAS.SPEED(monster.stats)}`,
-                `ACC: ${monster.accuracy}%`,
-                `EVA: ${monster.evasion}%`,
-                `PER: ${monster.perception}`,
-            );
-
-            infoDiv.innerHTML = lookInfo.join('\n');
-
-            // スプライト表示用のdivのスタイルも修正
-            const spriteDiv = document.createElement('div');
-            spriteDiv.style.border = 'none';
-            spriteDiv.style.padding = '0';
-
-            const canvas = document.createElement('canvas');
-            canvas.width = 128;
-            canvas.height = 128;
-            canvas.style.imageRendering = 'pixelated';
-            canvas.style.background = 'transparent';  // 背景を透明に
-            canvas.style.display = 'block';
-
-            spriteDiv.appendChild(canvas);
-
-            const renderer = this.game.renderer;
-            renderer.drawMonsterSprite(canvas, monster.type, monster.id);
-
-            container.appendChild(infoDiv);
-            container.appendChild(spriteDiv);
-        } else if (this.targetX === this.game.player.x && this.targetY === this.game.player.y) {
-            infoDiv.innerHTML = "You see yourself here.";
-            container.appendChild(infoDiv);
-        } else {
-            const tile = this.game.tiles[this.targetY][this.targetX];
-            let lookInfo = '';
-            if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
-                lookInfo = "You see a closed door here.";
-            } else if (tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
-                lookInfo = "You see an open door here.";
-            } else if (tile === GAME_CONSTANTS.STAIRS.CHAR) {
-                lookInfo = "You see stairs leading down here.";
-            } else if (GAME_CONSTANTS.TILES.FLOOR.includes(tile)) {
-                lookInfo = "You see a floor here.";
-            } else if (GAME_CONSTANTS.TILES.WALL.includes(tile)) {
-                lookInfo = "You see a wall here.";
-            } else if (GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(tile)) {
-                lookInfo = "You see a massive stone pillar blocking your view.";
-            } else if (GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tile)) {
-                lookInfo = "You see some decorative furniture.";
-            } else {
-                lookInfo = `You see ${tile} here.`;
-            }
-            infoDiv.innerHTML = lookInfo;
-            container.appendChild(infoDiv);
-        }
-
-        this.game.logger.updateLookInfo(container);
     }
 
     endLookMode() {

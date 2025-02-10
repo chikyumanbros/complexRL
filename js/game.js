@@ -552,15 +552,14 @@ class Game {
         const py = this.player.y;
         const currentRoom = this.getCurrentRoom();
         
-        // 部屋の明るさに基づいて視界範囲を決定
-        let visibility;
-        if (currentRoom) {
-            visibility = currentRoom.brightness || 5; // デフォルトの部屋の明るさを5に設定
-        } else {
-            visibility = 3; // 廊下の視界範囲は3
+        // キャッシュを使用（モンスターの位置は含めない）
+        const cacheKey = `${px},${py},${currentRoom?.brightness || 3}`;
+        if (this._visibleTilesCache?.key === cacheKey) {
+            return this._visibleTilesCache.tiles;
         }
-
-        // 視界範囲を1タイル広げて、壁や扉も確実に見えるようにする
+        
+        // 部屋の明るさをそのまま使用（廊下は3）
+        const visibility = currentRoom ? currentRoom.brightness : 3;
         const extendedVisibility = visibility + 1;
 
         for (let y = Math.max(0, py - extendedVisibility); y <= Math.min(this.height - 1, py + extendedVisibility); y++) {
@@ -569,7 +568,6 @@ class Game {
                 const dy = y - py;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                // 通常の視界範囲チェックに加えて、壁や扉の場合は少し広めに見えるようにする
                 const isWallOrDoor = this.map[y][x] === 'wall' || 
                                    this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
                                    this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.OPEN;
@@ -583,11 +581,19 @@ class Game {
                 }
             }
         }
-
-        return Array.from(visibleTiles).map(coord => {
+        
+        const result = Array.from(visibleTiles).map(coord => {
             const [x, y] = coord.split(',').map(Number);
             return {x, y};
         });
+        
+        // キャッシュを更新
+        this._visibleTilesCache = {
+            key: cacheKey,
+            tiles: result
+        };
+        
+        return result;
     }
 
     updateRoomInfo() {
@@ -659,8 +665,22 @@ class Game {
 
     // セーブデータを保存
     saveGame() {
-        if (this.isGameOver) return; // ゲームオーバー時はセーブしない
+        if (this.isGameOver) return;
 
+        // 前回のセーブから変更がない場合はスキップ
+        const currentState = {
+            playerPos: `${this.player.x},${this.player.y}`,
+            playerHp: this.player.hp,
+            monstersState: this.monsters.map(m => `${m.x},${m.y},${m.hp}`).join('|'),
+            turn: this.turn
+        };
+        
+        if (this._lastSaveState && 
+            JSON.stringify(currentState) === JSON.stringify(this._lastSaveState)) {
+            return;
+        }
+        
+        // セーブ処理
         const saveData = {
             player: {
                 x: this.player.x,
@@ -699,7 +719,7 @@ class Game {
 
         try {
             localStorage.setItem('complexRL_saveData', JSON.stringify(saveData));
-            //console.log('ゲームを保存しました');
+            this._lastSaveState = currentState;
         } catch (e) {
             console.error('Failed to save game data:', e);
         }
