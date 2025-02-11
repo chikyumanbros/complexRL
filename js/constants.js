@@ -38,15 +38,15 @@ const GAME_CONSTANTS = {
         DOOR: '#8B4513',
         HEAL: '#2ed573',
         MONSTER: {
-            RAT: '#a33',
-            BAT: '#c66',
-            SNAKE: '#6a6',
-            GOBLIN: '#3a3',
-            SPIDER: '#939',
-            SKELETON: '#eee',
-            ZOMBIE: '#6a6',
-            GHOST: '#6cf',
-            TROLL: '#383',
+            get RAT() { return GAME_CONSTANTS.MONSTERS.RAT.color; },
+            get BAT() { return GAME_CONSTANTS.MONSTERS.BAT.color; },
+            get SNAKE() { return GAME_CONSTANTS.MONSTERS.SNAKE.color; },
+            get GOBLIN() { return GAME_CONSTANTS.MONSTERS.GOBLIN.color; },
+            get SPIDER() { return GAME_CONSTANTS.MONSTERS.SPIDER.color; },
+            get SKELETON() { return GAME_CONSTANTS.MONSTERS.SKELETON.color; },
+            get ZOMBIE() { return GAME_CONSTANTS.MONSTERS.ZOMBIE.color; },
+            get GHOST() { return GAME_CONSTANTS.MONSTERS.GHOST.color; },
+            get TROLL() { return GAME_CONSTANTS.MONSTERS.TROLL.color; }
         },
         OBSTACLE: {
             BLOCKING_VARIATIONS: [
@@ -147,6 +147,9 @@ const GAME_CONSTANTS = {
         RAT: {
             char: 'r',
             name: 'Rat',
+            get color() {
+                return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.RAT);
+            },
             stats: {
                 str: 8,
                 dex: 14,
@@ -164,6 +167,9 @@ const GAME_CONSTANTS = {
         BAT: {
             char: 'b',
             name: 'Bat',
+            get color() {
+                return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.BAT);
+            },
             stats: {
                 str: 6,
                 dex: 16,
@@ -181,6 +187,9 @@ const GAME_CONSTANTS = {
         SNAKE: {
             char: 's',
             name: 'Snake',
+            get color() {
+                return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.SNAKE);
+            },
             stats: {
                 str: 12,
                 dex: 12,
@@ -198,6 +207,9 @@ const GAME_CONSTANTS = {
         GOBLIN: {
             char: 'g',
             name: 'Goblin',
+            get color() {
+                return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.GOBLIN);
+            },
             stats: {
                 str: 10,
                 dex: 10,
@@ -215,6 +227,9 @@ const GAME_CONSTANTS = {
         SPIDER: {
             char: 'a',
             name: 'Giant Spider',
+            get color() {
+                return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.SPIDER);
+            },
             stats: {
                 str: 8,
                 dex: 18,
@@ -232,6 +247,9 @@ const GAME_CONSTANTS = {
         SKELETON: {
             char: 'k',
             name: 'Skeleton',
+            get color() {
+                return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.SKELETON);
+            },
             stats: {
                 str: 14,
                 dex: 8,
@@ -249,6 +267,9 @@ const GAME_CONSTANTS = {
         ZOMBIE: {
             char: 'z',
             name: 'Zombie',
+            get color() {
+                return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.ZOMBIE);
+            },
             stats: {
                 str: 12,
                 dex: 6,
@@ -266,6 +287,9 @@ const GAME_CONSTANTS = {
         GHOST: {
             char: 'h',
             name: 'Ghost',
+            get color() {
+                return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.GHOST);
+            },
             stats: {
                 str: 4,
                 dex: 18,
@@ -283,6 +307,9 @@ const GAME_CONSTANTS = {
         TROLL: {
             char: 'T',
             name: 'Troll',
+            get color() {
+                return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.TROLL);
+            },
             stats: {
                 str: 18,
                 dex: 6,
@@ -348,6 +375,9 @@ const GAME_CONSTANTS = {
             title: "Actions",
             keys: [
                 { key: "1-9", desc: "Use skill" },
+                { key: "o", desc: "Open door" },
+                { key: "c", desc: "Close door" },
+                { key: ">", desc: "Descend stairs | Auto move to stairs" },
                 { key: "Tab", desc: "Toggle Codex menu" },
                 { key: ";", desc: "Look mode" },
                 { key: "?", desc: "Show this help" },
@@ -559,7 +589,28 @@ const GAME_CONSTANTS = {
         'T': '#005A5A',  // 暗いティール
         'S': '#868686',  // 暗いシルバー
         'L': '#00B300',  // 暗いライム
-        ' ': null        // 透明
+        ' ': null,        // 透明
+
+        // スプライトから最も頻繁に使用される色を検出
+        getMostUsedColor: function(sprite) {
+            const colorCount = {};
+            
+            // スプライトの各文字をカウント
+            sprite.forEach(row => {
+                [...row].forEach(char => {
+                    if (char !== ' ') {
+                        colorCount[char] = (colorCount[char] || 0) + 1;
+                    }
+                });
+            });
+
+            // 最も頻度の高い文字を見つける
+            let mostUsedChar = Object.entries(colorCount)
+                .sort((a, b) => b[1] - a[1])[0]?.[0];
+
+            // 対応する色コードを返す
+            return mostUsedChar ? this[mostUsedChar] : '#ffffff';
+        }
     },
 
     // 体力状態の判定システム

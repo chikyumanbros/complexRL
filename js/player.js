@@ -222,168 +222,255 @@ class Player {
     // ===== Combat Resolution Methods =====
     // プレイヤーの攻撃処理をまとめるためのヘルパーメソッド
     resolvePlayerAttack(monster, game) {
-        // 戦闘開始時に最後の戦闘対象を更新
         game.lastCombatMonster = monster;
         
-        // 周囲のモンスター数によるペナルティを計算
+        const attackContext = this.prepareAttackContext(monster, game);
+        
+        // 命中判定
+        if (!this.resolveHitCheck(attackContext, game)) {
+            return;
+        }
+        
+        // 回避判定
+        if (!this.resolveEvadeCheck(attackContext, game)) {
+            return;
+        }
+        
+        // ダメージ計算
+        const damageResult = this.calculateDamage(attackContext, monster);
+        
+        // ダメージ適用と結果処理
+        this.applyDamageAndProcessResults(damageResult, attackContext, monster, game);
+        
+        // 戦闘後の処理
+        this.finalizeCombat(monster, game);
+    }
+
+    prepareAttackContext(monster, game) {
         const surroundingMonsters = this.countSurroundingMonsters(game);
-        const penaltyPerMonster = 15; // 1体につき15%のペナルティ
-        // 2体以上からペナルティ適用（surroundingMonsters - 1）
-        const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
-
-        // 機会攻撃の判定
-        const isOpportunityAttack = monster.hasStartedFleeing && monster.checkEscapeRoute(game);
+        const surroundingPenalty = this.calculateSurroundingPenalty(surroundingMonsters);
         
-        // 攻撃タイプの名前を設定
-        const attackType = this.nextAttackModifiers && this.nextAttackModifiers.length > 0 
-            ? (this.nextAttackModifiers.length > 1 
-                ? "Combined Attack" 
-                : this.nextAttackModifiers[0].name)
+        const attackType = this.nextAttackModifiers?.length > 0
+            ? (this.nextAttackModifiers.length > 1 ? "Combined Attack" : this.nextAttackModifiers[0].name)
             : "attack";
-
-        let hitChance = Math.floor(this.accuracy * (1 - surroundingPenalty));
-        let damageMultiplier = 1;
         
-        // 全ての修飾効果を累積
+        const { totalDamageMod, totalAccuracyMod, totalSpeedMod, effectDesc } = 
+            this.calculateModifiers(this.nextAttackModifiers);
+        
+        let hitChance = Math.floor(this.accuracy * (1 - surroundingPenalty));
+        let damageMultiplier = totalDamageMod;
+        
+        // 機会攻撃の処理
+        const isOpportunityAttack = monster.hasStartedFleeing && monster.checkEscapeRoute(game);
+        if (isOpportunityAttack) {
+            hitChance *= 0.7;
+            damageMultiplier *= 1.5;
+            game.logger.add(`Opportunity attack! (-30% accuracy, +50% damage)`, "playerInfo");
+        }
+        
+        if (surroundingPenalty > 0) {
+            game.logger.add(
+                `Surrounded by ${surroundingMonsters} enemies! (-${Math.floor(surroundingPenalty * 100)}% accuracy)`,
+                "warning"
+            );
+        }
+        
+        return {
+            attackType,
+            effectDesc,
+            hitChance: hitChance + totalAccuracyMod,
+            damageMultiplier,
+            isOpportunityAttack,
+            surroundingPenalty
+        };
+    }
+
+    calculateModifiers(modifiers) {
+        if (!modifiers?.length) {
+            return { totalDamageMod: 1, totalAccuracyMod: 0, totalSpeedMod: 0, effectDesc: "" };
+        }
+        
+        const effects = [];
         let totalDamageMod = 1;
         let totalAccuracyMod = 0;
         let totalSpeedMod = 0;
-
-        // 効果の説明文を生成
-        let effectDesc = "";
-        if (this.nextAttackModifiers && this.nextAttackModifiers.length > 0) {
-            const effects = [];
-            for (const modifier of this.nextAttackModifiers) {
-                if (modifier.damageMod) {
-                    totalDamageMod *= modifier.damageMod;
-                    effects.push(`DMG: ${((modifier.damageMod - 1) * 100).toFixed(0)}%`);
-                }
-                if (modifier.accuracyMod) {
-                    totalAccuracyMod += modifier.accuracyMod;
-                    effects.push(`ACC: ${(modifier.accuracyMod * 100).toFixed(0)}%`);
-                }
-                if (modifier.speedMod) {
-                    totalSpeedMod += modifier.speedMod;
-                    effects.push(`SPD: ${(modifier.speedMod * 100).toFixed(0)}%`);
-                }
+        
+        for (const modifier of modifiers) {
+            if (modifier.damageMod) {
+                totalDamageMod *= modifier.damageMod;
+                effects.push(`DMG: ${((modifier.damageMod - 1) * 100).toFixed(0)}%`);
             }
-            effectDesc = ` [${effects.join(', ')}]`;
-        }
-
-        // 修飾効果を適用
-        damageMultiplier *= totalDamageMod;
-        hitChance += totalAccuracyMod;
-
-        // 機会攻撃時は命中率-30%とダメージ1.5倍
-        if (isOpportunityAttack) {
-            hitChance *= 0.7;  // 30%減少
-            damageMultiplier = 1.5;  // ダメージ1.5倍
-            game.logger.add(`Opportunity attack! (-30% accuracy, +50% damage)`, "playerInfo");
-        }
-
-        if (surroundingPenalty > 0) {
-            game.logger.add(`Surrounded by ${surroundingMonsters} enemies! (-${Math.floor(surroundingPenalty * 100)}% accuracy)`, "warning");
+            if (modifier.accuracyMod) {
+                totalAccuracyMod += modifier.accuracyMod;
+                effects.push(`ACC: ${(modifier.accuracyMod * 100).toFixed(0)}%`);
+            }
+            if (modifier.speedMod) {
+                totalSpeedMod += modifier.speedMod;
+                effects.push(`SPD: ${(modifier.speedMod * 100).toFixed(0)}%`);
+            }
         }
         
+        return {
+            totalDamageMod,
+            totalAccuracyMod,
+            totalSpeedMod,
+            effectDesc: effects.length ? ` [${effects.join(', ')}]` : ""
+        };
+    }
+
+    resolveHitCheck(context, game) {
         const roll = Math.floor(Math.random() * 100);
-        game.logger.add(`You ${attackType}${effectDesc} ${monster.name} (ACC: ${Math.floor(hitChance)}% | Roll: ${roll})`, "playerInfo");
+        game.logger.add(
+            `You ${context.attackType}${context.effectDesc} ${game.lastCombatMonster.name} ` +
+            `(ACC: ${Math.floor(context.hitChance)}% | Roll: ${roll})`,
+            "playerInfo"
+        );
         
-        if (roll >= hitChance) {
-            game.logger.add(`Your ${attackType} misses!`, "playerMiss");
-            game.lastAttackHit = false;  // 攻撃が外れた
-            // 攻撃が外れた場合もnextAttackModifiersをクリア
+        if (roll >= context.hitChance) {
+            game.logger.add(`Your ${context.attackType} misses!`, "playerMiss");
+            game.lastAttackHit = false;
             this.nextAttackModifiers = [];
-            return;
+            return false;
         }
+        return true;
+    }
 
-        // 逃走中のモンスターは機会攻撃を受けた場合、回避判定をスキップ
-        if (!monster.hasStartedFleeing) {
-            // 通常の回避判定
-            const evadeRoll = Math.random() * 100;
-            const evadeChance = monster.evasion || 0;
-            if (evadeRoll < evadeChance) {
-                game.logger.add(`${monster.name} dodges your ${attackType}! (EVA: ${Math.floor(evadeChance)}% | Roll: ${Math.floor(evadeRoll)})`, "monsterEvade");
-                game.lastAttackHit = false;  // 攻撃が回避された
-                // 回避された場合もnextAttackModifiersをクリア
-                this.nextAttackModifiers = [];
-                return;
-            }
+    resolveEvadeCheck(context, game) {
+        const monster = game.lastCombatMonster;
+        if (monster.hasStartedFleeing) return true;
+        
+        const evadeRoll = Math.random() * 100;
+        const evadeChance = monster.evasion || 0;
+        
+        if (evadeRoll < evadeChance) {
+            game.logger.add(
+                `${monster.name} dodges your ${context.attackType}! ` +
+                `(EVA: ${Math.floor(evadeChance)}% | Roll: ${Math.floor(evadeRoll)})`,
+                "monsterEvade"
+            );
+            game.lastAttackHit = false;
+            this.nextAttackModifiers = [];
+            return false;
         }
+        return true;
+    }
 
-        // ダメージが通った場合
-        game.lastAttackHit = true;
-
-        // ダメージロール処理を詳細に記録
-        let attackRolls = [];
+    calculateDamage(context, monster) {
+        const attackRolls = [];
         let damage = this.attackPower.base;
         for (let i = 0; i < this.attackPower.diceCount; i++) {
             const diceRoll = Math.floor(Math.random() * this.attackPower.diceSides) + 1;
             attackRolls.push(diceRoll);
             damage += diceRoll;
         }
-
-        let defenseRolls = [];
+        
+        const defenseRolls = [];
         let defense = monster.defense.base;
         for (let i = 0; i < monster.defense.diceCount; i++) {
             const diceRoll = Math.floor(Math.random() * monster.defense.diceSides) + 1;
             defenseRolls.push(diceRoll);
             defense += diceRoll;
         }
+        
+        const finalDamage = Math.floor((damage - defense) * context.damageMultiplier);
+        
+        return {
+            finalDamage,
+            attackRolls,
+            defenseRolls,
+            damage,
+            defense
+        };
+    }
 
-        const finalDamage = Math.floor((damage - defense) * damageMultiplier);
-        const result = monster.takeDamage(finalDamage, game);
-        const healthStatus = `HP: ${monster.hp}/${monster.maxHp}`;
-        const attackRollStr = this.attackPower.base + `+${this.attackPower.diceCount}d${this.attackPower.diceSides}` +
-            (damageMultiplier !== 1 ? ` ×${damageMultiplier.toFixed(1)}` : '');
-        const defenseRollStr = monster.defense.base + `+${monster.defense.diceCount}d${monster.defense.diceSides}`;
-
-        if (result.isOpportunityAttack) {
-            game.logger.add(`Opportunity attack hits! ${monster.name} takes ${result.damage} damage! (ATK: ${attackRollStr} vs DEF: ${defenseRollStr})`, "playerCrit");
-        }
-
+    applyDamageAndProcessResults(damageResult, context, monster, game) {
+        game.lastAttackHit = true;
+        const result = monster.takeDamage(damageResult.finalDamage, game);
+        
         if (result.killed) {
-            game.logger.add(
-                `You killed the ${monster.name} with ${result.damage} damage! ` +
-                `(ATK: ${this.attackPower.base}+[${attackRolls.join(',')}]${damageMultiplier !== 1 ? ` ×${damageMultiplier.toFixed(1)}` : ''} ` +
-                `vs DEF: ${monster.defense.base}+[${defenseRolls.join(',')}])`,
-                "kill"
-            );
-            game.removeMonster(monster);
-            game.renderer.showDeathEffect(monster.x, monster.y);
-
-            // codexPointsを加算
-            this.codexPoints += result.codexPoints;
-            game.logger.add(`Gained ${result.codexPoints} codex points!`, "playerInfo");
-
-            // 経験値計算と表示
-            const levelDiff = monster.level - this.level;
-            const baseXP = Math.floor(monster.level);
-            const levelMultiplier = levelDiff > 0 
-                ? 1 + (levelDiff * 0.2)
-                : Math.max(0.1, 1 + (levelDiff * 0.1));
-            const intBonus = 1 + Math.max(0, (this.stats.int - 10) * 0.03);
-            const xpGained = Math.max(1, Math.floor(baseXP * levelMultiplier * intBonus));
-            if (intBonus > 1) {
-                game.logger.add(`Intelligence bonus: ${Math.floor((intBonus - 1) * 100)}% more XP!`, "playerInfo");
-            }
-            this.addExperience(xpGained);
-
-            // nextAttackModifiersをクリア
-            this.nextAttackModifiers = [];
+            this.processKill(result, damageResult, context, monster, game);
         } else if (!result.isOpportunityAttack) {
+            this.processHit(result, damageResult, context, monster, game);
+        }
+        
+        this.nextAttackModifiers = [];
+    }
+
+    processKill(result, damageResult, context, monster, game) {
+        const attackRollStr = this.getAttackRollString(damageResult, context.damageMultiplier);
+        const defenseRollStr = this.getDefenseRollString(monster, damageResult);
+
+        game.logger.add(
+            `You killed the ${monster.name} with ${result.damage} damage! ` +
+            `(ATK: ${this.attackPower.base}+[${damageResult.attackRolls.join(',')}]` +
+            `${context.damageMultiplier !== 1 ? ` ×${context.damageMultiplier.toFixed(1)}` : ''} ` +
+            `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}])`,
+            "kill"
+        );
+        
+        game.removeMonster(monster);
+        game.renderer.showDeathEffect(monster.x, monster.y);
+
+        // codexPointsを加算
+        this.codexPoints += result.codexPoints;
+        game.logger.add(`Gained ${result.codexPoints} codex points!`, "playerInfo");
+
+        // 経験値計算と表示
+        const levelDiff = monster.level - this.level;
+        const baseXP = Math.floor(monster.level);
+        const levelMultiplier = levelDiff > 0 
+            ? 1 + (levelDiff * 0.2)
+            : Math.max(0.1, 1 + (levelDiff * 0.1));
+        const intBonus = 1 + Math.max(0, (this.stats.int - 10) * 0.03);
+        const xpGained = Math.max(1, Math.floor(baseXP * levelMultiplier * intBonus));
+        
+        if (intBonus > 1) {
+            game.logger.add(`Intelligence bonus: ${Math.floor((intBonus - 1) * 100)}% more XP!`, "playerInfo");
+        }
+        this.addExperience(xpGained);
+    }
+
+    processHit(result, damageResult, context, monster, game) {
+        const healthStatus = `HP: ${monster.hp}/${monster.maxHp}`;
+        const attackRollStr = this.getAttackRollString(damageResult, context.damageMultiplier);
+        const defenseRollStr = this.getDefenseRollString(monster, damageResult);
+
+        if (context.isOpportunityAttack) {
             game.logger.add(
-                `${attackType} hits! ${monster.name} takes ${result.damage} damage! ` +
-                `(ATK: ${this.attackPower.base}+[${attackRolls.join(',')}]${damageMultiplier !== 1 ? ` ×${damageMultiplier.toFixed(1)}` : ''} ` +
-                `vs DEF: ${monster.defense.base}+[${defenseRolls.join(',')}])  (${healthStatus})`,
+                `Opportunity attack hits! ${monster.name} takes ${result.damage} damage! ` +
+                `(ATK: ${attackRollStr} vs DEF: ${defenseRollStr})`,
+                "playerCrit"
+            );
+        } else {
+            game.logger.add(
+                `${context.attackType} hits! ${monster.name} takes ${result.damage} damage! ` +
+                `(ATK: ${this.attackPower.base}+[${damageResult.attackRolls.join(',')}]` +
+                `${context.damageMultiplier !== 1 ? ` ×${context.damageMultiplier.toFixed(1)}` : ''} ` +
+                `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}])  (${healthStatus})`,
                 "playerHit"
             );
-
-            // nextAttackModifiersをクリア
-            this.nextAttackModifiers = [];
         }
+    }
 
-        // 戦闘後にlook情報を更新
+    getAttackRollString(damageResult, damageMultiplier) {
+        return this.attackPower.base + 
+            `+${this.attackPower.diceCount}d${this.attackPower.diceSides}` +
+            (damageMultiplier !== 1 ? ` ×${damageMultiplier.toFixed(1)}` : '');
+    }
+
+    getDefenseRollString(monster, damageResult) {
+        return monster.defense.base + 
+            `+${monster.defense.diceCount}d${monster.defense.diceSides}`;
+    }
+
+    finalizeCombat(monster, game) {
         game.renderer.examineTarget(monster.x, monster.y);
+    }
+
+    calculateSurroundingPenalty(surroundingMonsters) {
+        const penaltyPerMonster = 15; // 1体につき15%のペナルティ
+        // 2体以上からペナルティ適用（surroundingMonsters - 1）
+        return Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
     }
 
     // プレイヤーの攻撃にSPEEDによる処理順序を組み込む
@@ -765,5 +852,126 @@ class Player {
         }
 
         return stats;
+    }
+
+
+    // ----------------------
+    // Auto Move to Stairs Methods
+    // ----------------------
+    findExploredStairs() {
+        for (let y = 0; y < this.game.height; y++) {
+            for (let x = 0; x < this.game.width; x++) {
+                if (this.game.explored[y][x] && 
+                    this.game.tiles[y][x] === GAME_CONSTANTS.STAIRS.CHAR) {
+                    return { x, y };
+                }
+            }
+        }
+        return null;
+    }
+
+    startAutoMoveToStairs(stairLocation) {
+        this.game.player.autoMovingToStairs = true;
+        this.game.logger.add("Moving to stairs...", "playerInfo");
+        this.continueAutoMoveToStairs(stairLocation);
+    }
+
+    continueAutoMoveToStairs(stairLocation) {
+        const player = this.game.player;
+        if (!player.autoMovingToStairs) return;
+
+        // 視界内の敵をチェック
+        const visibleTiles = this.game.getVisibleTiles();
+        const visibleTilesSet = new Set(visibleTiles.map(({x, y}) => `${x},${y}`));
+        
+        const visibleMonsters = this.game.monsters.filter(monster => {
+            const monsterKey = `${monster.x},${monster.y}`;
+            return visibleTilesSet.has(monsterKey);
+        });
+
+        if (visibleMonsters.length > 0) {
+            player.stopAutoMoveToStairs();
+            this.game.logger.add("Enemy spotted in range!", "warning");
+            return;
+        }
+
+        // 階段への方向を見つける
+        const direction = this.findDirectionToStairs(stairLocation);
+        if (!direction) {
+            player.stopAutoMoveToStairs();
+            this.game.logger.add("Cannot reach the stairs from here.", "warning");
+            return;
+        }
+
+        // 移動実行
+        if (player.move(direction.dx, direction.dy, this.game.map)) {
+            this.game.processTurn();
+            // 階段に到着したかチェック
+            if (player.x === stairLocation.x && player.y === stairLocation.y) {
+                player.stopAutoMoveToStairs();
+                this.game.logger.add("You arrive at the stairs. Press '>' to descend.", "playerInfo");
+            } else {
+                // 次のターンの自動移動をスケジュール
+                setTimeout(() => this.continueAutoMoveToStairs(stairLocation), 50);
+            }
+        } else {
+            player.stopAutoMoveToStairs();
+        }
+    }
+
+    findDirectionToStairs(stairLocation) {
+        const player = this.game.player;
+        const visited = new Set();
+        const queue = [{
+            x: player.x,
+            y: player.y,
+            firstStep: null
+        }];
+
+        while (queue.length > 0) {
+            const current = queue.shift();
+            const key = `${current.x},${current.y}`;
+
+            if (visited.has(key)) continue;
+            visited.add(key);
+
+            // 階段に到達したかチェック
+            if (current.x === stairLocation.x && current.y === stairLocation.y) {
+                return current.firstStep;
+            }
+
+            // 隣接マスの探索
+            const directions = [
+                {dx: -1, dy: -1}, {dx: 0, dy: -1}, {dx: 1, dy: -1},
+                {dx: -1, dy: 0},                    {dx: 1, dy: 0},
+                {dx: -1, dy: 1},  {dx: 0, dy: 1},  {dx: 1, dy: 1}
+            ];
+
+            for (const dir of directions) {
+                const newX = current.x + dir.dx;
+                const newY = current.y + dir.dy;
+                
+                if (this.game.isValidPosition(newX, newY) && 
+                    this.game.map[newY][newX] === 'floor') {
+                    queue.push({
+                        x: newX,
+                        y: newY,
+                        firstStep: current.firstStep || dir
+                    });
+                }
+            }
+        }
+
+        return null;  // 到達可能な経路が見つからない
+    }
+
+    // ----------------------
+    // Auto Move to Stairs Methods
+    // ----------------------
+    stopAutoMoveToStairs() {
+        if (this.autoMovingToStairs) {
+            this.autoMovingToStairs = false;
+            this.game.logger.add("Auto-move to stairs stopped.", "playerInfo");
+        }
     }
 } 

@@ -103,6 +103,8 @@ class Logger {
             //console.warn('available-skills要素が見つかりません');
             return;
         }
+
+        this.gameOverMessageShown = false;
     }
 
     add(message, type = 'info') {
@@ -309,9 +311,13 @@ class Logger {
     clear() {
         this.messages = [];
         this.logElement.innerHTML = '';
+        this.gameOverMessageShown = false;
     }
 
     showGameOverMessage(finalScore) {
+        // ゲームオーバーメッセージが既に表示されているかチェック
+        if (this.gameOverMessageShown) return;
+        
         this.add("=================", "important");
         this.add("GAME OVER", "death");
         this.add("Final Score:", "important");
@@ -320,5 +326,8 @@ class Logger {
         this.add(`Survived Turns: ${finalScore.turns}`, "important");
         this.add("=================", "important");
         this.add("Press Enter to restart", "info");
+        
+        // フラグを設定
+        this.gameOverMessageShown = true;
     }
 } 

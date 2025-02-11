@@ -308,10 +308,11 @@ class Renderer {
                 for (const mod of player.nextAttackModifiers) {
                     if (mod.damageMod) totalDamageMod *= mod.damageMod;
                 }
-                const modifiedDamage = Math.floor(player.attackPower.base * totalDamageMod);
-                const damageColor = totalDamageMod > 1 ? '#2ecc71' :
-                    totalDamageMod < 1 ? '#e74c3c' : 'inherit';
-                attackText = `<span style="color: ${damageColor}">${modifiedDamage}+${player.attackPower.diceCount}d${player.attackPower.diceSides}</span>`;
+                if (totalDamageMod !== 1) {
+                    const damageColor = totalDamageMod > 1 ? '#2ecc71' : '#e74c3c';
+                    attackText = `${player.attackPower.base}+${player.attackPower.diceCount}d${player.attackPower.diceSides} ×${totalDamageMod.toFixed(1)}`;
+                    attackText = `<span style="color: ${damageColor}">${attackText}</span>`;
+                }
             }
             attackElement.innerHTML = attackText;
         }

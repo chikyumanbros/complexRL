@@ -278,7 +278,15 @@ class InputHandler {
                 player.descendStairs();
                 return;
             } else {
-                this.game.logger.add("There are no stairs here.", "warning");
+                // 階段が見つかっていない場合
+                const stairLocation = this.findExploredStairs();
+                if (!stairLocation) {
+                    this.game.logger.add("You haven't found any stairs yet.", "warning");
+                    return;
+                }
+                
+                // プレイヤーが階段の位置にいない場合、自動移動を開始
+                player.startAutoMoveToStairs(stairLocation);
                 return;
             }
         }
@@ -699,5 +707,20 @@ class InputHandler {
             //console.warn("'game-mode' element not found. Please add <div id=\"game-mode\"></div> to your HTML.");
             return;
         }
+    }
+
+    // ----------------------
+    // Utility Methods
+    // ----------------------
+    findExploredStairs() {
+        for (let y = 0; y < this.game.height; y++) {
+            for (let x = 0; x < this.game.width; x++) {
+                if (this.game.explored[y][x] && 
+                    this.game.tiles[y][x] === GAME_CONSTANTS.STAIRS.CHAR) {
+                    return { x, y };
+                }
+            }
+        }
+        return null;
     }
 }
