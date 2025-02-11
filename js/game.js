@@ -123,6 +123,7 @@ class Game {
         this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);  // Update floor info in Logger
         this.updateRoomInfo();  // Update surrounding room information
         this.updateExplored();  // Update explored information
+        this.saveGame();
     }
 
     init() {

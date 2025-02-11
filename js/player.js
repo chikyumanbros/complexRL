@@ -6,7 +6,7 @@ class Player {
         this.game = game;
         this.char = '@';
         this.level = 1;
-        this.codexPoints = 0;  // codexポイントのみを使用
+        this.codexPoints = 100;  // codexポイントのみを使用
         this.xp = 0;                  // 経験値の初期化
         this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
         this.stats = {
@@ -59,7 +59,6 @@ class Player {
     // 新規: 経験値を追加しレベルアップの判定を行うメソッド
     addExperience(amount) {
         this.xp += amount;
-        this.game.logger.add(`Gained ${amount} XP! (Current: ${this.xp}/${this.xpToNextLevel})`, "playerInfo");
         while (this.xp >= this.xpToNextLevel) {
             this.xp -= this.xpToNextLevel;
             this.levelUp();
@@ -176,14 +175,17 @@ class Player {
 
     // ===== Damage Handling Methods =====
     takeDamage(amount) {
+        // 元のevasion値を保持
+        const baseEvasion = this.evasion;
+
         // 周囲のモンスター数によるペナルティを計算
         const surroundingMonsters = this.countSurroundingMonsters(this.game);
         const penaltyPerMonster = 15; // 1体につき15%のペナルティ
         // 2体以上からペナルティ適用（surroundingMonsters - 1）
         const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
 
-        // 回避率にペナルティを適用
-        this.evasion = Math.floor(this.evasion * (1 - surroundingPenalty));
+        // 回避率にペナルティを一時的に適用
+        this.evasion = Math.floor(baseEvasion * (1 - surroundingPenalty));
 
         const damage = Math.max(1, amount);
         this.hp -= damage;
@@ -216,6 +218,9 @@ class Player {
             }, 100);
         }
 
+        // evasionを元の値に戻す
+        this.evasion = baseEvasion;
+
         return result;
     }
 
@@ -239,8 +244,14 @@ class Player {
         // ダメージ計算
         const damageResult = this.calculateDamage(attackContext, monster);
         
-        // ダメージ適用と結果処理
-        this.applyDamageAndProcessResults(damageResult, attackContext, monster, game);
+        // モンスターにダメージを与える
+        const result = monster.takeDamage(damageResult.damage, game);
+        
+        // 命中した場合の処理
+        if (!result.evaded) {
+            this.processHit(result, damageResult, attackContext, monster, game);
+            game.lastAttackHit = true;
+        }
         
         // 戦闘後の処理
         this.finalizeCombat(monster, game);
@@ -250,71 +261,69 @@ class Player {
         const surroundingMonsters = this.countSurroundingMonsters(game);
         const surroundingPenalty = this.calculateSurroundingPenalty(surroundingMonsters);
         
+        // 基本命中率を取得
+        let baseAccuracy = this.accuracy;
+        let totalAccuracyMod = 0;
+        let totalDamageMod = 1;
+        let totalSpeedMod = 0;
+        let effectDesc = [];
+        
+        // スキル効果の集計
+        if (this.nextAttackModifiers?.length > 0) {
+            // Combined Attackの場合は修正値をまとめる
+            if (this.nextAttackModifiers.length > 1) {
+                for (const mod of this.nextAttackModifiers) {
+                    if (mod.accuracyMod) totalAccuracyMod += mod.accuracyMod;
+                    if (mod.damageMod) totalDamageMod *= mod.damageMod;
+                    if (mod.speedMod) totalSpeedMod += mod.speedMod;
+                }
+                // まとめた修正値を一つの文字列にする
+                effectDesc = [
+                    `DMG: ${((totalDamageMod - 1) * 100).toFixed(0)}%`,
+                    `ACC: ${(totalAccuracyMod * 100).toFixed(0)}%`,
+                    totalSpeedMod !== 0 ? `SPD: ${(totalSpeedMod * 100).toFixed(0)}%` : null
+                ].filter(Boolean);
+            } else {
+                // 単一スキルの場合は従来通り
+                for (const mod of this.nextAttackModifiers) {
+                    if (mod.accuracyMod) {
+                        totalAccuracyMod += mod.accuracyMod;
+                        effectDesc.push(`ACC: ${(mod.accuracyMod * 100).toFixed(0)}%`);
+                    }
+                    if (mod.damageMod) {
+                        totalDamageMod *= mod.damageMod;
+                        effectDesc.push(`DMG: ${((mod.damageMod - 1) * 100).toFixed(0)}%`);
+                    }
+                    if (mod.speedMod) {
+                        totalSpeedMod += mod.speedMod;
+                        effectDesc.push(`SPD: ${(mod.speedMod * 100).toFixed(0)}%`);
+                    }
+                }
+            }
+        }
+        
+        // 周囲ペナルティの適用
+        let finalAccuracy = Math.floor(baseAccuracy * (1 + totalAccuracyMod) * (1 - surroundingPenalty));
+        
         const attackType = this.nextAttackModifiers?.length > 0
             ? (this.nextAttackModifiers.length > 1 ? "Combined Attack" : this.nextAttackModifiers[0].name)
             : "attack";
-        
-        const { totalDamageMod, totalAccuracyMod, totalSpeedMod, effectDesc } = 
-            this.calculateModifiers(this.nextAttackModifiers);
-        
-        let hitChance = Math.floor(this.accuracy * (1 - surroundingPenalty));
-        let damageMultiplier = totalDamageMod;
-        
+
         // 機会攻撃の処理
         const isOpportunityAttack = monster.hasStartedFleeing && monster.checkEscapeRoute(game);
         if (isOpportunityAttack) {
-            hitChance *= 0.7;
-            damageMultiplier *= 1.5;
-            game.logger.add(`Opportunity attack! (-30% accuracy, +50% damage)`, "playerInfo");
+            finalAccuracy *= 0.7;  // 30% 命中ペナルティ
+            totalDamageMod *= 1.5; // 50% ダメージボーナス
         }
-        
-        if (surroundingPenalty > 0) {
-            game.logger.add(
-                `Surrounded by ${surroundingMonsters} enemies! (-${Math.floor(surroundingPenalty * 100)}% accuracy)`,
-                "warning"
-            );
-        }
-        
+
         return {
             attackType,
-            effectDesc,
-            hitChance: hitChance + totalAccuracyMod,
-            damageMultiplier,
+            effectDesc: effectDesc.length ? ` [${effectDesc.join(', ')}]` : "",
+            hitChance: finalAccuracy,
+            damageMultiplier: totalDamageMod,
+            speedModifier: totalSpeedMod,
             isOpportunityAttack,
             surroundingPenalty
-        };
-    }
-
-    calculateModifiers(modifiers) {
-        if (!modifiers?.length) {
-            return { totalDamageMod: 1, totalAccuracyMod: 0, totalSpeedMod: 0, effectDesc: "" };
-        }
-        
-        const effects = [];
-        let totalDamageMod = 1;
-        let totalAccuracyMod = 0;
-        let totalSpeedMod = 0;
-        
-        for (const modifier of modifiers) {
-            if (modifier.damageMod) {
-                totalDamageMod *= modifier.damageMod;
-                effects.push(`DMG: ${((modifier.damageMod - 1) * 100).toFixed(0)}%`);
-            }
-            if (modifier.accuracyMod) {
-                totalAccuracyMod += modifier.accuracyMod;
-                effects.push(`ACC: ${(modifier.accuracyMod * 100).toFixed(0)}%`);
-            }
-            if (modifier.speedMod) {
-                totalSpeedMod += modifier.speedMod;
-                effects.push(`SPD: ${(modifier.speedMod * 100).toFixed(0)}%`);
-            }
-        }
-        
-        return {
-            totalDamageMod,
-            totalAccuracyMod,
-            totalSpeedMod,
-            effectDesc: effects.length ? ` [${effects.join(', ')}]` : ""
         };
     }
 
@@ -356,111 +365,72 @@ class Player {
     }
 
     calculateDamage(context, monster) {
-        const attackRolls = [];
-        let damage = this.attackPower.base;
-        for (let i = 0; i < this.attackPower.diceCount; i++) {
-            const diceRoll = Math.floor(Math.random() * this.attackPower.diceSides) + 1;
-            attackRolls.push(diceRoll);
-            damage += diceRoll;
+        const attack = this.attackPower;
+        const defense = monster.defense;
+        
+        // 攻撃ロールの実行
+        let attackRolls = [];
+        for (let i = 0; i < attack.diceCount; i++) {
+            attackRolls.push(Math.floor(Math.random() * attack.diceSides) + 1);
         }
         
-        const defenseRolls = [];
-        let defense = monster.defense.base;
-        for (let i = 0; i < monster.defense.diceCount; i++) {
-            const diceRoll = Math.floor(Math.random() * monster.defense.diceSides) + 1;
-            defenseRolls.push(diceRoll);
-            defense += diceRoll;
+        // 防御ロールの実行
+        let defenseRolls = [];
+        for (let i = 0; i < defense.diceCount; i++) {
+            defenseRolls.push(Math.floor(Math.random() * defense.diceSides) + 1);
         }
         
-        const finalDamage = Math.floor((damage - defense) * context.damageMultiplier);
+        // 基本攻撃力とロール値の合計を計算
+        const totalAttack = attack.base + attackRolls.reduce((sum, roll) => sum + roll, 0);
+        
+        // 合計値にダメージ修正を適用
+        const modifiedAttack = Math.floor(totalAttack * context.damageMultiplier);
+        
+        // 防御力の合計を計算
+        const totalDefense = defense.base + defenseRolls.reduce((sum, roll) => sum + roll, 0);
+        
+        // 最終ダメージを計算（最小1）
+        const finalDamage = Math.max(1, modifiedAttack - totalDefense);
         
         return {
-            finalDamage,
-            attackRolls,
-            defenseRolls,
-            damage,
-            defense
+            damage: finalDamage,
+            attackRolls: attackRolls,
+            defenseRolls: defenseRolls,
+            totalAttack: modifiedAttack,
+            totalDefense: totalDefense
         };
-    }
-
-    applyDamageAndProcessResults(damageResult, context, monster, game) {
-        game.lastAttackHit = true;
-        const result = monster.takeDamage(damageResult.finalDamage, game);
-        
-        if (result.killed) {
-            this.processKill(result, damageResult, context, monster, game);
-        } else if (!result.isOpportunityAttack) {
-            this.processHit(result, damageResult, context, monster, game);
-        }
-        
-        this.nextAttackModifiers = [];
-    }
-
-    processKill(result, damageResult, context, monster, game) {
-        const attackRollStr = this.getAttackRollString(damageResult, context.damageMultiplier);
-        const defenseRollStr = this.getDefenseRollString(monster, damageResult);
-
-        game.logger.add(
-            `You killed the ${monster.name} with ${result.damage} damage! ` +
-            `(ATK: ${this.attackPower.base}+[${damageResult.attackRolls.join(',')}]` +
-            `${context.damageMultiplier !== 1 ? ` ×${context.damageMultiplier.toFixed(1)}` : ''} ` +
-            `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}])`,
-            "kill"
-        );
-        
-        game.removeMonster(monster);
-        game.renderer.showDeathEffect(monster.x, monster.y);
-
-        // codexPointsを加算
-        this.codexPoints += result.codexPoints;
-        game.logger.add(`Gained ${result.codexPoints} codex points!`, "playerInfo");
-
-        // 経験値計算と表示
-        const levelDiff = monster.level - this.level;
-        const baseXP = Math.floor(monster.level);
-        const levelMultiplier = levelDiff > 0 
-            ? 1 + (levelDiff * 0.2)
-            : Math.max(0.1, 1 + (levelDiff * 0.1));
-        const intBonus = 1 + Math.max(0, (this.stats.int - 10) * 0.03);
-        const xpGained = Math.max(1, Math.floor(baseXP * levelMultiplier * intBonus));
-        
-        if (intBonus > 1) {
-            game.logger.add(`Intelligence bonus: ${Math.floor((intBonus - 1) * 100)}% more XP!`, "playerInfo");
-        }
-        this.addExperience(xpGained);
     }
 
     processHit(result, damageResult, context, monster, game) {
         const healthStatus = `HP: ${monster.hp}/${monster.maxHp}`;
-        const attackRollStr = this.getAttackRollString(damageResult, context.damageMultiplier);
-        const defenseRollStr = this.getDefenseRollString(monster, damageResult);
-
+        
         if (context.isOpportunityAttack) {
+            // 機会攻撃用のログ
             game.logger.add(
                 `Opportunity attack hits! ${monster.name} takes ${result.damage} damage! ` +
-                `(ATK: ${attackRollStr} vs DEF: ${defenseRollStr})`,
+                `(ATK: ${this.attackPower.base}+[${damageResult.attackRolls.join(',')}] ` +
+                `×${context.damageMultiplier.toFixed(1)} ` +
+                `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}]) (${healthStatus})`,
                 "playerCrit"
             );
-        } else {
+        } else if (!result.killed) {  // 倒していない場合のみ通常の命中ログを表示
+            // 通常攻撃のログ
             game.logger.add(
                 `${context.attackType} hits! ${monster.name} takes ${result.damage} damage! ` +
-                `(ATK: ${this.attackPower.base}+[${damageResult.attackRolls.join(',')}]` +
-                `${context.damageMultiplier !== 1 ? ` ×${context.damageMultiplier.toFixed(1)}` : ''} ` +
-                `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}])  (${healthStatus})`,
+                `(ATK: ${this.attackPower.base}+[${damageResult.attackRolls.join(',')}] ` +
+                `${context.damageMultiplier !== 1 ? `×${context.damageMultiplier.toFixed(1)} ` : ''}` +
+                `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}]) (${healthStatus})`,
                 "playerHit"
             );
         }
-    }
 
-    getAttackRollString(damageResult, damageMultiplier) {
-        return this.attackPower.base + 
-            `+${this.attackPower.diceCount}d${this.attackPower.diceSides}` +
-            (damageMultiplier !== 1 ? ` ×${damageMultiplier.toFixed(1)}` : '');
-    }
+        // 敵を倒した場合は processKill を呼び出す
+        if (result.killed) {
+            this.processKill(result, damageResult, context, monster, game);
+        }
 
-    getDefenseRollString(monster, damageResult) {
-        return monster.defense.base + 
-            `+${monster.defense.diceCount}d${monster.defense.diceSides}`;
+        // 攻撃修正をクリア
+        this.nextAttackModifiers = [];
     }
 
     finalizeCombat(monster, game) {
@@ -585,6 +555,12 @@ class Player {
             this.lastPosition = { x: this.x, y: this.y };
         }
         
+        // next attack modifierをクリア
+        if (this.nextAttackModifiers && this.nextAttackModifiers.length > 0) {
+            this.nextAttackModifiers = [];
+            this.game.logger.add("Attack modifiers expired.", "playerInfo");
+        }
+
         // スキルのクールダウンを処理
         for (const [_, skill] of this.skills) {
             if (skill.remainingCooldown > 0) {
@@ -972,6 +948,49 @@ class Player {
         if (this.autoMovingToStairs) {
             this.autoMovingToStairs = false;
             this.game.logger.add("Auto-move to stairs stopped.", "playerInfo");
+        }
+    }
+
+    processKill(result, damageResult, context, monster, game) {
+        // 機会攻撃とキルのログを1行にまとめる
+        const attackDesc = context.isOpportunityAttack ? "Opportunity attack" : context.attackType;
+        const damageCalc = `(ATK: ${this.attackPower.base}+[${damageResult.attackRolls.join(',')}]` +
+            `${context.damageMultiplier !== 1 ? ` ×${context.damageMultiplier.toFixed(1)}` : ''} ` +
+            `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}])`;
+        
+        game.logger.add(
+            `${attackDesc} kills ${monster.name} with ${result.damage} damage! ${damageCalc}`,
+            "kill"
+        );
+        
+        // モンスターを削除し、死亡エフェクトを表示
+        game.removeMonster(monster);
+        game.renderer.showDeathEffect(monster.x, monster.y);
+
+        // 経験値の計算と付与
+        const levelDiff = monster.level - this.level;
+        const baseXP = Math.floor(monster.baseXP || monster.level);
+        const levelMultiplier = levelDiff > 0 
+            ? 1 + (levelDiff * 0.2)
+            : Math.max(0.1, 1 + (levelDiff * 0.1));
+        const intBonus = 1 + Math.max(0, (this.stats.int - 10) * 0.03);
+        const xpGained = Math.max(1, Math.floor(baseXP * levelMultiplier * intBonus));
+
+        // 経験値とCodexポイントの獲得ログをまとめる
+        let rewardText = `Gained ${xpGained} XP!`;
+        if (monster.codexPoints) {
+            rewardText += ` and ${monster.codexPoints} codex points!`;
+        }
+        game.logger.add(rewardText, "playerInfo");
+
+        // 知力ボーナスがある場合は別行で表示
+        if (intBonus > 1) {
+            game.logger.add(`Intelligence bonus: +${Math.floor((intBonus - 1) * 100)}% XP!`, "playerInfo");
+        }
+
+        this.addExperience(xpGained);
+        if (monster.codexPoints) {
+            this.codexPoints += monster.codexPoints;
         }
     }
 } 

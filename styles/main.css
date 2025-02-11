@@ -4,6 +4,9 @@ body {
     margin: 10px;
     font-family: 'Press Start 2P';
     font-size: 10px;
+    width: 1780px;
+    height: 980px;
+    margin: 0 auto;
 }
 
 .container {
@@ -26,6 +29,7 @@ body {
     padding: 10px;
     font-size: 15px;
     font-family: 'Press Start 2P';
+    line-height: 1.1;
 }
 
 #status-panel {

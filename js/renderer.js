@@ -895,7 +895,7 @@ class Renderer {
             // --- Basic Information ---
             let lookInfo = [
                 `${monster.name} (Level ${monster.level}):`,
-                `HP: ${monster.hp}/${monster.maxHp} [<span style="color: ${healthStatus.color}">${healthStatus.name}</span>]`,
+                `HP: ${Math.max(0, monster.hp)}/${monster.maxHp} [<span style="color: ${healthStatus.color}">${healthStatus.name}</span>]`,
                 `Distance: ${Math.max(Math.abs(this.game.player.x - targetX), Math.abs(this.game.player.y - targetY))} tiles`
             ];
 

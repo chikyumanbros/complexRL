@@ -619,7 +619,8 @@ const GAME_CONSTANTS = {
         THRESHOLDS: {
             HEALTHY: 75,
             WOUNDED: 50,
-            BADLY_WOUNDED: 25
+            BADLY_WOUNDED: 25,
+            NEAR_DEATH: 10
         },
 
         // ステータスによる閾値の修正計算
@@ -632,7 +633,8 @@ const GAME_CONSTANTS = {
             return {
                 HEALTHY: Math.min(90, Math.max(60, this.THRESHOLDS.HEALTHY - conModifier - wisModifier)),
                 WOUNDED: Math.min(65, Math.max(35, this.THRESHOLDS.WOUNDED - conModifier - wisModifier)),
-                BADLY_WOUNDED: Math.min(40, Math.max(10, this.THRESHOLDS.BADLY_WOUNDED - conModifier - wisModifier))
+                BADLY_WOUNDED: Math.min(40, Math.max(15, this.THRESHOLDS.BADLY_WOUNDED - conModifier - wisModifier)),
+                NEAR_DEATH: Math.min(15, Math.max(5, this.THRESHOLDS.NEAR_DEATH - conModifier - wisModifier))
             };
         },
 
@@ -647,21 +649,28 @@ const GAME_CONSTANTS = {
             const percentage = (currentHp / maxHp) * 100;
             const thresholds = this.calculateThresholds(stats);
 
-            if (percentage > thresholds.HEALTHY) return {
-                name: "Healthy",
-                color: "#2ecc71"  // 緑色
+            // HPが1の場合は必ずNear Death状態とする
+            if (currentHp === 1) return {
+                name: "Near Death",
+                color: "#8e44ad"  // 紫色
             };
-            if (percentage > thresholds.WOUNDED) return {
-                name: "Wounded",
-                color: "#f1c40f"  // 黄色
+
+            // 閾値の判定を修正（小さい方から判定）
+            if (percentage <= thresholds.NEAR_DEATH) return {
+                name: "Near Death",
+                color: "#8e44ad"  // 紫色
             };
-            if (percentage > thresholds.BADLY_WOUNDED) return {
+            if (percentage <= thresholds.BADLY_WOUNDED) return {
                 name: "Badly Wounded",
                 color: "#e74c3c"  // 赤色
             };
+            if (percentage <= thresholds.WOUNDED) return {
+                name: "Wounded",
+                color: "#f1c40f"  // 黄色
+            };
             return {
-                name: "Near Death",
-                color: "#8e44ad"  // 紫色
+                name: "Healthy",
+                color: "#2ecc71"  // 緑色
             };
         }
     },

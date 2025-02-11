@@ -88,6 +88,15 @@ class Monster {
         const damage = Math.max(1, amount);
         this.hp -= damage;
 
+        // 睡眠状態の解除判定を追加
+        if (this.isSleeping) {
+            const wakeupChance = 80;  // 攻撃を受けた時は高確率で起床
+            if (Math.random() * 100 < wakeupChance) {
+                this.isSleeping = false;
+                game.logger.add(`${this.name} wakes up!`, "monsterInfo");
+            }
+        }
+
         // 派生パラメータの再計算
         this.updateStats();
 
@@ -318,8 +327,12 @@ class Monster {
 
     // ========================== attackPlayer Method ==========================
     attackPlayer(player, game) {
+        // 睡眠中は攻撃できない
+        if (this.isSleeping) {
+            return;
+        }
+
         // --- Combat Setup ---
-        // 攻撃時に自身を戦闘対象として設定し、look情報を更新
         game.lastCombatMonster = this;
         game.renderer.examineTarget(this.x, this.y);
 
