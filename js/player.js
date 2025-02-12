@@ -625,8 +625,15 @@ class Player {
                 const oldHp = this.hp;
                 this.hp = Math.min(this.maxHp, this.hp + healAmount);
                 const actualHeal = this.hp - oldHp;
+                
+                // ダイスロールの結果を配列に格納
+                let healRolls = [];
+                for (let i = 0; i < this.healingDice.count; i++) {
+                    healRolls.push(Math.floor(Math.random() * this.healingDice.sides) + 1);
+                }
+                
                 this.game.logger.add(
-                    `Natural healing: ${this.healingDice.count}d${this.healingDice.sides}` +
+                    `Natural healing: [${healRolls.join(',')}]` +
                     `${this.healModifier >= 0 ? '+' : ''}${this.healModifier} → +${actualHeal} HP`, 
                     "heal"
                 );

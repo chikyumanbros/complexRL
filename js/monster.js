@@ -343,6 +343,7 @@ class Monster {
         
         if (roll >= hitChance) {
             game.logger.add(`${this.name}'s attack misses!`, "monsterMiss");
+            game.renderer.showMissEffect(player.x, player.y, 'miss');
             return;
         }
 
@@ -351,6 +352,7 @@ class Monster {
         const evadeChance = player.evasion;
         if (evadeRoll < evadeChance) {
             game.logger.add(`You dodge ${this.name}'s attack! (EVA: ${Math.floor(evadeChance)}% | Roll: ${Math.floor(evadeRoll)})`, "playerEvade");
+            game.renderer.showMissEffect(player.x, player.y, 'evade');
             return;
         }
 

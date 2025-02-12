@@ -14,6 +14,8 @@ class InputHandler {
         this.boundHandleInput = this.handleInput.bind(this);  // バインドされたメソッドを保持
         this.bindKeys();
         this.mode = 'normal';  // 通常モード
+        this.lastInputTime = 0;  // 最後の入力時刻を追加
+        this.inputCooldown = 100;  // 入力クールダウン時間（ミリ秒）
     }
 
     // ----------------------
@@ -31,6 +33,14 @@ class InputHandler {
     // Main Input Handler Method
     // ----------------------
     handleInput(event) {
+        // 入力クールダウンのチェック
+        const currentTime = Date.now();
+        if (currentTime - this.lastInputTime < this.inputCooldown) {
+            event.preventDefault();
+            return;
+        }
+        this.lastInputTime = currentTime;
+
         // --- Clean up visual effects on new input ---
         this.game.renderer.clearEffects();
 
@@ -657,6 +667,10 @@ class InputHandler {
             this.game.tiles[door.y][door.x] = GAME_CONSTANTS.TILES.DOOR.OPEN;
             this.game.colors[door.y][door.x] = GAME_CONSTANTS.COLORS.DOOR;
             this.game.logger.add("You opened the door.", "playerInfo");
+            
+            // 扉を開けた後に視界を更新
+            this.game._visibleTilesCache = null;  // キャッシュをクリア
+            this.game.renderer.render();
         } else if (operation === 'c' && door.tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
             const monster = this.game.getMonsterAt(door.x, door.y);
             if (monster) {
@@ -693,6 +707,10 @@ class InputHandler {
                 this.game.tiles[door.y][door.x] = GAME_CONSTANTS.TILES.DOOR.CLOSED;
                 this.game.colors[door.y][door.x] = GAME_CONSTANTS.COLORS.DOOR;
                 this.game.logger.add("You closed the door.", "playerInfo");
+                
+                // 扉を閉めた後に視界を更新
+                this.game._visibleTilesCache = null;  // キャッシュをクリア
+                this.game.renderer.render();
             }
         }
     }

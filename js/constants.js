@@ -101,6 +101,66 @@ const GAME_CONSTANTS = {
         }
     },
 
+    // DANGER_LEVELS Section: Danger level configurations
+    DANGER_LEVELS: {
+        SAFE: { 
+            name: 'Serene', 
+            levelModifier: -1, 
+            color: '#2ecc71',
+            flavor: "A gentle breeze carries the scent of ancient stone. The air feels unusually peaceful, almost protective."
+        },
+        NORMAL: { 
+            name: 'Neutral', 
+            levelModifier: 0, 
+            color: '#f1c40f',
+            flavor: "The familiar musty scent of the dungeon fills the air. Distant echoes remind you to remain vigilant."
+        },
+        DANGEROUS: { 
+            name: 'Perilous', 
+            levelModifier: 1, 
+            color: '#e74c3c',
+            flavor: "The shadows seem to writhe with malicious intent. Every sound carries an undertone of danger."
+        },
+        DEADLY: { 
+            name: 'Fatal', 
+            levelModifier: 2, 
+            color: '#8e44ad',
+            flavor: "An oppressive darkness weighs heavily on your soul. The very air seems to pulse with deadly energy."
+        }
+    },
+
+    // CONTROLS Section: Key bindings for game controls
+    CONTROLS: {
+        MOVEMENT: {
+            title: "Movement",
+            keys: [
+                { key: "h/←", desc: "Move left" },
+                { key: "j/↓", desc: "Move down" },
+                { key: "k/↑", desc: "Move up" },
+                { key: "l/→", desc: "Move right" },
+                { key: "y", desc: "Move diagonally up-left" },
+                { key: "u", desc: "Move diagonally up-right" },
+                { key: "b", desc: "Move diagonally down-left" },
+                { key: "n", desc: "Move diagonally down-right" },
+                { key: ".", desc: "Wait one turn" },
+                { key: "z", desc: "Auto explore" }
+            ]
+        },
+        ACTIONS: {
+            title: "Actions",
+            keys: [
+                { key: "1-9", desc: "Use skill" },
+                { key: "o", desc: "Open door" },
+                { key: "c", desc: "Close door" },
+                { key: ">", desc: "Descend stairs | Auto move to stairs" },
+                { key: "Tab", desc: "Toggle Codex menu" },
+                { key: ";", desc: "Look mode" },
+                { key: "?", desc: "Show this help" },
+                { key: "Esc", desc: "Cancel/Close menu" }
+            ]
+        }
+    },
+
     // FORMULAS Section: Calculations for character stats and actions
     FORMULAS: {
         MAX_HP: (stats, level) => Math.floor((stats.con * 2 + stats.str / 5) * (1 + level * 0.2)),
@@ -140,6 +200,68 @@ const GAME_CONSTANTS = {
             return Math.min(50, Math.max(0, 50 - stats.int * 8));
         },
         SPEED: (stats) => Math.max(1, Math.floor(stats.dex - ((stats.str + stats.con) / 10)))
+    },
+
+    // 体力状態の判定システム
+    HEALTH_STATUS: {
+        // 基本となる閾値（%）
+        THRESHOLDS: {
+            HEALTHY: 75,
+            WOUNDED: 50,
+            BADLY_WOUNDED: 25,
+            NEAR_DEATH: 10
+        },
+
+        // ステータスによる閾値の修正計算
+        calculateThresholds: function(stats) {
+            // 体力と知恵が高いほど、より低いHP%でも良好な状態を維持できる
+            const conModifier = (stats.con - 10) * 0.5;  // 体力による修正（±0.5%ずつ）
+            const wisModifier = (stats.wis - 10) * 0.3;  // 知恵による修正（±0.3%ずつ）
+            
+            // 閾値に修正を「加算」しているため、高いステータスはより低いHP%まで状態を維持
+            return {
+                HEALTHY: Math.min(90, Math.max(60, this.THRESHOLDS.HEALTHY - conModifier - wisModifier)),
+                WOUNDED: Math.min(65, Math.max(35, this.THRESHOLDS.WOUNDED - conModifier - wisModifier)),
+                BADLY_WOUNDED: Math.min(40, Math.max(15, this.THRESHOLDS.BADLY_WOUNDED - conModifier - wisModifier)),
+                NEAR_DEATH: Math.min(15, Math.max(5, this.THRESHOLDS.NEAR_DEATH - conModifier - wisModifier))
+            };
+        },
+
+        // 体力状態の判定
+        getStatus: function(currentHp, maxHp, stats) {
+            // 死亡判定を最初に行う
+            if (currentHp <= 0) return {
+                name: "Dead",
+                color: "#4a4a4a"  // 暗いグレー
+            };
+
+            const percentage = (currentHp / maxHp) * 100;
+            const thresholds = this.calculateThresholds(stats);
+
+            // HPが1の場合は必ずNear Death状態とする
+            if (currentHp === 1) return {
+                name: "Near Death",
+                color: "#8e44ad"  // 紫色
+            };
+
+            // 閾値の判定を修正（小さい方から判定）
+            if (percentage <= thresholds.NEAR_DEATH) return {
+                name: "Near Death",
+                color: "#8e44ad"  // 紫色
+            };
+            if (percentage <= thresholds.BADLY_WOUNDED) return {
+                name: "Badly Wounded",
+                color: "#e74c3c"  // 赤色
+            };
+            if (percentage <= thresholds.WOUNDED) return {
+                name: "Wounded",
+                color: "#f1c40f"  // 黄色
+            };
+            return {
+                name: "Healthy",
+                color: "#2ecc71"  // 緑色
+            };
+        }
     },
 
     // MONSTERS Section: Monster definitions and attributes
@@ -326,68 +448,8 @@ const GAME_CONSTANTS = {
         },
     },
 
-    // DANGER_LEVELS Section: Danger level configurations
-    DANGER_LEVELS: {
-        SAFE: { 
-            name: 'Serene', 
-            levelModifier: -1, 
-            color: '#2ecc71',
-            flavor: "A gentle breeze carries the scent of ancient stone. The air feels unusually peaceful, almost protective."
-        },
-        NORMAL: { 
-            name: 'Neutral', 
-            levelModifier: 0, 
-            color: '#f1c40f',
-            flavor: "The familiar musty scent of the dungeon fills the air. Distant echoes remind you to remain vigilant."
-        },
-        DANGEROUS: { 
-            name: 'Perilous', 
-            levelModifier: 1, 
-            color: '#e74c3c',
-            flavor: "The shadows seem to writhe with malicious intent. Every sound carries an undertone of danger."
-        },
-        DEADLY: { 
-            name: 'Fatal', 
-            levelModifier: 2, 
-            color: '#8e44ad',
-            flavor: "An oppressive darkness weighs heavily on your soul. The very air seems to pulse with deadly energy."
-        }
-    },
-
-    // CONTROLS Section: Key bindings for game controls
-    CONTROLS: {
-        MOVEMENT: {
-            title: "Movement",
-            keys: [
-                { key: "h/←", desc: "Move left" },
-                { key: "j/↓", desc: "Move down" },
-                { key: "k/↑", desc: "Move up" },
-                { key: "l/→", desc: "Move right" },
-                { key: "y", desc: "Move diagonally up-left" },
-                { key: "u", desc: "Move diagonally up-right" },
-                { key: "b", desc: "Move diagonally down-left" },
-                { key: "n", desc: "Move diagonally down-right" },
-                { key: ".", desc: "Wait one turn" },
-                { key: "z", desc: "Auto explore" }
-            ]
-        },
-        ACTIONS: {
-            title: "Actions",
-            keys: [
-                { key: "1-9", desc: "Use skill" },
-                { key: "o", desc: "Open door" },
-                { key: "c", desc: "Close door" },
-                { key: ">", desc: "Descend stairs | Auto move to stairs" },
-                { key: "Tab", desc: "Toggle Codex menu" },
-                { key: ";", desc: "Look mode" },
-                { key: "?", desc: "Show this help" },
-                { key: "Esc", desc: "Cancel/Close menu" }
-            ]
-        }
-    },
-
-    // MONSTER_SPRITES Section: Monster sprites
-    MONSTER_SPRITES: {
+     // MONSTER_SPRITES Section: Monster sprites
+     MONSTER_SPRITES: {
         RAT: [  // 灰色の体に茶色の耳としっぽ
             "                ",
             "                ",
@@ -610,68 +672,6 @@ const GAME_CONSTANTS = {
 
             // 対応する色コードを返す
             return mostUsedChar ? this[mostUsedChar] : '#ffffff';
-        }
-    },
-
-    // 体力状態の判定システム
-    HEALTH_STATUS: {
-        // 基本となる閾値（%）
-        THRESHOLDS: {
-            HEALTHY: 75,
-            WOUNDED: 50,
-            BADLY_WOUNDED: 25,
-            NEAR_DEATH: 10
-        },
-
-        // ステータスによる閾値の修正計算
-        calculateThresholds: function(stats) {
-            // 体力と知恵が高いほど、より低いHP%でも良好な状態を維持できる
-            const conModifier = (stats.con - 10) * 0.5;  // 体力による修正（±0.5%ずつ）
-            const wisModifier = (stats.wis - 10) * 0.3;  // 知恵による修正（±0.3%ずつ）
-            
-            // 閾値に修正を「加算」しているため、高いステータスはより低いHP%まで状態を維持
-            return {
-                HEALTHY: Math.min(90, Math.max(60, this.THRESHOLDS.HEALTHY - conModifier - wisModifier)),
-                WOUNDED: Math.min(65, Math.max(35, this.THRESHOLDS.WOUNDED - conModifier - wisModifier)),
-                BADLY_WOUNDED: Math.min(40, Math.max(15, this.THRESHOLDS.BADLY_WOUNDED - conModifier - wisModifier)),
-                NEAR_DEATH: Math.min(15, Math.max(5, this.THRESHOLDS.NEAR_DEATH - conModifier - wisModifier))
-            };
-        },
-
-        // 体力状態の判定
-        getStatus: function(currentHp, maxHp, stats) {
-            // 死亡判定を最初に行う
-            if (currentHp <= 0) return {
-                name: "Dead",
-                color: "#4a4a4a"  // 暗いグレー
-            };
-
-            const percentage = (currentHp / maxHp) * 100;
-            const thresholds = this.calculateThresholds(stats);
-
-            // HPが1の場合は必ずNear Death状態とする
-            if (currentHp === 1) return {
-                name: "Near Death",
-                color: "#8e44ad"  // 紫色
-            };
-
-            // 閾値の判定を修正（小さい方から判定）
-            if (percentage <= thresholds.NEAR_DEATH) return {
-                name: "Near Death",
-                color: "#8e44ad"  // 紫色
-            };
-            if (percentage <= thresholds.BADLY_WOUNDED) return {
-                name: "Badly Wounded",
-                color: "#e74c3c"  // 赤色
-            };
-            if (percentage <= thresholds.WOUNDED) return {
-                name: "Wounded",
-                color: "#f1c40f"  // 黄色
-            };
-            return {
-                name: "Healthy",
-                color: "#2ecc71"  // 緑色
-            };
         }
     },
 };

@@ -1,4 +1,5 @@
 body {
+    position: relative;
     background: #111;
     color: #fff;
     margin: 10px;
@@ -7,6 +8,7 @@ body {
     width: 1780px;
     height: 980px;
     margin: 0 auto;
+    overflow: hidden;
 }
 
 .container {
@@ -79,6 +81,19 @@ body {
     word-wrap: break-word;
     font-size: 10px !important;
     font-family: 'Press Start 2P';
+    opacity: 0;  /* 初期状態は非表示 */
+    animation: fadeInUp 0.2s ease forwards;  /* メッセージが下から浮き上がるように表示 */
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* メッセージタイプごとの色分け */
@@ -625,7 +640,7 @@ body.help-mode #codex-panel {  /* help-modeを追加 */
     border-radius: 50%;
     pointer-events: none;
     animation: death-particle 0.8s ease-out forwards;
-    opacity: 0.5;
+    opacity: 0.6;
 }
 
 @keyframes death-particle {
@@ -649,4 +664,43 @@ body.help-mode #codex-panel {  /* help-modeを追加 */
 .sprite-preview-wrapper {
     white-space: nowrap; /* 折り返しを禁止 */
     overflow-x: auto;    /* 横スクロールを許可 */
+}
+
+/* スキャンラインエフェクト用のオーバーレイ */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(23, 23, 23, 0.501) 0px,
+        rgba(0, 0, 0, 0.37) 1px,
+        transparent 1px,
+        transparent 2px
+    );
+    pointer-events: none;
+    z-index: 10000;
+}
+
+.miss-ring {
+    position: absolute;
+    border: 2px solid;
+    border-radius: 40%;
+    pointer-events: none;
+    animation: missRing forwards;
+    z-index: 1000;
+}
+
+@keyframes missRing {
+    0% {
+        transform: scale(0.5);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(2);
+        opacity: 0;
+    }
 }
