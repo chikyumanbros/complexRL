@@ -175,6 +175,15 @@ class Player {
 
     // ===== Damage Handling Methods =====
     takeDamage(amount) {
+        // mindカテゴリのスキルをチェック
+        if (this.meditation && this.meditation.active) {
+            const meditationSkill = this.game.codexSystem.findSkillById('meditation');
+            if (meditationSkill && meditationSkill.cancelOnDamage) {
+                this.game.logger.add(`Meditation cancelled. (Total healed: ${this.meditation.totalHealed})`, "playerInfo");
+                this.meditation = null;
+            }
+        }
+
         // 元のevasion値を保持
         const baseEvasion = this.evasion;
 

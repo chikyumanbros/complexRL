@@ -21,6 +21,7 @@ class Game {
         this.dangerLevel = 'NORMAL';  // Added danger level
         this.explored = this.initializeExplored();  // Added explored information
         this.lastAttackLocation = null;  // Added property to track last attack location
+        this.hasDisplayedPresenceWarning = false;  // Added hasDisplayedPresenceWarning property
         
         this.init();
         
@@ -200,6 +201,7 @@ class Game {
     }
 
     processTurn() {
+        this.hasDisplayedPresenceWarning = false;  // フラグをリセット
         this.turn++;
         
         // Process player's cooldown

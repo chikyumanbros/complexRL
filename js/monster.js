@@ -261,8 +261,9 @@ class Monster {
                 } else {
                     // プレイヤーのperceptionが高い場合、気配を感じ取る
                     const playerPerception = GAME_CONSTANTS.FORMULAS.PERCEPTION(game.player.stats);
-                    if (distance <= playerPerception) {
+                    if (distance <= playerPerception && !game.hasDisplayedPresenceWarning) {
                         game.logger.add(`You sense the presence of something nearby...`, "playerInfo");
+                        game.hasDisplayedPresenceWarning = true;  // フラグを設定
                     }
                 }
                 this.hasSpottedPlayer = true;

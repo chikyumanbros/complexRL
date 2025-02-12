@@ -196,22 +196,23 @@ class CodexSystem {
                 ]
             },
             // ---- Mind Skills ----
-            mind: {  // mental から mind に変更
-                key: 'i',  // 'm' から 'i' に変更 (intelligence/inner の i)
-                name: 'MIND',  // MENTAL から MIND に変更
+            mind: {
+                key: 'i',
+                name: 'MIND',
                 skills: [
                     {
                         // --- Meditation Skill ---
                         id: 'meditation',
                         name: 'Meditation',
-                        desc: 'Meditate to recover HP. Move to cancel. (Heal: WIS/2 per turn, Max turns: WIS)',
+                        desc: 'Meditate to recover HP. Move or take damage to cancel. (Heal: WIS/2 per turn, Max turns: WIS)',
                         cost: 30,
                         cooldown: 100,
                         isFreeAction: false,
                         requiresTarget: false,
+                        cancelOnDamage: true,  // mindカテゴリのスキルは全てこの属性を持つ
                         getEffectText: (player) => {
-                            const healPerTurn = Math.floor(player.stats.wis / 3);  // effect関数と同じ計算式
-                            const maxTurns = Math.floor(player.stats.wis / 2);     // effect関数と同じ計算式
+                            const healPerTurn = Math.floor(player.stats.wis / 3);
+                            const maxTurns = Math.floor(player.stats.wis / 2);
                             return `[${healPerTurn} HP/turn, ${maxTurns} turns]`;
                         },
                         effect: (game, player) => {
