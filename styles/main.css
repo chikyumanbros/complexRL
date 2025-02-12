@@ -81,19 +81,22 @@ body {
     word-wrap: break-word;
     font-size: 10px !important;
     font-family: 'Press Start 2P';
-    opacity: 0;  /* 初期状態は非表示 */
-    animation: fadeInUp 0.2s ease forwards;  /* メッセージが下から浮き上がるように表示 */
+    opacity: 0;
+    animation: 
+        consoleAppear 0.1s ease forwards,
+        typewriter 0.2s steps(50, end);
+    white-space: nowrap;
+    overflow: hidden;
 }
 
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+@keyframes consoleAppear {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes typewriter {
+    from { width: 0; }
+    to { width: 100%; }
 }
 
 /* メッセージタイプごとの色分け */
@@ -676,8 +679,8 @@ body::before {
     height: 100vh;
     background: repeating-linear-gradient(
         0deg,
-        rgba(23, 23, 23, 0.501) 0px,
-        rgba(0, 0, 0, 0.37) 1px,
+        rgba(23, 23, 23, 0.348) 0px,
+        rgba(0, 0, 0, 0.22) 1px,
         transparent 1px,
         transparent 2px
     );

@@ -984,12 +984,12 @@ class Renderer {
         // エフェクトの設定
         const config = {
             miss: {
-                color: '#e74c3c',
+                color: '#ffff00',
                 size: 20,
                 duration: '0.4s'
             },
             evade: {
-                color: '#2ecc71',
+                color: '#00FFFF',
                 size: 24,
                 duration: '0.5s'
             }

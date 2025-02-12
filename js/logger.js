@@ -3,6 +3,7 @@ class Logger {
         this.logElement = document.getElementById('message-log');
         this.codexPanelElement = document.getElementById('available-skills');
         this.messages = [];
+        this.maxMessages = 100; // メッセージの最大数を設定
         this.currentLookInfo = null;
         this.game = game;  // Store reference to the game
         this.floorInfo = null;  // Store floor information
@@ -110,7 +111,14 @@ class Logger {
     add(message, type = 'info') {
         const messageDiv = document.createElement('div');
         messageDiv.textContent = message;
-        messageDiv.className = type;  // Apply CSS class
+        messageDiv.className = type;
+
+        // メッセージ数が上限を超えた場合、古いメッセージを削除
+        const children = this.logElement.children;
+        while (children.length >= this.maxMessages) {
+            this.logElement.removeChild(children[0]);
+        }
+
         this.logElement.appendChild(messageDiv);
         this.logElement.scrollTop = this.logElement.scrollHeight;
     }
