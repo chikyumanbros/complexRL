@@ -346,6 +346,7 @@ class Player {
         
         if (roll >= context.hitChance) {
             game.logger.add(`Your ${context.attackType} misses!`, "playerMiss");
+            game.renderer.showMissEffect(game.lastCombatMonster.x, game.lastCombatMonster.y, 'miss');
             game.lastAttackHit = false;
             this.nextAttackModifiers = [];
             return false;
@@ -366,6 +367,7 @@ class Player {
                 `(EVA: ${Math.floor(evadeChance)}% | Roll: ${Math.floor(evadeRoll)})`,
                 "monsterEvade"
             );
+            game.renderer.showMissEffect(monster.x, monster.y, 'evade');
             game.lastAttackHit = false;
             this.nextAttackModifiers = [];
             return false;

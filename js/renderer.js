@@ -985,13 +985,13 @@ class Renderer {
         const config = {
             miss: {
                 color: '#ffff00',
-                size: 20,
+                size: 22,
                 duration: '0.4s'
             },
             evade: {
                 color: '#00FFFF',
-                size: 24,
-                duration: '0.5s'
+                size: 22,
+                duration: '0.4s'
             }
         };
 
