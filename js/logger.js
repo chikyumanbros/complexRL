@@ -257,7 +257,7 @@ class Logger {
     renderLookPanel() {
         if (!this.codexPanelElement) return;
 
-        let display = "=== ATMOSPHERE ===\n\n";
+        let display = "=== ATMOSPHERE ===\n";
         if (this.floorInfo) {
             let colorKey = 'safe';
             if (this.floorInfo.danger >= 3) {
@@ -277,16 +277,16 @@ class Logger {
             display += `${coloredLines}\n\n`;
         }
         
-        display += "=== SURROUNDINGS ===\n\n";
+        display += "=== SURROUNDINGS ===\n";
         if (this.roomInfo) {
             display += `${this.roomInfo}\n\n`;
         }
         
-        display += "=== LOOK INFO ===\n\n";
+        display += "=== LOOK INFO ===\n";
         if (this.currentLookInfo) {
             // 既存のコンテンツをクリア
             this.codexPanelElement.innerHTML = display
-                .replace(/\n\n/g, '<br><br>')
+                .replace(/\n/g, '<br>')
                 .replace(/\n(?!<)/g, '<br>');
 
             // currentLookInfoが要素の場合は直接追加

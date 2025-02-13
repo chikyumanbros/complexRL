@@ -207,9 +207,9 @@ class CodexSystem {
                         desc: 'Meditate to recover HP. Move or take damage to cancel. (Heal: WIS/2 per turn, Max turns: WIS)',
                         cost: 30,
                         cooldown: 100,
-                        isFreeAction: false,
+                        isFreeAction: false,  // フリーアクションではないため、ターン消費する
                         requiresTarget: false,
-                        cancelOnDamage: true,  // mindカテゴリのスキルは全てこの属性を持つ
+                        cancelOnDamage: true,
                         getEffectText: (player) => {
                             const healPerTurn = Math.floor(player.stats.wis / 3);
                             const maxTurns = Math.floor(player.stats.wis / 2);
@@ -237,7 +237,7 @@ class CodexSystem {
 
                             game.logger.add("Started meditating...", "playerInfo");
                             game.renderer.render();
-                            return true;
+                            return { success: true, skipTurnProcess: true };  // ターン処理をスキップするフラグを追加
                         }
                     }
                 ]

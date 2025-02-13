@@ -224,6 +224,8 @@ class Game {
         this.updateExplored();
         // Update room information
         this.updateRoomInfo();
+               // 幻覚エフェクトのターンカウントを更新
+               this.renderer.psychedelicTurn++;
         this.renderer.render();
 
         // 各ターン終了時にセーブ
@@ -550,53 +552,29 @@ class Game {
 
     // Retrieve all tiles visible to the player.
     getVisibleTiles() {
-        const visibleTiles = new Set();
-        const px = this.player.x;
-        const py = this.player.y;
+        const visibleTiles = [];
         const currentRoom = this.getCurrentRoom();
-        
-        // キャッシュを使用（モンスターの位置は含めない）
-        const cacheKey = `${px},${py},${currentRoom?.brightness || 3}`;
-        if (this._visibleTilesCache?.key === cacheKey) {
-            return this._visibleTilesCache.tiles;
-        }
-        
-        // 部屋の明るさをそのまま使用（廊下は3）
-        const visibility = currentRoom ? currentRoom.brightness : 3;
-        const extendedVisibility = visibility + 1;
+        const visibility = currentRoom ? currentRoom.brightness : 2;
 
-        for (let y = Math.max(0, py - extendedVisibility); y <= Math.min(this.height - 1, py + extendedVisibility); y++) {
-            for (let x = Math.max(0, px - extendedVisibility); x <= Math.min(this.width - 1, px + extendedVisibility); x++) {
-                const dx = x - px;
-                const dy = y - py;
+        // 視界範囲内の全タイルをチェック
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                // ユークリッド距離を計算
+                const dx = x - this.player.x;
+                const dy = y - this.player.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                const isWallOrDoor = this.map[y][x] === 'wall' || 
-                                   this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
-                                   this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.OPEN;
-                
-                const visibilityCheck = isWallOrDoor ? 
-                                      distance <= extendedVisibility : 
-                                      distance <= visibility;
 
-                if (visibilityCheck && this.hasLineOfSight(px, py, x, y)) {
-                    visibleTiles.add(`${x},${y}`);
+                // 視界範囲内かチェック
+                if (distance <= visibility) {
+                    // 視線が通るかチェック
+                    if (this.hasLineOfSight(this.player.x, this.player.y, x, y)) {
+                        visibleTiles.push({ x, y });
+                    }
                 }
             }
         }
-        
-        const result = Array.from(visibleTiles).map(coord => {
-            const [x, y] = coord.split(',').map(Number);
-            return {x, y};
-        });
-        
-        // キャッシュを更新
-        this._visibleTilesCache = {
-            key: cacheKey,
-            tiles: result
-        };
-        
-        return result;
+
+        return visibleTiles;
     }
 
     updateRoomInfo() {
@@ -620,11 +598,13 @@ class Game {
                 monster.y < currentRoom.y + currentRoom.height
             ).length;
         } else {
-            // In a corridor, count monsters within a 2-tile radius.
-            monsterCount = this.monsters.filter(monster => 
-                Math.abs(monster.x - px) <= 2 && 
-                Math.abs(monster.y - py) <= 2
-            ).length;
+            // 廊下でのモンスターカウント（チェビシェフ距離からユークリッド距離に変更）
+            monsterCount = this.monsters.filter(monster => {
+                const dx = monster.x - px;
+                const dy = monster.y - py;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                return distance <= 2.5;  // 円形の範囲で確認
+            }).length;
         }
 
         this.logger.updateRoomInfo(currentRoom, monsterCount);

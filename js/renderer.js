@@ -5,39 +5,147 @@ class Renderer {
         this.movementEffects = null;
         this.spriteColorCache = new Map();
         
-        // 揺らぎのための変数を追加
+        // 揺らぎのための変数
         this.flickerTime = 0;
-        this.flickerValues = new Array(30).fill(0);  // 16段階の揺らぎ値を保持
+        this.flickerValues = new Array(20).fill(0);  // 揺らぎ値を保持
+
+        // 幻覚エフェクト用の変数
+        this.psychedelicTurn = 0;  // ターン数を記録
+        this.psychedelicColors = [
+            '#8B0000',  // ダークレッド
+            '#4B0082',  // インディゴ
+            '#006400',  // ダークグリーン
+            '#483D8B',  // ダークスレートブルー
+            '#800080',  // パープル
+            '#9400D3',  // ダークバイオレット
+            '#8B4513',  // サドルブラウン
+            '#4B0082',  // インディゴ
+            '#556B2F',  // ダークオリーブグリーン
+            '#8A2BE2',  // ブルーバイオレット
+            '#9932CC',  // ダークオーキッド
+            '#6B8E23',  // オリーブドラブ
+            '#FF1493',  // ディープピンク
+            '#FF4500',  // オレンジレッド
+            '#7B68EE',  // ミディアムスレートブルー
+        ];
+
+        // 明るさの揺らぎだけを更新
         this.startFlickerAnimation();
     }
 
-    // フリッカーアニメーションを開始
+    // フリッカーアニメーションを開始（明るさの揺らぎ用）
     startFlickerAnimation() {
         const FLICKER_INTERVAL = 500; // 500ミリ秒ごとに更新
         
         setInterval(() => {
-            // 揺らぎ値を更新
             this.flickerTime = (this.flickerTime + 1) % 50;
             for (let i = 0; i < 50; i++) {
-                // -0.05から+0.05の範囲でランダムな揺らぎを生成
-                this.flickerValues[i] = (Math.random() - 0.5) * 0.1;
+                // 揺らぎの範囲を-0.15から+0.15に拡大（以前は±0.05）
+                this.flickerValues[i] = (Math.random() - 0.5) * 0.2;
             }
-            this.render();
+            
+            // render()の呼び出しを削除
+            // 代わりに明るさの更新だけを行う
+            this.updateLightingOnly();
         }, FLICKER_INTERVAL);
     }
 
-    // 揺らぎ効果を計算する関数
+    // 明るさの更新のみを行うメソッドを追加
+    updateLightingOnly() {
+        // 視界内のタイルを取得
+        const visibleTiles = new Set(
+            this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
+        );
+
+        const elements = document.querySelectorAll('#game span');
+        elements.forEach(el => {
+            const x = parseInt(el.dataset.x);
+            const y = parseInt(el.dataset.y);
+            
+            // 視界内のタイルのみ処理
+            if (visibleTiles.has(`${x},${y}`)) {
+                const style = window.getComputedStyle(el);
+                const currentOpacity = parseFloat(style.opacity);
+                if (!isNaN(currentOpacity)) {
+                    const newOpacity = this.calculateFlicker(currentOpacity, x, y);
+                    el.style.opacity = newOpacity;
+                }
+            }
+        });
+    }
+
+    // 揺らぎ効果を計算する関数（明るさ用）
     calculateFlicker(baseOpacity, x, y) {
-        // 位置に基づいて揺らぎ値のインデックスを計算
         const flickerIndex = ((x + y + this.flickerTime) % 50);
-        
-        // 揺らぎを適用
-        return Math.max(0.3, Math.min(1.0, baseOpacity + this.flickerValues[flickerIndex]));
+        // 最小値を0.2に、最大値を1.0に維持
+        return Math.max(0.2, Math.min(1.0, baseOpacity + this.flickerValues[flickerIndex]));
+    }
+
+    // サイケデリック効果を計算する関数（ターンベース）
+    calculatePsychedelicEffect(x, y, baseChar, baseColor, forceOpacity = false) {
+        // プレイヤーの瞑想状態をチェック
+        if (!this.game.player.meditation?.active) {
+            return { char: baseChar, color: baseColor };
+        }
+
+        // プレイヤーからの距離を計算（ユークリッド距離に変更）
+        const dx = x - this.game.player.x;
+        const dy = y - this.game.player.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);  // ユークリッド距離
+
+        // WISとINTに基づいて効果範囲を計算
+        const effectRange = Math.max(1, Math.min(8, 
+            Math.floor(this.game.player.stats.wis - Math.floor(this.game.player.stats.int / 2)) * 2
+        ));
+
+        // 計算された範囲内の場合のみ効果を適用（円形範囲）
+        if (distance <= effectRange) {
+            // シード値としてターン数とタイル位置を使用
+            const seed = this.psychedelicTurn * 1000 + x * 100 + y;
+            const rand = Math.abs(Math.sin(seed));
+            
+            if (rand < 0.5) {
+                const possibleChars = 
+                    // 既存のタイル文字
+                    '.^~¨：#▓ЖШ=/+' +         // 床・壁・ドア
+                    '▨▤▥▧¤†‡§¶≡‖£' +        // 障害物
+                    '★☆○●◎◇◆□■△▲▽▼' +      // 幾何学記号
+                    '＊※＠＃＄％＆' +          // 特殊記号
+                    '【】《》「」『』' +        // 括弧類
+                    '～＋－×÷＝≠' +          // 数学記号
+                    '∀∃∠⊥∪∩∞∴' +          // 数学記号2
+                    '╋╂┿╀╁┾┽╃╄╅╆╇╈╉╊' +    // 罫線記号
+                    '▁▂▃▄▅▆▇█';            // ブロック要素
+
+                // ターン数とタイル位置に基づいて決定論的に選択
+                const charIndex = Math.floor(Math.abs(Math.sin(seed * 0.3)) * possibleChars.length);
+                const colorIndex = Math.floor(Math.abs(Math.cos(seed * 0.4)) * this.psychedelicColors.length);
+
+                return {
+                    char: possibleChars[charIndex] || baseChar,
+                    color: this.psychedelicColors[colorIndex] || baseColor
+                };
+            }
+        }
+
+        return { char: baseChar, color: baseColor };
     }
 
     highlightTarget(x, y) {
+        // プレイヤーの視界内のタイルを取得
+        const visibleTiles = new Set(
+            this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
+        );
+
+        // 指定された座標が視界内かチェック
+        if (!visibleTiles.has(`${x},${y}`)) {
+            // 視界外の場合は現在のハイライトを維持して false を返す
+            return false;
+        }
+
         this.highlightedTile = { x, y };
         this.render();
+        return true;  // 視界内の場合は true を返す
     }
 
     clearHighlight() {
@@ -71,10 +179,10 @@ class Renderer {
         if (this.highlightedTile) {
             const tile = this.game.map[this.highlightedTile.y][this.highlightedTile.x];
             const player = this.game.player;
-            const distance = Math.max(
-                Math.abs(this.highlightedTile.x - player.x),
-                Math.abs(this.highlightedTile.y - player.y)
-            );
+            // チェビシェフ距離からユークリッド距離に変更
+            const dx = this.highlightedTile.x - player.x;
+            const dy = this.highlightedTile.y - player.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
 
             let color;
             if (this.game.inputHandler.targetingMode === 'look') {
@@ -115,7 +223,12 @@ class Renderer {
                 const isVisible = visibleTiles.has(`${x},${y}`);
                 const isExplored = this.game.explored[y][x];
 
-                if (!isVisible && !isExplored) {
+                // ハイライトされたタイルまたは瞑想状態の場合は、視界外でも描画を続行
+                const isHighlighted = this.highlightedTile && 
+                    this.highlightedTile.x === x && 
+                    this.highlightedTile.y === y;
+
+                if (!this.game.player.meditation?.active && !isHighlighted && !isVisible && !isExplored) {
                     display += '<span style="color: black; background-color: black"> </span>';
                     continue;
                 }
@@ -126,15 +239,33 @@ class Renderer {
                 let backgroundColor = '';
                 let opacity = 1.0;
 
+                // ハイライト処理を追加
+                if (isHighlighted) {
+                    if (this.game.inputHandler.targetingMode === 'look') {
+                        backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                    } else {
+                        const skillId = this.game.inputHandler.targetingMode;
+                        const skill = this.game.codexSystem.findSkillById(skillId);
+                        const range = skill ? skill.range : 1;
+                        
+                        const dx = x - this.game.player.x;
+                        const dy = y - this.game.player.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        backgroundColor = distance <= range && this.game.tiles[y][x] !== '#' 
+                            ? 'rgba(46, 204, 113, 0.3)' 
+                            : 'rgba(231, 76, 60, 0.3)';
+                    }
+                    opacity = 1.0;  // ハイライトされたタイルは常に完全な不透明度で表示
+                }
+
                 // 視界内の場合、距離に基づいて不透明度を計算
                 if (isVisible) {
-                    const dx = Math.abs(x - px);
-                    const dy = Math.abs(y - py);
-                    // チェビシェフ距離を使用（8方向の距離）
-                    const distance = Math.max(dx, dy);
+                    const dx = x - px;
+                    const dy = y - py;
+                    const distance = Math.sqrt(dx * dx + dy * dy);  // ユークリッド距離に変更
                     
                     if (distance > 0) {
-                        // 基本の不透明度を計算
                         let baseOpacity;
                         if (distance <= 1) {
                             baseOpacity = 1.0;
@@ -145,32 +276,58 @@ class Renderer {
                         } else {
                             baseOpacity = 0.5;
                         }
-                        
-                        // 揺らぎを適用
                         opacity = this.calculateFlicker(baseOpacity, x, y);
                     }
 
                     // タイルの内容とスタイルを設定
-                    const tile = this.game.tiles[y][x];
-                    content = tile;
-                    style = `color: ${this.game.colors[y][x]}`;
+                    let tileContent = this.game.tiles[y][x];
+                    let tileColor = this.game.colors[y][x];
+
+                    // プレイヤー、モンスター、または通常のタイルの描画
+                    if (x === this.game.player.x && y === this.game.player.y) {
+                        content = this.game.player.char;
+                        const healthStatus = this.game.player.getHealthStatus(this.game.player.hp, this.game.player.maxHp);
+                        style = `color: ${healthStatus.color}`;
+                    } else {
+                        const monster = this.game.getMonsterAt(x, y);
+                        if (monster && isVisible) {
+                            content = monster.char;
+                            style = `color: ${GAME_CONSTANTS.COLORS.MONSTER[monster.type]}`;
+
+                            if (monster.isSleeping) {
+                                style += '; animation: sleeping-monster 1s infinite';
+                            }
+                            if (monster.hasStartedFleeing) {
+                                style += '; opacity: 0.8';
+                            }
+                        } else {
+                            // サイケデリック効果の適用（通常のタイルのみ）
+                            const psychedelicEffect = this.calculatePsychedelicEffect(x, y, tileContent, tileColor, true);
+                            content = psychedelicEffect.char;
+                            style = `color: ${psychedelicEffect.color}`;
+
+                            // 特殊タイルの色設定
+                            if (tileContent === GAME_CONSTANTS.STAIRS.CHAR) {
+                                style = `color: ${GAME_CONSTANTS.STAIRS.COLOR}`;
+                            }
+                        }
+                    }
                 } else if (isExplored) {
                     // 探索済みだが視界外の場合
-                    opacity = 0.4;
-                    const tile = this.game.tiles[y][x];
-                    content = tile;
+                    opacity = 0.3;
+                    content = this.game.tiles[y][x];
                     style = `color: ${this.game.colors[y][x]}`;
                 }
 
-            // データ属性を設定
-            const dataAttrs = `data-x="${x}" data-y="${y}"`;
+                // データ属性を設定
+                const dataAttrs = `data-x="${x}" data-y="${y}"`;
 
-            // 不透明度を適用
-            style += `; opacity: ${opacity}`;
+                // 不透明度を適用
+                style += `; opacity: ${opacity}`;
 
-            if (backgroundColor) {
-                style += `; background-color: ${backgroundColor}`;
-            }
+                if (backgroundColor) {
+                    style += `; background-color: ${backgroundColor}`;
+                }
 
                 // Check for door-kill effect
                 const isDoorKillTarget = this.game.lastDoorKillLocation &&
@@ -181,76 +338,13 @@ class Renderer {
                     classes.push('door-kill');
                 }
 
-                // Highlight for look mode or skill targeting
-                if (this.highlightedTile &&
-                    this.highlightedTile.x === x &&
-                    this.highlightedTile.y === y) {
-                    if (this.game.inputHandler.targetingMode === 'look') {
-                        backgroundColor = 'rgba(255, 255, 255, 0.53)';
-                    } else {
-                        const player = this.game.player;
-                        const skillId = this.game.inputHandler.targetingMode;
-                        const skill = this.game.codexSystem.findSkillById(skillId);
-                        const range = skill ? skill.range || 3 : 3;
-                        const distance = Math.max(
-                            Math.abs(this.highlightedTile.x - player.x),
-                            Math.abs(this.highlightedTile.y - player.y)
-                        );
-                        backgroundColor = distance <= range && this.game.map[y][x] === 'floor'
-                            ? 'rgba(46, 204, 113, 0.2)'
-                            : 'rgba(231, 76, 60, 0.2)';
-                    }
-                }
-
                 // 攻撃エフェクトの条件チェック
                 const isAttackTarget = this.game.lastAttackLocation &&
                     this.game.lastAttackLocation.x === x &&
                     this.game.lastAttackLocation.y === y;
 
-                if (isAttackTarget && this.game.lastAttackHit === true) {  // 厳密な比較を使用
+                if (isAttackTarget && this.game.lastAttackHit === true) {
                     classes.push('melee-attack');
-                }
-
-                // Render player, monster, and tile
-                if (x === this.game.player.x && y === this.game.player.y) {
-                    content = this.game.player.char;
-                    
-                    // 体力状態に基づいて色を設定
-                    const healthStatus = this.game.player.getHealthStatus(this.game.player.hp, this.game.player.maxHp);
-                    style = `color: ${healthStatus.color}`;
-
-                } else {
-                    const monster = this.game.getMonsterAt(x, y);
-                    if (monster && isVisible) {
-                        content = monster.char;
-                        // モンスターは元の色を維持
-                        style = `color: ${GAME_CONSTANTS.COLORS.MONSTER[monster.type]}`;
-
-                        // Apply styles based on monster state
-                        if (monster.isSleeping) {
-                            style += '; animation: sleeping-monster 1s infinite';
-                        }
-                        if (monster.hasStartedFleeing) {
-                            style += '; opacity: 0.8';
-                        }
-                    } else {
-                        content = this.game.tiles[y][x];
-                        const tile = this.game.tiles[y][x];
-
-                        // Set color for special tiles
-                        if (tile === GAME_CONSTANTS.STAIRS.CHAR) {
-                            style = `color: ${GAME_CONSTANTS.STAIRS.COLOR}`;
-                        } else {
-                            style = `color: ${this.game.colors[y][x]}`;
-                        }
-                    }
-                }
-
-                // 不透明度を適用
-                style += `; opacity: ${opacity}`;
-
-                if (backgroundColor) {
-                    style += `; background-color: ${backgroundColor}`;
                 }
 
                 const classString = classes.length > 0 ? `class="${classes.join(' ')}"` : '';
@@ -964,7 +1058,6 @@ class Renderer {
             let lookInfo = [
                 `${monster.name} (Level ${monster.level}):`,
                 `HP: ${Math.max(0, monster.hp)}/${monster.maxHp} [<span style="color: ${healthStatus.color}">${healthStatus.name}</span>]`,
-                `Distance: ${Math.max(Math.abs(this.game.player.x - targetX), Math.abs(this.game.player.y - targetY))} tiles`
             ];
 
             // --- Status Effects ---
@@ -1062,12 +1155,12 @@ class Renderer {
         const config = {
             miss: {
                 color: '#ffff00',
-                size: 22,
+                size: 15,
                 duration: '0.4s'
             },
             evade: {
                 color: '#00FFFF',
-                size: 22,
+                size: 15,
                 duration: '0.4s'
             }
         };

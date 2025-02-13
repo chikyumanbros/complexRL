@@ -386,10 +386,12 @@ class InputHandler {
     // ----------------------
     findNearbyMonster() {
         const player = this.game.player;
+        // チェビシェフ距離からユークリッド距離に変更
         for (const monster of this.game.monsters) {
-            const dx = Math.abs(monster.x - player.x);
-            const dy = Math.abs(monster.y - player.y);
-            if (dx <= 1 && dy <= 1) {  // 隣接（斜めも含む）
+            const dx = monster.x - player.x;
+            const dy = monster.y - player.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance <= 1.5) {  // 斜め距離も考慮して1.5に設定
                 return monster;
             }
         }
@@ -506,6 +508,17 @@ class InputHandler {
         if (dx !== 0 || dy !== 0) {
             const newX = this.targetX + dx;
             const newY = this.targetY + dy;
+
+            // 視界内のタイルを取得
+            const visibleTiles = new Set(
+                this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
+            );
+
+            // 新しい座標が視界内かチェック
+            if (!visibleTiles.has(`${newX},${newY}`)) {
+                return; // 視界外の場合は移動しない
+            }
+
             if (newX >= 0 && newX < this.game.width && newY >= 0 && newY < this.game.height) {
                 this.targetX = newX;
                 this.targetY = newY;
@@ -550,11 +563,26 @@ class InputHandler {
         if (dx !== 0 || dy !== 0) {
             const newX = this.targetX + dx;
             const newY = this.targetY + dy;
-            if (newX >= 0 && newX < this.game.width && newY >= 0 && newY < this.game.height) {
-                this.targetX = newX;
-                this.targetY = newY;
-                this.game.renderer.highlightTarget(this.targetX, this.targetY);
+
+            // マップ範囲内かチェック
+            if (newX < 0 || newX >= this.game.width || newY < 0 || newY >= this.game.height) {
+                return;
             }
+
+            // 視界内のタイルを取得
+            const visibleTiles = new Set(
+                this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
+            );
+
+            // 新しい座標が視界内かチェック
+            if (!visibleTiles.has(`${newX},${newY}`)) {
+                return; // 視界外の場合は移動しない
+            }
+
+            // 視界内の場合のみ移動を許可
+            this.targetX = newX;
+            this.targetY = newY;
+            this.game.renderer.highlightTarget(this.targetX, this.targetY);
         }
     }
 
@@ -572,10 +600,10 @@ class InputHandler {
         const range = skill.range || 3; // デフォルトの範囲を3に設定
 
         // --- Validate Target Distance and Tile ---
-        const distance = Math.max(
-            Math.abs(this.targetX - player.x),
-            Math.abs(this.targetY - player.y)
-        );
+        // チェビシェフ距離からユークリッド距離に変更
+        const dx = this.targetX - player.x;
+        const dy = this.targetY - player.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance > range || this.game.map[this.targetY][this.targetX] !== 'floor') {
             this.game.logger.add("Invalid target location!", "warning");

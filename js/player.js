@@ -6,14 +6,14 @@ class Player {
         this.game = game;
         this.char = '@';
         this.level = 1;
-        this.codexPoints = 0;  // codexポイントのみを使用
+        this.codexPoints = 100;  // codexポイントのみを使用
         this.xp = 0;                  // 経験値の初期化
         this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
         this.stats = { ...GAME_CONSTANTS.STATS.DEFAULT_VALUES };
 
         // HPの計算
         this.maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(this.stats, this.level);
-        this.hp = this.maxHp;
+        this.hp = 3//this.maxHp;
         
         // 他のパラメータ
         this.attackPower = GAME_CONSTANTS.FORMULAS.ATTACK(this.stats);
@@ -528,13 +528,14 @@ class Player {
         const effectResult = skill.effect(game, this, target);
         
         // スキルの実行が成功した場合のみ、以降の処理を行う
-        if (effectResult === true) {
+        if (effectResult === true || (typeof effectResult === 'object' && effectResult.success)) {
             // クールダウンの設定
             // フリーアクションの場合は+1しない
             skillData.remainingCooldown = skill.isFreeAction ? skill.cooldown : skill.cooldown + 1;
 
-            // スキルがフリーアクションでない場合はターンを消費
-            if (!skill.isFreeAction) {
+            // スキルがフリーアクションでない場合、かつ
+            // effectResult.skipTurnProcess が true でない場合のみターンを消費
+            if (!skill.isFreeAction && !(typeof effectResult === 'object' && effectResult.skipTurnProcess)) {
                 game.processTurn();
             }
             game.renderer.renderStatus();
@@ -693,14 +694,15 @@ class Player {
     // 新規メソッド: プレイヤーの周囲のモンスター数をカウント
     countSurroundingMonsters(game) {
         let count = 0;
-        for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-                if (dx === 0 && dy === 0) continue;
-                const checkX = this.x + dx;
-                const checkY = this.y + dy;
-                if (game.getMonsterAt(checkX, checkY)) {
-                    count++;
-                }
+        for (const monster of game.monsters) {
+            // チェビシェフ距離からユークリッド距離に変更
+            const dx = monster.x - this.x;
+            const dy = monster.y - this.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // 周囲1.5マス以内のモンスターをカウント（斜めの距離も考慮）
+            if (distance <= 1.5) {
+                count++;
             }
         }
         return count;
