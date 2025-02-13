@@ -5,9 +5,6 @@ mapGen.generate();
 // 見やすい状態でデバッグコンソールにマップを出力
 mapGen.printMap();
 
-auto save実装完了
-タイトル、プレーヤーネーム入力、statusパネルへの表示　実装完了
-
 // 瞑想の啓示システム案
 - 瞑想中に特殊な状況で特性を獲得
   - HP30%以下、敵に囲まれた状態、未探索エリアなど
@@ -34,4 +31,5 @@ auto save実装完了
         //    <div class="version">v0.1.0</div>
         // </div>
 
-meditation中に攻撃を受けたら解除
+タイトル、プレーヤーネーム入力、statusパネルへの表示　
+mapgenerator roomと通路が重なって生成されてる問題の解決

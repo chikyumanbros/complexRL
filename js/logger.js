@@ -76,7 +76,7 @@ class Logger {
         };
         this.messageColors = {
             bright: '#d4af37',      // Antique Gold
-            moderate: '#8b8b8b',    // Calm Gray
+            moderate: '#b8860b',    // Dark Goldenrod
             dim: '#4a4a4a',         // Darker Gray
             corridor: '#696969',    // Medium Gray
             monsters: {

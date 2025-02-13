@@ -679,8 +679,8 @@ body::before {
     height: 100vh;
     background: repeating-linear-gradient(
         0deg,
-        rgba(23, 23, 23, 0.348) 0px,
-        rgba(0, 0, 0, 0.22) 1px,
+        rgba(23, 23, 23, 0.1) 0px,
+        rgba(0, 0, 0, 0.4) 1px,
         transparent 1px,
         transparent 2px
     );

@@ -21,7 +21,7 @@ const GAME_CONSTANTS = {
 
     // COLORS Section: Color definitions for various elements
     COLORS: {
-        FLOOR: '#222',
+        FLOOR: '#333',
         WALL_VARIATIONS: [
             '#445',  // Basic blue-gray
             '#544',  // Red-gray

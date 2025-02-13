@@ -4,6 +4,35 @@ class Renderer {
         this.highlightedTile = null;
         this.movementEffects = null;
         this.spriteColorCache = new Map();
+        
+        // 揺らぎのための変数を追加
+        this.flickerTime = 0;
+        this.flickerValues = new Array(30).fill(0);  // 16段階の揺らぎ値を保持
+        this.startFlickerAnimation();
+    }
+
+    // フリッカーアニメーションを開始
+    startFlickerAnimation() {
+        const FLICKER_INTERVAL = 500; // 500ミリ秒ごとに更新
+        
+        setInterval(() => {
+            // 揺らぎ値を更新
+            this.flickerTime = (this.flickerTime + 1) % 50;
+            for (let i = 0; i < 50; i++) {
+                // -0.05から+0.05の範囲でランダムな揺らぎを生成
+                this.flickerValues[i] = (Math.random() - 0.5) * 0.1;
+            }
+            this.render();
+        }, FLICKER_INTERVAL);
+    }
+
+    // 揺らぎ効果を計算する関数
+    calculateFlicker(baseOpacity, x, y) {
+        // 位置に基づいて揺らぎ値のインデックスを計算
+        const flickerIndex = ((x + y + this.flickerTime) % 50);
+        
+        // 揺らぎを適用
+        return Math.max(0.3, Math.min(1.0, baseOpacity + this.flickerValues[flickerIndex]));
     }
 
     highlightTarget(x, y) {
@@ -74,6 +103,12 @@ class Renderer {
             this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
         );
 
+        // プレイヤーの位置を取得
+        const px = this.game.player.x;
+        const py = this.game.player.y;
+        const currentRoom = this.game.getCurrentRoom();
+        const visibility = currentRoom ? currentRoom.brightness : 2;
+
         let display = '';
         for (let y = 0; y < this.game.height; y++) {
             for (let x = 0; x < this.game.width; x++) {
@@ -89,9 +124,53 @@ class Renderer {
                 let style = '';
                 let classes = [];
                 let backgroundColor = '';
+                let opacity = 1.0;
 
-                // Declare data attributes with let
-                let dataAttrs = `data-x="${x}" data-y="${y}"`;
+                // 視界内の場合、距離に基づいて不透明度を計算
+                if (isVisible) {
+                    const dx = Math.abs(x - px);
+                    const dy = Math.abs(y - py);
+                    // チェビシェフ距離を使用（8方向の距離）
+                    const distance = Math.max(dx, dy);
+                    
+                    if (distance > 0) {
+                        // 基本の不透明度を計算
+                        let baseOpacity;
+                        if (distance <= 1) {
+                            baseOpacity = 1.0;
+                        } else if (distance <= visibility * 0.4) {
+                            baseOpacity = 0.9;
+                        } else if (distance <= visibility * 0.7) {
+                            baseOpacity = 0.7;
+                        } else {
+                            baseOpacity = 0.5;
+                        }
+                        
+                        // 揺らぎを適用
+                        opacity = this.calculateFlicker(baseOpacity, x, y);
+                    }
+
+                    // タイルの内容とスタイルを設定
+                    const tile = this.game.tiles[y][x];
+                    content = tile;
+                    style = `color: ${this.game.colors[y][x]}`;
+                } else if (isExplored) {
+                    // 探索済みだが視界外の場合
+                    opacity = 0.4;
+                    const tile = this.game.tiles[y][x];
+                    content = tile;
+                    style = `color: ${this.game.colors[y][x]}`;
+                }
+
+            // データ属性を設定
+            const dataAttrs = `data-x="${x}" data-y="${y}"`;
+
+            // 不透明度を適用
+            style += `; opacity: ${opacity}`;
+
+            if (backgroundColor) {
+                style += `; background-color: ${backgroundColor}`;
+            }
 
                 // Check for door-kill effect
                 const isDoorKillTarget = this.game.lastDoorKillLocation &&
@@ -167,10 +246,8 @@ class Renderer {
                     }
                 }
 
-                // Display tiles outside vision as dark
-                if (!isVisible) {
-                    style += '; opacity: 0.4';
-                }
+                // 不透明度を適用
+                style += `; opacity: ${opacity}`;
 
                 if (backgroundColor) {
                     style += `; background-color: ${backgroundColor}`;
@@ -506,8 +583,8 @@ class Renderer {
         for (let i = 0; i < particleCount; i++) {
             const particle = document.createElement('div');
             particle.classList.add('levelup-particle');
-            particle.style.left = centerX + "px";
-            particle.style.top = centerY + "px";
+            particle.style.left = centerX - 4 + "px";
+            particle.style.top = centerY + 4 + "px";
 
             const angle = Math.random() * Math.PI * 2;
             const distance = 20 + Math.random() * 30;
@@ -549,7 +626,7 @@ class Renderer {
 
         const pillar = document.createElement('div');
         pillar.classList.add('light-pillar');
-        pillar.style.left = centerX + "px";
+        pillar.style.left = centerX - 8 + "px";
         pillar.style.bottom = bottomValue + "px";
 
         particleLayer.appendChild(pillar);
@@ -735,8 +812,8 @@ class Renderer {
         for (let i = 0; i < particleCount; i++) {
             const particle = document.createElement('div');
             particle.classList.add('death-particle');
-            particle.style.left = centerX + "px";
-            particle.style.top = centerY + "px";
+            particle.style.left = centerX - 4 + "px";
+            particle.style.top = centerY + 4 + "px";
             particle.style.backgroundColor = color;
 
             const angle = Math.random() * Math.PI * 2;
@@ -1003,7 +1080,7 @@ class Renderer {
         
         // リングのスタイル設定
         ring.style.left = (centerX - settings.size/2) + "px";
-        ring.style.top = (centerY - settings.size/2) + "px";
+        ring.style.top = (4 + centerY - settings.size/2) + "px";
         ring.style.width = settings.size + "px";
         ring.style.height = settings.size + "px";
         ring.style.borderColor = settings.color;
