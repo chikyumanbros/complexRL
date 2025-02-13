@@ -161,6 +161,55 @@ const GAME_CONSTANTS = {
         }
     },
 
+    // 新規: ステータス定義を追加
+    STATS: {
+        // ステータスの種類
+        TYPES: {
+            STR: 'str',
+            DEX: 'dex',
+            CON: 'con',
+            INT: 'int',
+            WIS: 'wis'
+        },
+
+        // ステータスの表示名
+        NAMES: {
+            str: 'Strength',
+            dex: 'Dexterity',
+            con: 'Constitution',
+            int: 'Intelligence',
+            wis: 'Wisdom'
+        },
+
+        // 初期値（プレイヤー用）
+        DEFAULT_VALUES: {
+            str: 10,
+            dex: 10,
+            con: 10,
+            int: 10,
+            wis: 10
+        },
+
+        // ステータスの説明
+        DESCRIPTIONS: {
+            str: 'Physical power, affects attack damage',
+            dex: 'Agility and precision, affects accuracy and evasion',
+            con: 'Endurance and toughness, affects HP and defense',
+            int: 'Mental acuity, affects skills and learning',
+            wis: 'Perception and intuition, affects healing and awareness'
+        },
+
+        // ステータスの最小値と最大値
+        MIN_VALUE: 1,
+        MAX_VALUE: 99,
+
+        // ステータス変動の範囲（モンスター生成時用）
+        VARIATION: {
+            MIN_PERCENT: -10,  // -10%
+            MAX_PERCENT: 10    // +10%
+        }
+    },
+
     // FORMULAS Section: Calculations for character stats and actions
     FORMULAS: {
         MAX_HP: (stats, level) => Math.floor((stats.con * 2 + stats.str / 5) * (1 + level * 0.2)),

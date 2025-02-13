@@ -9,13 +9,7 @@ class Player {
         this.codexPoints = 100;  // codexポイントのみを使用
         this.xp = 0;                  // 経験値の初期化
         this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
-        this.stats = {
-            str: 10,
-            dex: 10,
-            con: 10,
-            int: 10,
-            wis: 10
-        };
+        this.stats = { ...GAME_CONSTANTS.STATS.DEFAULT_VALUES };
 
         // HPの計算
         this.maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(this.stats, this.level);
@@ -84,13 +78,8 @@ class Player {
                 // 選択されたステータスを増加
                 this.stats[stat] += 1;
                 
-                const statNames = {
-                    str: "Strength",
-                    dex: "Dexterity",
-                    con: "Constitution",
-                    int: "Intelligence",
-                    wis: "Wisdom"
-                };
+                // ステータス名の取得を定数から行う
+                const statNames = GAME_CONSTANTS.STATS.NAMES;
                 this.game.logger.add(`${statNames[stat]} increased to ${this.stats[stat]}!`, "playerInfo");
                 
                 // 派生パラメータの再計算

@@ -20,9 +20,13 @@ class Monster {
         // ステータスをコピーして変動を加える
         this.stats = {};
         for (const [stat, value] of Object.entries(template.stats)) {
-            // 基本値の±10%の範囲でランダムに変動
-            const variation = Math.floor(value * 0.2 * (Math.random() - 0.5));
-            this.stats[stat] = Math.max(1, value + variation);
+            const minPercent = GAME_CONSTANTS.STATS.VARIATION.MIN_PERCENT;
+            const maxPercent = GAME_CONSTANTS.STATS.VARIATION.MAX_PERCENT;
+            const variation = value * (minPercent + Math.random() * (maxPercent - minPercent)) / 100;
+            this.stats[stat] = Math.max(
+                GAME_CONSTANTS.STATS.MIN_VALUE,
+                Math.min(GAME_CONSTANTS.STATS.MAX_VALUE, Math.floor(value + variation))
+            );
         }
         
         // --- Codex Points Calculation ---
