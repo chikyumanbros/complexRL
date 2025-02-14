@@ -5,9 +5,9 @@ class Renderer {
         this.movementEffects = null;
         this.spriteColorCache = new Map();
         
-        // 揺らぎのための変数（ターンベース）
+        // 揺らぎのための変数
+        this.flickerTime = 0;
         this.flickerValues = new Array(20).fill(0);  // 揺らぎ値を保持
-        this.updateFlickerValues(); // 初期値を設定
 
         // 幻覚エフェクト用の変数
         this.psychedelicTurn = 0;  // ターン数を記録
@@ -29,27 +29,27 @@ class Renderer {
             '#7B68EE',  // ミディアムスレートブルー
         ];
 
-        // 明るさの揺らぎだけを更新
-        this.startFlickerAnimation();
+        // 初期の揺らぎ値を生成
+        this.updateFlickerValues();
     }
 
     // フリッカー値を更新（ターンベース）
     updateFlickerValues() {
+        this.flickerTime = (this.flickerTime + 1) % 60;
+        
         // より不規則な揺らぎ値を生成
         for (let i = 0; i < this.flickerValues.length; i++) {
+            // 複数の周期の異なるノイズを組み合わせる
+            const noise1 = Math.sin(this.flickerTime * 0.1 + i * 0.7) * 0.5;
+            const noise2 = Math.sin(this.flickerTime * 0.05 + i * 1.3) * 0.3;
+            const noise3 = Math.sin(this.flickerTime * 0.15 + i * 0.4) * 0.1;
+            
             // ランダム性を追加
-            const randomNoise = (Math.random() - 0.5) * 0.4;
-            this.flickerValues[i] = randomNoise;
+            const randomNoise = (Math.random() - 0.5) * 0.1;
+            
+            // 複数のノイズを組み合わせて最終的な揺らぎを生成
+            this.flickerValues[i] = (noise1 + noise2 + noise3 + randomNoise) * 0.8;
         }
-    }
-
-    // フリッカーアニメーションを開始（明るさの揺らぎ用）
-    startFlickerAnimation() {
-        const FLICKER_INTERVAL = 300;  
-        setInterval(() => {
-            this.updateFlickerValues();
-            this.updateLightingOnly();
-        }, FLICKER_INTERVAL);
     }
 
     // 明るさの更新のみを行うメソッドを追加
@@ -81,9 +81,9 @@ class Renderer {
     // 揺らぎ効果を計算する関数（明るさと色用）
     calculateFlicker(baseOpacity, x, y) {
         // 複数のインデックスをより不規則に組み合わせる
-        const index1 = ((x * 3 + y * 2) % this.flickerValues.length);
-        const index2 = ((x * 7 + y * 5) % this.flickerValues.length);
-        const index3 = ((x * 2 + y * 7) % this.flickerValues.length);
+        const index1 = ((x * 3 + y * 2 + this.flickerTime) % this.flickerValues.length);
+        const index2 = ((x * 7 + y * 5 + this.flickerTime * 3) % this.flickerValues.length);
+        const index3 = ((x * 2 + y * 7 + this.flickerTime * 2) % this.flickerValues.length);
         
         // 3つの揺らぎ値を不均等に組み合わせる
         const flicker = (
@@ -93,11 +93,14 @@ class Renderer {
         );
         
         // 基本の明るさを計算（より微妙な変化に）
-        const opacity = Math.max(0.2, Math.min(0.8, baseOpacity + flicker * 0.3));
+        const opacity = Math.max(0.2, Math.min(0.9, baseOpacity + flicker * 0.3));
         
-        // 灯りの色を計算
-        const warmth = (flicker + 1) * 0.5; // -0.5 ~ 0.5 を 0 ~ 1 に変換
-        const lightColor = `rgba(255, ${160 + Math.floor(warmth * 75)}, ${100 + Math.floor(warmth * 155)}, 0.1)`;
+        // 灯りの色をより不規則に計算
+        const warmth1 = Math.sin(this.flickerTime * 0.07 + x * 0.23 + y * 0.31) * 0.1;
+        const warmth2 = Math.sin(this.flickerTime * 0.13 + x * 0.17 + y * 0.19) * 0.05;
+        const warmthTotal = (warmth1 + warmth2) * 0.7 + 0.1;
+        
+        const lightColor = `rgba(255, ${160 + Math.floor(warmthTotal * 75)}, ${100 + Math.floor(warmthTotal * 155)}, 0.12)`;
         
         return {
             opacity,
