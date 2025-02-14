@@ -167,10 +167,10 @@ class Logger {
             
             if (room) {
                 // Select brightness description and corresponding color
-                if (room.brightness >= 5) {
+                if (room.brightness >= GAME_CONSTANTS.ROOM.BRIGHTNESS.BRIGHT) {
                     roomInfo = this.getRandomDescription('bright');
                     brightnessColor = this.messageColors.bright;
-                } else if (room.brightness >= 3) {
+                } else if (room.brightness >= GAME_CONSTANTS.ROOM.BRIGHTNESS.MODERATE) {
                     roomInfo = this.getRandomDescription('moderate');
                     brightnessColor = this.messageColors.moderate;
                 } else {

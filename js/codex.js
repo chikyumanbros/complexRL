@@ -133,6 +133,12 @@ class CodexSystem {
                             }
 
                             // ---- Check Destination Validity ----
+                            // 閉じたドアへのジャンプを禁止
+                            if (game.tiles[target.y][target.x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                                game.logger.add("Can't jump through closed doors!", "warning");
+                                return false;
+                            }
+
                             if (game.map[target.y][target.x] !== 'floor') {
                                 game.logger.add("Can't jump there!", "warning");
                                 return false;

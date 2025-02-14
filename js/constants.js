@@ -92,6 +92,17 @@ const GAME_CONSTANTS = {
         MAX_COUNT: 15,
         PADDING: 2,
         SAFE_RADIUS: 3,
+        // 部屋の明るさの定義を追加
+        BRIGHTNESS: {
+            DIM: 2,      // 暗い部屋（視界2マス）
+            MODERATE: 4,  // 中程度の明るさ（視界4マス）
+            BRIGHT: 6,    // 明るい部屋（視界6マス）
+            PROBABILITIES: {
+                DIM: 0.2,      // 20%の確率
+                MODERATE: 0.4,  // 40%の確率
+                BRIGHT: 0.4     // 40%の確率
+            }
+        },
         OBSTACLES: {
             CHANCE: 0.7,           // 部屋に障害物を配置する確率
             MIN_COUNT: 2,          // 最小障害物数（ランダムパターンの場合のみ使用）
@@ -693,7 +704,7 @@ const GAME_CONSTANTS = {
         'N': '#00005A',  // 暗いネイビーブルー
         'O': '#B37400',  // 暗いオレンジ
         'Y': '#B3B300',  // 暗い黄色
-        'P': '#5A005A',  // 暗い紫
+        'P': '#5A225A',  // 暗い紫
         'C': '#00B3B3',  // 暗いシアン
         'M': '#B300B3',  // 暗いマゼンタ
         'D': '#741D1D',  // 暗い茶色

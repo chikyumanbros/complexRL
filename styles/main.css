@@ -360,6 +360,20 @@ h3 {
     line-height: 1em;
     text-align: center;
     transition: all 0.3s ease;
+    z-index: 1;  /* 基本的なz-indexを設定 */
+}
+
+/* ターゲットハイライト用のスタイル */
+#game span[data-x][data-y] {
+    position: relative;
+    z-index: 2;  /* 通常のspanより前面に */
+}
+
+/* ハイライト状態のスタイル */
+#game span[data-x][data-y].highlighted {
+    position: relative;
+    z-index: 3;  /* 最前面に表示 */
+    background-color: inherit;  /* 背景色を継承 */
 }
 
 @keyframes skill-use {
@@ -652,16 +666,30 @@ body.help-mode #codex-panel {  /* help-modeを追加 */
     }
 }
 
-#sprite-preview-container, #sprite-preview-container2, #sprite-preview-container3, #sprite-preview-container4, #sprite-preview-container5, #sprite-preview-container6, #sprite-preview-container7, #sprite-preview-container8, #sprite-preview-container9, #sprite-preview-container10 {
-    display: inline-block; /* 横並びに表示 */
-    vertical-align: top;    /* 上端で揃える */
-    margin-right: 10px;     /* プレビュー間の間隔 */
+/* スプライトプレビューのコンテナ */
+#sprite-preview {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    overflow-y: auto;  /* スクロールを有効化 */
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 10000;
+    padding: 20px;
 }
 
-/* 全体コンテナ (必要に応じて追加) */
+#sprite-preview-container, #sprite-preview-container2, #sprite-preview-container3, #sprite-preview-container4, #sprite-preview-container5, #sprite-preview-container6, #sprite-preview-container7, #sprite-preview-container8, #sprite-preview-container9, #sprite-preview-container10 {
+    display: inline-block;
+    vertical-align: top;
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+
+/* スプライトプレビューのラッパー */
 .sprite-preview-wrapper {
-    white-space: nowrap; /* 折り返しを禁止 */
-    overflow-x: auto;    /* 横スクロールを許可 */
+    white-space: nowrap;
+    padding: 10px;
 }
 
 /* スキャンラインエフェクト用のオーバーレイ */
@@ -701,4 +729,16 @@ body::before {
         transform: scale(1.7);
         opacity: 0;
     }
+}
+
+.target-highlight {
+    pointer-events: none;
+    z-index: 1000;
+    animation: highlight-pulse 1s infinite;
+}
+
+@keyframes highlight-pulse {
+    0% { opacity: 0.3; }
+    50% { opacity: 0.5; }
+    100% { opacity: 0.3; }
 }

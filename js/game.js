@@ -204,6 +204,9 @@ class Game {
         this.hasDisplayedPresenceWarning = false;  // フラグをリセット
         this.turn++;
         
+        // 明るさの揺らぎを更新
+        this.renderer.updateFlickerValues();
+        
         // Process player's cooldown
         this.player.processTurn();
 

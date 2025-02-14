@@ -475,7 +475,10 @@ class Monster {
         ].filter(move => {
             const newX = this.x + move.x;
             const newY = this.y + move.y;
-            return !game.getMonsterAt(newX, newY);
+            // 移動先の厳密なチェック
+            return this.canMoveTo(newX, newY, game) && 
+                   !game.getMonsterAt(newX, newY) && 
+                   game.tiles[newY][newX] !== GAME_CONSTANTS.TILES.DOOR.CLOSED;
         });
 
         let bestMove = null;
@@ -485,12 +488,11 @@ class Monster {
             const newX = this.x + move.x;
             const newY = this.y + move.y;
             
-            if (this.canMoveTo(newX, newY, game)) {
-                const newDistance = Math.abs(targetX - newX) + Math.abs(targetY - newY);
-                if (newDistance < bestDistance) {
-                    bestDistance = newDistance;
-                    bestMove = move;
-                }
+            // 移動先の追加チェックは不要（filterで済んでいる）
+            const newDistance = Math.abs(targetX - newX) + Math.abs(targetY - newY);
+            if (newDistance < bestDistance) {
+                bestDistance = newDistance;
+                bestMove = move;
             }
         }
 
@@ -550,7 +552,6 @@ class Monster {
         const currentDistance = Math.sqrt(dx * dx + dy * dy);
         
         // --- Evaluate All Directions ---
-        // 全方向の移動候補を評価
         const candidates = [];
         
         // 8方向の移動を評価
@@ -561,7 +562,11 @@ class Monster {
                 const newX = this.x + x;
                 const newY = this.y + y;
                 
-                if (this.canMoveTo(newX, newY, game) && !game.getMonsterAt(newX, newY)) {
+                // 移動先の厳密なチェック
+                if (this.canMoveTo(newX, newY, game) && 
+                    !game.getMonsterAt(newX, newY) && 
+                    game.tiles[newY][newX] !== GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                    
                     const newDx = game.player.x - newX;
                     const newDy = game.player.y - newY;
                     const newDistance = Math.sqrt(newDx * newDx + newDy * newDy);
@@ -579,18 +584,15 @@ class Monster {
         }
         
         // --- Sorting Candidates by Distance ---
-        // 距離でソート
         candidates.sort((a, b) => b.distance - a.distance);
         
         // --- Fallback Attack if No Escape ---
-        // 逃げ場がない場合のみ攻撃
         if (candidates.length === 0 && Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
             this.attackPlayer(game.player, game);
             return false;
         }
         
         // --- Execute Best Escape Move ---
-        // 最も遠ざかる移動を実行
         if (candidates.length > 0) {
             const best = candidates[0];
             this.x += best.x;

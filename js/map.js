@@ -155,12 +155,13 @@ class MapGenerator {
         // 部屋の明るさを3段階に設定
         const roll = Math.random();
         let brightness;
-        if (roll < 0.2) {        // 20%の確率
-            brightness = 2;       // 暗い部屋（視界2マス）
-        } else if (roll < 0.6) { // 40%の確率
-            brightness = 4;       // 中程度の明るさ（視界3マス）
-        } else {                 // 40%の確率
-            brightness = 6;       // 明るい部屋（視界5マス）
+        if (roll < GAME_CONSTANTS.ROOM.BRIGHTNESS.PROBABILITIES.DIM) {
+            brightness = GAME_CONSTANTS.ROOM.BRIGHTNESS.DIM;       // 暗い部屋
+        } else if (roll < GAME_CONSTANTS.ROOM.BRIGHTNESS.PROBABILITIES.DIM + 
+                   GAME_CONSTANTS.ROOM.BRIGHTNESS.PROBABILITIES.MODERATE) {
+            brightness = GAME_CONSTANTS.ROOM.BRIGHTNESS.MODERATE;  // 中程度の明るさ
+        } else {
+            brightness = GAME_CONSTANTS.ROOM.BRIGHTNESS.BRIGHT;    // 明るい部屋
         }
 
         return { x, y, width, height, brightness };
