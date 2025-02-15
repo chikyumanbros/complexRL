@@ -102,7 +102,7 @@ class CodexSystem {
                         cooldown: 30,
                         isFreeAction: false,
                         requiresTarget: true,
-                        range: 3,  // この値はgetEffectTextとeffectで計算される実際の範囲によって上書きされます
+                        range: 3,
                         getEffectText: (player) => {
                             const jumpRange = Math.floor((player.stats.dex - player.stats.con) / 3) + 3;
                             return `[Range: ${jumpRange}]`;
@@ -163,7 +163,7 @@ class CodexSystem {
                             
                             game.logger.add("Jump!", "playerAction");
                             
-                            return true;
+                            return { success: true, skipTurnProcess: true };  // ターン処理をスキップするフラグを追加
                         }
                     }
                 ]

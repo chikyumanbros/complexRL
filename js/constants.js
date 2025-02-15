@@ -75,7 +75,8 @@ const GAME_CONSTANTS = {
         GAME: 'game',
         CODEX: 'codex',
         GAME_OVER: 'game_over',
-        HELP: 'help'
+        HELP: 'help',
+        TITLE: 'title'
     },
 
     // DIMENSIONS Section: Game board dimensions
@@ -704,7 +705,7 @@ const GAME_CONSTANTS = {
         'N': '#00005A',  // 暗いネイビーブルー
         'O': '#B37400',  // 暗いオレンジ
         'Y': '#B3B300',  // 暗い黄色
-        'P': '#5A225A',  // 暗い紫
+        'P': '#8A328A',  // 明るい紫
         'C': '#00B3B3',  // 暗いシアン
         'M': '#B300B3',  // 暗いマゼンタ
         'D': '#741D1D',  // 暗い茶色

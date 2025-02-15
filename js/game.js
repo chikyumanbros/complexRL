@@ -557,26 +557,32 @@ class Game {
     getVisibleTiles() {
         const visibleTiles = [];
         const currentRoom = this.getCurrentRoom();
-        const visibility = currentRoom ? currentRoom.brightness : 2;
+        const CORRIDOR_VISIBILITY = 2; // 部屋に属さない床（通路）の視界範囲
 
-        // 視界範囲内の全タイルをチェック
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
-                // ユークリッド距離を計算
                 const dx = x - this.player.x;
                 const dy = y - this.player.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
-                // 視界範囲内かチェック
-                if (distance <= visibility) {
-                    // 視線が通るかチェック
+                // 対象タイルが属する部屋を検出（※部屋に含まれていなくても後で隣接チェックを行う）
+                const roomAtTile = this.getRoomAt(x, y);
+
+                let tileVisibility;
+                // タイルが現在の部屋に直接属しているか、もしくは隣接しているなら部屋の明るさを適用
+                if (currentRoom && ((roomAtTile && roomAtTile === currentRoom) || this.isNearRoom(x, y, currentRoom))) {
+                    tileVisibility = currentRoom.brightness;
+                } else {
+                    tileVisibility = CORRIDOR_VISIBILITY;
+                }
+
+                if (distance <= tileVisibility) {
                     if (this.hasLineOfSight(this.player.x, this.player.y, x, y)) {
                         visibleTiles.push({ x, y });
                     }
                 }
             }
         }
-
         return visibleTiles;
     }
 
@@ -772,6 +778,31 @@ class Game {
             // 読み込みに失敗した場合は新規ゲームを開始
             this.init();
         }
+    }
+
+    getRoomAt(x, y) {
+        for (const room of this.rooms) {
+            if (x >= room.x && x < room.x + room.width &&
+                y >= room.y && y < room.y + room.height) {
+                return room;
+            }
+        }
+        return null;
+    }
+
+    // Game クラス内に追加するメソッド：指定座標が指定部屋から range 内にあるかを判定する
+    isNearRoom(x, y, room, range = 1) {
+        for (let dy = -range; dy <= range; dy++) {
+            for (let dx = -range; dx <= range; dx++) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx >= room.x && nx < room.x + room.width &&
+                    ny >= room.y && ny < room.y + room.height) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
 
