@@ -625,14 +625,19 @@ class Game {
 
                 let tileVisibility;
                 if (roomAtTile) {
-                    // タイルが部屋に属している場合、その部屋の明るさを使用
+                    // タイルが部屋に属している場合、その部屋の明るさに余分な範囲を追加
                     tileVisibility = roomAtTile.brightness;
                 } else if (currentRoom && this.isNearRoom(x, y, currentRoom)) {
-                    // プレイヤーがいる部屋の隣接タイルの場合、その部屋の明るさを使用
+                    // プレイヤーがいる部屋の隣接タイルの場合、その部屋の明るさに余分な範囲を追加
                     tileVisibility = currentRoom.brightness;
                 } else {
                     // それ以外（通路など）は基本の視界範囲を使用
                     tileVisibility = CORRIDOR_VISIBILITY;
+                }
+
+                // 壁や角の場合は、より広い範囲で視認可能に
+                if (this.map[y][x] === 'wall') {
+                    tileVisibility += 1;  // 壁は通常の視界範囲より1マス広く見える
                 }
 
                 if (distance <= tileVisibility) {

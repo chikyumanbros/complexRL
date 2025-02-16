@@ -762,10 +762,16 @@ class Player {
 
     // 未探索タイルへの方向を見つける
     findDirectionToUnexplored() {
+        // グリッドベースの8方向
         const directions = [
-            {dx: -1, dy: -1}, {dx: 0, dy: -1}, {dx: 1, dy: -1},
-            {dx: -1, dy: 0},                    {dx: 1, dy: 0},
-            {dx: -1, dy: 1},  {dx: 0, dy: 1},  {dx: 1, dy: 1}
+            {dx: 0, dy: -1},  // 上
+            {dx: 1, dy: -1},  // 右上
+            {dx: 1, dy: 0},   // 右
+            {dx: 1, dy: 1},   // 右下
+            {dx: 0, dy: 1},   // 下
+            {dx: -1, dy: 1},  // 左下
+            {dx: -1, dy: 0},  // 左
+            {dx: -1, dy: -1}  // 左上
         ];
 
         // 訪問済みの座標を記録するSet
@@ -774,6 +780,7 @@ class Player {
         const queue = [{
             x: this.x,
             y: this.y,
+            distance: 0,
             firstStep: null
         }];
 
@@ -784,32 +791,49 @@ class Player {
             if (visited.has(key)) continue;
             visited.add(key);
 
-            // 未探索タイルの判定を厳密に行う
+            // 未探索タイルの判定
             if (this.game.isValidPosition(current.x, current.y) && 
                 !this.game.explored[current.y][current.x] && 
                 this.game.map[current.y][current.x] === 'floor') {
                 return current.firstStep;
             }
 
-            // 隣接マスの探索
+            // 隣接マスの探索（グリッドベースの距離計算）
             for (const dir of directions) {
                 const newX = current.x + dir.dx;
                 const newY = current.y + dir.dy;
                 
-                // マップ範囲内かつ床タイルのみを対象とする
                 if (this.game.isValidPosition(newX, newY) && 
-                    this.game.map[newY][newX] === 'floor') {
+                    this.game.map[newY][newX] === 'floor' &&
+                    this.game.tiles[newY][newX] !== GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                    
+                    // グリッドベースの距離を計算
+                    const newDistance = current.distance + (dir.dx !== 0 && dir.dy !== 0 ? 1.4142 : 1);
                     
                     queue.push({
                         x: newX,
                         y: newY,
+                        distance: newDistance,
                         firstStep: current.firstStep || dir
                     });
                 }
             }
+
+            // キューを距離でソート（より近いタイルを優先）
+            queue.sort((a, b) => a.distance - b.distance);
         }
 
-        return null;  // 到達可能な未探索タイルが見つからない
+        // マップ全体をスキャンして未探索のfloorタイルが残っているか確認
+        for (let y = 0; y < this.game.height; y++) {
+            for (let x = 0; x < this.game.width; x++) {
+                if (this.game.map[y][x] === 'floor' && !this.game.explored[y][x]) {
+                    this.game.logger.add("Some areas are unreachable.", "warning");
+                    return null;
+                }
+            }
+        }
+
+        return null;  // 完全に探索済み
     }
 
     // ステータス表示用のメソッドを追加
