@@ -13,7 +13,7 @@ class Player {
 
         // HPの計算
         this.maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(this.stats, this.level);
-        this.hp = 3//this.maxHp;
+        this.hp = this.maxHp;
         
         // 他のパラメータ
         this.attackPower = GAME_CONSTANTS.FORMULAS.ATTACK(this.stats);

@@ -107,7 +107,7 @@ class Renderer {
         });
         
         // 最終的なタイルの明るさ（影効果を加味）
-        const opacity = Math.max(0.2, Math.min(0.8, baseOpacity + flicker * 0.3 + shadowAdjustment));
+        const opacity = Math.max(0.4, Math.min(0.8, baseOpacity + flicker * 0.3 + shadowAdjustment));
         
         // 灯りの色の計算
         const warmth1 = Math.sin(this.flickerTime * 0.07 + x * 0.23 + y * 0.31) * 0.1;

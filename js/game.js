@@ -187,23 +187,50 @@ class Game {
 
     placePlayerInRoom() {
         if (!this.rooms || this.rooms.length === 0) {
-            // If there are no rooms, place the player at a default position
+            // 部屋がない場合のフォールバック処理
             this.player.x = Math.floor(this.width / 2);
             this.player.y = Math.floor(this.height / 2);
             return;
         }
 
-        // Select a random room
+        // 部屋をランダムに選択
         const randomRoom = this.rooms[Math.floor(Math.random() * this.rooms.length)];
         
-        // Place the player near the center of the room
-        const centerX = Math.floor(randomRoom.x + randomRoom.width / 2);
-        const centerY = Math.floor(randomRoom.y + randomRoom.height / 2);
+        // 部屋内の有効な位置を探す
+        let attempts = 50;
+        let validPosition = null;
+
+        while (attempts > 0 && !validPosition) {
+            // 部屋の中心付近の座標を生成
+            const centerX = Math.floor(randomRoom.x + randomRoom.width / 2);
+            const centerY = Math.floor(randomRoom.y + randomRoom.height / 2);
+            
+            // 中心から±2マスの範囲でランダムな位置を試す
+            const testX = centerX + Math.floor(Math.random() * 5) - 2;
+            const testY = centerY + Math.floor(Math.random() * 5) - 2;
+
+            // 位置が部屋の中にあり、かつ床タイルで、障害物や階段がない場合
+            if (this.isPositionInRoom(testX, testY, randomRoom) &&
+                this.map[testY][testX] === 'floor' &&
+                this.tiles[testY][testX] !== GAME_CONSTANTS.STAIRS.CHAR &&
+                !GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[testY][testX]) &&
+                !GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.tiles[testY][testX])) {
+                validPosition = { x: testX, y: testY };
+            }
+
+            attempts--;
+        }
+
+        // 有効な位置が見つかった場合はその位置に、見つからなかった場合は部屋の中心に配置
+        if (validPosition) {
+            this.player.x = validPosition.x;
+            this.player.y = validPosition.y;
+        } else {
+            this.player.x = Math.floor(randomRoom.x + randomRoom.width / 2);
+            this.player.y = Math.floor(randomRoom.y + randomRoom.height / 2);
+        }
         
-        this.player.x = centerX;
-        this.player.y = centerY;
-        
-        // Record the player's starting room
+        // プレイヤーの開始部屋を記録
         this.playerStartRoom = randomRoom;
     }
 
