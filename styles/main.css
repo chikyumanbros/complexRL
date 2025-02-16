@@ -702,9 +702,9 @@ body::before {
     height: 100vh;
     background: repeating-linear-gradient(
         0deg,
-        rgba(23, 23, 23, 0.1) 0px,
-        rgba(0, 0, 0, 0.4) 1px,
-        transparent 1px,
+        rgba(20, 20, 20, 0.05) 0px,
+        rgba(20, 20, 20, 0.3) 1px,
+        transparent 2px,
         transparent 2px
     );
     pointer-events: none;

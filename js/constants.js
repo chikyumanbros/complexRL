@@ -23,18 +23,18 @@ const GAME_CONSTANTS = {
     COLORS: {
         FLOOR: '#333',
         WALL_VARIATIONS: [
-            '#445',  // Basic blue-gray
-            '#544',  // Red-gray
-            '#454',  // Green-gray
-            '#455',  // Blue-green-gray
-            '#554',  // Yellow-gray
-            '#545',  // Purple-gray
-            '#556',  // Light bluish-gray
-            '#655',  // Orangish-gray
-            '#565',  // Emerald-tinted gray
-            '#665',  // Golden-tinted gray
+            '#556',  // Basic blue-gray
+            '#755',  // Red-gray
+            '#565',  // Green-gray
+            '#577',  // Blue-green-gray
+            '#655',  // Yellow-gray
+            '#757',  // Purple-gray
+            '#557',  // Light bluish-gray
+            '#765',  // Orangish-gray
+            '#575',  // Emerald-tinted gray
+            '#776',  // Golden-tinted gray
         ],
-        WALL: '#445',  // Default wall color (kept for backward compatibility)
+        WALL: '#556',  // Default wall color (kept for backward compatibility)
         DOOR: '#8B4513',
         HEAL: '#2ed573',
         MONSTER: {

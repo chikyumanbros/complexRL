@@ -114,7 +114,7 @@ class Renderer {
         const warmth2 = Math.sin(this.flickerTime * 0.13 + x * 0.17 + y * 0.19) * 0.05;
         const warmthTotal = (warmth1 + warmth2) * 0.7 + 0.1;
         
-        const lightColor = `rgba(255, ${150 + Math.floor(warmthTotal * 85)}, ${100 + Math.floor(warmthTotal * 155)}, 0.12)`;
+        const lightColor = `rgba(255, ${170 + Math.floor(warmthTotal * 85)}, ${100 + Math.floor(warmthTotal * 155)}, 0.12)`;
         
         return {
             opacity,

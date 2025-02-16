@@ -60,8 +60,22 @@ class Game {
         this.maxTotalMonsters = 30;
         this.rooms = [];
         this.isGameOver = false;
-        this.floorLevel = 1;  // Added floor level
-        this.dangerLevel = 'NORMAL';  // Added danger level
+        this.floorLevel = 1;
+
+        // 危険度をランダムに決定
+        const dangerLevels = Object.keys(GAME_CONSTANTS.DANGER_LEVELS);
+        const weights = [0.3, 0.4, 0.2, 0.1]; // SAFE, NORMAL, DANGEROUS, DEADLYの出現確率
+        let roll = Math.random();
+        let cumulativeWeight = 0;
+        
+        for (let i = 0; i < dangerLevels.length; i++) {
+            cumulativeWeight += weights[i];
+            if (roll < cumulativeWeight) {
+                this.dangerLevel = dangerLevels[i];
+                break;
+            }
+        }
+
         this.explored = this.initializeExplored();
 
         // Clear the DOM
@@ -138,7 +152,21 @@ class Game {
         this.totalMonstersSpawned = 0;
         this.turn = 0;
         this.floorLevel = 1;
-        this.dangerLevel = 'NORMAL';
+        
+        // 危険度をランダムに決定（reset()と同じロジック）
+        const dangerLevels = Object.keys(GAME_CONSTANTS.DANGER_LEVELS);
+        const weights = [0.3, 0.4, 0.2, 0.1]; // SAFE, NORMAL, DANGEROUS, DEADLYの出現確率
+        let roll = Math.random();
+        let cumulativeWeight = 0;
+        
+        for (let i = 0; i < dangerLevels.length; i++) {
+            cumulativeWeight += weights[i];
+            if (roll < cumulativeWeight) {
+                this.dangerLevel = dangerLevels[i];
+                break;
+            }
+        }
+
         this.isGameOver = false;
         
         // Generate a new floor (including player placement and monster generation)
