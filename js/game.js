@@ -593,14 +593,18 @@ class Game {
                 const dy = y - this.player.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
-                // 対象タイルが属する部屋を検出（※部屋に含まれていなくても後で隣接チェックを行う）
+                // 対象タイルが属する部屋を検出
                 const roomAtTile = this.getRoomAt(x, y);
 
                 let tileVisibility;
-                // タイルが現在の部屋に直接属しているか、もしくは隣接しているなら部屋の明るさを適用
-                if (currentRoom && ((roomAtTile && roomAtTile === currentRoom) || this.isNearRoom(x, y, currentRoom))) {
+                if (roomAtTile) {
+                    // タイルが部屋に属している場合、その部屋の明るさを使用
+                    tileVisibility = roomAtTile.brightness;
+                } else if (currentRoom && this.isNearRoom(x, y, currentRoom)) {
+                    // プレイヤーがいる部屋の隣接タイルの場合、その部屋の明るさを使用
                     tileVisibility = currentRoom.brightness;
                 } else {
+                    // それ以外（通路など）は基本の視界範囲を使用
                     tileVisibility = CORRIDOR_VISIBILITY;
                 }
 
