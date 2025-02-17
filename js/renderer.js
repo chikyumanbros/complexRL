@@ -841,9 +841,10 @@ class Renderer {
         // Base Stats
         rightColumn += `<div style="color: #3498db; margin-bottom: 4px;">● Base Stats</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `HP: CON×2 + STR/4 × Level Bonus\n`;
+        rightColumn += `HP: (CON×2 + STR/4) × (1 - (INT-10)×0.02) × Level Bonus\n`;
         rightColumn += `ATK: STR×0.7 - DEX/4 + Dice\n`;
-        rightColumn += `DEF: CON×0.5 - STR/5 + Dice\n`;
+        rightColumn += `DEF: CON×0.5 - INT/5 + Dice\n`;
+        rightColumn += `XP: Base × (1 + (INT-10)×0.03)\n`;
         rightColumn += `</div>\n`;
 
         // Combat Dice
@@ -856,10 +857,10 @@ class Renderer {
         // Hit Chance
         rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Hit Chance</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `ACC: 40 + DEX×0.8 + INT×0.4 - CON/4\n`;
-        rightColumn += `EVA: 10 + DEX×0.6 + INT×0.3 - CON/5 - STR/5\n`;
+        rightColumn += `ACC: 40 + DEX×0.8 + WIS×0.4 - CON/4\n`;
+        rightColumn += `EVA: 10 + DEX×0.6 + WIS×0.3 - CON/5 - STR/5\n`;
         rightColumn += `SPD: Based on DEX/(STR+CON) ratio\n`;
-        rightColumn += `PER: (WIS + INT/2)/2 - (STR+CON)/8\n`;
+        rightColumn += `PER: (WIS + DEX)/2 - (STR+CON)/5\n`;
         rightColumn += `</div>\n`;
 
         // Speed Levels
@@ -886,6 +887,13 @@ class Renderer {
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
         rightColumn += `Surrounded: -15% ACC/EVA per enemy\n`;
         rightColumn += `(Max: -60%)\n`;
+        rightColumn += `</div>\n`;
+
+        // Opportunity Attack
+        rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Opportunity Attack</div>\n`;
+        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
+        rightColumn += `When enemy flees: -30% ACC, +50% DMG\n`;
+        rightColumn += `No counter-attack chance\n`;
         rightColumn += `</div>\n`;
 
         // 2列レイアウトを作成

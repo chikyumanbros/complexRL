@@ -236,8 +236,9 @@ const GAME_CONSTANTS = {
     FORMULAS: {
         MAX_HP: (stats, level) => {
             const baseHP = stats.con * 2 + Math.floor(stats.str / 4);
+            const intPenalty = 1 - Math.max(0, (stats.int - 10) * 0.02);  // INTが10を超えると2%ずつ減少
             const levelBonus = 1 + (level * 0.25);
-            return Math.floor(baseHP * levelBonus);
+            return Math.floor(baseHP * intPenalty * levelBonus);
         },
         ATTACK: (stats) => {
             // 基本攻撃力：STRが主要、DEXが高すぎるとペナルティ
@@ -252,8 +253,8 @@ const GAME_CONSTANTS = {
             return { base, diceCount, diceSides };
         },
         DEFENSE: (stats) => {
-            // 基本防御：CONが主要、STRが高いとペナルティ
-            const base = Math.max(1, Math.floor(stats.con * 0.5 - stats.str / 5));
+            // 基本防御：CONが主要、INTが高いとペナルティ
+            const base = Math.max(1, Math.floor(stats.con * 0.5 - stats.int / 5));
             
             // 防御ダイス数：CONに基づくが、緩やかに
             const diceCount = Math.max(1, Math.floor(Math.sqrt(stats.con) / 3));
@@ -264,20 +265,20 @@ const GAME_CONSTANTS = {
             return { base, diceCount, diceSides };
         },
         ACCURACY: (stats) => {
-            // 基本命中率40%、DEXとINTで上昇、CONで減少
-            const acc = 40 + Math.floor(stats.dex * 0.8) + Math.floor(stats.int * 0.4) - Math.floor(stats.con / 4);
+            // 基本命中率40%、DEXとWISで上昇、CONで減少
+            const acc = 40 + Math.floor(stats.dex * 0.8) + Math.floor(stats.wis * 0.4) - Math.floor(stats.con / 4);
             return Math.min(85, Math.max(20, acc));
         },
         EVASION: (stats) => {
-            // 基本回避率10%、DEXとINTで上昇、CONとSTRで減少
-            const eva = 10 + Math.floor(stats.dex * 0.6) + Math.floor(stats.int * 0.3) 
+            // 基本回避率10%、DEXとWISで上昇、CONとSTRで減少
+            const eva = 10 + Math.floor(stats.dex * 0.6) + Math.floor(stats.wis * 0.3) 
                        - Math.floor(stats.con / 5) - Math.floor(stats.str / 5);
             return Math.min(60, Math.max(5, eva));
         },
         PERCEPTION: (stats) => {
-            // 知覚：WISとINTが主要、STRとCONが高いとペナルティ
-            const base = Math.floor((stats.wis + stats.int / 2) / 2);
-            const penalty = Math.floor((stats.str + stats.con) / 8);
+            // 知覚：WISとDEXが主要、STRとCONが高いとペナルティ
+            const base = Math.floor((stats.wis + stats.dex) / 2);
+            const penalty = Math.floor((stats.str + stats.con) / 5);
             return Math.max(2, base - penalty);
         },
         rollDamage: (attack, defense) => {

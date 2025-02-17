@@ -635,9 +635,13 @@ class Game {
                     tileVisibility = CORRIDOR_VISIBILITY;
                 }
 
-                // 壁や角の場合は、より広い範囲で視認可能に
-                if (this.map[y][x] === 'wall') {
-                    tileVisibility += 1;  // 壁は通常の視界範囲より1マス広く見える
+                // 壁や障害物、部屋の角の場合は、より広い範囲で視認可能に
+                if (this.map[y][x] === 'wall' || 
+                    this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
+                    (this.map[y][x] === 'obstacle' && 
+                     GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][x])) ||
+                    (this.map[y][x] === 'floor' && this.isRoomCorner(x, y))) {
+                    tileVisibility += 1;  // 視界を遮る要素は通常の視界範囲より1マス広く見える
                 }
 
                 if (distance <= tileVisibility) {
@@ -864,6 +868,20 @@ class Game {
                     ny >= room.y && ny < room.y + room.height) {
                     return true;
                 }
+            }
+        }
+        return false;
+    }
+
+    // 指定された座標が部屋の角かどうかを判定
+    isRoomCorner(x, y) {
+        for (const room of this.rooms) {
+            // 部屋の四隅の座標をチェック
+            if ((x === room.x && y === room.y) ||                             // 左上
+                (x === room.x + room.width - 1 && y === room.y) ||           // 右上
+                (x === room.x && y === room.y + room.height - 1) ||          // 左下
+                (x === room.x + room.width - 1 && y === room.y + room.height - 1)) { // 右下
+                return true;
             }
         }
         return false;

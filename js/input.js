@@ -506,20 +506,37 @@ class InputHandler {
         }
 
         if (dx !== 0 || dy !== 0) {
-            const newX = this.targetX + dx;
-            const newY = this.targetY + dy;
-
-            // 視界内のタイルを取得
             const visibleTiles = new Set(
                 this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
             );
 
-            // 新しい座標が視界内かチェック
-            if (!visibleTiles.has(`${newX},${newY}`)) {
-                return; // 視界外の場合は移動しない
-            }
+            // 新しい座標を計算
+            let newX = this.targetX + dx;
+            let newY = this.targetY + dy;
 
+            // マップ範囲内かチェック
             if (newX >= 0 && newX < this.game.width && newY >= 0 && newY < this.game.height) {
+                // 視界内のタイルを探す
+                while (!visibleTiles.has(`${newX},${newY}`)) {
+                    newX += dx;
+                    newY += dy;
+                    
+                    // マップ範囲外に出たら中止
+                    if (newX < 0 || newX >= this.game.width || newY < 0 || newY >= this.game.height) {
+                        return;
+                    }
+                    
+                    // 次の視界内タイルが見つかった場合
+                    if (visibleTiles.has(`${newX},${newY}`)) {
+                        this.targetX = newX;
+                        this.targetY = newY;
+                        this.game.renderer.highlightTarget(this.targetX, this.targetY);
+                        this.game.renderer.examineTarget(this.targetX, this.targetY, true);
+                        return;
+                    }
+                }
+
+                // 隣接タイルが視界内の場合は通常通り移動
                 this.targetX = newX;
                 this.targetY = newY;
                 this.game.renderer.highlightTarget(this.targetX, this.targetY);
@@ -561,28 +578,40 @@ class InputHandler {
         }
 
         if (dx !== 0 || dy !== 0) {
-            const newX = this.targetX + dx;
-            const newY = this.targetY + dy;
-
-            // マップ範囲内かチェック
-            if (newX < 0 || newX >= this.game.width || newY < 0 || newY >= this.game.height) {
-                return;
-            }
-
-            // 視界内のタイルを取得
             const visibleTiles = new Set(
                 this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
             );
 
-            // 新しい座標が視界内かチェック
-            if (!visibleTiles.has(`${newX},${newY}`)) {
-                return; // 視界外の場合は移動しない
-            }
+            // 新しい座標を計算
+            let newX = this.targetX + dx;
+            let newY = this.targetY + dy;
 
-            // 視界内の場合のみ移動を許可
-            this.targetX = newX;
-            this.targetY = newY;
-            this.game.renderer.highlightTarget(this.targetX, this.targetY);
+            // マップ範囲内かチェック
+            if (newX >= 0 && newX < this.game.width && newY >= 0 && newY < this.game.height) {
+                // 視界内のタイルを探す
+                while (!visibleTiles.has(`${newX},${newY}`)) {
+                    newX += dx;
+                    newY += dy;
+                    
+                    // マップ範囲外に出たら中止
+                    if (newX < 0 || newX >= this.game.width || newY < 0 || newY >= this.game.height) {
+                        return;
+                    }
+                    
+                    // 次の視界内タイルが見つかった場合
+                    if (visibleTiles.has(`${newX},${newY}`)) {
+                        this.targetX = newX;
+                        this.targetY = newY;
+                        this.game.renderer.highlightTarget(this.targetX, this.targetY);
+                        return;
+                    }
+                }
+
+                // 隣接タイルが視界内の場合は通常通り移動
+                this.targetX = newX;
+                this.targetY = newY;
+                this.game.renderer.highlightTarget(this.targetX, this.targetY);
+            }
         }
     }
 
