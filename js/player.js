@@ -6,7 +6,7 @@ class Player {
         this.game = game;
         this.char = '@';
         this.level = 1;
-        this.codexPoints = 100;  // codexポイントのみを使用
+        this.codexPoints = 0;  // codexポイントのみを使用
         this.xp = 0;                  // 経験値の初期化
         this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
         this.stats = { ...GAME_CONSTANTS.STATS.DEFAULT_VALUES };
@@ -405,10 +405,16 @@ class Player {
     }
 
     processHit(result, damageResult, context, monster, game) {
+        // モンスターを倒した場合は、processKillのみを呼び出す
+        if (result.killed) {
+            this.processKill(result, damageResult, context, monster, game);
+            return;
+        }
+
+        // 倒していない場合のみ、通常の命中ログを表示
         const healthStatus = `HP: ${monster.hp}/${monster.maxHp}`;
         
         if (context.isOpportunityAttack) {
-            // 機会攻撃用のログ
             game.logger.add(
                 `Opportunity attack hits! ${monster.name} takes ${result.damage} damage! ` +
                 `(ATK: ${this.attackPower.base}+[${damageResult.attackRolls.join(',')}] ` +
@@ -416,8 +422,7 @@ class Player {
                 `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}]) (${healthStatus})`,
                 "playerCrit"
             );
-        } else if (!result.killed) {  // 倒していない場合のみ通常の命中ログを表示
-            // 通常攻撃のログ
+        } else {
             game.logger.add(
                 `${context.attackType} hits! ${monster.name} takes ${result.damage} damage! ` +
                 `(ATK: ${this.attackPower.base}+[${damageResult.attackRolls.join(',')}] ` +
@@ -425,11 +430,6 @@ class Player {
                 `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}]) (${healthStatus})`,
                 "playerHit"
             );
-        }
-
-        // 敵を倒した場合は processKill を呼び出す
-        if (result.killed) {
-            this.processKill(result, damageResult, context, monster, game);
         }
 
         // 攻撃修正をクリア
