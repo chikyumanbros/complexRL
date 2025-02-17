@@ -274,6 +274,7 @@ class Player {
                     if (mod.accuracyMod) totalAccuracyMod += mod.accuracyMod;
                     if (mod.damageMod) totalDamageMod *= mod.damageMod;
                     if (mod.speedMod) totalSpeedMod += mod.speedMod;
+                    if (mod.speedTier) effectDesc.push(`SPD: ${mod.speedTier}`);
                 }
                 // まとめた修正値を一つの文字列にする
                 effectDesc = [
@@ -282,7 +283,7 @@ class Player {
                     totalSpeedMod !== 0 ? `SPD: ${(totalSpeedMod * 100).toFixed(0)}%` : null
                 ].filter(Boolean);
             } else {
-                // 単一スキルの場合は従来通り
+                // 単一スキルの場合
                 for (const mod of this.nextAttackModifiers) {
                     if (mod.accuracyMod) {
                         totalAccuracyMod += mod.accuracyMod;
@@ -292,7 +293,9 @@ class Player {
                         totalDamageMod *= mod.damageMod;
                         effectDesc.push(`DMG: ${((mod.damageMod - 1) * 100).toFixed(0)}%`);
                     }
-                    if (mod.speedMod) {
+                    if (mod.speedTier) {
+                        effectDesc.push(`SPD: ${GAME_CONSTANTS.FORMULAS.SPEED(this.stats)} → ${mod.speedTier}`);
+                    } else if (mod.speedMod) {
                         totalSpeedMod += mod.speedMod;
                         effectDesc.push(`SPD: ${(mod.speedMod * 100).toFixed(0)}%`);
                     }
@@ -454,9 +457,20 @@ class Player {
 
         // 通常の攻撃処理（イニシアチブ判定あり）
         const basePlayerSpeed = GAME_CONSTANTS.FORMULAS.SPEED(this.stats);
-        const effectivePlayerSpeed = (this.nextAttackModifiers.length > 0 && this.nextAttackModifiers[0].speedMod)
-            ? Math.floor(basePlayerSpeed * (1 + this.nextAttackModifiers[0].speedMod))
-            : basePlayerSpeed;
+        let effectivePlayerSpeed = basePlayerSpeed;
+
+        // 修飾効果がある場合
+        if (this.nextAttackModifiers && this.nextAttackModifiers.length > 0) {
+            // speedTierが設定されている場合はそれを使用
+            const speedTierMod = this.nextAttackModifiers.find(mod => mod.speedTier);
+            if (speedTierMod) {
+                effectivePlayerSpeed = speedTierMod.speedTier;
+            } else if (this.nextAttackModifiers[0].speedMod) {
+                // 従来のspeedMod処理
+                effectivePlayerSpeed = Math.floor(basePlayerSpeed * (1 + this.nextAttackModifiers[0].speedMod));
+            }
+        }
+
         const monsterSpeed = GAME_CONSTANTS.FORMULAS.SPEED(monster.stats);
         game.logger.add(`Speed Order: Player (${effectivePlayerSpeed}) vs ${monster.name} (${monsterSpeed})`);
 

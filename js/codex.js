@@ -19,15 +19,19 @@ class CodexSystem {
                         requiresTarget: false,
                         learned: false,  // スキルの習得状態を追加
                         getEffectText: (player) => {
-                            // STR 10で1.5倍になるように調整
-                            const damageBonus = 1 + (0.5 * player.stats.str / 10);
-                            // DEX 10で-30%になるように調整
-                            const accuracyPenalty = 1 - (0.3 * player.stats.dex / 10);
-                            return `[DMG: +${Math.floor((damageBonus - 1) * 100)}%, ACC: ${Math.floor((accuracyPenalty - 1) * 100)}%]`;
+                            // STRとDEXの比率でスケーリング
+                            const strRatio = player.stats.str / player.stats.dex;
+                            // ダメージボーナスは40-80%の範囲
+                            const damageBonus = Math.min(0.8, Math.max(0.4, 0.5 * strRatio));
+                            // 命中ペナルティは20-40%の範囲
+                            const accuracyPenalty = Math.min(0.4, Math.max(0.2, 0.3 * strRatio));
+                            
+                            return `[DMG: +${Math.floor(damageBonus * 100)}%, ACC: -${Math.floor(accuracyPenalty * 100)}%]`;
                         },
                         effect: (game, player) => {
-                            const damageBonus = 1 + (0.5 * player.stats.str / 10);
-                            const accuracyPenalty = -0.3 * (player.stats.dex / 10);
+                            const strRatio = player.stats.str / player.stats.dex;
+                            const damageBonus = Math.min(0.8, Math.max(0.4, 0.5 * strRatio));
+                            const accuracyPenalty = -Math.min(0.4, Math.max(0.2, 0.3 * strRatio));
 
                             // 配列が未初期化の場合は初期化
                             if (!player.nextAttackModifiers) {
@@ -36,13 +40,13 @@ class CodexSystem {
 
                             player.nextAttackModifiers.push({
                                 name: 'Power Strike',
-                                damageMod: damageBonus,
+                                damageMod: 1 + damageBonus,
                                 accuracyMod: accuracyPenalty,
                                 duration: 1
                             });
                             
                             game.logger.add(
-                                `You prepare a powerful strike! ${this.findSkillById('powerStrike').getEffectText(player)} `, 
+                                `You prepare a powerful strike! ${this.findSkillById('powerStrike').getEffectText(player)}`, 
                                 "playerInfo"
                             );
                             game.renderer.render();
@@ -56,9 +60,13 @@ class CodexSystem {
                         name: 'Quick Slash', 
                         cost: 20, 
                         cooldown: 12,
-                        desc: 'Swift attack that improves accuracy and speed. (Base: ACC +20%, SPD +20%)',
+                        desc: 'Swift attack that improves accuracy and speed. (Base: ACC +20%, temporarily increases speed tier)',
                         getEffectText: (player) => {
-                            return `[ACC: +20%, SPD: +20%]`;
+                            // 現在のSPD tierを取得
+                            const currentSpeedTier = GAME_CONSTANTS.FORMULAS.SPEED(player.stats);
+                            // 最大tier (5) を超えないように
+                            const newSpeedTier = Math.min(5, currentSpeedTier + 1);
+                            return `[ACC: +20%, SPD: ${currentSpeedTier} → ${newSpeedTier}]`;
                         },
                         isFreeAction: true,
                         requiresTarget: false,
@@ -69,11 +77,15 @@ class CodexSystem {
                                 player.nextAttackModifiers = [];
                             }
 
+                            // 現在のSPD tierを取得し、1段階上昇（最大5）
+                            const currentSpeedTier = GAME_CONSTANTS.FORMULAS.SPEED(player.stats);
+                            const speedBoost = Math.min(5, currentSpeedTier + 1);
+
                             player.nextAttackModifiers.push({
                                 name: 'Quick Slash',
                                 damageMod: 1,
                                 accuracyMod: 0.2,
-                                speedMod: 0.2,
+                                speedTier: speedBoost,  // 固定値ではなく、tier上昇として設定
                                 duration: 1
                             });
                             

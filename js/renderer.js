@@ -494,14 +494,21 @@ class Renderer {
             let speedText = `${baseSpeed}`;
 
             // 修飾効果の累積を計算
-            let totalSpeedMod = 0;
             if (player.nextAttackModifiers && player.nextAttackModifiers.length > 0) {
-                for (const mod of player.nextAttackModifiers) {
-                    if (mod.speedMod) totalSpeedMod += mod.speedMod;
-                }
-                if (totalSpeedMod !== 0) {
-                    const modifiedSpeed = Math.floor(baseSpeed * (1 + totalSpeedMod));
-                    speedText = `<span style="color: ${totalSpeedMod > 0 ? '#2ecc71' : '#e74c3c'}">${modifiedSpeed}</span>`;
+                // speedTierが設定されている場合はそれを使用
+                const speedTierMod = player.nextAttackModifiers.find(mod => mod.speedTier);
+                if (speedTierMod) {
+                    speedText = `<span style="color: #2ecc71">${speedTierMod.speedTier}</span>`;
+                } else {
+                    // 従来のspeedMod処理（互換性のため残す）
+                    let totalSpeedMod = 0;
+                    for (const mod of player.nextAttackModifiers) {
+                        if (mod.speedMod) totalSpeedMod += mod.speedMod;
+                    }
+                    if (totalSpeedMod !== 0) {
+                        const modifiedSpeed = Math.floor(baseSpeed * (1 + totalSpeedMod));
+                        speedText = `<span style="color: ${totalSpeedMod > 0 ? '#2ecc71' : '#e74c3c'}">${modifiedSpeed}</span>`;
+                    }
                 }
             }
             speedElement.innerHTML = speedText;
