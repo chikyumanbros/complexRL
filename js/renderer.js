@@ -831,27 +831,41 @@ class Renderer {
         // 右列：戦闘システム
         rightColumn += `<div style="color: #ffd700; font-size: 12px; margin-bottom: 8px;">■ COMBAT SYSTEM</div>\n`;
 
-        // Attack & Defense
+        // Base Stats
         rightColumn += `<div style="color: #3498db; margin-bottom: 4px;">● Base Stats</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `ATK: STR - (DEX/3)\n`;
-        rightColumn += `DEF: CON - (STR/3)\n`;
+        rightColumn += `HP: CON×2 + STR/4 × Level Bonus\n`;
+        rightColumn += `ATK: STR×0.7 - DEX/4 + Dice\n`;
+        rightColumn += `DEF: CON×0.5 - STR/5 + Dice\n`;
         rightColumn += `</div>\n`;
 
+        // Combat Dice
         rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Combat Dice</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `ATK: Base + (DEX/5)d(STR/5×3)\n`;
-        rightColumn += `DEF: Base + (STR/5)d(CON/5×3)\n`;
+        rightColumn += `ATK: 1d(STR*1.5) × √DEX/2 times\n`;
+        rightColumn += `DEF: 1d(CON) × √CON/3 times\n`;
         rightColumn += `</div>\n`;
 
+        // Hit Chance
         rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Hit Chance</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `ACC: 50 + DEX + INT - (CON/3)\n`;
-        rightColumn += `EVA: DEX + INT - (CON/3)\n`;
-        rightColumn += `SPD: DEX - ((STR + CON)/10)\n`;
-        rightColumn += `PER: (DEX + WIS + INT - (STR + CON)/2) / 2\n`;
+        rightColumn += `ACC: 40 + DEX×0.8 + INT×0.4 - CON/4\n`;
+        rightColumn += `EVA: 10 + DEX×0.6 + INT×0.3 - CON/5 - STR/5\n`;
+        rightColumn += `SPD: Based on DEX/(STR+CON) ratio\n`;
+        rightColumn += `PER: (WIS + INT/2)/2 - (STR+CON)/8\n`;
         rightColumn += `</div>\n`;
 
+        // Speed Levels
+        rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Speed Levels</div>\n`;
+        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
+        rightColumn += `1: Very Slow (DEX ratio ≤ 0.7)\n`;
+        rightColumn += `2: Slow (DEX ratio ≤ 0.9)\n`;
+        rightColumn += `3: Normal (DEX ratio ≤ 1.1)\n`;
+        rightColumn += `4: Fast (DEX ratio ≤ 1.3)\n`;
+        rightColumn += `5: Very Fast (DEX ratio > 1.3)\n`;
+        rightColumn += `</div>\n`;
+
+        // Combat Flow
         rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Combat Flow</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
         rightColumn += `1. Speed Check\n`;
@@ -860,6 +874,7 @@ class Renderer {
         rightColumn += `4. DMG = ATK - DEF\n`;
         rightColumn += `</div>\n`;
 
+        // Penalties
         rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Penalties</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
         rightColumn += `Surrounded: -15% ACC/EVA per enemy\n`;

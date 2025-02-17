@@ -205,11 +205,11 @@ const GAME_CONSTANTS = {
 
         // 初期値（プレイヤー用）
         DEFAULT_VALUES: {
-            str: 30,
-            dex: 30,
-            con: 30,
-            int: 30,
-            wis: 30
+            str: 10,
+            dex: 10,
+            con: 10,
+            int: 10,
+            wis: 10
         },
 
         // ステータスの説明
@@ -223,7 +223,7 @@ const GAME_CONSTANTS = {
 
         // ステータスの最小値と最大値
         MIN_VALUE: 1,
-        MAX_VALUE: 99,
+        MAX_VALUE: 10,
 
         // ステータス変動の範囲（モンスター生成時用）
         VARIATION: {
@@ -234,20 +234,52 @@ const GAME_CONSTANTS = {
 
     // FORMULAS Section: Calculations for character stats and actions
     FORMULAS: {
-        MAX_HP: (stats, level) => Math.floor((stats.con * 2 + stats.str / 5) * (1 + level * 0.2)),
-        ATTACK: (stats) => ({
-            base: Math.max(0, Math.floor(stats.str - stats.dex / 3)),
-            diceCount: Math.floor(stats.dex / 5),
-            diceSides: Math.floor(stats.str / 5) * 3
-        }),
-        DEFENSE: (stats) => ({
-            base: Math.max(1, Math.floor(stats.con - stats.str / 3)),
-            diceCount: Math.floor(stats.str / 5),
-            diceSides: Math.floor(stats.con / 5) * 3
-        }),
-        ACCURACY: (stats) => Math.min(100, Math.floor((50 + stats.dex + stats.int) - (stats.con / 3))),
-        EVASION: (stats) => Math.min(100, Math.floor((stats.dex + stats.int) - (stats.con / 3))),
-        PERCEPTION: (stats) => Math.max(3, Math.floor(((stats.dex + stats.wis + stats.int) - ((stats.str + stats.con) / 2)) / 2)),
+        MAX_HP: (stats, level) => {
+            const baseHP = stats.con * 2 + Math.floor(stats.str / 4);
+            const levelBonus = 1 + (level * 0.25);
+            return Math.floor(baseHP * levelBonus);
+        },
+        ATTACK: (stats) => {
+            // 基本攻撃力：STRが主要、DEXが高すぎるとペナルティ
+            const base = Math.max(1, Math.floor(stats.str * 0.7 - stats.dex / 4));
+            
+            // ダイス数：DEXに基づくが、徐々に上昇が緩やかに
+            const diceCount = Math.max(1, Math.floor(Math.sqrt(stats.dex) / 2));
+            
+            // ダイス面：STRに基づくが、上限あり
+            const diceSides = Math.min(8, Math.floor(Math.sqrt(stats.str) * 1.5));
+            
+            return { base, diceCount, diceSides };
+        },
+        DEFENSE: (stats) => {
+            // 基本防御：CONが主要、STRが高いとペナルティ
+            const base = Math.max(1, Math.floor(stats.con * 0.5 - stats.str / 5));
+            
+            // 防御ダイス数：CONに基づくが、緩やかに
+            const diceCount = Math.max(1, Math.floor(Math.sqrt(stats.con) / 3));
+            
+            // 防御ダイス面：CONに基づくが、上限あり
+            const diceSides = Math.min(6, Math.floor(Math.sqrt(stats.con)));
+            
+            return { base, diceCount, diceSides };
+        },
+        ACCURACY: (stats) => {
+            // 基本命中率40%、DEXとINTで上昇、CONで減少
+            const acc = 40 + Math.floor(stats.dex * 0.8) + Math.floor(stats.int * 0.4) - Math.floor(stats.con / 4);
+            return Math.min(85, Math.max(20, acc));
+        },
+        EVASION: (stats) => {
+            // 基本回避率10%、DEXとINTで上昇、CONとSTRで減少
+            const eva = 10 + Math.floor(stats.dex * 0.6) + Math.floor(stats.int * 0.3) 
+                       - Math.floor(stats.con / 5) - Math.floor(stats.str / 5);
+            return Math.min(60, Math.max(5, eva));
+        },
+        PERCEPTION: (stats) => {
+            // 知覚：WISとINTが主要、STRとCONが高いとペナルティ
+            const base = Math.floor((stats.wis + stats.int / 2) / 2);
+            const penalty = Math.floor((stats.str + stats.con) / 8);
+            return Math.max(2, base - penalty);
+        },
         rollDamage: (attack, defense) => {
             let damage = attack.base;
             for (let i = 0; i < attack.diceCount; i++) {
@@ -262,15 +294,32 @@ const GAME_CONSTANTS = {
             return Math.max(1, damage - def);
         },
         HEALING_DICE: (stats) => ({
-            count: Math.floor(1 + stats.con / 20),
-            sides: Math.floor(1 + stats.con / 20)
+            count: Math.max(1, Math.floor(Math.sqrt(stats.con) / 2)),
+            sides: Math.max(2, Math.floor(Math.sqrt(stats.con)))
         }),
-        HEAL_MODIFIER: (stats) => Math.max(1, Math.floor((stats.con - stats.str) / 2)),
-        SLEEP_CHANCE: (stats) => {
-            // Lower intelligence increases sleepiness. Maximum 50% chance.
-            return Math.min(50, Math.max(0, 50 - stats.int * 8));
+        HEAL_MODIFIER: (stats) => {
+            // 回復修正：CONがプラス、STRがマイナスに影響
+            return Math.max(1, Math.floor(stats.con / 4) - Math.floor(stats.str / 6));
         },
-        SPEED: (stats) => Math.max(1, Math.floor(stats.dex - ((stats.str + stats.con) / 10)))
+        SLEEP_CHANCE: (stats) => {
+            // 睡眠耐性：INTが主要
+            return Math.min(50, Math.max(0, 45 - Math.floor(stats.int * 2.5)));
+        },
+        SPEED: (stats) => {
+            // 速度：DEXと(STR+CON)のバランスで決定
+            const baseSpeed = Math.floor(stats.dex * 0.7);  // DEXからの基本値
+            const penalty = Math.floor((stats.str + stats.con) / 15);  // 重量ペナルティ
+            const rawSpeed = Math.max(1, baseSpeed - penalty);
+            
+            // DEXと(STR+CON)の比率で速度を決定
+            const dexRatio = stats.dex / ((stats.str + stats.con) / 2);
+            
+            if (dexRatio <= 0.7) return 1;      // Very Slow
+            if (dexRatio <= 0.9) return 2;      // Slow
+            if (dexRatio <= 1.1) return 3;      // Normal  // オール10は dexRatio=1.0 なのでここに収まる
+            if (dexRatio <= 1.3) return 4;      // Fast
+            return 5;                           // Very Fast
+        }
     },
 
     // 体力状態の判定システム
