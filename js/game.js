@@ -240,7 +240,13 @@ class Game {
     }
 
     isOccupied(x, y) {
+        // プレイヤーの位置チェック
         if (this.player.x === x && this.player.y === y) return true;
+        
+        // 閉じた扉のチェックを追加
+        if (this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) return true;
+        
+        // モンスターの位置チェック
         return this.monsters.some(m => m.x === x && m.y === y);
     }
 
