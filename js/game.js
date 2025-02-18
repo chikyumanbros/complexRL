@@ -46,6 +46,11 @@ class Game {
             this.inputHandler.unbindKeys();
         }
 
+        // モードをリセット
+        this.mode = GAME_CONSTANTS.MODES.GAME;
+        document.body.classList.remove('codex-mode');
+        document.body.classList.remove('help-mode');
+
         // Fully reset the state
         this.map = [];
         this.tiles = [];
@@ -53,7 +58,6 @@ class Game {
         this.player = new Player(0, 0, this);
         this.codexSystem = new CodexSystem();
         this.logger = new Logger(this);
-        this.mode = GAME_CONSTANTS.MODES.GAME;
         this.turn = 0;
         this.monsters = [];
         this.totalMonstersSpawned = 0;

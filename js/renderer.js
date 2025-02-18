@@ -295,24 +295,32 @@ class Renderer {
                         const healthStatus = this.game.player.getHealthStatus(this.game.player.hp, this.game.player.maxHp);
                         style = `color: ${healthStatus.color}; opacity: 1; text-shadow: 0 0 5px ${backgroundColor}`;
                     } else {
-                        const monster = this.game.getMonsterAt(x, y);
-                        if (monster) {
-                            content = monster.char;
-                            let monsterOpacity = 1;
-                            if (monster.hasStartedFleeing) {
-                                monsterOpacity = 0.9;
-                            }
-                            style = `color: ${GAME_CONSTANTS.COLORS.MONSTER[monster.type]}; opacity: ${monsterOpacity}; text-shadow: 0 0 5px ${backgroundColor}`;
-                            if (monster.isSleeping) {
-                                style += '; animation: sleeping-monster 1s infinite';
-                            }
+                        // 残像エフェクトの描画
+                        const trailEffect = Array.from(this.movementEffects).find(effect => effect.x === x && effect.y === y);
+                        if (trailEffect) {
+                            content = this.game.player.char;
+                            style = `color: ${GAME_CONSTANTS.COLORS.PLAYER}; opacity: ${trailEffect.opacity}; text-shadow: 0 0 5px ${backgroundColor}`;
                         } else {
-                            const psychedelicEffect = this.calculatePsychedelicEffect(x, y, content, this.game.colors[y][x], true);
-                            content = psychedelicEffect.char;
-                            style = `color: ${psychedelicEffect.color}; opacity: ${opacity}; text-shadow: 0 0 5px ${backgroundColor}`;
+                            // 既存のモンスター描画処理
+                            const monster = this.game.getMonsterAt(x, y);
+                            if (monster) {
+                                content = monster.char;
+                                let monsterOpacity = 1;
+                                if (monster.hasStartedFleeing) {
+                                    monsterOpacity = 0.9;
+                                }
+                                style = `color: ${GAME_CONSTANTS.COLORS.MONSTER[monster.type]}; opacity: ${monsterOpacity}; text-shadow: 0 0 5px ${backgroundColor}`;
+                                if (monster.isSleeping) {
+                                    style += '; animation: sleeping-monster 1s infinite';
+                                }
+                            } else {
+                                const psychedelicEffect = this.calculatePsychedelicEffect(x, y, content, this.game.colors[y][x], true);
+                                content = psychedelicEffect.char;
+                                style = `color: ${psychedelicEffect.color}; opacity: ${opacity}; text-shadow: 0 0 5px ${backgroundColor}`;
 
-                            if (content === GAME_CONSTANTS.STAIRS.CHAR) {
-                                style = `color: ${GAME_CONSTANTS.STAIRS.COLOR}; opacity: ${opacity}; text-shadow: 0 0 5px ${backgroundColor}`;
+                                if (content === GAME_CONSTANTS.STAIRS.CHAR) {
+                                    style = `color: ${GAME_CONSTANTS.STAIRS.COLOR}; opacity: ${opacity}; text-shadow: 0 0 5px ${backgroundColor}`;
+                                }
                             }
                         }
                     }
@@ -640,35 +648,42 @@ class Renderer {
     }
     // New method for movement trail effect
     showMovementTrailEffect(fromX, fromY, toX, toY) {
-        // Clear existing effects
+        // 既存のエフェクトをクリア
         this.movementEffects = new Set();
 
-        // Calculate trail from start to end
+        // 移動方向を計算
         const dx = toX - fromX;
         const dy = toY - fromY;
         const steps = Math.max(Math.abs(dx), Math.abs(dy));
 
-        // Calculate each point in the trail
-        for (let i = 0; i <= steps; i++) {
-            const x = Math.round(fromX + (dx * i / steps));
-            const y = Math.round(fromY + (dy * i / steps));
-            this.movementEffects.add({ x, y });
+        // 残像の数（少なめにして見やすくする）
+        const trailCount = Math.min(3, steps);
 
-            // Remove effect from each point with a delay
+        // 各残像ポイントを計算
+        for (let i = 1; i <= trailCount; i++) {
+            const x = Math.round(fromX + (dx * i / (trailCount + 1)));
+            const y = Math.round(fromY + (dy * i / (trailCount + 1)));
+            this.movementEffects.add({ 
+                x, 
+                y,
+                opacity: 1 - (i / (trailCount + 1)) // 徐々に薄くなる
+            });
+
+            // 各残像を時間差で消す
             setTimeout(() => {
-                this.movementEffects.delete({ x, y });
+                this.movementEffects.delete({ x, y, opacity: 1 - (i / (trailCount + 1)) });
                 this.render();
-            }, 100 + (i * 50)); // Remove sequentially with a time delay
+            }, 100 + (i * 50));
         }
 
-        // Force re-rendering
+        // 強制再描画
         this.render();
 
-        // Clear all effects after a constant time delay
+        // 全エフェクトを一定時間後にクリア
         setTimeout(() => {
             this.movementEffects.clear();
             this.render();
-        }, 100 + (steps * 50) + 100);
+        }, 250);
     }
 
     showLevelUpEffect(x, y) {
