@@ -149,10 +149,11 @@ class Renderer {
             return { char: baseChar, color: baseColor };
         }
 
-        // プレイヤーからの距離を計算（ユークリッド距離に変更）
-        const dx = x - this.game.player.x;
-        const dy = y - this.game.player.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);  // ユークリッド距離
+        // プレイヤーからの距離を計算
+        const distance = GAME_CONSTANTS.DISTANCE.calculate(
+            x, y,
+            this.game.player.x, this.game.player.y
+        );
 
         // WISとINTに基づいて効果範囲を計算
         const effectRange = Math.max(1, Math.min(8, 
@@ -264,12 +265,10 @@ class Renderer {
                 if (isVisible) {
                     // タイルごとに部屋を判定する
                     const roomAtTile = this.game.getRoomAt(x, y);
-                    // プレイヤーがいる部屋と同じならその brightness を、そうでなければ通路用の視界定数（ここでは 2）を使用
+                    // プレイヤーがいる部屋と同じならその brightness を、そうでなければ通路用の視界定数を使用
                     const tileVisibility = (currentRoom && roomAtTile && roomAtTile === currentRoom) ? currentRoom.brightness : 2;
                     
-                    const dx = x - px;
-                    const dy = y - py;
-                    const distance = Math.sqrt(dx * dx + dy * dy);  
+                    const distance = GAME_CONSTANTS.DISTANCE.calculate(x, y, px, py);
                     
                     let baseOpacity;
                     if (distance <= 1) {
@@ -319,10 +318,7 @@ class Renderer {
                     }
 
                     if (isHighlighted) {
-                        const player = this.game.player;
-                        const targetDx = x - player.x;
-                        const targetDy = y - player.y;
-                        const targetDistance = Math.sqrt(targetDx * targetDx + targetDy * targetDy);
+                        const targetDistance = GAME_CONSTANTS.DISTANCE.calculate(x, y, this.game.player.x, this.game.player.y);
 
                         if (this.game.inputHandler.targetingMode === 'look') {
                             backgroundColor = `linear-gradient(${backgroundColor || 'transparent'}, rgba(255, 255, 255, 1))`;
@@ -954,6 +950,14 @@ class Renderer {
         rightColumn += `2. ACC vs Roll(100)\n`;
         rightColumn += `3. EVA vs Roll(100)\n`;
         rightColumn += `4. DMG = ATK - DEF\n`;
+        rightColumn += `</div>\n`;
+
+        // Distance Calculation（新規追加）
+        rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Distance</div>\n`;
+        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
+        rightColumn += `Uses Euclidean distance for\n`;
+        rightColumn += `natural line of sight and range\n`;
+        rightColumn += `calculations\n`;
         rightColumn += `</div>\n`;
 
         // Penalties

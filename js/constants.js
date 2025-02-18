@@ -279,7 +279,7 @@ const GAME_CONSTANTS = {
             // 知覚：WISとDEXが主要、STRとCONが高いとペナルティ
             const base = Math.floor((stats.wis + stats.dex) / 2);
             const penalty = Math.floor((stats.str + stats.con) / 5);
-            return Math.max(2, base - penalty);
+            return Math.max(3, base - penalty);
         },
         rollDamage: (attack, defense) => {
             let damage = attack.base;
@@ -320,6 +320,39 @@ const GAME_CONSTANTS = {
             if (dexRatio <= 1.1) return 3;      // Normal  // オール10は dexRatio=1.0 なのでここに収まる
             if (dexRatio <= 1.3) return 4;      // Fast
             return 5;                           // Very Fast
+        },
+        // 自然回復の処理を追加
+        NATURAL_HEALING: {
+            // 回復判定の基本成功率とステータス補正を計算（基本確率を10%に下げ、CONの影響も抑制）
+            getSuccessChance: (stats) => {
+                return 10 + Math.floor(stats.con / 6);  // 基本確率10%、CONは6ごとに+1%
+            },
+
+            // 回復量を計算（ダイスロールと修正値を含む）
+            calculateHeal: (healingDice, healModifier) => {
+                let healAmount = 0;
+                const rolls = [];
+
+                for (let i = 0; i < healingDice.count; i++) {
+                    const roll = Math.floor(Math.random() * healingDice.sides) + 1;
+                    rolls.push(roll);
+                    healAmount += roll;
+                }
+
+                healAmount = Math.max(0, healAmount + healModifier);
+
+                return {
+                    amount: healAmount,
+                    rolls: rolls
+                };
+            },
+
+            // 実際の回復処理（HP上限を考慮）
+            applyHeal: (entity, healAmount) => {
+                const oldHp = entity.hp;
+                entity.hp = Math.min(entity.maxHp, entity.hp + healAmount);
+                return entity.hp - oldHp;  // 実際の回復量を返す
+            }
         }
     },
 
@@ -795,4 +828,12 @@ const GAME_CONSTANTS = {
             return mostUsedChar ? this[mostUsedChar] : '#ffffff';
         }
     },
+
+    DISTANCE: {
+        calculate: (x1, y1, x2, y2) => {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+    }
 };

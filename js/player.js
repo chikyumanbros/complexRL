@@ -614,35 +614,26 @@ class Player {
 
         // 自然回復処理
         if (!this.meditation && this.hp < this.maxHp) {
-            const successChance = 20 + Math.floor(this.stats.con / 5);
+            const successChance = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.getSuccessChance(this.stats);
             const successRoll = Math.floor(Math.random() * 100);
             
-            if (successRoll > successChance) {
-                return;
-            }
-
-            let healAmount = 0;
-            for (let i = 0; i < this.healingDice.count; i++) {
-                healAmount += Math.floor(Math.random() * this.healingDice.sides) + 1;
-            }
-            healAmount = Math.max(0, healAmount + this.healModifier);
-
-            if (healAmount > 0) {
-                const oldHp = this.hp;
-                this.hp = Math.min(this.maxHp, this.hp + healAmount);
-                const actualHeal = this.hp - oldHp;
-                
-                // ダイスロールの結果を配列に格納
-                let healRolls = [];
-                for (let i = 0; i < this.healingDice.count; i++) {
-                    healRolls.push(Math.floor(Math.random() * this.healingDice.sides) + 1);
-                }
-                
-                this.game.logger.add(
-                    `Natural healing: [${healRolls.join(',')}]` +
-                    `${this.healModifier >= 0 ? '+' : ''}${this.healModifier} → +${actualHeal} HP`, 
-                    "heal"
+            if (successRoll <= successChance) {
+                const healResult = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.calculateHeal(
+                    this.healingDice,
+                    this.healModifier
                 );
+
+                if (healResult.amount > 0) {
+                    const actualHeal = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.applyHeal(this, healResult.amount);
+                    
+                    if (actualHeal > 0) {
+                        this.game.logger.add(
+                            `Natural healing: [${healResult.rolls.join(',')}]` +
+                            `${this.healModifier >= 0 ? '+' : ''}${this.healModifier} → +${actualHeal} HP`, 
+                            "heal"
+                        );
+                    }
+                }
             }
         }
     }
@@ -707,19 +698,13 @@ class Player {
 
     // 新規メソッド: プレイヤーの周囲のモンスター数をカウント
     countSurroundingMonsters(game) {
-        let count = 0;
-        for (const monster of game.monsters) {
-            // チェビシェフ距離からユークリッド距離に変更
-            const dx = monster.x - this.x;
-            const dy = monster.y - this.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            // 周囲1.5マス以内のモンスターをカウント（斜めの距離も考慮）
-            if (distance <= 1.5) {
-                count++;
-            }
-        }
-        return count;
+        return this.game.monsters.filter(monster => {
+            const distance = GAME_CONSTANTS.DISTANCE.calculate(
+                monster.x, monster.y,
+                this.x, this.y
+            );
+            return distance <= 1.5;
+        }).length;
     }
 
     // 自動探索を開始
@@ -776,7 +761,6 @@ class Player {
 
     // 未探索タイルへの方向を見つける
     findDirectionToUnexplored() {
-        // グリッドベースの8方向
         const directions = [
             {dx: 0, dy: -1},  // 上
             {dx: 1, dy: -1},  // 右上
@@ -788,9 +772,7 @@ class Player {
             {dx: -1, dy: -1}  // 左上
         ];
 
-        // 訪問済みの座標を記録するSet
         const visited = new Set();
-        // 探索キュー（座標と、その地点までの最初の移動方向を保持）
         const queue = [{
             x: this.x,
             y: this.y,
@@ -805,14 +787,12 @@ class Player {
             if (visited.has(key)) continue;
             visited.add(key);
 
-            // 未探索タイルの判定
             if (this.game.isValidPosition(current.x, current.y) && 
                 !this.game.explored[current.y][current.x] && 
                 this.game.map[current.y][current.x] === 'floor') {
                 return current.firstStep;
             }
 
-            // 隣接マスの探索（グリッドベースの距離計算）
             for (const dir of directions) {
                 const newX = current.x + dir.dx;
                 const newY = current.y + dir.dy;
@@ -821,8 +801,11 @@ class Player {
                     this.game.map[newY][newX] === 'floor' &&
                     this.game.tiles[newY][newX] !== GAME_CONSTANTS.TILES.DOOR.CLOSED) {
                     
-                    // グリッドベースの距離を計算
-                    const newDistance = current.distance + (dir.dx !== 0 && dir.dy !== 0 ? 1.4142 : 1);
+                    // ユークリッド距離を使用
+                    const newDistance = current.distance + GAME_CONSTANTS.DISTANCE.calculate(
+                        current.x, current.y,
+                        newX, newY
+                    );
                     
                     queue.push({
                         x: newX,

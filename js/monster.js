@@ -181,25 +181,21 @@ class Monster {
         // --- Natural Healing ---
         // 自然回復の処理を最初に実行
         if (this.hp < this.maxHp) {
-            const successChance = 20 + Math.floor(this.stats.con / 5);
+            const successChance = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.getSuccessChance(this.stats);
             const successRoll = Math.floor(Math.random() * 100);
             
             if (successRoll <= successChance) {
-                let healAmount = 0;
-                for (let i = 0; i < this.healingDice.count; i++) {
-                    healAmount += Math.floor(Math.random() * this.healingDice.sides) + 1;
-                }
-                healAmount = Math.max(0, healAmount + this.healModifier);
+                const healResult = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.calculateHeal(
+                    this.healingDice,
+                    this.healModifier
+                );
 
-                if (healAmount > 0) {
-                    const oldHp = this.hp;
-                    this.hp = Math.min(this.maxHp, this.hp + healAmount);
-                    const actualHeal = this.hp - oldHp;
-                    if (actualHeal > 0) {
-                        // HPが閾値を超えた場合、即座にflee状態を解除
-                        if (this.hasStartedFleeing && (this.hp / this.maxHp) > this.fleeThreshold) {
-                            this.hasStartedFleeing = false;
-                        }
+                if (healResult.amount > 0) {
+                    const actualHeal = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.applyHeal(this, healResult.amount);
+                    
+                    // HPが閾値を超えた場合、即座にflee状態を解除
+                    if (actualHeal > 0 && this.hasStartedFleeing && (this.hp / this.maxHp) > this.fleeThreshold) {
+                        this.hasStartedFleeing = false;
                     }
                 }
             }
@@ -217,7 +213,10 @@ class Monster {
         if (this.isSleeping) {
             const dx = game.player.x - this.x;
             const dy = game.player.y - this.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
+            const distance = GAME_CONSTANTS.DISTANCE.calculate(
+                game.player.x, game.player.y,
+                this.x, this.y
+            );
             
             let wakeupChance = 0;
             
@@ -227,9 +226,10 @@ class Monster {
             } 
             // 近くで戦闘が行われた場合
             else if (game.lastCombatLocation && distance <= this.perception) {
-                const combatDx = game.lastCombatLocation.x - this.x;
-                const combatDy = game.lastCombatLocation.y - this.y;
-                const combatDistance = Math.sqrt(combatDx * combatDx + combatDy * combatDy);
+                const combatDistance = GAME_CONSTANTS.DISTANCE.calculate(
+                    game.lastCombatLocation.x, game.lastCombatLocation.y,
+                    this.x, this.y
+                );
                 wakeupChance = Math.max(0, (this.perception - combatDistance) * 15);
             }
             
@@ -243,7 +243,10 @@ class Monster {
         // --- Player Detection and Pursuit ---
         const dx = game.player.x - this.x;
         const dy = game.player.y - this.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        const distance = GAME_CONSTANTS.DISTANCE.calculate(
+            game.player.x, game.player.y,
+            this.x, this.y
+        );
 
         // プレイヤーが視界内にいるか、近距離で音が聞こえる場合
         // 閉じた扉越しの場合は音の伝達距離を半減
@@ -488,8 +491,10 @@ class Monster {
             const newX = this.x + move.x;
             const newY = this.y + move.y;
             
-            // 移動先の追加チェックは不要（filterで済んでいる）
-            const newDistance = Math.abs(targetX - newX) + Math.abs(targetY - newY);
+            const newDistance = GAME_CONSTANTS.DISTANCE.calculate(
+                newX, newY,
+                targetX, targetY
+            );
             if (newDistance < bestDistance) {
                 bestDistance = newDistance;
                 bestMove = move;
@@ -547,60 +552,52 @@ class Monster {
     // ========================== flee Method ==========================
     // 逃走行動を実行するメソッド
     flee(game) {
-        const dx = game.player.x - this.x;
-        const dy = game.player.y - this.y;
-        const currentDistance = Math.sqrt(dx * dx + dy * dy);
-        
-        // --- Evaluate All Directions ---
-        const candidates = [];
-        
-        // 8方向の移動を評価
-        for (let x = -1; x <= 1; x++) {
-            for (let y = -1; y <= 1; y++) {
-                if (x === 0 && y === 0) continue;
+        // 現在のプレイヤーとの距離を計算
+        const currentDistance = GAME_CONSTANTS.DISTANCE.calculate(
+            this.x, this.y,
+            game.player.x, game.player.y
+        );
+
+        // 周囲8方向の移動候補を生成
+        const directions = [
+            { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 },
+            { dx: -1, dy: 0 },                      { dx: 1, dy: 0 },
+            { dx: -1, dy: 1 },  { dx: 0, dy: 1 },  { dx: 1, dy: 1 }
+        ];
+
+        // 最適な移動先を探す
+        let bestMove = null;
+        let maxDistance = currentDistance;
+
+        for (const dir of directions) {
+            const newX = this.x + dir.dx;
+            const newY = this.y + dir.dy;
+
+            if (this.canMoveTo(newX, newY, game) && 
+                !game.getMonsterAt(newX, newY) && 
+                game.tiles[newY][newX] !== GAME_CONSTANTS.TILES.DOOR.CLOSED) {
                 
-                const newX = this.x + x;
-                const newY = this.y + y;
-                
-                // 移動先の厳密なチェック
-                if (this.canMoveTo(newX, newY, game) && 
-                    !game.getMonsterAt(newX, newY) && 
-                    game.tiles[newY][newX] !== GAME_CONSTANTS.TILES.DOOR.CLOSED) {
-                    
-                    const newDx = game.player.x - newX;
-                    const newDy = game.player.y - newY;
-                    const newDistance = Math.sqrt(newDx * newDx + newDy * newDy);
-                    
-                    // プレイヤーから遠ざかる移動のみを候補とする
-                    if (newDistance > currentDistance) {
-                        candidates.push({
-                            x: x,
-                            y: y,
-                            distance: newDistance
-                        });
-                    }
+                const newDistance = GAME_CONSTANTS.DISTANCE.calculate(
+                    newX, newY,
+                    game.player.x, game.player.y
+                );
+
+                // より遠い位置が見つかった場合、更新
+                if (newDistance > maxDistance) {
+                    maxDistance = newDistance;
+                    bestMove = dir;
                 }
             }
         }
-        
-        // --- Sorting Candidates by Distance ---
-        candidates.sort((a, b) => b.distance - a.distance);
-        
-        // --- Fallback Attack if No Escape ---
-        if (candidates.length === 0 && Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
-            this.attackPlayer(game.player, game);
-            return false;
-        }
-        
-        // --- Execute Best Escape Move ---
-        if (candidates.length > 0) {
-            const best = candidates[0];
-            this.x += best.x;
-            this.y += best.y;
+
+        // 最適な移動先が見つかった場合、移動を実行
+        if (bestMove) {
+            this.x += bestMove.dx;
+            this.y += bestMove.dy;
             return true;
         }
-        
-        return false;
+
+        return false;  // 移動できる場所が見つからなかった
     }
 
     // ========================== hasClosedDoorBetween Method ==========================
