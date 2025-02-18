@@ -396,7 +396,7 @@ const GAME_CONSTANTS = {
             stats: {
                 str: 8,
                 dex: 14,
-                con: 8,
+                con: 6,
                 int: 2,
                 wis: 8
             },

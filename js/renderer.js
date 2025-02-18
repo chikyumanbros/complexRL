@@ -31,6 +31,26 @@ class Renderer {
 
         // 初期の揺らぎ値を生成
         this.updateFlickerValues();
+
+        // ウィンドウリサイズ時のスケーリング処理を追加
+        this.setupScaling();
+        window.addEventListener('resize', () => this.setupScaling());
+    }
+
+    setupScaling() {
+        const container = document.querySelector('.container');
+        if (!container) return;
+
+        const baseWidth = 1780;
+        const baseHeight = 980;
+        
+        // ウィンドウサイズに基づいてスケール比を計算
+        const scaleX = window.innerWidth / baseWidth;
+        const scaleY = window.innerHeight / baseHeight;
+        const scale = Math.min(scaleX, scaleY, 1); // 最大スケールを1に制限
+        
+        // CSSカスタムプロパティとしてスケール比を設定
+        document.documentElement.style.setProperty('--scale-ratio', scale);
     }
 
     // フリッカー値を更新（ターンベース）
@@ -659,30 +679,18 @@ class Renderer {
         const particleLayer = document.getElementById('particle-layer');
         if (!particleLayer) return;
 
-        // Retrieve player tile element using data-x, data-y attributes
-        const playerTile = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
-        let centerX, centerY;
-        if (playerTile) {
-            // Calculate relative position from #game-container (effect layer's parent)
-            const gameContainer = document.getElementById('game-container');
-            const containerRect = gameContainer ? gameContainer.getBoundingClientRect() : { left: 0, top: 0 };
-            const tileRect = playerTile.getBoundingClientRect();
-            centerX = tileRect.left - containerRect.left;
-            centerY = tileRect.top - containerRect.top;
-        } else {
-            // Fallback calculation if player tile is not found
-            const tileElement = document.querySelector('#game span');
-            const tileSize = tileElement ? tileElement.offsetWidth : 15;
-            centerX = x * tileSize;
-            centerY = y * tileSize;
-        }
+        const pos = this.getTilePosition(x, y);
+        if (!pos) return;
+
+        const centerX = pos.x - pos.width / 2;
+        const centerY = pos.y - pos.height / 2;
 
         const particleCount = 50;
         for (let i = 0; i < particleCount; i++) {
             const particle = document.createElement('div');
             particle.classList.add('levelup-particle');
-            particle.style.left = centerX - 4 + "px";
-            particle.style.top = centerY + 4 + "px";
+            particle.style.left = centerX + "px";
+            particle.style.top = centerY + "px";
 
             const angle = Math.random() * Math.PI * 2;
             const distance = 20 + Math.random() * 30;
@@ -702,35 +710,101 @@ class Renderer {
         const particleLayer = document.getElementById('particle-layer');
         if (!particleLayer) return;
 
-        // Retrieve current player tile element (identified by data-x, data-y attributes)
-        const playerTile = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
-        let centerX, centerY;
-        if (playerTile) {
-            const gameContainer = document.getElementById('game-container');
-            // If gameContainer does not exist, fallback to { left: 0, top: 0 }
-            const containerRect = gameContainer ? gameContainer.getBoundingClientRect() : { left: 0, top: 0 };
-            const tileRect = playerTile.getBoundingClientRect();
-            centerX = tileRect.left - containerRect.left + tileRect.width / 2;
-            centerY = tileRect.top - containerRect.top + tileRect.height / 2;
-        } else {
-            const tileElement = document.querySelector('#game span');
-            const tileSize = tileElement ? tileElement.offsetWidth : 15;
-            centerX = x * tileSize + tileSize / 2;
-            centerY = y * tileSize + tileSize / 2;
-        }
+        const pos = this.getTilePosition(x, y);
+        if (!pos) return;
 
-        // Calculate bottom position relative to player center based on particleLayer height
+        const centerX = pos.x - pos.width / 2;
+        const centerY = pos.y - pos.height / 2;
         const bottomValue = particleLayer.offsetHeight - centerY;
 
         const pillar = document.createElement('div');
         pillar.classList.add('light-pillar');
-        pillar.style.left = centerX - 8 + "px";
+        pillar.style.left = centerX + "px";
         pillar.style.bottom = bottomValue + "px";
 
         particleLayer.appendChild(pillar);
 
         pillar.addEventListener('animationend', () => {
             pillar.remove();
+        });
+    }
+
+    showDeathEffect(x, y, color = '#9B2222') {
+        const particleLayer = document.getElementById('particle-layer');
+        if (!particleLayer) return;
+
+        const pos = this.getTilePosition(x, y);
+        if (!pos) return;
+
+        const centerX = pos.x - pos.width / 2;
+        const centerY = pos.y - pos.height / 2;
+
+        const particleCount = 50;
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('death-particle');
+            particle.style.left = centerX + "px";
+            particle.style.top = centerY + "px";
+            particle.style.backgroundColor = color;
+
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 15 + Math.random() * 25;
+            const dx = Math.cos(angle) * distance;
+            const dy = Math.sin(angle) * distance;
+            particle.style.setProperty('--dx', dx + "px");
+            particle.style.setProperty('--dy', dy + "px");
+
+            particleLayer.appendChild(particle);
+
+            particle.addEventListener('animationend', () => {
+                particle.remove();
+            });
+        }
+    }
+
+    showMissEffect(x, y, type = 'miss') {
+        const particleLayer = document.getElementById('particle-layer');
+        if (!particleLayer) return;
+
+        const pos = this.getTilePosition(x, y);
+        if (!pos) return;
+
+        const centerX = pos.x + pos.width / 8;
+        const centerY = pos.y + pos.height / 8;
+
+        // エフェクトの設定
+        const config = {
+            miss: {
+                color: '#ffff00',
+                size: 15,
+                duration: '0.4s'
+            },
+            evade: {
+                color: '#00FFFF',
+                size: 15,
+                duration: '0.4s'
+            }
+        };
+
+        const settings = config[type];
+        
+        // リングエフェクトの生成
+        const ring = document.createElement('div');
+        ring.classList.add('miss-ring');
+        
+        // リングのスタイル設定
+        ring.style.left = (centerX - settings.size) + "px";
+        ring.style.top = (centerY - settings.size) + "px";
+        ring.style.width = settings.size + "px";
+        ring.style.height = settings.size + "px";
+        ring.style.borderColor = settings.color;
+        ring.style.animationDuration = settings.duration;
+
+        particleLayer.appendChild(ring);
+
+        // アニメーション終了時に要素を削除
+        ring.addEventListener('animationend', () => {
+            ring.remove();
         });
     }
 
@@ -906,50 +980,6 @@ class Renderer {
         `;
 
         return display;
-    }
-
-    showDeathEffect(x, y, color = '#9B2222') {
-        const particleLayer = document.getElementById('particle-layer');
-        if (!particleLayer) return;
-
-        // 対象のタイルの位置を取得
-        const targetTile = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
-
-        let centerX, centerY;
-        if (targetTile) {
-            const gameContainer = document.getElementById('game-container');
-            const containerRect = gameContainer ? gameContainer.getBoundingClientRect() : { left: 0, top: 0 };
-            const tileRect = targetTile.getBoundingClientRect();
-            centerX = tileRect.left - containerRect.left;
-            centerY = tileRect.top - containerRect.top;
-        } else {
-            const tileElement = document.querySelector('#game span');
-            const tileSize = tileElement ? tileElement.offsetWidth : 15;
-            centerX = x * tileSize;
-            centerY = y * tileSize;
-        }
-
-        const particleCount = 50;
-        for (let i = 0; i < particleCount; i++) {
-            const particle = document.createElement('div');
-            particle.classList.add('death-particle');
-            particle.style.left = centerX - 4 + "px";
-            particle.style.top = centerY + 4 + "px";
-            particle.style.backgroundColor = color;
-
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 15 + Math.random() * 25;
-            const dx = Math.cos(angle) * distance;
-            const dy = Math.sin(angle) * distance;
-            particle.style.setProperty('--dx', dx + "px");
-            particle.style.setProperty('--dy', dy + "px");
-
-            particleLayer.appendChild(particle);
-
-            particle.addEventListener('animationend', () => {
-                particle.remove();
-            });
-        }
     }
 
     drawMonsterSprite(canvas, monsterType, monsterId = null) {
@@ -1157,60 +1187,25 @@ class Renderer {
         this.game.logger.updateLookInfo(container);
     }
 
-    showMissEffect(x, y, type = 'miss') {
-        const particleLayer = document.getElementById('particle-layer');
-        if (!particleLayer) return;
+    // 共通の位置計算ロジックを追加
+    getTilePosition(x, y) {
+        const tileElement = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
+        if (!tileElement) return null;
 
-        // 対象のタイルの位置を取得
-        const targetTile = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
-        
-        let centerX, centerY;
-        if (targetTile) {
-            const gameContainer = document.getElementById('game-container');
-            const containerRect = gameContainer ? gameContainer.getBoundingClientRect() : { left: 0, top: 0 };
-            const tileRect = targetTile.getBoundingClientRect();
-            centerX = tileRect.left - containerRect.left;
-            centerY = tileRect.top - containerRect.top;
-        } else {
-            const tileElement = document.querySelector('#game span');
-            const tileSize = tileElement ? tileElement.offsetWidth : 15;
-            centerX = x * tileSize;
-            centerY = y * tileSize;
-        }
+        // スケール比を取得
+        const scale = parseFloat(getComputedStyle(document.documentElement)
+            .getPropertyValue('--scale-ratio')) || 1;
 
-        // エフェクトの設定
-        const config = {
-            miss: {
-                color: '#ffff00',
-                size: 15,
-                duration: '0.4s'
-            },
-            evade: {
-                color: '#00FFFF',
-                size: 15,
-                duration: '0.4s'
-            }
+        const gameContainer = document.getElementById('game-container');
+        const containerRect = gameContainer ? gameContainer.getBoundingClientRect() : { left: 0, top: 0 };
+        const tileRect = tileElement.getBoundingClientRect();
+
+        // スケールを考慮した実際の位置を計算
+        return {
+            x: (tileRect.left - containerRect.left) / scale,
+            y: (tileRect.top - containerRect.top) / scale,
+            width: tileRect.width / scale,
+            height: tileRect.height / scale
         };
-
-        const settings = config[type];
-        
-        // リングエフェクトの生成
-        const ring = document.createElement('div');
-        ring.classList.add('miss-ring');
-        
-        // リングのスタイル設定
-        ring.style.left = (centerX - settings.size/2) + "px";
-        ring.style.top = (4 + centerY - settings.size/2) + "px";
-        ring.style.width = settings.size + "px";
-        ring.style.height = settings.size + "px";
-        ring.style.borderColor = settings.color;
-        ring.style.animationDuration = settings.duration;
-
-        particleLayer.appendChild(ring);
-
-        // アニメーション終了時に要素を削除
-        ring.addEventListener('animationend', () => {
-            ring.remove();
-        });
     }
 }
