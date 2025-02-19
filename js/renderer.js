@@ -592,8 +592,15 @@ class Renderer {
                     const monsterSymbol = monster.char ? monster.char : 'M';
                     const monsterColor = GAME_CONSTANTS.COLORS.MONSTER[monster.type];
 
+                    // プレイヤーから見た方角と距離を計算
+                    const dx = monster.x - this.game.player.x;
+                    const dy = monster.y - this.game.player.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const direction = this.getDirectionIndicator(dx, dy);
+                    const directionColor = this.getDirectionColor(distance);
+
                     return `<span style="color: ${monsterColor}">` +
-                        `${monsterSymbol} ${monster.name}</span>` +
+                        `<span style="color: ${directionColor}; display: inline-block; width: 2em">${direction}</span>${monsterSymbol} ${monster.name}</span>` +
                         ` [<span class="${healthClass}">${monster.hp}/${monster.maxHp}</span>]` +
                         `${sleepStatus}${fleeingStatus}`;
                 }).join('<br>');
@@ -1131,6 +1138,8 @@ class Renderer {
         const infoDiv = document.createElement('div');
         infoDiv.style.border = 'none';
         infoDiv.style.padding = '0';
+        infoDiv.style.width = '200px';
+        infoDiv.style.flexShrink = '0';
 
         if (monster) {
             // Fallback: compute attack and defense if undefined
@@ -1269,5 +1278,30 @@ class Renderer {
         logPanel.classList.add('log-panel-flash');
         
         console.log('Classes after flash:', logPanel.classList.toString());
+    }
+
+    // 新しいメソッドを追加
+    getDirectionIndicator(dx, dy) {
+        if (Math.abs(dx) <= 0.5) {
+            if (dy < 0) return 'N';  // スペース不要
+            if (dy > 0) return 'S';  // スペース不要
+        }
+        if (Math.abs(dy) <= 0.5) {
+            if (dx < 0) return 'W';  // スペース不要
+            if (dx > 0) return 'E';  // スペース不要
+        }
+        if (dx < 0 && dy < 0) return 'NW';
+        if (dx > 0 && dy < 0) return 'NE';
+        if (dx < 0 && dy > 0) return 'SW';
+        if (dx > 0 && dy > 0) return 'SE';
+        return ' ';
+    }
+
+    // 新しいメソッドを追加
+    getDirectionColor(distance) {
+        if (distance <= 1.5) return '#ff4757';      // 隣接: 赤
+        if (distance <= 3) return '#ffa502';        // 近距離: オレンジ
+        if (distance <= 5) return '#7bed9f';        // 中距離: 緑
+        return '#70a1ff';                           // 遠距離: 青
     }
 }
