@@ -1247,4 +1247,27 @@ class Renderer {
             height: tileRect.height / scale
         };
     }
+
+    // ログパネルをフラッシュさせるメソッド
+    flashLogPanel() {
+        const logPanel = document.getElementById('log-panel');
+        if (!logPanel) {
+            console.error('Log panel element not found');
+            return;
+        }
+
+        console.log('Flashing log panel...');
+        console.log('Current classes:', logPanel.classList.toString());
+
+        // 既存のアニメーションをリセット
+        logPanel.classList.remove('log-panel-flash');
+        
+        // 強制的にリフロー
+        void logPanel.offsetWidth;
+        
+        // アニメーションを再適用
+        logPanel.classList.add('log-panel-flash');
+        
+        console.log('Classes after flash:', logPanel.classList.toString());
+    }
 }

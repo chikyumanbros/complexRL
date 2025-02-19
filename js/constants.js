@@ -317,10 +317,21 @@ const GAME_CONSTANTS = {
             return Math.min(60, Math.max(5, eva));
         },
         PERCEPTION: (stats) => {
-            // 知覚：WISとDEXが主要、STRとCONが高いとペナルティ
+            // 基本知覚：WISとDEXの平均
             const base = Math.floor((stats.wis + stats.dex) / 2);
-            const penalty = Math.floor((stats.str + stats.con) / 5);
-            return Math.max(3, base - penalty);
+            
+            // SPEEDとSIZEの影響を計算
+            const speed = GAME_CONSTANTS.FORMULAS.SPEED(stats);
+            const size = GAME_CONSTANTS.FORMULAS.SIZE(stats);
+            
+            // 速度修正：Normal(3)を基準に ±1
+            const speedMod = (speed.value - 3);
+            
+            // サイズ修正：Medium(3)を基準に ±1
+            // 小さいほど知覚が高く、大きいほど低い
+            const sizeMod = (3 - size.value);
+            
+            return Math.max(3, base + speedMod + sizeMod);
         },
         rollDamage: (attack, defense) => {
             let damage = attack.base;
@@ -483,11 +494,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.RAT);
             },
             stats: {
-                str: 4,    // 偏差: -6 (より小さな体格に)
-                dex: 13,   // 高速な動きは維持
-                con: 4,    // 偏差: -6 (より小さな体格に)
-                int: 2,    // 偏差: -8 (変更なし)
-                wis: 8     // 良好な知覚能力は維持
+                str: 4,    // 弱い攻撃力
+                dex: 12,   // 素早い
+                con: 4,    // 脆弱
+                int: 2,    // 非常に低い知性
+                wis: 6     // 本能的な警戒心
             },
             level: 1,
             pack: {
@@ -503,11 +514,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.BAT);
             },
             stats: {
-                str: 3,    // 偏差: -7 (極めて小さな体格)
-                dex: 14,   // 非常に高速は維持
-                con: 3,    // 偏差: -7 (極めて小さな体格)
-                int: 2,    // 偏差: -8 (変更なし)
-                wis: 10    // 優れたエコーロケーション能力は維持
+                str: 3,    // さらに弱い攻撃力
+                dex: 14,   // とても素早い
+                con: 3,    // とても脆弱
+                int: 2,    // 非常に低い知性
+                wis: 8     // 良好な空間認識
             },
             level: 2,
             pack: {
@@ -523,11 +534,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.SNAKE);
             },
             stats: {
-                str: 6,    // 中小型の体格
-                dex: 12,   // 素早い
-                con: 6,    // 適度な耐久力
+                str: 6,    // 中程度の攻撃力
+                dex: 13,   // 素早い
+                con: 5,    // やや脆弱
                 int: 3,    // 低い知性
-                wis: 12    // 優れた感覚器官
+                wis: 10    // 優れた感覚
             },
             level: 3,
             pack: {
@@ -543,11 +554,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.GOBLIN);
             },
             stats: {
-                str: 8,    // 中型の体格
-                dex: 10,   // 平均的な素早さ
-                con: 8,    // 中型の体格に合わせた体力
-                int: 7,    // それなりの知性
-                wis: 6     // 低い判断力
+                str: 7,    // 平均的な攻撃力
+                dex: 9,    // 平均的な素早さ
+                con: 7,    // 平均的な体力
+                int: 6,    // やや低い知性
+                wis: 5     // 低い判断力
             },
             level: 2,
             pack: {
@@ -563,11 +574,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.SPIDER);
             },
             stats: {
-                str: 7,    // 中型の体格
-                dex: 13,   // 高い機動力
-                con: 7,    // 中型の体格に合わせた体力
+                str: 7,    // 中程度の攻撃力
+                dex: 14,   // とても素早い
+                con: 6,    // やや脆弱
                 int: 4,    // 低い知性
-                wis: 11    // 優れた感覚
+                wis: 12    // 優れた感覚
             },
             level: 3,
             pack: {
@@ -583,11 +594,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.SKELETON);
             },
             stats: {
-                str: 11,   // 大きな力
-                dex: 7,    // 遅い動き
-                con: 9,    // 頑丈な骨格
-                int: 4,    // 低い知性
-                wis: 5     // 乏しい判断力
+                str: 10,   // 高い攻撃力
+                dex: 6,    // 遅い
+                con: 8,    // 頑丈
+                int: 3,    // 低い知性
+                wis: 4     // 乏しい判断力
             },
             level: 4,
             pack: {
@@ -603,11 +614,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.ZOMBIE);
             },
             stats: {
-                str: 12,   // 強い腕力
-                dex: 5,    // 非常に遅い
-                con: 12,   // 高い耐久力
-                int: 2,    // 極めて低い知性
-                wis: 4     // 鈍い感覚
+                str: 9,    // やや高い攻撃力
+                dex: 4,    // とても遅い
+                con: 10,   // とても頑丈
+                int: 2,    // 非常に低い知性
+                wis: 3     // 非常に低い判断力
             },
             level: 4,
             pack: {
@@ -623,11 +634,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.GHOST);
             },
             stats: {
-                str: 4,    // 非物質的な弱さ
-                dex: 12,   // 高い機動力
-                con: 4,    // 非物質的な脆弱さ
-                int: 11,   // 高い知性
-                wis: 13    // 鋭い超常感覚
+                str: 3,    // 非常に弱い攻撃力
+                dex: 12,   // 素早い
+                con: 3,    // 非常に脆弱
+                int: 10,   // 高い知性
+                wis: 12    // 優れた感覚
             },
             level: 5,
             pack: {
@@ -643,11 +654,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.TROLL);
             },
             stats: {
-                str: 15,   // 巨大な力
-                dex: 6,    // 遅い動き
-                con: 15,   // 極めて頑丈
-                int: 4,    // 低い知性
-                wis: 7     // 平均的な感覚
+                str: 14,   // 非常に高い攻撃力
+                dex: 5,    // 遅い
+                con: 14,   // 非常に頑丈
+                int: 3,    // 低い知性
+                wis: 6     // 低い判断力
             },
             level: 6,
             pack: {

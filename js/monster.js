@@ -169,17 +169,63 @@ class Monster {
         return false;
     }
 
+    // パス距離計算用の新メソッド
+    getPathDistanceToPlayer(game) {
+        const visited = new Set();
+        const queue = [{
+            x: this.x,
+            y: this.y,
+            distance: 0
+        }];
+
+        while (queue.length > 0) {
+            const current = queue.shift();
+            const key = `${current.x},${current.y}`;
+
+            if (visited.has(key)) continue;
+            visited.add(key);
+
+            if (current.x === game.player.x && current.y === game.player.y) {
+                return current.distance;
+            }
+
+            const directions = [
+                {dx: -1, dy: -1}, {dx: 0, dy: -1}, {dx: 1, dy: -1},
+                {dx: -1, dy: 0},                    {dx: 1, dy: 0},
+                {dx: -1, dy: 1},  {dx: 0, dy: 1},  {dx: 1, dy: 1}
+            ];
+
+            for (const dir of directions) {
+                const newX = current.x + dir.dx;
+                const newY = current.y + dir.dy;
+                
+                if (game.isValidPosition(newX, newY) && 
+                    game.map[newY][newX] === 'floor' &&
+                    game.tiles[newY][newX] !== GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                    const moveCost = (dir.dx !== 0 && dir.dy !== 0) ? Math.SQRT2 : 1;
+                    queue.push({
+                        x: newX,
+                        y: newY,
+                        distance: current.distance + moveCost
+                    });
+                }
+            }
+
+            queue.sort((a, b) => a.distance - b.distance);
+        }
+
+        return Infinity;
+    }
+
     // ========================== act Method (Monster's Turn Actions) ==========================
     act(game) {
         // --- Action Reset ---
-        // 既に行動済みの場合はスキップ
         if (this.hasActedThisTurn) {
-            this.hasActedThisTurn = false;  // 次のターンのために状態をリセット
+            this.hasActedThisTurn = false;
             return;
         }
         
         // --- Natural Healing ---
-        // 自然回復の処理を最初に実行
         if (this.hp < this.maxHp) {
             const successChance = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.getSuccessChance(this.stats);
             const successRoll = Math.floor(Math.random() * 100);
@@ -193,7 +239,6 @@ class Monster {
                 if (healResult.amount > 0) {
                     const actualHeal = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.applyHeal(this, healResult.amount);
                     
-                    // HPが閾値を超えた場合、即座にflee状態を解除
                     if (actualHeal > 0 && this.hasStartedFleeing && (this.hp / this.maxHp) > this.fleeThreshold) {
                         this.hasStartedFleeing = false;
                     }
@@ -202,14 +247,12 @@ class Monster {
         }
 
         // --- Fleeing Action ---
-        // flee状態の場合は逃走処理を実行して終了
         if (this.hasStartedFleeing) {
             this.flee(game);
             return;
         }
 
         // --- Sleep State Check ---
-        // 睡眠状態チェック
         if (this.isSleeping) {
             const dx = game.player.x - this.x;
             const dy = game.player.y - this.y;
@@ -220,11 +263,9 @@ class Monster {
             
             let wakeupChance = 0;
             
-            // プレイヤーが隣接している場合は高確率で起床
             if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
                 wakeupChance = 80 + this.perception * 2;
             } 
-            // 近くで戦闘が行われた場合
             else if (game.lastCombatLocation && distance <= this.perception) {
                 const combatDistance = GAME_CONSTANTS.DISTANCE.calculate(
                     game.lastCombatLocation.x, game.lastCombatLocation.y,
@@ -236,43 +277,41 @@ class Monster {
             if (wakeupChance > 0 && Math.random() * 100 < wakeupChance) {
                 this.isSleeping = false;
                 game.logger.add(`${this.name} wakes up!`, "monsterInfo");
+                game.renderer.flashLogPanel();  // ログパネルをフラッシュ
+                return;
             }
-            return; // 睡眠中は行動しない
+            return;
         }
 
         // --- Player Detection and Pursuit ---
         const dx = game.player.x - this.x;
         const dy = game.player.y - this.y;
-        const distance = GAME_CONSTANTS.DISTANCE.calculate(
+        const euclideanDistance = GAME_CONSTANTS.DISTANCE.calculate(
             game.player.x, game.player.y,
             this.x, this.y
         );
+        const pathDistance = this.getPathDistanceToPlayer(game);
 
-        // プレイヤーが視界内にいるか、近距離で音が聞こえる場合
-        // 閉じた扉越しの場合は音の伝達距離を半減
         const soundRange = Math.min(3, this.perception / 2);
         const hasDoorBetween = this.hasClosedDoorBetween(game, game.player.x, game.player.y);
         const effectiveSoundRange = hasDoorBetween ? soundRange / 2 : soundRange;
 
-        if ((distance <= this.perception && this.hasLineOfSight(game)) || 
-            (distance <= effectiveSoundRange)) {
+        if ((euclideanDistance <= this.perception && this.hasLineOfSight(game)) || 
+            (pathDistance <= effectiveSoundRange)) {
             if (!this.hasSpottedPlayer) {
-                // --- Player Spotted ---
-                // プレイヤーの視界内にいる場合
                 const isVisibleToPlayer = game.getVisibleTiles()
                     .some(tile => tile.x === this.x && tile.y === this.y);
                 
-                if (isVisibleToPlayer) {
-                    const spotType = distance <= effectiveSoundRange ? "hears" : "spots";
-                    game.logger.add(`${this.name} ${spotType} you!`, "monsterInfo");
+                if (!isVisibleToPlayer) {
+                    // プレイヤーからモンスターが見えない場合のみ知覚チェック
+                    game.player.checkPerception(game);
                 } else {
-                    // プレイヤーのperceptionが高い場合、気配を感じ取る
-                    const playerPerception = GAME_CONSTANTS.FORMULAS.PERCEPTION(game.player.stats);
-                    if (distance <= playerPerception && !game.hasDisplayedPresenceWarning) {
-                        game.logger.add(`You sense the presence of something nearby...`, "playerInfo");
-                        game.hasDisplayedPresenceWarning = true;  // フラグを設定
-                    }
+                    // プレイヤーからモンスターが見える場合のみスポットメッセージ
+                    const spotType = pathDistance <= effectiveSoundRange ? "hears" : "spots";
+                    game.logger.add(`${this.name} ${spotType} you!`, "monsterInfo");
+                    game.renderer.flashLogPanel();
                 }
+                
                 this.hasSpottedPlayer = true;
             }
             this.lastKnownPlayerX = game.player.x;
@@ -281,25 +320,21 @@ class Monster {
             
             this.pursueTarget(game, game.player.x, game.player.y);
         } 
-        // --- Pursuing When Player Out of Sight ---
         else if (this.trackingTurns > 0 && this.lastKnownPlayerX !== null) {
             this.trackingTurns--;
             this.pursueTarget(game, this.lastKnownPlayerX, this.lastKnownPlayerY);
             
-            // 追跡終了時
             if (this.trackingTurns === 0) {
                 this.hasSpottedPlayer = false;
                 this.lastKnownPlayerX = null;
                 this.lastKnownPlayerY = null;
             }
         }
-        // --- Wandering Behavior ---
         else {
             this.hasSpottedPlayer = false;
             this.lastKnownPlayerX = null;
             this.lastKnownPlayerY = null;
             
-            // ランダムな方向に移動（20%の確率）
             if (Math.random() < 0.2) {
                 const directions = [
                     [-1, -1], [0, -1], [1, -1],

@@ -34,6 +34,7 @@ class Player {
 
         this.lastPosition = null;  // 前回の位置を記録するプロパティを追加
         this.autoExploring = false;  // 自動探索フラグを追加
+        this.detectedPresences = new Set();  // 既に感知した存在を記録
     }
 
     // ===== Experience and Leveling Methods =====
@@ -64,14 +65,15 @@ class Player {
         this.level++;
         this.xpToNextLevel = this.calculateRequiredXP(this.level);
         
-        // レベルアップ時のログ出力
+        // レベルアップ時のログ出力とフラッシュエフェクト
         this.game.logger.add(`Level up! You are now level ${this.level}.`, "important");
         this.game.logger.add("Choose a stat to increase:", "playerInfo");
         this.game.logger.add("[S]trength | [D]exterity | [C]onstitution | [I]ntelligence | [W]isdom", "playerInfo");
         
-        // 常に最新のプレイヤーの座標からエフェクト発生
-        this.game.renderer.showLevelUpEffect(this.game.player.x, this.game.player.y);
-        this.game.renderer.showLightPillarEffect(this.game.player.x, this.game.player.y);
+        // エフェクトの表示
+        this.game.renderer.showLevelUpEffect(this.x, this.y);
+        this.game.renderer.showLightPillarEffect(this.x, this.y);
+        this.game.renderer.flashLogPanel(); // フラッシュエフェクトを追加
         
         this.game.setInputMode('statSelect', {
             callback: (stat) => {
@@ -1022,5 +1024,72 @@ class Player {
         if (monster.codexPoints) {
             this.codexPoints += monster.codexPoints;
         }
+    }
+
+    // 新規: プレイヤーの知覚チェックメソッド
+    checkPerception(game) {
+        if (game.hasDisplayedPresenceWarning) return;
+
+        const playerPerception = GAME_CONSTANTS.FORMULAS.PERCEPTION(this.stats);
+        
+        // まだ感知していないモンスターのみをフィルタリング
+        const newNearbyMonsters = game.monsters.filter(monster => {
+            if (this.detectedPresences.has(monster.id)) return false;
+            
+            const distance = monster.getPathDistanceToPlayer(game);
+            const size = GAME_CONSTANTS.FORMULAS.SIZE(monster.stats);
+            const sizeBonus = (size.value - 3) * 2;
+            
+            return distance <= (playerPerception + sizeBonus) && 
+                   !game.getVisibleTiles().some(tile => 
+                       tile.x === monster.x && tile.y === monster.y
+                   );
+        });
+
+        if (newNearbyMonsters.length === 0) return;
+
+        // 新しく感知したモンスターを記録
+        newNearbyMonsters.forEach(monster => {
+            this.detectedPresences.add(monster.id);
+        });
+
+        // 感知した存在の大きさを考慮して脅威度を計算
+        const effectivePresence = newNearbyMonsters.reduce((total, monster) => {
+            const monsterSize = GAME_CONSTANTS.FORMULAS.SIZE(monster.stats);
+            return total + Math.max(0.5, (monsterSize.value - 1) * 0.5);
+        }, 0);
+
+        // 最大サイズのモンスターを取得（メッセージの選択用）
+        const largestMonster = newNearbyMonsters.reduce((largest, current) => {
+            const currentSize = GAME_CONSTANTS.FORMULAS.SIZE(current.stats);
+            const largestSize = GAME_CONSTANTS.FORMULAS.SIZE(largest.stats);
+            return currentSize.value > largestSize.value ? current : largest;
+        }, newNearbyMonsters[0]);
+
+        const message = this.getPresenceMessage(effectivePresence, largestMonster);
+        game.logger.add(message, "playerInfo");
+        game.renderer.flashLogPanel();
+        game.hasDisplayedPresenceWarning = true;
+    }
+
+    // 新規: 存在感知メッセージの生成
+    getPresenceMessage(effectivePresence, largestMonster) {
+        const size = GAME_CONSTANTS.FORMULAS.SIZE(largestMonster.stats);
+        
+        if (effectivePresence <= 1) {
+            if (size.value >= 4) {
+                return "You sense a massive presence lurking nearby...";
+            } else if (size.value <= 2) {
+                return "You sense something small scurrying in the shadows...";
+            }
+            return "You sense the presence of something nearby...";
+        } else if (effectivePresence <= 2) {
+            return "You sense multiple presences lurking in the shadows...";
+        } else if (effectivePresence <= 4) {
+            return "Several creatures are moving in the darkness around you...";
+        } else if (effectivePresence <= 6) {
+            return "Many creatures are stalking you from the shadows...";
+        }
+        return "You are surrounded by numerous hostile presences!";
     }
 } 
