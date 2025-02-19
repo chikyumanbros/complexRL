@@ -40,8 +40,8 @@ const GAME_CONSTANTS = {
         MONSTER: {
             get RAT() { return GAME_CONSTANTS.MONSTERS.RAT.color; },
             get BAT() { return GAME_CONSTANTS.MONSTERS.BAT.color; },
-            get SNAKE() { return GAME_CONSTANTS.MONSTERS.SNAKE.color; },
             get GOBLIN() { return GAME_CONSTANTS.MONSTERS.GOBLIN.color; },
+            get SNAKE() { return GAME_CONSTANTS.MONSTERS.SNAKE.color; },
             get SPIDER() { return GAME_CONSTANTS.MONSTERS.SPIDER.color; },
             get SKELETON() { return GAME_CONSTANTS.MONSTERS.SKELETON.color; },
             get ZOMBIE() { return GAME_CONSTANTS.MONSTERS.ZOMBIE.color; },
@@ -536,9 +536,9 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.SNAKE);
             },
             stats: {
-                str: 6,    // 中程度の攻撃力
+                str: 7,    // 中程度の攻撃力
                 dex: 10,   // 素早い
-                con: 6,    // やや脆弱
+                con: 7,    // やや脆弱
                 int: 3,    // 低い知性
                 wis: 10    // 優れた感覚
             },

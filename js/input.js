@@ -64,8 +64,8 @@ class InputHandler {
                             const monsters = [
                                 { type: 'RAT', containerId: 'sprite-preview-container' },
                                 { type: 'BAT', containerId: 'sprite-preview-container2' },
-                                { type: 'SNAKE', containerId: 'sprite-preview-container3' },
-                                { type: 'GOBLIN', containerId: 'sprite-preview-container4' },
+                                { type: 'GOBLIN', containerId: 'sprite-preview-container3' },
+                                { type: 'SNAKE', containerId: 'sprite-preview-container4' },
                                 { type: 'SPIDER', containerId: 'sprite-preview-container5' },
                                 { type: 'SKELETON', containerId: 'sprite-preview-container6' },
                                 { type: 'ZOMBIE', containerId: 'sprite-preview-container7' },
