@@ -28,7 +28,7 @@ body {
     flex-direction: column;
     gap: 5px;
     width: 1780px;
-    height: 980px;
+    height: 990px;
     transform-origin: left top;
 }
 
@@ -62,14 +62,17 @@ body {
 #skills-panel {
     background: black;
     padding: 10px;
-    width: 460px;
+    width: calc(100vw - 1320px);  /* 固定値から可変値に変更 */
+    min-width: 460px;  /* 最小幅を設定 */
+    max-width: 800px;  /* 最大幅を設定 */
     color: rgb(207, 207, 207);
 }
 
 .bottom-panels {
     display: flex;
     gap: 5px;
-    height: 390px;
+    height: calc(100vh - 590px);  /* 固定値から可変値に変更 */
+    min-height: 200px;  /* 最小の高さを設定 */
 }
 
 #log-panel {
@@ -78,11 +81,11 @@ body {
     padding: 10px;
     display: flex;
     flex-direction: column;
-    min-width: 1000px;
+    min-width: 800px;  /* 最小幅を調整 */
 }
 
 #message-log {
-    height: 350px;
+    height: calc(100% - 40px);  /* 親要素に対する相対的な高さに変更 */
     overflow-y: auto;
     padding-right: 5px;
 }
