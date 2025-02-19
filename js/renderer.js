@@ -929,10 +929,10 @@ class Renderer {
         let rightColumn = '';
 
         // 左列：コントロール
-        leftColumn += `<div style="color: #ffd700; font-size: 12px; margin-bottom: 8px;">■ CONTROLS</div>\n`;
+        leftColumn += `<div style="color: #ffd700; font-size: 18px; margin-bottom: 8px;">■ CONTROLS</div>\n`;
         const categories = Object.entries(GAME_CONSTANTS.CONTROLS);
         categories.forEach(([category, data]) => {
-            leftColumn += `<div style="color: #66ccff; font-size: 11px; margin-top: 6px;">● ${data.title}</div>\n`;
+            leftColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● ${data.title}</div>\n`;
             data.keys.forEach(keyInfo => {
                 leftColumn += `<div style="margin-left: 8px;">`;
                 leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 50px;">[${keyInfo.key}]</span>`;
@@ -942,41 +942,46 @@ class Renderer {
         });
 
         // 右列：戦闘システム
-        rightColumn += `<div style="color: #ffd700; font-size: 12px; margin-bottom: 8px;">■ COMBAT SYSTEM</div>\n`;
+        rightColumn += `<div style="color: #ffd700; font-size: 18px; margin-bottom: 8px;">■ COMBAT SYSTEM</div>\n`;
 
         // Base Stats
         rightColumn += `<div style="color: #3498db; margin-bottom: 4px;">● Base Stats</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `HP: (CON×2 + STR/4) × (1 - (INT-10)×0.02) × Level Bonus\n`;
-        rightColumn += `ATK: STR×0.7 - DEX/4 + Dice\n`;
-        rightColumn += `DEF: CON×0.5 - INT/5 + Dice\n`;
-        rightColumn += `XP: Base × (1 + (INT-10)×0.03)\n`;
+        rightColumn += `HP: (CON×2 + STR/4) × Size Mod × Level Bonus\n`;
+        rightColumn += `ATK: (STR×0.7 - DEX/4) × Size Mod + Dice\n`;
+        rightColumn += `DEF: (CON×0.5 - INT/5) × Size Mod + Dice\n`;
+        rightColumn += `Size Mod: 0.9~1.3 (by STR+CON avg)\n`;
         rightColumn += `</div>\n`;
 
         // Combat Dice
         rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Combat Dice</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `ATK: 1d(STR*1.5) × √DEX/2 times\n`;
-        rightColumn += `DEF: 1d(CON) × √CON/3 times\n`;
+        rightColumn += `ATK: √(DEX/2) × 1d(√STR×2)\n`;
+        rightColumn += `DEF: √(CON/3) × 1d(√CON×1.5)\n`;
         rightColumn += `</div>\n`;
 
         // Hit Chance
         rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Hit Chance</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `ACC: 40 + DEX×0.8 + WIS×0.4 - CON/4\n`;
-        rightColumn += `EVA: 10 + DEX×0.6 + WIS×0.3 - CON/5 - STR/5\n`;
+        rightColumn += `ACC: 50 + DEX×0.8 + WIS×0.4 - CON/4\n`;
+        rightColumn += `EVA: 8 + DEX×0.6 + WIS×0.3 - CON/5 - STR/5\n`;
         rightColumn += `SPD: Based on DEX/(STR+CON) ratio\n`;
-        rightColumn += `PER: (WIS + DEX)/2 - (STR+CON)/5\n`;
+        rightColumn += `PER: (WIS+DEX)/2 + Speed/Size Mod\n`;
         rightColumn += `</div>\n`;
 
-        // Speed Levels
-        rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Speed Levels</div>\n`;
+        // Size & Speed
+        rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Size & Speed</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `1: Very Slow (DEX ratio ≤ 0.7)\n`;
-        rightColumn += `2: Slow (DEX ratio ≤ 0.9)\n`;
-        rightColumn += `3: Normal (DEX ratio ≤ 1.1)\n`;
-        rightColumn += `4: Fast (DEX ratio ≤ 1.3)\n`;
-        rightColumn += `5: Very Fast (DEX ratio > 1.3)\n`;
+        rightColumn += `Size: Based on (STR+CON-20)/2\n`;
+        rightColumn += `Tiny ≤-5, Small ≤-3, Medium ≤3\n`;
+        rightColumn += `Large ≤5, Huge >5\n\n`;
+        rightColumn += `Speed: (DEX × Size Mod)/(STR+CON)\n`;
+        rightColumn += `Size Mod: ±10% per size diff\n\n`;
+        rightColumn += `Very Slow: ratio ≤0.7\n`;
+        rightColumn += `Slow: ratio ≤0.9\n`;
+        rightColumn += `Normal: ratio ≤1.1\n`;
+        rightColumn += `Fast: ratio ≤1.3\n`;
+        rightColumn += `Very Fast: ratio >1.3\n`;
         rightColumn += `</div>\n`;
 
         // Combat Flow
@@ -1156,7 +1161,7 @@ class Renderer {
             // --- Basic Information ---
             let lookInfo = [
                 `${monster.name} (Level ${monster.level}):`,
-                `HP: ${Math.max(0, monster.hp)}/${monster.maxHp} [<span style="color: ${healthStatus.color}">${healthStatus.name}</span>]`,
+                `HP: ${Math.max(0, monster.hp)}/${monster.maxHp} <span style="color: ${healthStatus.color}">${healthStatus.name}</span>`,
             ];
 
             // --- Status Effects ---

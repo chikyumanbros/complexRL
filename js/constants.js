@@ -111,7 +111,7 @@ const GAME_CONSTANTS = {
 
     // DIMENSIONS Section: Game board dimensions
     DIMENSIONS: {
-        WIDTH: 60,
+        WIDTH: 65,
         HEIGHT: 35
     },
 
@@ -361,11 +361,13 @@ const GAME_CONSTANTS = {
         SPEED: (stats) => {
             // 速度：DEXと(STR+CON)のバランスで決定
             const baseSpeed = Math.floor(stats.dex * 0.7);  // DEXからの基本値
+            const size = GAME_CONSTANTS.FORMULAS.SIZE(stats);
+            const sizeModifier = 1 + ((3 - size.value) * 0.1);  // Medium(3)を基準に ±10%
             const penalty = Math.floor((stats.str + stats.con) / 15);  // 重量ペナルティ
-            const rawSpeed = Math.max(1, baseSpeed - penalty);
+            const rawSpeed = Math.max(1, Math.floor(baseSpeed * sizeModifier) - penalty);
             
-            // DEXと(STR+CON)の比率で速度を決定
-            const dexRatio = stats.dex / ((stats.str + stats.con) / 2);
+            // DEXと(STR+CON)の比率で速度を決定（サイズ修正を加味）
+            const dexRatio = (stats.dex * sizeModifier) / ((stats.str + stats.con) / 2);
             
             if (dexRatio <= 0.7) return { value: 1, name: "Very Slow" };
             if (dexRatio <= 0.9) return { value: 2, name: "Slow" };

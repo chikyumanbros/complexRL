@@ -12,9 +12,9 @@
 
 body {
     position: relative;
-    background: #111;
+    background: #444;
     color: #fff;
-    margin: 0;
+    margin: 5;
     font-family: 'Proggy Clean', monospace;
     font-size: 18px;
     display: flex;
@@ -26,11 +26,10 @@ body {
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 5px;
     width: 1780px;
     height: 980px;
     transform-origin: left top;
-    margin: 10px;
 }
 
 /* スケーリング用のメディアクエリ */
@@ -42,7 +41,7 @@ body {
 
 .game-container {
     display: flex;
-    gap: 10px;
+    gap: 5px;
 }
 
 #game {
@@ -56,22 +55,21 @@ body {
 #status-panel {
     background: black;
     padding: 10px;
-    width: 300px;
+    width: 290px;
     color: rgb(207, 207, 207);
 }
 
 #skills-panel {
     background: black;
     padding: 10px;
-    width: 510px;
-    line-height: 1.2;
+    width: 460px;
     color: rgb(207, 207, 207);
 }
 
 .bottom-panels {
     display: flex;
-    gap: 10px;
-    height: 380px;
+    gap: 5px;
+    height: 390px;
 }
 
 #log-panel {
