@@ -537,8 +537,8 @@ const GAME_CONSTANTS = {
             },
             stats: {
                 str: 6,    // 中程度の攻撃力
-                dex: 13,   // 素早い
-                con: 5,    // やや脆弱
+                dex: 10,   // 素早い
+                con: 6,    // やや脆弱
                 int: 3,    // 低い知性
                 wis: 10    // 優れた感覚
             },
@@ -557,10 +557,10 @@ const GAME_CONSTANTS = {
             },
             stats: {
                 str: 7,    // 平均的な攻撃力
-                dex: 9,    // 平均的な素早さ
+                dex: 8,    // 平均的な素早さ
                 con: 7,    // 平均的な体力
-                int: 6,    // やや低い知性
-                wis: 5     // 低い判断力
+                int: 3,    // やや低い知性
+                wis: 6     // 低い判断力
             },
             level: 2,
             pack: {
@@ -576,7 +576,7 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.SPIDER);
             },
             stats: {
-                str: 7,    // 中程度の攻撃力
+                str: 8,    // 中程度の攻撃力
                 dex: 14,   // とても素早い
                 con: 6,    // やや脆弱
                 int: 4,    // 低い知性
@@ -636,11 +636,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.GHOST);
             },
             stats: {
-                str: 3,    // 非常に弱い攻撃力
-                dex: 12,   // 素早い
-                con: 3,    // 非常に脆弱
+                str: 12,    // 非常に弱い攻撃力
+                dex: 13,   // 素早い
+                con: 8,    // 非常に脆弱
                 int: 10,   // 高い知性
-                wis: 12    // 優れた感覚
+                wis: 15    // 優れた感覚
             },
             level: 5,
             pack: {
@@ -656,11 +656,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.TROLL);
             },
             stats: {
-                str: 14,   // 非常に高い攻撃力
-                dex: 5,    // 遅い
+                str: 13,   // 非常に高い攻撃力
+                dex: 8,    // 遅い
                 con: 14,   // 非常に頑丈
                 int: 3,    // 低い知性
-                wis: 6     // 低い判断力
+                wis: 4     // 低い判断力
             },
             level: 6,
             pack: {
