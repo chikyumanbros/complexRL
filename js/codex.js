@@ -62,11 +62,10 @@ class CodexSystem {
                         cooldown: 12,
                         desc: 'Swift attack that improves accuracy and speed. (Base: ACC +20%, temporarily increases speed tier)',
                         getEffectText: (player) => {
-                            // 現在のSPD tierを取得
-                            const currentSpeedTier = GAME_CONSTANTS.FORMULAS.SPEED(player.stats);
-                            // 最大tier (5) を超えないように
-                            const newSpeedTier = Math.min(5, currentSpeedTier + 1);
-                            return `[ACC: +20%, SPD: ${currentSpeedTier} → ${newSpeedTier}]`;
+                            const currentSpeed = GAME_CONSTANTS.FORMULAS.SPEED(player.stats);
+                            const speedNames = ["Very Slow", "Slow", "Normal", "Fast", "Very Fast"];
+                            const newSpeedIndex = Math.min(4, speedNames.indexOf(currentSpeed.name) + 1);
+                            return `[ACC: +20%, SPD: ${currentSpeed.name} → ${speedNames[newSpeedIndex]}]`;
                         },
                         isFreeAction: true,
                         requiresTarget: false,
@@ -77,15 +76,16 @@ class CodexSystem {
                                 player.nextAttackModifiers = [];
                             }
 
-                            // 現在のSPD tierを取得し、1段階上昇（最大5）
-                            const currentSpeedTier = GAME_CONSTANTS.FORMULAS.SPEED(player.stats);
-                            const speedBoost = Math.min(5, currentSpeedTier + 1);
+                            const currentSpeed = GAME_CONSTANTS.FORMULAS.SPEED(player.stats);
+                            const speedNames = ["Very Slow", "Slow", "Normal", "Fast", "Very Fast"];
+                            const newSpeedIndex = Math.min(4, speedNames.indexOf(currentSpeed.name) + 1);
+                            const speedBoost = Math.min(5, currentSpeed.value + 1);
 
                             player.nextAttackModifiers.push({
                                 name: 'Quick Slash',
                                 damageMod: 1,
                                 accuracyMod: 0.2,
-                                speedTier: speedBoost,  // 固定値ではなく、tier上昇として設定
+                                speedTier: speedBoost,
                                 duration: 1
                             });
                             
@@ -362,12 +362,17 @@ class CodexSystem {
         display += 'Categories: ';
         for (let cat in this.categories) {
             const category = this.categories[cat];
-            display += `[${category.key}] ${category.name} `;
+            const color = GAME_CONSTANTS.COLORS.CODEX_CATEGORY[cat];
+            const name = category.name;
+            // 頭文字とカテゴリーキーのみ色付け
+            display += `<span style="color: ${color}">[${category.key}]</span> <span style="color: ${color}">${name[0]}</span><span style="color: white">${name.slice(1)}</span> `;
         }
         display += '\n\n';
 
         const currentCat = this.categories[this.currentCategory];
-        display += `Selected: ${currentCat.name}\n\n`;
+        const currentColor = GAME_CONSTANTS.COLORS.CODEX_CATEGORY[this.currentCategory];
+        const currentName = currentCat.name;
+        display += `Selected: <span style="color: ${currentColor}">${currentName[0]}</span><span style="color: white">${currentName.slice(1)}</span>\n\n`;
         
         // ---- Available Skills in Current Category ----
         display += `Available ${currentCat.name} Skills:\n`;
@@ -376,9 +381,12 @@ class CodexSystem {
             const alreadyLearned = Array.from(player.skills.entries()).some(([_, skillData]) => skillData.id === skill.id);
             
             if (!alreadyLearned) {  // 未習得のスキルのみ表示
-                const skillColor = canAfford ? '#2ecc71' : '#e74c3c';
-                display += `<span style="color: ${skillColor}">[${skill.id}] ${skill.name} (${skill.cost} CP)\n`;
-                display += `    ${skill.desc}</span>\n`;
+                const textColor = canAfford ? 'white' : '#666666';
+                const bracketColor = canAfford ? '#2ecc71' : '#666666';
+                display += `<span style="color: ${bracketColor}">[${skill.id}]</span> ` +
+                          `<span style="color: ${currentColor}">${skill.name[0]}</span>` +
+                          `<span style="color: ${textColor}">${skill.name.slice(1)} (${skill.cost} CP)\n` +
+                          `    ${skill.desc}</span>\n`;
             }
         });
         display += '\n';
@@ -393,10 +401,19 @@ class CodexSystem {
                 this.suggestions.forEach(skill => {
                     const canAfford = player.codexPoints >= skill.cost;
                     const alreadyLearned = Array.from(player.skills.entries()).some(([_, skillData]) => skillData.id === skill.id);
-                    const skillColor = alreadyLearned ? '#666' : (canAfford ? '#2ecc71' : '#e74c3c');
+                    const textColor = alreadyLearned ? '#666' : (canAfford ? 'white' : '#666');
                     
-                    display += `<span style="color: ${skillColor}">[${skill.id}] ${skill.name} (${skill.cost} CP)\n`;
-                    display += `    ${skill.desc}</span>\n`;
+                    // カテゴリーの色を取得
+                    let categoryColor;
+                    for (let cat in this.categories) {
+                        if (this.categories[cat].skills.some(s => s.id === skill.id)) {
+                            categoryColor = GAME_CONSTANTS.COLORS.CODEX_CATEGORY[cat];
+                            break;
+                        }
+                    }
+
+                    display += `<span style="color: ${categoryColor}">${skill.name[0]}</span>` +
+                              `<span style="color: ${textColor}">${skill.name.slice(1)}</span>\n`;
                 });
                 display += '\n';
             }
@@ -410,7 +427,15 @@ class CodexSystem {
             player.skills.forEach((skillId, slot) => {
                 const skill = this.findSkillById(skillId);
                 if (skill) {
-                    display += `[${slot}] ${skill.name}\n`;
+                    // スキルが属するカテゴリーを見つける
+                    let categoryColor;
+                    for (let cat in this.categories) {
+                        if (this.categories[cat].skills.some(s => s.id === skill.id)) {
+                            categoryColor = GAME_CONSTANTS.COLORS.CODEX_CATEGORY[cat];
+                            break;
+                        }
+                    }
+                    display += `[${slot}] <span style="color: ${categoryColor}">${skill.name[0]}</span>${skill.name.slice(1)}\n`;
                 }
             });
         }

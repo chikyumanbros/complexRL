@@ -471,10 +471,10 @@ class Player {
             }
         }
 
-        const monsterSpeed = GAME_CONSTANTS.FORMULAS.SPEED(monster.stats);
-        game.logger.add(`Speed Order: Player (${effectivePlayerSpeed}) vs ${monster.name} (${monsterSpeed})`);
+        const monsterSpeedObj = GAME_CONSTANTS.FORMULAS.SPEED(monster.stats);
+        game.logger.add(`Speed Order: Player (${monsterSpeedObj.name}) vs ${monster.name} (${monsterSpeedObj.name})`);
 
-        if (effectivePlayerSpeed >= monsterSpeed) {
+        if (effectivePlayerSpeed >= monsterSpeedObj.value) {
             // プレイヤーの攻撃が先行する場合
             this.resolvePlayerAttack(monster, game);
             if (monster.hp > 0) {

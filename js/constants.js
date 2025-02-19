@@ -1,15 +1,15 @@
 const GAME_CONSTANTS = {
     // TILES Section: Terrain tiles and doors
     TILES: {
-        FLOOR: ['.', '^', '~' ,'¨' , '：'],
-        WALL: ['#', '▓', 'Ж', 'Ш'],
+        FLOOR: ['.', '^', '~' ,'¨' , '：' ,'∙'],
+        WALL: ['#', '█', '▓', '▒', '░'],
         DOOR: {
             OPEN: '/',
             CLOSED: '+'
         },
         OBSTACLE: {
-            BLOCKING: ['▨', '▤', '▥', '▧', 'Ж', 'Ш', '='],      // 視線を遮る障害物（柱や大きな岩）
-            TRANSPARENT: ['¤', '†', '‡', '§', '¶', '≡','‖','£'],   // 視線を通す障害物（家具や装飾品）
+            BLOCKING: ['Ж', 'Ш', '=', '◘', '◙'],      // 視線を遮る障害物（柱や大きな岩）
+            TRANSPARENT: ['¤', '†', '‡', '§', '¶', '≡','£','╬', '╫', '╪', '┼','◊', '♠'],   // 視線を通す障害物（家具や装飾品）
         },
     },
 
@@ -78,6 +78,26 @@ const GAME_CONSTANTS = {
             BLOCKING: '#664433',     // 後方互換性のため維持
             TRANSPARENT: '#8B4513',  // 後方互換性のため維持
         },
+        SPEED: {
+            1: { color: '#e74c3c', name: 'Very Slow' },
+            2: { color: '#e67e22', name: 'Slow' },
+            3: { color: '#f1c40f', name: 'Normal' },
+            4: { color: '#2ecc71', name: 'Fast' },
+            5: { color: '#3498db', name: 'Very Fast' }
+        },
+        SIZE: {
+            1: { color: '#3498db', name: 'Tiny' },
+            2: { color: '#2ecc71', name: 'Small' },
+            3: { color: '#f1c40f', name: 'Medium' },
+            4: { color: '#e67e22', name: 'Large' },
+            5: { color: '#e74c3c', name: 'Huge' }
+        },
+        CODEX_CATEGORY: {
+            combat: '#e74c3c',     // 赤 - 戦闘
+            movement: '#3498db',    // 青 - 移動
+            defense: '#f1c40f',     // 黄 - 防御
+            mind: '#2ecc71'         // 緑 - 精神
+        }
     },
 
     // MODES Section: Game mode identifiers
@@ -236,43 +256,64 @@ const GAME_CONSTANTS = {
     FORMULAS: {
         MAX_HP: (stats, level) => {
             const baseHP = stats.con * 2 + Math.floor(stats.str / 4);
-            const intPenalty = 1 - Math.max(0, (stats.int - 10) * 0.02);  // INTが10を超えると2%ずつ減少
+            const size = GAME_CONSTANTS.FORMULAS.SIZE(stats);
+            const sizeModifier = 0.8 + (size.value * 0.1);  // Tiny: 0.9x, Small: 1.0x, Medium: 1.1x, Large: 1.2x, Huge: 1.3x
             const levelBonus = 1 + (level * 0.25);
-            return Math.floor(baseHP * intPenalty * levelBonus);
+            return Math.floor(baseHP * sizeModifier * levelBonus);
         },
         ATTACK: (stats) => {
-            // 基本攻撃力：STRが主要、DEXが高すぎるとペナルティ
-            const base = Math.max(1, Math.floor(stats.str * 0.7 - stats.dex / 4));
+            // 基本攻撃力：STRが主要、DEXが高すぎるとペナルティ、SIZEが影響
+            const size = GAME_CONSTANTS.FORMULAS.SIZE(stats);
+            const sizeModifier = 0.8 + (size.value * 0.1);  // Tiny: 0.9x, Small: 1.0x, Medium: 1.1x, Large: 1.2x, Huge: 1.3x
+            const base = Math.max(1, Math.floor((stats.str * 0.7 - stats.dex / 4) * sizeModifier));
             
             // ダイス数：DEXに基づくが、徐々に上昇が緩やかに
             const diceCount = Math.max(1, Math.floor(Math.sqrt(stats.dex) / 2));
             
-            // ダイス面：STRに基づくが、上限あり
-            const diceSides = Math.min(8, Math.floor(Math.sqrt(stats.str) * 1.5));
+            // ダイス面：STRに基づき、徐々に上昇が緩やかに
+            const diceSides = Math.max(2, Math.floor(Math.sqrt(stats.str) * 2));
             
             return { base, diceCount, diceSides };
         },
         DEFENSE: (stats) => {
-            // 基本防御：CONが主要、INTが高いとペナルティ
-            const base = Math.max(1, Math.floor(stats.con * 0.5 - stats.int / 5));
+            // 基本防御：CONが主要、INTが高いとペナルティ、SIZEが影響
+            const size = GAME_CONSTANTS.FORMULAS.SIZE(stats);
+            const sizeModifier = 0.8 + (size.value * 0.1);  // Tiny: 0.9x, Small: 1.0x, Medium: 1.1x, Large: 1.2x, Huge: 1.3x
+            const base = Math.max(1, Math.floor((stats.con * 0.5 - stats.int / 5) * sizeModifier));
             
             // 防御ダイス数：CONに基づくが、緩やかに
             const diceCount = Math.max(1, Math.floor(Math.sqrt(stats.con) / 3));
             
-            // 防御ダイス面：CONに基づくが、上限あり
-            const diceSides = Math.min(6, Math.floor(Math.sqrt(stats.con)));
+            // 防御ダイス面：CONに基づき、徐々に上昇が緩やかに
+            const diceSides = Math.max(2, Math.floor(Math.sqrt(stats.con) * 1.5));
             
             return { base, diceCount, diceSides };
         },
         ACCURACY: (stats) => {
-            // 基本命中率40%、DEXとWISで上昇、CONで減少
-            const acc = 40 + Math.floor(stats.dex * 0.8) + Math.floor(stats.wis * 0.4) - Math.floor(stats.con / 4);
+            // SPEEDとSIZEの影響を計算
+            const speed = GAME_CONSTANTS.FORMULAS.SPEED(stats);
+            const size = GAME_CONSTANTS.FORMULAS.SIZE(stats);
+            const speedMod = (speed.value - 3) * 5;  // Normal(3)を基準に ±5%
+            const sizeMod = (3 - size.value) * 3;    // Medium(3)を基準に ±3%
+            
+            // 基本命中率50%、DEXとWISで上昇、CONで減少
+            const acc = 50 + Math.floor(stats.dex * 0.8) + Math.floor(stats.wis * 0.4) 
+                       - Math.floor(stats.con / 4) + speedMod + sizeMod;
+            
             return Math.min(85, Math.max(20, acc));
         },
         EVASION: (stats) => {
-            // 基本回避率10%、DEXとWISで上昇、CONとSTRで減少
-            const eva = 10 + Math.floor(stats.dex * 0.6) + Math.floor(stats.wis * 0.3) 
-                       - Math.floor(stats.con / 5) - Math.floor(stats.str / 5);
+            // SPEEDとSIZEの影響を計算
+            const speed = GAME_CONSTANTS.FORMULAS.SPEED(stats);
+            const size = GAME_CONSTANTS.FORMULAS.SIZE(stats);
+            const speedMod = (speed.value - 3) * 4;  // Normal(3)を基準に ±4%
+            const sizeMod = (3 - size.value) * 3;    // Medium(3)を基準に ±3%
+            
+            // 基本回避率8%、DEXとWISで上昇、CONとSTRで減少
+            const eva = 8 + Math.floor(stats.dex * 0.6) + Math.floor(stats.wis * 0.3) 
+                       - Math.floor(stats.con / 5) - Math.floor(stats.str / 5)
+                       + speedMod + sizeMod;
+            
             return Math.min(60, Math.max(5, eva));
         },
         PERCEPTION: (stats) => {
@@ -315,11 +356,26 @@ const GAME_CONSTANTS = {
             // DEXと(STR+CON)の比率で速度を決定
             const dexRatio = stats.dex / ((stats.str + stats.con) / 2);
             
-            if (dexRatio <= 0.7) return 1;      // Very Slow
-            if (dexRatio <= 0.9) return 2;      // Slow
-            if (dexRatio <= 1.1) return 3;      // Normal  // オール10は dexRatio=1.0 なのでここに収まる
-            if (dexRatio <= 1.3) return 4;      // Fast
-            return 5;                           // Very Fast
+            if (dexRatio <= 0.7) return { value: 1, name: "Very Slow" };
+            if (dexRatio <= 0.9) return { value: 2, name: "Slow" };
+            if (dexRatio <= 1.1) return { value: 3, name: "Normal" };
+            if (dexRatio <= 1.3) return { value: 4, name: "Fast" };
+            return { value: 5, name: "Very Fast" };
+        },
+        SIZE: (stats) => {
+            // 基準値（10）からの偏差を計算
+            const strDev = stats.str - 10;
+            const conDev = stats.con - 10;
+            const intDev = stats.int - 10;
+            
+            // サイズ値 = STRとCONの平均偏差
+            const sizeValue = (strDev + conDev) / 2;
+            
+            if (sizeValue <= -5) return { value: 1, name: "Tiny" };     // 非常に小さい
+            if (sizeValue <= -3) return { value: 2, name: "Small" };    // 小さい
+            if (sizeValue <= 3) return { value: 3, name: "Medium" };    // 中型
+            if (sizeValue <= 5) return { value: 4, name: "Large" };     // 大きい
+            return { value: 5, name: "Huge" };                          // 非常に大きい
         },
         // 自然回復の処理を追加
         NATURAL_HEALING: {
@@ -427,11 +483,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.RAT);
             },
             stats: {
-                str: 8,
-                dex: 14,
-                con: 6,
-                int: 2,
-                wis: 8
+                str: 4,    // 偏差: -6 (より小さな体格に)
+                dex: 13,   // 高速な動きは維持
+                con: 4,    // 偏差: -6 (より小さな体格に)
+                int: 2,    // 偏差: -8 (変更なし)
+                wis: 8     // 良好な知覚能力は維持
             },
             level: 1,
             pack: {
@@ -447,11 +503,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.BAT);
             },
             stats: {
-                str: 6,
-                dex: 16,
-                con: 6,
-                int: 3,
-                wis: 10
+                str: 3,    // 偏差: -7 (極めて小さな体格)
+                dex: 14,   // 非常に高速は維持
+                con: 3,    // 偏差: -7 (極めて小さな体格)
+                int: 2,    // 偏差: -8 (変更なし)
+                wis: 10    // 優れたエコーロケーション能力は維持
             },
             level: 2,
             pack: {
@@ -467,11 +523,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.SNAKE);
             },
             stats: {
-                str: 12,
-                dex: 12,
-                con: 7,
-                int: 4,
-                wis: 12
+                str: 6,    // 中小型の体格
+                dex: 12,   // 素早い
+                con: 6,    // 適度な耐久力
+                int: 3,    // 低い知性
+                wis: 12    // 優れた感覚器官
             },
             level: 3,
             pack: {
@@ -487,11 +543,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.GOBLIN);
             },
             stats: {
-                str: 10,
-                dex: 10,
-                con: 9,
-                int: 8,
-                wis: 6
+                str: 8,    // 中型の体格
+                dex: 10,   // 平均的な素早さ
+                con: 8,    // 中型の体格に合わせた体力
+                int: 7,    // それなりの知性
+                wis: 6     // 低い判断力
             },
             level: 2,
             pack: {
@@ -507,11 +563,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.SPIDER);
             },
             stats: {
-                str: 8,
-                dex: 18,
-                con: 8,
-                int: 5,
-                wis: 14
+                str: 7,    // 中型の体格
+                dex: 13,   // 高い機動力
+                con: 7,    // 中型の体格に合わせた体力
+                int: 4,    // 低い知性
+                wis: 11    // 優れた感覚
             },
             level: 3,
             pack: {
@@ -527,11 +583,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.SKELETON);
             },
             stats: {
-                str: 14,
-                dex: 8,
-                con: 12,
-                int: 4,
-                wis: 6
+                str: 11,   // 大きな力
+                dex: 7,    // 遅い動き
+                con: 9,    // 頑丈な骨格
+                int: 4,    // 低い知性
+                wis: 5     // 乏しい判断力
             },
             level: 4,
             pack: {
@@ -547,11 +603,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.ZOMBIE);
             },
             stats: {
-                str: 12,
-                dex: 6,
-                con: 11,
-                int: 2,
-                wis: 4
+                str: 12,   // 強い腕力
+                dex: 5,    // 非常に遅い
+                con: 12,   // 高い耐久力
+                int: 2,    // 極めて低い知性
+                wis: 4     // 鈍い感覚
             },
             level: 4,
             pack: {
@@ -567,11 +623,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.GHOST);
             },
             stats: {
-                str: 4,
-                dex: 18,
-                con: 4,
-                int: 14,
-                wis: 16
+                str: 4,    // 非物質的な弱さ
+                dex: 12,   // 高い機動力
+                con: 4,    // 非物質的な脆弱さ
+                int: 11,   // 高い知性
+                wis: 13    // 鋭い超常感覚
             },
             level: 5,
             pack: {
@@ -587,11 +643,11 @@ const GAME_CONSTANTS = {
                 return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.TROLL);
             },
             stats: {
-                str: 18,
-                dex: 6,
-                con: 18,
-                int: 3,
-                wis: 8
+                str: 15,   // 巨大な力
+                dex: 6,    // 遅い動き
+                con: 15,   // 極めて頑丈
+                int: 4,    // 低い知性
+                wis: 7     // 平均的な感覚
             },
             level: 6,
             pack: {
@@ -645,7 +701,7 @@ const GAME_CONSTANTS = {
             "                ",
             "   GGG          ",
             " GGGDGG         ",
-            " D  GGGG        ",
+            "  D GGGG        ",
             "  D  OOGG       ",
             "     OOOG       ",
             "     OOOG       ",

@@ -385,6 +385,8 @@ class Game {
                 const isValidSpawn = this.isValidPosition(x, y) && 
                                    this.map[y][x] === 'floor' && 
                                    !this.getMonsterAt(x, y) &&
+                                   this.tiles[y][x] !== GAME_CONSTANTS.TILES.DOOR.CLOSED &&
+                                   this.tiles[y][x] !== GAME_CONSTANTS.TILES.DOOR.OPEN &&
                                    distanceToPlayer >= GAME_CONSTANTS.ROOM.SAFE_RADIUS;
 
                 if (isValidSpawn) {

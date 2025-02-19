@@ -144,38 +144,38 @@ class Renderer {
 
     // サイケデリック効果を計算する関数（ターンベース）
     calculatePsychedelicEffect(x, y, baseChar, baseColor, forceOpacity = false) {
-        // プレイヤーの瞑想状態をチェック
         if (!this.game.player.meditation?.active) {
             return { char: baseChar, color: baseColor };
         }
 
-        // プレイヤーからの距離を計算
         const distance = GAME_CONSTANTS.DISTANCE.calculate(
             x, y,
             this.game.player.x, this.game.player.y
         );
 
-        // WISとINTに基づいて効果範囲を計算
         const effectRange = Math.max(1, Math.min(8, 
             Math.floor(this.game.player.stats.wis - Math.floor(this.game.player.stats.int / 2)) * 2
         ));
 
-        // 計算された範囲内の場合のみ効果を適用（円形範囲）
         if (distance <= effectRange) {
-            // シード値としてターン数とタイル位置を使用
             const seed = this.psychedelicTurn * 1000 + x * 100 + y;
             const rand = Math.abs(Math.sin(seed));
             
             if (rand < 0.5) {
                 const possibleChars = 
-                    // 既存のタイル文字
-                    '.^~¨：#▓ЖШ=/+' +         // 床・壁・ドア
-                    '▨▤▥▧¤†‡§¶≡‖£' +        // 障害物
-                    '＊※＠＃＄％＆' +          // 特殊記号
-                    '╋╂┿╀╁┾┽╃╄╅╆╇╈╉╊' +    // 罫線記号
-                    '▁▂▃▄▅▆▇█';            // ブロック要素
+                    // 基本ASCII文字と拡張文字
+                    '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~' +
+                    // 特殊記号と通貨記号
+                    '¢£¤¥¦§¨©ª«¬®¯°±²³´µ¶·¸¹º»¼½¾¿' +
+                    // ギリシャ文字
+                    'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρςστυφχψω' +
+                    // キリル文字
+                    'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ' +
+                    // 罫線とブロック要素
+                    '─│┌┐└┘├┤┬┴┼═║╒╓╔╕╖╗╘╙╚╛╜╝╞╟╠╡╢╣╤╥╦╧╨╩╪╫╬▀▁▄█▌▐░▒▓' +
+                    // その他の特殊記号
+                    '■□▪▫▬▲►▼◄◊○●◘◙♠♣♥♦♪♫☺☻☼♀♂⌂';
 
-                // ターン数とタイル位置に基づいて決定論的に選択
                 const charIndex = Math.floor(Math.abs(Math.sin(seed * 0.3)) * possibleChars.length);
                 const colorIndex = Math.floor(Math.abs(Math.cos(seed * 0.4)) * this.psychedelicColors.length);
 
@@ -515,27 +515,25 @@ class Renderer {
         const speedElement = document.getElementById('speed');
         if (speedElement) {
             let baseSpeed = GAME_CONSTANTS.FORMULAS.SPEED(player.stats);
-            let speedText = `${baseSpeed}`;
+            const speedInfo = GAME_CONSTANTS.COLORS.SPEED[baseSpeed.value];
+            let speedText = `<span style="color: ${speedInfo.color}">${speedInfo.name}</span>`;
 
-            // 修飾効果の累積を計算
             if (player.nextAttackModifiers && player.nextAttackModifiers.length > 0) {
-                // speedTierが設定されている場合はそれを使用
                 const speedTierMod = player.nextAttackModifiers.find(mod => mod.speedTier);
                 if (speedTierMod) {
-                    speedText = `<span style="color: #2ecc71">${speedTierMod.speedTier}</span>`;
-                } else {
-                    // 従来のspeedMod処理（互換性のため残す）
-                    let totalSpeedMod = 0;
-                    for (const mod of player.nextAttackModifiers) {
-                        if (mod.speedMod) totalSpeedMod += mod.speedMod;
-                    }
-                    if (totalSpeedMod !== 0) {
-                        const modifiedSpeed = Math.floor(baseSpeed * (1 + totalSpeedMod));
-                        speedText = `<span style="color: ${totalSpeedMod > 0 ? '#2ecc71' : '#e74c3c'}">${modifiedSpeed}</span>`;
-                    }
+                    const modInfo = GAME_CONSTANTS.COLORS.SPEED[speedTierMod.speedTier];
+                    speedText = `<span style="color: ${modInfo.color}">${modInfo.name}</span>`;
                 }
             }
             speedElement.innerHTML = speedText;
+        }
+
+        // サイズの表示を更新
+        const sizeElement = document.getElementById('size');
+        if (sizeElement) {
+            const size = GAME_CONSTANTS.FORMULAS.SIZE(player.stats);
+            const sizeInfo = GAME_CONSTANTS.COLORS.SIZE[size.value];
+            sizeElement.innerHTML = `<span style="color: ${sizeInfo.color}">${sizeInfo.name}</span>`;
         }
 
         // Update skill list display (only slots 1-9)
@@ -550,7 +548,23 @@ class Renderer {
                             ? ` (CD: ${skillData.remainingCooldown})`
                             : '';
                         const effectText = skill.getEffectText(player);
-                        return `[${slot}] ${skill.name} ${effectText}${cooldownText}`;
+
+                        // スキルが属するカテゴリーを見つける
+                        let categoryColor;
+                        for (let cat in this.game.codexSystem.categories) {
+                            if (this.game.codexSystem.categories[cat].skills.some(s => s.id === skill.id)) {
+                                categoryColor = GAME_CONSTANTS.COLORS.CODEX_CATEGORY[cat];
+                                break;
+                            }
+                        }
+
+                        // スロット番号の使用可否判定
+                        const isAvailable = skillData.remainingCooldown === 0 && 
+                            (skill.id !== 'meditation' || player.hp < player.maxHp);
+                        const slotClass = isAvailable ? 'skill-slot available' : 'skill-slot';
+
+                        return `[<span class="${slotClass}">${slot}</span>] ` +
+                               `<span style="color: ${categoryColor}">${skill.name[0]}</span>${skill.name.slice(1)} ${effectText}${cooldownText}`;
                     })
                     .join('<br>')
                 : 'NO SKILLS';
@@ -1149,13 +1163,19 @@ class Renderer {
             }
 
             // --- Combat Details ---
+            const speed = GAME_CONSTANTS.FORMULAS.SPEED(monster.stats);
+            const size = GAME_CONSTANTS.FORMULAS.SIZE(monster.stats);
+            const speedInfo = GAME_CONSTANTS.COLORS.SPEED[speed.value];
+            const sizeInfo = GAME_CONSTANTS.COLORS.SIZE[size.value];
+
             lookInfo.push(
                 `ATK: ${monster.attackPower.base}+${monster.attackPower.diceCount}d${monster.attackPower.diceSides}`,
                 `DEF: ${monster.defense.base}+${monster.defense.diceCount}d${monster.defense.diceSides}`,
-                `SPD: ${GAME_CONSTANTS.FORMULAS.SPEED(monster.stats)}`,
                 `ACC: ${monster.accuracy}%`,
                 `EVA: ${monster.evasion}%`,
                 `PER: ${monster.perception}`,
+                `SIZE: <span style="color: ${sizeInfo.color}">${sizeInfo.name}</span>`,
+                `SPD: <span style="color: ${speedInfo.color}">${speedInfo.name}</span>`
             );
 
             infoDiv.innerHTML = lookInfo.join('\n');
