@@ -55,7 +55,7 @@ body {
 #status-panel {
     background: black;
     padding: 10px;
-    width: 290px;
+    width: 250px;
     color: rgb(207, 207, 207);
 }
 
@@ -63,7 +63,7 @@ body {
     background: black;
     padding: 10px;
     width: calc(100vw - 1320px);  /* 固定値から可変値に変更 */
-    min-width: 460px;  /* 最小幅を設定 */
+    min-width: 500px;  /* 最小幅を設定 */
     max-width: 800px;  /* 最大幅を設定 */
     color: rgb(207, 207, 207);
 }
