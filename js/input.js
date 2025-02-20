@@ -13,9 +13,10 @@ class InputHandler {
         this.lookMode = false;  // ルックモードを追加
         this.boundHandleInput = this.handleInput.bind(this);  // バインドされたメソッドを保持
         this.bindKeys();
-        this.mode = 'normal';  // 通常モード
+        this.mode = 'name';  // 初期モードをname入力に設定
         this.lastInputTime = 0;  // 最後の入力時刻を追加
         this.inputCooldown = 100;  // 入力クールダウン時間（ミリ秒）
+        this.nameBuffer = '';  // プレイヤー名入力用バッファ
     }
 
     // ----------------------
@@ -40,6 +41,23 @@ class InputHandler {
             return;
         }
         this.lastInputTime = currentTime;
+
+        // プレイヤー名入力モードの処理
+        if (this.mode === 'name') {
+            // 名前入力モードの時点でタイプライターエフェクトを無効化
+            const messageLogElement = document.getElementById('message-log');
+            if (messageLogElement) {
+                messageLogElement.classList.add('no-typewriter');
+            }
+            this.handleNameInput(event);
+            return;
+        }
+
+        // 名前入力モード以外の場合はタイプライターエフェクトを有効化
+        const messageLogElement = document.getElementById('message-log');
+        if (messageLogElement) {
+            messageLogElement.classList.remove('no-typewriter');
+        }
 
         // --- Clean up visual effects on new input ---
         this.game.renderer.clearEffects();
@@ -209,6 +227,31 @@ class InputHandler {
                 this.game.reset();
             }
         }
+    }
+
+    handleNameInput(event) {
+        const key = event.key;
+
+        if (key === 'Enter' && this.nameBuffer.trim().length > 0) {
+            this.game.player.name = this.nameBuffer.trim();
+            this.mode = 'game';
+            this.game.logger.clearTitle();  // タイトルを消去
+            this.game.logger.add(`Welcome, ${this.game.player.name}!`, "important");
+            this.game.renderer.render();
+            return;
+        }
+
+        if (key === 'Backspace') {
+            this.nameBuffer = this.nameBuffer.slice(0, -1);
+        } else if (key.length === 1 && this.nameBuffer.length < 15) {  // 15文字制限
+            // 英数字とスペースのみ許可
+            if (/^[a-zA-Z0-9 ]$/.test(key)) {
+                this.nameBuffer += key;
+            }
+        }
+
+        // 名前入力プロンプトの更新
+        this.game.renderer.renderNamePrompt(this.nameBuffer);
     }
 
     // ----------------------

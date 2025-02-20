@@ -338,4 +338,14 @@ class Logger {
         // フラグを設定
         this.gameOverMessageShown = true;
     }
+
+    clearTitle() {
+        if (!this.logElement) return;
+        
+        // タイプライターエフェクトを再度有効化
+        this.logElement.classList.remove('no-typewriter');
+        
+        // メッセージログをクリア
+        this.logElement.innerHTML = '';
+    }
 } 

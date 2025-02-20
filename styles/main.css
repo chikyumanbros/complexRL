@@ -112,6 +112,19 @@ body {
     to { width: 100%; }
 }
 
+/* タイプライターエフェクトを強制的に無効化 */
+#message-log.no-typewriter .message {
+    opacity: 1 !important;
+    animation: none !important;
+    -webkit-animation: none !important;
+}
+
+#message-log.no-typewriter .message.title {
+    opacity: 1 !important;
+    animation: none !important;
+    -webkit-animation: none !important;
+}
+
 /* メッセージタイプごとの色分け */
 #message-log .info { color: #b1b1b1; }
 #message-log .warning { color: #ff6b6b; }
@@ -785,4 +798,11 @@ body::before {
         transform: translate(-50%, -40px) scale(1);
         opacity: 0;
     }
+}
+
+.message.title {
+    color: #ffd700;  /* ゴールド色 */
+    font-family: 'Proggy Clean', monospace;
+    font-size: 18px;
+    line-height: 0;
 }

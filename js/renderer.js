@@ -615,6 +615,12 @@ class Renderer {
         if (perceptionElement) {
             perceptionElement.textContent = player.perception;
         }
+
+        // プレイヤー名の表示を追加
+        const nameElement = document.getElementById('player-name');
+        if (nameElement) {
+            nameElement.textContent = this.game.player.name || 'Unknown';
+        }
     }
 
     renderCodexMenu() {
@@ -839,7 +845,6 @@ class Renderer {
             ring.remove();
         });
     }
-
 
     showCritEffect(x, y) {
         const particleLayer = document.getElementById('particle-layer');
@@ -1329,5 +1334,65 @@ class Renderer {
         if (distance <= 3) return '#ffa502';        // 近距離: オレンジ
         if (distance <= 5) return '#7bed9f';        // 中距離: 緑
         return '#70a1ff';                           // 遠距離: 青
+    }
+
+    renderNamePrompt(currentInput) {
+        const messageLogElement = document.getElementById('message-log');
+        if (!messageLogElement) return;
+
+        // タイプライターエフェクトを一時的に無効化
+        messageLogElement.classList.add('no-typewriter');
+
+        // ログパネルをクリア
+        messageLogElement.innerHTML = '';
+
+        // ブロック文字のタイトル（バッククォートを通常の引用符に変更）
+        const titleArt = [
+
+            "''' '''' '' '' ' ''' '' '' '' '' '' '''' ' '' ' '' '' '' '''''' '' '' ' ''' ''  ' '' '' ' '' ''' '' '",
+            "' '  '' ...  '''  ..  '' '' ...,  ' ' ' ......'.  ' ' '' '  '  '' '' ' '' ' ''. '' '''''......,  '' ' ",
+            "''''.JMMMMM:' .MMMMMMMNa.' .TMMM|'''  dMMM#^ T\"MMMMMMN,'dMMMMMM> ''.MMMMMMMMN WMMMMMM@^(WMMMM$' '' ",
+            "''' .MM@^_7^ '(MMD''' 7MMN,'''dMMN  ''dMM]''''''JM#''(WM[' (MM%'' '' '' MM%''.T$'' ,MMM,'.d#^'' '' '",
+            "''  MMF' '' '.MMF'  '' .MMM_ 'MMMM]' .MMM]'  ' ',M# ' JMF''.MM>' '' ' '.MM: ' '' ''' TMNJM\"' ' '' ' ",
+            "'''MM)' ''' (MM]''' '''dMM''.Mt(MN..MDWM]''' ' -M#.gMMB'''-M#' '' ''' .MMNMMM_ ' ' ''JMMN '' '' '''",
+            "'  MM]''  ...MMN,' ' ' dMF' ,M}.MMNM3'JM# '' ''(MN ''' 'JM#'' '' ,'',MM ' ?'' ' ' (M@WMN.'' ' ' ' ",
+            "'dMM,..JM^',MMMa,''.JMF''(M' ,MM'''-MM_' '.JMN'  '''''JMN....&MF '.MM/' ..,'''.M#^''TMM,'' '''  ",
+            "''' WMMMM@''''.'WMMMMM9'.JgNMMJ, T^ gNMMMMNp,MMMMMMM'' 'jMMMMMMMMMD'(NMMMMMMMF dMMMMb '.+MMMMMN.'''",
+            "''' ''' ''' '' '''''' '''''' ''  '' ''''''''' '' '' '''''  '' '''' ''' '' '' ' '' ' '''  '  _?'_\"'  '",
+            "''  '' '''  ' '  '' ' '  ''' ' ' ''  ' '  '' ''' '' ' ''' ''  ''' ' '' ' '' '' ''' '''' ''' ''' ''  ",
+        ];
+
+        // バージョン表記を追加
+        titleArt.unshift("v0.1.0 alpha");
+
+        titleArt.forEach(line => {
+            const div = document.createElement('div');
+            div.textContent = line;
+            div.className = 'message title';
+            messageLogElement.appendChild(div);
+        });
+
+        // 空行を追加
+        const spacer = document.createElement('div');
+        spacer.className = 'message';
+        spacer.innerHTML = '&nbsp;';
+        messageLogElement.appendChild(spacer);
+
+        // プロンプトメッセージを追加
+        const messages = [
+            { text: 'Enter your name:', style: 'important' },
+            { text: `> ${currentInput}_`, style: 'system' },
+            { text: '(Press Enter to confirm)', style: 'hint' }
+        ];
+
+        messages.forEach(msg => {
+            const div = document.createElement('div');
+            div.textContent = msg.text;
+            div.className = `message ${msg.style}`;
+            messageLogElement.appendChild(div);
+        });
+
+        // 最新のメッセージが見えるようにスクロール
+        messageLogElement.scrollTop = messageLogElement.scrollHeight;
     }
 }

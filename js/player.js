@@ -35,6 +35,7 @@ class Player {
         this.lastPosition = null;  // 前回の位置を記録するプロパティを追加
         this.autoExploring = false;  // 自動探索フラグを追加
         this.detectedPresences = new Set();  // 既に感知した存在を記録
+        this.name = '';  // プレイヤー名を追加
     }
 
     // ===== Experience and Leveling Methods =====

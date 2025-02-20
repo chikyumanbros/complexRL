@@ -143,6 +143,10 @@ class Game {
         this.updateRoomInfo();  // Update surrounding room information
         this.updateExplored();  // Update explored information
         this.saveGame();
+
+        // プレイヤー名入力画面を表示
+        this.renderer.renderNamePrompt('');
+        this.inputHandler.setMode('name');
     }
 
     init() {
@@ -187,6 +191,10 @@ class Game {
         // Setup input handling and rendering
         this.renderer.render();
         this.inputHandler.bindKeys();
+
+        // プレイヤー名入力画面を表示
+        this.renderer.renderNamePrompt('');
+        this.inputHandler.setMode('name');
     }
 
     placePlayerInRoom() {
@@ -756,6 +764,7 @@ class Game {
         // セーブ処理
         const saveData = {
             player: {
+                name: this.player.name,
                 x: this.player.x,
                 y: this.player.y,
                 hp: this.player.hp,
@@ -765,7 +774,6 @@ class Game {
                 xpToNextLevel: this.player.xpToNextLevel,
                 codexPoints: this.player.codexPoints,
                 stats: this.player.stats,
-                // スキルをシリアライズ可能な形式に変換
                 skills: Array.from(this.player.skills).map(([slot, skill]) => ({
                     slot,
                     skillId: skill.id,
@@ -808,50 +816,79 @@ class Game {
             }
 
             const data = JSON.parse(savedData);
+            
+            // データの検証
+            if (!data || !data.player) {
+                console.error('Invalid save data format');
+                this.init();
+                return;
+            }
 
             // 初期化を先に行う
             this.init();
 
-            // プレイヤーの復元
-            this.player.x = data.player.x;
-            this.player.y = data.player.y;
-            this.player.hp = data.player.hp;
-            this.player.maxHp = data.player.maxHp;
-            this.player.level = data.player.level;
-            this.player.xp = data.player.xp;
-            this.player.xpToNextLevel = data.player.xpToNextLevel;
-            this.player.codexPoints = data.player.codexPoints;
-            this.player.stats = data.player.stats;
+            // プレイヤー名が保存されている場合
+            if (data.player.name) {
+                // タイトル画面のみ表示し、ゲームモードに設定
+                this.renderer.renderNamePrompt('');
+                this.inputHandler.mode = 'game';
+                
+                // 少し遅延してタイトルを消去し、ウェルカムメッセージを表示
+                setTimeout(() => {
+                    this.logger.clearTitle();
+                    this.logger.add(`Welcome back, ${data.player.name}!`, "important");
+                }, 1000);
+            }
+
+            // プレイヤーの復元（nullチェック付き）
+            if (data.player) {
+                this.player.name = data.player.name || 'Unknown';
+                this.player.x = data.player.x || 0;
+                this.player.y = data.player.y || 0;
+                this.player.hp = data.player.hp || this.player.maxHp;
+                this.player.maxHp = data.player.maxHp || this.player.maxHp;
+                this.player.level = data.player.level || 1;
+                this.player.xp = data.player.xp || 0;
+                this.player.xpToNextLevel = data.player.xpToNextLevel || 100;
+                this.player.codexPoints = data.player.codexPoints || 0;
+                this.player.stats = data.player.stats || this.player.stats;
+            }
 
             // スキルの復元
             this.player.skills = new Map();
-            if (Array.isArray(data.player.skills)) {
+            if (data.player.skills && Array.isArray(data.player.skills)) {
                 data.player.skills.forEach(skillData => {
-                    this.player.skills.set(skillData.slot, {
-                        id: skillData.skillId,
-                        remainingCooldown: skillData.remainingCooldown
-                    });
+                    if (skillData && skillData.slot && skillData.skillId) {
+                        this.player.skills.set(skillData.slot, {
+                            id: skillData.skillId,
+                            remainingCooldown: skillData.remainingCooldown || 0
+                        });
+                    }
                 });
             }
 
-            // マップデータの復元
-            this.map = data.map;
-            this.tiles = data.tiles;
-            this.colors = data.colors;
-            this.rooms = data.rooms;
-            this.explored = data.explored;
-            this.floorLevel = data.floorLevel;
-            this.dangerLevel = data.dangerLevel;
-            this.turn = data.turn;
+            // マップデータの復元（nullチェック付き）
+            this.map = data.map || this.map;
+            this.tiles = data.tiles || this.tiles;
+            this.colors = data.colors || this.colors;
+            this.rooms = data.rooms || this.rooms;
+            this.explored = data.explored || this.explored;
+            this.floorLevel = data.floorLevel || 1;
+            this.dangerLevel = data.dangerLevel || 'NORMAL';
+            this.turn = data.turn || 0;
 
-            // モンスターの復元
-            this.monsters = data.monsters.map(monsterData => {
-                const monster = new Monster(monsterData.type, monsterData.x, monsterData.y, this);
-                monster.hp = monsterData.hp;
-                monster.isSleeping = monsterData.isSleeping;
-                monster.hasStartedFleeing = monsterData.hasStartedFleeing;
-                return monster;
-            });
+            // モンスターの復元（nullチェック付き）
+            if (Array.isArray(data.monsters)) {
+                this.monsters = data.monsters.map(monsterData => {
+                    if (!monsterData || !monsterData.type) return null;
+                    const monster = new Monster(monsterData.type, monsterData.x || 0, monsterData.y || 0, this);
+                    monster.hp = monsterData.hp || monster.hp;
+                    monster.isSleeping = monsterData.isSleeping || false;
+                    monster.hasStartedFleeing = monsterData.hasStartedFleeing || false;
+                    return monster;
+                }).filter(monster => monster !== null);
+            }
+
             this.renderer.render();
             this.logger.add("Previous save data loaded", "important");
         } catch (e) {
