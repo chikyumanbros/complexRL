@@ -846,7 +846,7 @@ class Renderer {
         });
     }
 
-    showCritEffect(x, y) {
+    showCritEffect(x, y, isMonster = false) {
         const particleLayer = document.getElementById('particle-layer');
         if (!particleLayer) return;
 
@@ -857,8 +857,15 @@ class Renderer {
         popup.className = 'crit-popup';
         popup.textContent = 'CRIT!';
         
+        // モンスターとプレイヤーで色を分ける
+        if (isMonster) {
+            popup.style.color = '#ff4444';  // モンスターのクリティカル: 赤色
+        } else {
+            popup.style.color = '#44ff44';  // プレイヤーのクリティカル: 緑色
+        }
+        
         // 位置を設定
-        popup.style.left = (pos.x + pos.width * 2) + 'px';
+        popup.style.left = pos.x + 'px';
         popup.style.top = (pos.y - pos.height / 2) + 'px';
         
         particleLayer.appendChild(popup);

@@ -494,16 +494,23 @@ class Player {
             }
         }
 
+        const monsterSpeed = GAME_CONSTANTS.FORMULAS.SPEED(monster.stats);
+        const playerSpeedObj = GAME_CONSTANTS.FORMULAS.SPEED(this.stats);
         const monsterSpeedObj = GAME_CONSTANTS.FORMULAS.SPEED(monster.stats);
-        game.logger.add(`Speed Order: Player (${monsterSpeedObj.name}) vs ${monster.name} (${monsterSpeedObj.name})`);
+        game.logger.add(`Speed Order: Player (${playerSpeedObj.name}) vs ${monster.name} (${monsterSpeedObj.name})`);
 
-        if (effectivePlayerSpeed >= monsterSpeedObj.value) {
+        // イニシアチブ判定を修正：speedの値を直接比較
+        if (effectivePlayerSpeed.value >= monsterSpeed.value) {
             // プレイヤーの攻撃が先行する場合
             this.resolvePlayerAttack(monster, game);
             if (monster.hp > 0) {
-                game.logger.add(`${monster.name} attempts a counterattack!`, "monsterInfo");
-                monster.attackPlayer(this, game);
-                monster.hasActedThisTurn = true;
+                // モンスターの反撃を遅延実行
+                setTimeout(() => {
+                    game.logger.add(`${monster.name} attempts a counterattack!`, "monsterInfo");
+                    monster.attackPlayer(this, game);
+                    monster.hasActedThisTurn = true;
+                    this.updateCombatEffects(game, monster);
+                }, 200);
             }
         } else {
             // モンスターの攻撃が先行する場合（先制反撃）
@@ -511,10 +518,19 @@ class Player {
             monster.attackPlayer(this, game);
             monster.hasActedThisTurn = true;
             if (this.hp > 0 && monster.hp > 0) {
-                this.resolvePlayerAttack(monster, game);
+                // プレイヤーの攻撃を遅延実行
+                setTimeout(() => {
+                    this.resolvePlayerAttack(monster, game);
+                    this.updateCombatEffects(game, monster);
+                }, 200);
             }
         }
 
+        this.updateCombatEffects(game, monster);
+    }
+
+    // 戦闘エフェクトの更新を行う新しいメソッド
+    updateCombatEffects(game, monster) {
         // 攻撃エフェクトの処理
         if (this.attackEffectTimer) {
             clearTimeout(this.attackEffectTimer);

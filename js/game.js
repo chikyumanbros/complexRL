@@ -22,6 +22,7 @@ class Game {
         this.explored = this.initializeExplored();  // Added explored information
         this.lastAttackLocation = null;  // Added property to track last attack location
         this.hasDisplayedPresenceWarning = false;  // Added hasDisplayedPresenceWarning property
+        this.isLoadedGame = false;  // Added isLoadedGame property
 
         this.init();
 
@@ -65,6 +66,7 @@ class Game {
         this.rooms = [];
         this.isGameOver = false;
         this.floorLevel = 1;
+        this.isLoadedGame = false;  // リセット時は新規ゲーム
 
         // 危険度をランダムに決定
         const dangerLevels = Object.keys(GAME_CONSTANTS.DANGER_LEVELS);
@@ -150,6 +152,7 @@ class Game {
     }
 
     init() {
+        this.isLoadedGame = this.isLoadedGame || false;  // undefined の場合は false に設定
         // Initialize map-related properties
         this.map = [];
         this.tiles = [];
@@ -811,6 +814,7 @@ class Game {
         try {
             const savedData = localStorage.getItem('complexRL_saveData');
             if (!savedData) {
+                this.isLoadedGame = false;  // 新規ゲーム
                 this.init();
                 return;
             }
@@ -820,24 +824,20 @@ class Game {
             // データの検証
             if (!data || !data.player) {
                 console.error('Invalid save data format');
+                this.isLoadedGame = false;  // 新規ゲーム
                 this.init();
                 return;
             }
 
             // 初期化を先に行う
+            this.isLoadedGame = true;  // セーブデータからのロード
             this.init();
 
             // プレイヤー名が保存されている場合
             if (data.player.name) {
-                // タイトル画面のみ表示し、ゲームモードに設定
-                this.renderer.renderNamePrompt('');
+                // 名前入力画面をスキップしてゲームモードに設定
                 this.inputHandler.mode = 'game';
-                
-                // 少し遅延してタイトルを消去し、ウェルカムメッセージを表示
-                setTimeout(() => {
-                    this.logger.clearTitle();
-                    this.logger.add(`Welcome back, ${data.player.name}!`, "important");
-                }, 1000);
+                this.logger.add(`Welcome back, ${data.player.name}!`, "important");
             }
 
             // プレイヤーの復元（nullチェック付き）
@@ -893,7 +893,7 @@ class Game {
             this.logger.add("Previous save data loaded", "important");
         } catch (e) {
             console.error('Failed to load save data:', e);
-            // 読み込みに失敗した場合は新規ゲームを開始
+            this.isLoadedGame = false;  // 新規ゲーム
             this.init();
         }
     }

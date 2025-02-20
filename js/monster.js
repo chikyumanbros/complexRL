@@ -242,6 +242,9 @@ class Monster {
                     if (actualHeal > 0 && this.hasStartedFleeing && (this.hp / this.maxHp) > this.fleeThreshold) {
                         this.hasStartedFleeing = false;
                     }
+                    
+                    // HPの上限チェックを追加
+                    this.updateStats();
                 }
             }
         }
@@ -393,11 +396,13 @@ class Monster {
         if (isCritical) {
             const finalDamage = this.calculateDamage(true);
             const result = player.takeDamage(finalDamage.damage, { isCritical: true });
-            game.renderer.showCritEffect(player.x, player.y);
+            game.renderer.showCritEffect(player.x, player.y, true);  // isMonster フラグを true に設定
             
+            // ダメージログの書式を統一
             game.logger.add(
                 `${this.name} hits you for ${result.damage} damage! ` +
-                `(ATK: ${this.attackPower.base}+[${finalDamage.attackRolls.join(',')}] [DEF IGNORED])`,
+                `(ATK: ${this.attackPower.base}+[${finalDamage.attackRolls.join(',')}] ` +
+                `[DEF IGNORED]) (HP: ${player.hp}/${player.maxHp})`,
                 "monsterCrit"
             );
             return;
@@ -444,11 +449,12 @@ class Monster {
         const finalDamage = Math.max(1, damage - defense);
         const result = player.takeDamage(finalDamage, { isCritical });
         
-        // --- Damage Logging ---
+        // 通常攻撃のダメージログも統一
         game.logger.add(
             `${this.name} hits you for ${result.damage} damage! ` +
             `(ATK: ${this.attackPower.base}+[${attackRolls.join(',')}] ` +
-            `${isCritical ? '[DEF IGNORED]' : `vs DEF: ${player.defense.base}+[${defenseRolls.join(',')}]`})`,
+            `${isCritical ? '[DEF IGNORED]' : `vs DEF: ${player.defense.base}+[${defenseRolls.join(',')}]`}) ` +
+            `(HP: ${player.hp}/${player.maxHp})`,
             isCritical ? "monsterCrit" : "monsterHit"
         );
     }
