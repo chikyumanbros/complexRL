@@ -714,8 +714,8 @@ class Renderer {
         const pos = this.getTilePosition(x, y);
         if (!pos) return;
 
-        const centerX = pos.x - pos.width / 2;
-        const centerY = pos.y - pos.height / 2;
+        const centerX = pos.x - pos.width / 8;
+        const centerY = pos.y - pos.height / 8;
 
         const particleCount = 50;
         for (let i = 0; i < particleCount; i++) {
@@ -745,8 +745,8 @@ class Renderer {
         const pos = this.getTilePosition(x, y);
         if (!pos) return;
 
-        const centerX = pos.x - pos.width / 2;
-        const centerY = pos.y - pos.height / 2;
+        const centerX = pos.x - pos.width / 8;
+        const centerY = pos.y - pos.height / 8;
         const bottomValue = particleLayer.offsetHeight - centerY;
 
         const pillar = document.createElement('div');
@@ -768,8 +768,8 @@ class Renderer {
         const pos = this.getTilePosition(x, y);
         if (!pos) return;
 
-        const centerX = pos.x - pos.width / 2;
-        const centerY = pos.y - pos.height / 2;
+        const centerX = pos.x - pos.width / 8;
+        const centerY = pos.y - pos.height / 8;
 
         const particleCount = 50;
         for (let i = 0; i < particleCount; i++) {
@@ -1029,7 +1029,7 @@ class Renderer {
 
     drawMonsterSprite(canvas, monsterType, monsterId = null) {
         const ctx = canvas.getContext('2d');
-        const sprite = GAME_CONSTANTS.MONSTER_SPRITES[monsterType];
+        const sprite = MONSTER_SPRITES[monsterType];  // GAME_CONSTANTSから直接参照に変更
         if (!sprite) return;
 
         // キャンバスをクリア
@@ -1054,8 +1054,8 @@ class Renderer {
             sprite.forEach((row, y) => {
                 [...row].forEach((pixel, x) => {
                     const key = `${x},${y}`;
-                    const baseColor = GAME_CONSTANTS.SPRITE_COLORS[pixel];
-                    colorMap.set(key, GAME_CONSTANTS.SPRITE_COLORS.getRandomizedColor(baseColor));
+                    const baseColor = SPRITE_COLORS[pixel];  // GAME_CONSTANTSから直接参照に変更
+                    colorMap.set(key, SPRITE_COLORS.getRandomizedColor(baseColor));  // 同上
                 });
             });
             this.spriteColorCache.set(cacheKey, colorMap);
@@ -1080,7 +1080,7 @@ class Renderer {
     }
 
     previewMonsterSprite(monsterType, containerId, pixelSize = 8) {
-        const sprite = GAME_CONSTANTS.MONSTER_SPRITES[monsterType];
+        const sprite = MONSTER_SPRITES[monsterType];  // GAME_CONSTANTSから直接参照に変更
         if (!sprite) {
             console.error(`Sprite not found for monster type: ${monsterType}`);
             return;
@@ -1112,7 +1112,7 @@ class Renderer {
         // スプライトの描画
         sprite.forEach((row, y) => {
             [...row].forEach((pixel, x) => {
-                const color = GAME_CONSTANTS.SPRITE_COLORS[pixel];
+                const color = SPRITE_COLORS[pixel];  // GAME_CONSTANTSから直接参照に変更
                 if (color) {
                     ctx.fillStyle = color;
                     ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);

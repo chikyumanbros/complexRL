@@ -22,9 +22,9 @@ class Game {
         this.explored = this.initializeExplored();  // Added explored information
         this.lastAttackLocation = null;  // Added property to track last attack location
         this.hasDisplayedPresenceWarning = false;  // Added hasDisplayedPresenceWarning property
-        
+
         this.init();
-        
+
         // 保存されたデータがあれば読み込む
         this.loadGame();
 
@@ -71,7 +71,7 @@ class Game {
         const weights = [0.3, 0.4, 0.2, 0.1]; // SAFE, NORMAL, DANGEROUS, DEADLYの出現確率
         let roll = Math.random();
         let cumulativeWeight = 0;
-        
+
         for (let i = 0; i < dangerLevels.length; i++) {
             cumulativeWeight += weights[i];
             if (roll < cumulativeWeight) {
@@ -156,13 +156,13 @@ class Game {
         this.totalMonstersSpawned = 0;
         this.turn = 0;
         this.floorLevel = 1;
-        
+
         // 危険度をランダムに決定（reset()と同じロジック）
         const dangerLevels = Object.keys(GAME_CONSTANTS.DANGER_LEVELS);
         const weights = [0.3, 0.4, 0.2, 0.1]; // SAFE, NORMAL, DANGEROUS, DEADLYの出現確率
         let roll = Math.random();
         let cumulativeWeight = 0;
-        
+
         for (let i = 0; i < dangerLevels.length; i++) {
             cumulativeWeight += weights[i];
             if (roll < cumulativeWeight) {
@@ -172,18 +172,18 @@ class Game {
         }
 
         this.isGameOver = false;
-        
+
         // Generate a new floor (including player placement and monster generation)
         this.generateNewFloor();
-        
+
         // Initialize and display information
         const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
         this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);
         this.updateRoomInfo();
-        
+
         // プレイヤーの初期位置周辺を探索済みにマーク
         this.updateExplored();
-        
+
         // Setup input handling and rendering
         this.renderer.render();
         this.inputHandler.bindKeys();
@@ -199,7 +199,7 @@ class Game {
 
         // 部屋をランダムに選択
         const randomRoom = this.rooms[Math.floor(Math.random() * this.rooms.length)];
-        
+
         // 部屋内の有効な位置を探す
         let attempts = 50;
         let validPosition = null;
@@ -208,7 +208,7 @@ class Game {
             // 部屋の中心付近の座標を生成
             const centerX = Math.floor(randomRoom.x + randomRoom.width / 2);
             const centerY = Math.floor(randomRoom.y + randomRoom.height / 2);
-            
+
             // 中心から±2マスの範囲でランダムな位置を試す
             const testX = centerX + Math.floor(Math.random() * 5) - 2;
             const testY = centerY + Math.floor(Math.random() * 5) - 2;
@@ -233,23 +233,23 @@ class Game {
             this.player.x = Math.floor(randomRoom.x + randomRoom.width / 2);
             this.player.y = Math.floor(randomRoom.y + randomRoom.height / 2);
         }
-        
+
         // プレイヤーの開始部屋を記録
         this.playerStartRoom = randomRoom;
     }
 
     isPositionInRoom(x, y, room) {
         return x >= room.x && x < room.x + room.width &&
-               y >= room.y && y < room.y + room.height;
+            y >= room.y && y < room.y + room.height;
     }
 
     isOccupied(x, y) {
         // プレイヤーの位置チェック
         if (this.player.x === x && this.player.y === y) return true;
-        
+
         // 閉じた扉のチェックを追加
         if (this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) return true;
-        
+
         // モンスターの位置チェック
         return this.monsters.some(m => m.x === x && m.y === y);
     }
@@ -268,20 +268,20 @@ class Game {
     processTurn() {
         this.hasDisplayedPresenceWarning = false;  // フラグをリセット
         this.turn++;
-        
+
         // 明るさの揺らぎを更新
         this.renderer.updateFlickerValues();
-        
+
         // Process player's cooldown
         this.player.processTurn();
 
         // Only allow alive monsters to act
         this.monsters = this.monsters.filter(monster => monster.hp > 0);
-        
+
         // Monster action phase
-        for (const monster of this.monsters) {            
+        for (const monster of this.monsters) {
             monster.act(this);
-            
+
             // If the player dies
             if (this.player.hp <= 0) {
                 return;
@@ -292,8 +292,8 @@ class Game {
         this.updateExplored();
         // Update room information
         this.updateRoomInfo();
-               // 幻覚エフェクトのターンカウントを更新
-               this.renderer.psychedelicTurn++;
+        // 幻覚エフェクトのターンカウントを更新
+        this.renderer.psychedelicTurn++;
         this.renderer.render();
 
         // 各ターン終了時にセーブ
@@ -314,7 +314,7 @@ class Game {
             document.body.classList.remove('codex-mode');
             this.logger.renderLookPanel();
         }
-        
+
         this.renderer.render();
     }
 
@@ -328,7 +328,7 @@ class Game {
 
     spawnInitialMonsters() {
         const dangerData = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
-        
+
         // Increase base count while incorporating the danger modifier
         const baseCount = Math.floor(5 + this.floorLevel * 1.5);
         const monsterCount = Math.max(3, baseCount + dangerData.levelModifier);
@@ -339,10 +339,10 @@ class Game {
         for (let i = 0; i < monsterCount; i++) {
             const validRooms = this.rooms.filter(room => {
                 // Exclude the room that contains the player
-                const isPlayerRoom = this.player.x >= room.x && 
-                                   this.player.x < room.x + room.width &&
-                                   this.player.y >= room.y && 
-                                   this.player.y < room.y + room.height;
+                const isPlayerRoom = this.player.x >= room.x &&
+                    this.player.x < room.x + room.width &&
+                    this.player.y >= room.y &&
+                    this.player.y < room.y + room.height;
                 return !isPlayerRoom;
             });
 
@@ -355,7 +355,7 @@ class Game {
             // Check to limit the number of monsters per room
             const roomCounts = new Map();
             validRooms.forEach(room => {
-                const count = this.monsters.filter(m => 
+                const count = this.monsters.filter(m =>
                     m.x >= room.x && m.x < room.x + room.width &&
                     m.y >= room.y && m.y < room.y + room.height
                 ).length;
@@ -363,10 +363,10 @@ class Game {
             });
 
             // Prioritize rooms with fewer monsters (based on room area)
-            const availableRooms = validRooms.filter(room => 
+            const availableRooms = validRooms.filter(room =>
                 roomCounts.get(room) < Math.floor(room.width * room.height / 16)
             );
-            
+
             if (availableRooms.length === 0) continue;
 
             const room = availableRooms[Math.floor(Math.random() * availableRooms.length)];
@@ -377,51 +377,53 @@ class Game {
                 const x = room.x + Math.floor(Math.random() * room.width);
                 const y = room.y + Math.floor(Math.random() * room.height);
 
-                // Check distance from the player.
+                // 生成位置の妥当性チェックを強化
+                const isValidSpawn = this.isValidPosition(x, y) &&
+                    this.map[y][x] === 'floor' &&
+                    !this.getMonsterAt(x, y) &&
+                    this.tiles[y][x] !== GAME_CONSTANTS.TILES.DOOR.CLOSED && // 閉じた扉のチェックを追加
+                    this.tiles[y][x] !== GAME_CONSTANTS.STAIRS.CHAR;
+
                 const dx = x - this.player.x;
                 const dy = y - this.player.y;
-                const distanceToPlayer = Math.sqrt(dx * dx + dy * dy);
+                const distance = Math.sqrt(dx * dx + dy * dy);
 
-                const isValidSpawn = this.isValidPosition(x, y) && 
-                                   this.map[y][x] === 'floor' && 
-                                   !this.getMonsterAt(x, y) &&
-                                   this.tiles[y][x] !== GAME_CONSTANTS.TILES.DOOR.CLOSED &&
-                                   this.tiles[y][x] !== GAME_CONSTANTS.TILES.DOOR.OPEN &&
-                                   distanceToPlayer >= GAME_CONSTANTS.ROOM.SAFE_RADIUS;
+                if (isValidSpawn && distance >= GAME_CONSTANTS.ROOM.SAFE_RADIUS) {
 
-                if (isValidSpawn) {
                     monster = Monster.spawnRandomMonster(x, y, this.floorLevel, this.dangerLevel);
                     this.monsters.push(monster);
                     this.totalMonstersSpawned++;
                     //console.log(`Spawned ${monster.name} (Level ${monster.level}) at (${x}, ${y})`);
 
                     // Handle pack spawning.
-                    const template = GAME_CONSTANTS.MONSTERS[monster.type];
+                    const template = MONSTERS[monster.type];
                     if (template.pack && Math.random() < template.pack.chance) {
-                        const packSize = template.pack.min + 
+                        const packSize = template.pack.min +
                             Math.floor(Math.random() * (template.pack.max - template.pack.min + 1));
-                        
+
                         //console.log(`Attempting to spawn pack of size ${packSize} for ${monster.name}`);
-                        
+
                         // Spawn pack members.
                         for (let j = 0; j < packSize - 1; j++) {
                             let packAttempts = 10;
                             let packSpawned = false;
-                            
+
                             while (packAttempts > 0 && !packSpawned) {
                                 const packX = x + Math.floor(Math.random() * 3) - 1;
                                 const packY = y + Math.floor(Math.random() * 3) - 1;
-                                
+
                                 // Ensure pack members maintain a safe distance from the player.
                                 const packDx = packX - this.player.x;
                                 const packDy = packY - this.player.y;
                                 const packDistance = Math.sqrt(packDx * packDx + packDy * packDy);
-                                
-                                const isValidPackSpawn = this.isValidPosition(packX, packY) && 
-                                                       this.map[packY][packX] === 'floor' && 
-                                                       !this.getMonsterAt(packX, packY) &&
-                                                       packDistance >= GAME_CONSTANTS.ROOM.SAFE_RADIUS;
-                                
+
+                                const isValidPackSpawn = this.isValidPosition(packX, packY) &&
+                                    this.map[packY][packX] === 'floor' &&
+                                    !this.getMonsterAt(packX, packY) &&
+                                    this.tiles[packY][packX] !== GAME_CONSTANTS.TILES.DOOR.CLOSED &&
+                                    this.tiles[packY][packX] !== GAME_CONSTANTS.STAIRS.CHAR &&
+                                    packDistance >= GAME_CONSTANTS.ROOM.SAFE_RADIUS;
+
                                 if (isValidPackSpawn) {
                                     const packMember = new Monster(monster.type, packX, packY);
                                     this.monsters.push(packMember);
@@ -431,7 +433,7 @@ class Game {
                                 }
                                 packAttempts--;
                             }
-                            
+
                             if (!packSpawned) {
                                 //console.log('Failed to spawn pack member');
                             }
@@ -449,7 +451,7 @@ class Game {
         // Final check on the total number of monsters.
         const monstersPerRoom = new Map();
         this.rooms.forEach(room => {
-            const count = this.monsters.filter(m => 
+            const count = this.monsters.filter(m =>
                 m.x >= room.x && m.x < room.x + room.width &&
                 m.y >= room.y && m.y < room.y + room.height
             ).length;
@@ -512,30 +514,30 @@ class Game {
             this
         );
         const mapData = mapGenerator.generate();
-        
+
         this.map = mapData.map;
         this.tiles = mapData.tiles;
         this.colors = mapData.colors;
         this.rooms = mapData.rooms;
-        
+
         this.monsters = [];
         this.totalMonstersSpawned = 0;
         this.explored = this.initializeExplored();
-        
+
         this.placePlayerInRoom();
         this.player.autoExploring = false;
-        
+
         // モンスターの生成
         this.spawnInitialMonsters();
-        
+
         // Initialize and display information
         const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
         this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);
         this.updateRoomInfo();
-        
+
         // プレイヤーの初期位置周辺を探索済みにマーク
         this.updateExplored();
-        
+
         // Setup input handling and rendering
         this.renderer.render();
         this.inputHandler.bindKeys();
@@ -548,7 +550,7 @@ class Game {
     // Mark tiles within the player's visible range as explored.
     updateExplored() {
         const visibleTiles = this.getVisibleTiles();
-        visibleTiles.forEach(({x, y}) => {
+        visibleTiles.forEach(({ x, y }) => {
             this.explored[y][x] = true;
         });
     }
@@ -556,33 +558,33 @@ class Game {
     // Check if there is a clear line of sight.
     hasLineOfSight(x1, y1, x2, y2) {
         const points = this.getLinePoints(x1, y1, x2, y2);
-        
+
         // Check the intermediate points, excluding the start and end.
         for (let i = 1; i < points.length - 1; i++) {
-            const {x, y} = points[i];
-            
+            const { x, y } = points[i];
+
             // 視線を遮る障害物かどうかをチェック
-            const isBlockingObstacle = 
-                this.map[y][x] === 'wall' || 
+            const isBlockingObstacle =
+                this.map[y][x] === 'wall' ||
                 this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
-                (this.map[y][x] === 'obstacle' && 
-                 GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][x]));
-            
+                (this.map[y][x] === 'obstacle' &&
+                    GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][x]));
+
             if (isBlockingObstacle) {
                 return false;
             }
-            
+
             // 斜めの視線チェック
             if (i > 0) {
                 const prev = points[i - 1];
                 if (prev.x !== x && prev.y !== y) {
-                    const isCornerBlocking = 
+                    const isCornerBlocking =
                         (this.map[prev.y][x] === 'wall' && this.map[y][prev.x] === 'wall') ||
-                        (this.map[prev.y][x] === 'obstacle' && 
-                         GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[prev.y][x]) &&
-                         this.map[y][prev.x] === 'obstacle' && 
-                         GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][prev.x]));
-                    
+                        (this.map[prev.y][x] === 'obstacle' &&
+                            GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[prev.y][x]) &&
+                            this.map[y][prev.x] === 'obstacle' &&
+                            GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][prev.x]));
+
                     if (isCornerBlocking) {
                         return false;
                     }
@@ -605,7 +607,7 @@ class Game {
         let y = y1;
 
         while (true) {
-            points.push({x, y});
+            points.push({ x, y });
             if (x === x2 && y === y2) break;
             const e2 = 2 * err;
             if (e2 > -dy) {
@@ -648,10 +650,10 @@ class Game {
                 }
 
                 // 壁や障害物の場合は、より広い範囲で視認可能に
-                if (this.map[y][x] === 'wall' || 
+                if (this.map[y][x] === 'wall' ||
                     this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
-                    (this.map[y][x] === 'obstacle' && 
-                     GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][x]))) {
+                    (this.map[y][x] === 'obstacle' &&
+                        GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][x]))) {
                     tileVisibility += 1;  // 視界を遮る要素は通常の視界範囲より1マス広く見える
                 }
 
@@ -668,21 +670,21 @@ class Game {
     updateRoomInfo() {
         const px = this.player.x;
         const py = this.player.y;
-        const currentRoom = this.rooms.find(room => 
-            px >= room.x && 
-            px < room.x + room.width && 
-            py >= room.y && 
+        const currentRoom = this.rooms.find(room =>
+            px >= room.x &&
+            px < room.x + room.width &&
+            py >= room.y &&
             py < room.y + room.height
         );
-        
+
         // Set the range for counting monsters.
         let monsterCount;
         if (currentRoom) {
             // In a room, count monsters throughout the room.
-            monsterCount = this.monsters.filter(monster => 
-                monster.x >= currentRoom.x && 
-                monster.x < currentRoom.x + currentRoom.width && 
-                monster.y >= currentRoom.y && 
+            monsterCount = this.monsters.filter(monster =>
+                monster.x >= currentRoom.x &&
+                monster.x < currentRoom.x + currentRoom.width &&
+                monster.y >= currentRoom.y &&
                 monster.y < currentRoom.y + currentRoom.height
             ).length;
         } else {
@@ -701,11 +703,11 @@ class Game {
     // Get the room in which the player is currently located.
     getCurrentRoom() {
         if (!this.map) return null;
-        
+
         // Get the player's current coordinates.
         const px = this.player.x;
         const py = this.player.y;
-        
+
         // Check if the player is inside a room.
         for (const room of this.rooms) {
             if (px >= room.x && px < room.x + room.width &&
@@ -713,18 +715,18 @@ class Game {
                 return room;
             }
         }
-        
+
         return null; // Return null if not in a room (i.e., in a corridor).
     }
 
     // Retrieve monsters within the specified room.
     getMonstersInRoom(room) {
         if (!room) return [];
-        
-        return this.monsters.filter(monster => 
-            monster.x >= room.x && 
+
+        return this.monsters.filter(monster =>
+            monster.x >= room.x &&
             monster.x < room.x + room.width &&
-            monster.y >= room.y && 
+            monster.y >= room.y &&
             monster.y < room.y + room.height
         );
     }
@@ -745,12 +747,12 @@ class Game {
             monstersState: this.monsters.map(m => `${m.x},${m.y},${m.hp}`).join('|'),
             turn: this.turn
         };
-        
-        if (this._lastSaveState && 
+
+        if (this._lastSaveState &&
             JSON.stringify(currentState) === JSON.stringify(this._lastSaveState)) {
             return;
         }
-        
+
         // セーブ処理
         const saveData = {
             player: {
@@ -820,7 +822,7 @@ class Game {
             this.player.xpToNextLevel = data.player.xpToNextLevel;
             this.player.codexPoints = data.player.codexPoints;
             this.player.stats = data.player.stats;
-            
+
             // スキルの復元
             this.player.skills = new Map();
             if (Array.isArray(data.player.skills)) {

@@ -6,7 +6,7 @@ class Monster {
     constructor(type, x, y, game) {
         this.id = Monster.nextId++;  // 一意のIDを割り当て
         // --- Template Initialization ---
-        const template = GAME_CONSTANTS.MONSTERS[type];
+        const template = MONSTERS[type];
         this.type = type;
         this.x = x;
         this.y = y;
@@ -73,14 +73,14 @@ class Monster {
         
         // モンスター生成時に個体固有の色情報を生成
         this.spriteColors = {};
-        const sprite = GAME_CONSTANTS.MONSTER_SPRITES[type];
+        const sprite = MONSTER_SPRITES[type];
         if (sprite) {
             // スプライトで使用される各文字に対して固有の色を生成
             for (let row of sprite) {
                 for (let char of row) {
                     if (char !== ' ' && !this.spriteColors[char]) {
-                        const baseColor = GAME_CONSTANTS.SPRITE_COLORS[char];
-                        this.spriteColors[char] = GAME_CONSTANTS.SPRITE_COLORS.getRandomizedColor(baseColor);
+                        const baseColor = SPRITE_COLORS[char];
+                        this.spriteColors[char] = SPRITE_COLORS.getRandomizedColor(baseColor);
                     }
                 }
             }
@@ -544,21 +544,16 @@ class Monster {
 
     // ========================== spawnRandomMonster Static Method ==========================
     static spawnRandomMonster(x, y, floorLevel, dangerLevel = 'NORMAL', game) {
-        // --- Level Adjustment Based on Danger ---
-        // 危険度に基づくレベル修正
         const dangerData = GAME_CONSTANTS.DANGER_LEVELS[dangerLevel];
         const effectiveLevel = Math.max(1, floorLevel + dangerData.levelModifier);
 
-        // --- Filter Available Monster Types ---
-        // 出現可能なモンスターの種類をフィルタリング
-        const availableTypes = Object.entries(GAME_CONSTANTS.MONSTERS)
+        // MONSTERSを直接参照するように変更
+        const availableTypes = Object.entries(MONSTERS)
             .filter(([_, data]) => data.level <= effectiveLevel + 2)
             .map(([type, _]) => type);
 
-        // --- Weighting Based on Level Difference ---
-        // レベルに近いモンスターが出やすいように重み付け
         const weightedTypes = availableTypes.map(type => {
-            const levelDiff = Math.abs(GAME_CONSTANTS.MONSTERS[type].level - effectiveLevel);
+            const levelDiff = Math.abs(MONSTERS[type].level - effectiveLevel);  // GAME_CONSTANTS.MONSTERSから変更
             const weight = Math.max(0, 10 - levelDiff * 2);
             return { type, weight };
         });
