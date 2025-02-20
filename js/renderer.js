@@ -840,6 +840,30 @@ class Renderer {
         });
     }
 
+
+    showCritEffect(x, y) {
+        const particleLayer = document.getElementById('particle-layer');
+        if (!particleLayer) return;
+
+        const pos = this.getTilePosition(x, y);
+        if (!pos) return;
+
+        const popup = document.createElement('div');
+        popup.className = 'crit-popup';
+        popup.textContent = 'CRIT!';
+        
+        // 位置を設定
+        popup.style.left = (pos.x + pos.width * 2) + 'px';
+        popup.style.top = (pos.y - pos.height / 2) + 'px';
+        
+        particleLayer.appendChild(popup);
+
+        // アニメーション終了時に要素を削除
+        popup.addEventListener('animationend', () => {
+            popup.remove();
+        });
+    }
+
     updateStatusPanel(status) {
         const panel = document.getElementById('status-panel');
     
@@ -947,10 +971,10 @@ class Renderer {
         // Base Stats
         rightColumn += `<div style="color: #3498db; margin-bottom: 4px;">● Base Stats</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `HP: (CON×2 + STR/4) × Size Mod × Level Bonus\n`;
+        rightColumn += `HP: (CON×2 + STR/4) × Size Mod × Level\n`;
         rightColumn += `ATK: (STR×0.7 - DEX/4) × Size Mod + Dice\n`;
         rightColumn += `DEF: (CON×0.5 - INT/5) × Size Mod + Dice\n`;
-        rightColumn += `Size Mod: 0.9~1.3 (by STR+CON avg)\n`;
+        rightColumn += `Size Mod: 0.9~1.3 (by STR+CON)\n`;
         rightColumn += `</div>\n`;
 
         // Combat Dice
@@ -964,33 +988,30 @@ class Renderer {
         rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Hit Chance</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
         rightColumn += `ACC: 50 + DEX×0.8 + WIS×0.4 - CON/4\n`;
-        rightColumn += `EVA: 8 + DEX×0.6 + WIS×0.3 - CON/5 - STR/5\n`;
-        rightColumn += `SPD: Based on DEX/(STR+CON) ratio\n`;
-        rightColumn += `PER: (WIS+DEX)/2 + Speed/Size Mod\n`;
+        rightColumn += `EVA: 8 + DEX×0.6 + WIS×0.3 - STR/5\n`;
+        rightColumn += `CRIT: 3% + (DEX-10)×0.15 + (INT-10)×0.1\n`;
+        rightColumn += `(Critical hits ignore EVA & DEF)\n`;
         rightColumn += `</div>\n`;
 
         // Size & Speed
         rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Size & Speed</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `Size: Based on (STR+CON-20)/2\n`;
-        rightColumn += `Tiny ≤-5, Small ≤-3, Medium ≤3\n`;
-        rightColumn += `Large ≤5, Huge >5\n\n`;
-        rightColumn += `Speed: (DEX × Size Mod)/(STR+CON)\n`;
-        rightColumn += `Size Mod: ±10% per size diff\n\n`;
-        rightColumn += `Very Slow: ratio ≤0.7\n`;
-        rightColumn += `Slow: ratio ≤0.9\n`;
-        rightColumn += `Normal: ratio ≤1.1\n`;
-        rightColumn += `Fast: ratio ≤1.3\n`;
-        rightColumn += `Very Fast: ratio >1.3\n`;
+        rightColumn += `Size: Based on CON×0.7 + STR×0.3\n`;
+        rightColumn += `Tiny ≤7, Small ≤10, Medium ≤14\n`;
+        rightColumn += `Large ≤18, Huge >18\n\n`;
+        rightColumn += `Speed: Based on DEX vs (STR+CON)\n`;
+        rightColumn += `Very Slow: ≤-4, Slow: ≤-2\n`;
+        rightColumn += `Normal: ≤2, Fast: ≤4, Very Fast: >4\n`;
         rightColumn += `</div>\n`;
 
         // Combat Flow
         rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Combat Flow</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
         rightColumn += `1. Speed Check\n`;
-        rightColumn += `2. ACC vs Roll(100)\n`;
-        rightColumn += `3. EVA vs Roll(100)\n`;
-        rightColumn += `4. DMG = ATK - DEF\n`;
+        rightColumn += `2. Roll(100) vs ACC for hit\n`;
+        rightColumn += `3. Roll(100) vs EVA if not crit\n`;
+        rightColumn += `4. DMG = ATK - DEF (if not crit)\n`;
+        rightColumn += `5. DMG = ATK (if critical hit)\n`;
         rightColumn += `</div>\n`;
 
         // Distance Calculation（新規追加）

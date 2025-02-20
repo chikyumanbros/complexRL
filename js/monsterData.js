@@ -87,7 +87,7 @@ const MONSTERS = {
         },
         stats: {
             str: 9,    // 中程度の攻撃力
-            dex: 12,   // とても素早い
+            dex: 14,   // とても素早い
             con: 10,    // やや脆弱
             int: 4,    // 低い知性
             wis: 12    // 優れた感覚
@@ -108,7 +108,7 @@ const MONSTERS = {
         stats: {
             str: 10,   // 高い攻撃力
             dex: 8,    // 遅い
-            con: 10,    // 頑丈
+            con: 12,    // 頑丈
             int: 3,    // 低い知性
             wis: 4     // 乏しい判断力
         },
@@ -166,9 +166,9 @@ const MONSTERS = {
             return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.TROLL);
         },
         stats: {
-            str: 13,   // 非常に高い攻撃力
-            dex: 10,    // 遅い
-            con: 14,   // 非常に頑丈
+            str: 15,   // 非常に高い攻撃力
+            dex: 12,    // 遅い
+            con: 16,   // 非常に頑丈
             int: 3,    // 低い知性
             wis: 4     // 低い判断力
         },

@@ -360,13 +360,18 @@ const GAME_CONSTANTS = {
             return Math.min(50, Math.max(0, 45 - Math.floor(stats.int * 2.5)));
         },
         SPEED: (stats) => {
-            // 全てのステータスが同じ値なら必ずNormal
+            // 全てのステータスが同じ場合は、その値に基づいて判定
             if (stats.str === stats.dex && stats.dex === stats.con && 
                 stats.con === stats.int && stats.int === stats.wis) {
-                return { value: 3, name: "Normal" };
+                const value = stats.dex; // どのステータスでも同じ値なので、dexを使用
+                if (value <= 6) return { value: 1, name: "Very Slow" };
+                if (value <= 9) return { value: 2, name: "Slow" };
+                if (value <= 13) return { value: 3, name: "Normal" };
+                if (value <= 16) return { value: 4, name: "Fast" };
+                return { value: 5, name: "Very Fast" };
             }
 
-            // それ以外はDEXと(STR+CON)/2で判定
+            // 通常の計算（DEXと(STR+CON)/2で判定）
             const baseSpeed = stats.dex - ((stats.str + stats.con) / 2);
             
             if (baseSpeed <= -4) return { value: 1, name: "Very Slow" };
@@ -376,19 +381,24 @@ const GAME_CONSTANTS = {
             return { value: 5, name: "Very Fast" };
         },
         SIZE: (stats) => {
-            // 全てのステータスが同じ値なら必ずMedium
+            // 全てのステータスが同じ場合は、その値に基づいて判定
             if (stats.str === stats.dex && stats.dex === stats.con && 
                 stats.con === stats.int && stats.int === stats.wis) {
-                return { value: 3, name: "Medium" };
+                const value = stats.con;
+                if (value <= 6) return { value: 1, name: "Tiny" };
+                if (value <= 9) return { value: 2, name: "Small" };
+                if (value <= 13) return { value: 3, name: "Medium" };
+                if (value <= 16) return { value: 4, name: "Large" };
+                return { value: 5, name: "Huge" };
             }
 
-            // それ以外はCONとINTで判定
-            const baseSize = stats.con - (stats.int / 2);
+            // 通常の計算（CONとSTRに基づく）
+            const baseSize = (stats.con * 0.7 + stats.str * 0.3);
             
-            if (baseSize <= 5) return { value: 1, name: "Tiny" };
-            if (baseSize <= 8) return { value: 2, name: "Small" };
-            if (baseSize <= 12) return { value: 3, name: "Medium" };
-            if (baseSize <= 15) return { value: 4, name: "Large" };
+            if (baseSize <= 7) return { value: 1, name: "Tiny" };
+            if (baseSize <= 10) return { value: 2, name: "Small" };
+            if (baseSize <= 14) return { value: 3, name: "Medium" };
+            if (baseSize <= 18) return { value: 4, name: "Large" };
             return { value: 5, name: "Huge" };
         },
         // 自然回復の処理を追加
@@ -423,6 +433,13 @@ const GAME_CONSTANTS = {
                 entity.hp = Math.min(entity.maxHp, entity.hp + healAmount);
                 return entity.hp - oldHp;  // 実際の回復量を返す
             }
+        },
+        CRITICAL_RANGE: (stats) => {
+            const baseRange = 3;
+            const dexBonus = Math.floor((stats.dex - 10) * 0.15);  // DEXが10以上で+0.15（約7ポイントで+1）
+            const intBonus = Math.floor((stats.int - 10) * 0.1);   // INTが10以上で+0.1（10ポイントで+1）
+            
+            return Math.min(5, Math.max(1, baseRange + dexBonus + intBonus));
         }
     },
 

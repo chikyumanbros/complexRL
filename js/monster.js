@@ -380,8 +380,28 @@ class Monster {
         game.renderer.examineTarget(this.x, this.y);
 
         const hitChance = this.accuracy;
-        const roll = Math.floor(Math.random() * 100);
-        game.logger.add(`${this.name} attacks! (ACC: ${Math.floor(hitChance)}% | Roll: ${roll})`, "monsterInfo");
+        const roll = Math.floor(Math.random() * 100) + 1;  // 1-100
+        const criticalRange = GAME_CONSTANTS.FORMULAS.CRITICAL_RANGE(this.stats);
+        const isCritical = roll <= criticalRange;  // ここは正しい
+
+        game.logger.add(
+            `${this.name} attacks! (ACC: ${Math.floor(hitChance)}% | Roll: ${roll}${isCritical ? ' [CRITICAL HIT!]' : ''})`,
+            isCritical ? "monsterCrit" : "monsterInfo"
+        );
+        
+        // クリティカル判定を命中判定の前に行う
+        if (isCritical) {
+            const finalDamage = this.calculateDamage(true);
+            const result = player.takeDamage(finalDamage.damage, { isCritical: true });
+            game.renderer.showCritEffect(player.x, player.y);
+            
+            game.logger.add(
+                `${this.name} hits you for ${result.damage} damage! ` +
+                `(ATK: ${this.attackPower.base}+[${finalDamage.attackRolls.join(',')}] [DEF IGNORED])`,
+                "monsterCrit"
+            );
+            return;
+        }
         
         if (roll >= hitChance) {
             game.logger.add(`${this.name}'s attack misses!`, "monsterMiss");
@@ -390,10 +410,13 @@ class Monster {
         }
 
         // --- Evade Check ---
-        const evadeRoll = Math.random() * 100;
+        const evadeRoll = Math.floor(Math.random() * 100) + 1;
         const evadeChance = player.evasion;
         if (evadeRoll < evadeChance) {
-            game.logger.add(`You dodge ${this.name}'s attack! (EVA: ${Math.floor(evadeChance)}% | Roll: ${Math.floor(evadeRoll)})`, "playerEvade");
+            game.logger.add(
+                `You dodge ${this.name}'s attack! (EVA: ${Math.floor(evadeChance)}% | Roll: ${Math.floor(evadeRoll)})`,
+                "playerEvade"
+            );
             game.renderer.showMissEffect(player.x, player.y, 'evade');
             return;
         }
@@ -408,23 +431,42 @@ class Monster {
         }
 
         let defenseRolls = [];
-        let defense = player.defense.base;
-        for (let i = 0; i < player.defense.diceCount; i++) {
-            const diceRoll = Math.floor(Math.random() * player.defense.diceSides) + 1;
-            defenseRolls.push(diceRoll);
-            defense += diceRoll;
+        let defense = 0;
+        if (!isCritical) {
+            defense = player.defense.base;
+            for (let i = 0; i < player.defense.diceCount; i++) {
+                const diceRoll = Math.floor(Math.random() * player.defense.diceSides) + 1;
+                defenseRolls.push(diceRoll);
+                defense += diceRoll;
+            }
         }
 
         const finalDamage = Math.max(1, damage - defense);
-        const result = player.takeDamage(finalDamage);
+        const result = player.takeDamage(finalDamage, { isCritical });
         
         // --- Damage Logging ---
         game.logger.add(
             `${this.name} hits you for ${result.damage} damage! ` +
             `(ATK: ${this.attackPower.base}+[${attackRolls.join(',')}] ` +
-            `vs DEF: ${player.defense.base}+[${defenseRolls.join(',')}])`,
-            "monsterHit"
+            `${isCritical ? '[DEF IGNORED]' : `vs DEF: ${player.defense.base}+[${defenseRolls.join(',')}]`})`,
+            isCritical ? "monsterCrit" : "monsterHit"
         );
+    }
+
+    // ダメージ計算を別メソッドに分離
+    calculateDamage(isCritical = false) {
+        let attackRolls = [];
+        let damage = this.attackPower.base;
+        for (let i = 0; i < this.attackPower.diceCount; i++) {
+            const diceRoll = Math.floor(Math.random() * this.attackPower.diceSides) + 1;
+            attackRolls.push(diceRoll);
+            damage += diceRoll;
+        }
+
+        return {
+            damage: damage,
+            attackRolls: attackRolls
+        };
     }
 
     // ========================== getStatus Method ==========================

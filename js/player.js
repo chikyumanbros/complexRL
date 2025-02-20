@@ -165,7 +165,7 @@ class Player {
     }
 
     // ===== Damage Handling Methods =====
-    takeDamage(amount) {
+    takeDamage(amount, context = {}) {
         // mindカテゴリのスキルをチェック
         if (this.meditation && this.meditation.active) {
             const meditationSkill = this.game.codexSystem.findSkillById('meditation');
@@ -187,7 +187,14 @@ class Player {
         // 回避率にペナルティを一時的に適用
         this.evasion = Math.floor(baseEvasion * (1 - surroundingPenalty));
 
-        const damage = Math.max(1, amount);
+        // クリティカルヒットの場合、回避と防御を無視
+        let damage;
+        if (context.isCritical) {
+            damage = amount;  // 防御計算なしで直接ダメージを適用
+        } else {
+            damage = Math.max(1, amount);
+        }
+        
         this.hp -= damage;
         
         // HPが0以下になった場合は0に設定
@@ -331,12 +338,22 @@ class Player {
     }
 
     resolveHitCheck(context, game) {
-        const roll = Math.floor(Math.random() * 100);
+        const roll = Math.floor(Math.random() * 100) + 1;  // 1-100
+        const criticalRange = GAME_CONSTANTS.FORMULAS.CRITICAL_RANGE(this.stats);
+        const isCritical = roll <= criticalRange;  // ここは正しい
+        
         game.logger.add(
             `You ${context.attackType}${context.effectDesc} ${game.lastCombatMonster.name} ` +
-            `(ACC: ${Math.floor(context.hitChance)}% | Roll: ${roll})`,
-            "playerInfo"
+            `(ACC: ${Math.floor(context.hitChance)}% | Roll: ${roll}${isCritical ? ' [CRITICAL HIT!]' : ''})`,
+            isCritical ? "playerCrit" : "playerInfo"
         );
+
+        // 命中判定の前にクリティカル判定を行う
+        if (isCritical) {
+            context.isCritical = true;
+            game.renderer.showCritEffect(game.lastCombatMonster.x, game.lastCombatMonster.y);
+            return true;  // クリティカル時は必ず命中
+        }
         
         if (roll >= context.hitChance) {
             game.logger.add(`Your ${context.attackType} misses!`, "playerMiss");
@@ -345,20 +362,23 @@ class Player {
             this.nextAttackModifiers = [];
             return false;
         }
+
+        // 通常命中
+        context.isCritical = false;
         return true;
     }
 
     resolveEvadeCheck(context, game) {
         const monster = game.lastCombatMonster;
-        if (monster.hasStartedFleeing) return true;
+        if (monster.hasStartedFleeing || context.isCritical) return true;  // クリティカル時は回避判定をスキップ
         
-        const evadeRoll = Math.random() * 100;
+        const evadeRoll = Math.floor(Math.random() * 100) + 1;  // 1-100
         const evadeChance = monster.evasion || 0;
         
         if (evadeRoll < evadeChance) {
             game.logger.add(
                 `${monster.name} dodges your ${context.attackType}! ` +
-                `(EVA: ${Math.floor(evadeChance)}% | Roll: ${Math.floor(evadeRoll)})`,
+                `(EVA: ${Math.floor(evadeChance)}% | Roll: ${evadeRoll})`,
                 "monsterEvade"
             );
             game.renderer.showMissEffect(monster.x, monster.y, 'evade');
@@ -379,20 +399,22 @@ class Player {
             attackRolls.push(Math.floor(Math.random() * attack.diceSides) + 1);
         }
         
-        // 防御ロールの実行
-        let defenseRolls = [];
-        for (let i = 0; i < defense.diceCount; i++) {
-            defenseRolls.push(Math.floor(Math.random() * defense.diceSides) + 1);
-        }
-        
         // 基本攻撃力とロール値の合計を計算
         const totalAttack = attack.base + attackRolls.reduce((sum, roll) => sum + roll, 0);
         
         // 合計値にダメージ修正を適用
         const modifiedAttack = Math.floor(totalAttack * context.damageMultiplier);
         
-        // 防御力の合計を計算
-        const totalDefense = defense.base + defenseRolls.reduce((sum, roll) => sum + roll, 0);
+        // クリティカルヒットの場合、防御力を完全に無視
+        let defenseRolls = [];
+        let totalDefense = 0;
+        if (!context.isCritical) {
+            // 通常攻撃時のみ防御計算を実行
+            for (let i = 0; i < defense.diceCount; i++) {
+                defenseRolls.push(Math.floor(Math.random() * defense.diceSides) + 1);
+            }
+            totalDefense = defense.base + defenseRolls.reduce((sum, roll) => sum + roll, 0);
+        }
         
         // 最終ダメージを計算（最小1）
         const finalDamage = Math.max(1, modifiedAttack - totalDefense);
@@ -407,34 +429,32 @@ class Player {
     }
 
     processHit(result, damageResult, context, monster, game) {
-        // モンスターを倒した場合は、processKillのみを呼び出す
         if (result.killed) {
             this.processKill(result, damageResult, context, monster, game);
             return;
         }
 
-        // 倒していない場合のみ、通常の命中ログを表示
         const healthStatus = `HP: ${monster.hp}/${monster.maxHp}`;
+        const criticalText = context.isCritical ? " [CRITICAL HIT!]" : "";
         
         if (context.isOpportunityAttack) {
             game.logger.add(
-                `Opportunity attack hits! ${monster.name} takes ${result.damage} damage! ` +
+                `Opportunity attack${criticalText} hits! ${monster.name} takes ${result.damage} damage! ` +
                 `(ATK: ${this.attackPower.base}+[${damageResult.attackRolls.join(',')}] ` +
                 `×${context.damageMultiplier.toFixed(1)} ` +
-                `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}]) (${healthStatus})`,
-                "playerCrit"
+                `${context.isCritical ? '[DEF IGNORED]' : `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}]`}) (${healthStatus})`,
+                context.isCritical ? "playerCrit" : "playerHit"
             );
         } else {
             game.logger.add(
-                `${context.attackType} hits! ${monster.name} takes ${result.damage} damage! ` +
+                `${context.attackType}${criticalText} hits! ${monster.name} takes ${result.damage} damage! ` +
                 `(ATK: ${this.attackPower.base}+[${damageResult.attackRolls.join(',')}] ` +
                 `${context.damageMultiplier !== 1 ? `×${context.damageMultiplier.toFixed(1)} ` : ''}` +
-                `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}]) (${healthStatus})`,
-                "playerHit"
+                `${context.isCritical ? '[DEF IGNORED]' : `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}]`}) (${healthStatus})`,
+                context.isCritical ? "playerCrit" : "playerHit"
             );
         }
 
-        // 攻撃修正をクリア
         this.nextAttackModifiers = [];
     }
 
@@ -986,14 +1006,20 @@ class Player {
     processKill(result, damageResult, context, monster, game) {
         // 機会攻撃とキルのログを1行にまとめる
         const attackDesc = context.isOpportunityAttack ? "Opportunity attack" : context.attackType;
+        const criticalText = context.isCritical ? " [CRITICAL HIT!]" : "";
         const damageCalc = `(ATK: ${this.attackPower.base}+[${damageResult.attackRolls.join(',')}]` +
             `${context.damageMultiplier !== 1 ? ` ×${context.damageMultiplier.toFixed(1)}` : ''} ` +
-            `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}])`;
+            `${context.isCritical ? '[DEF IGNORED]' : `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}]`})`;
         
         game.logger.add(
-            `${attackDesc} kills ${monster.name} with ${result.damage} damage! ${damageCalc}`,
-            "kill"
+            `${attackDesc}${criticalText} kills ${monster.name} with ${result.damage} damage! ${damageCalc}`,
+            context.isCritical ? "playerCrit" : "kill"
         );
+
+        // クリティカルヒット時のエフェクトを表示
+        if (context.isCritical) {
+            game.renderer.showCritEffect(monster.x, monster.y);
+        }
         
         // モンスターを削除し、死亡エフェクトを表示
         game.removeMonster(monster);
