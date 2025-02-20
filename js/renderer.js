@@ -587,8 +587,8 @@ class Renderer {
                     const healthStatus = monster.getHealthStatus(monster.hp, monster.maxHp);
                     const healthClass = healthStatus.name.toLowerCase().replace(' ', '-');
 
-                    const sleepStatus = monster.isSleeping ? ' Zzz' : '';
-                    const fleeingStatus = monster.hasStartedFleeing ? ' >>>' : '';
+                    const sleepStatus = monster.isSleeping ? ' Z' : '';
+                    const fleeingStatus = monster.hasStartedFleeing ? ' >' : '';
                     const monsterSymbol = monster.char ? monster.char : 'M';
                     const monsterColor = GAME_CONSTANTS.COLORS.MONSTER[monster.type];
 

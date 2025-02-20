@@ -35,7 +35,7 @@ const MONSTER_SPRITES = {
         "                ",
         "                ",
     ],
-    SNAKE: [  // 黄色の模様入り緑色
+    G_VIPER: [  // 黄色の模様入り緑色
         "                ",
         "                ",
         "   GGG          ",
@@ -71,7 +71,7 @@ const MONSTER_SPRITES = {
         "                ",
         "                "
     ],
-    SPIDER: [  // 赤い体に黒い脚
+    G_SPIDER: [  // 赤い体に黒い脚
         "                ",
         "                ",
         "         PP     ",

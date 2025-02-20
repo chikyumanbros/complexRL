@@ -41,9 +41,9 @@ const GAME_CONSTANTS = {
         MONSTER: {
             get RAT() { return SPRITE_COLORS.getMostUsedColor(MONSTER_SPRITES.RAT); },
             get BAT() { return SPRITE_COLORS.getMostUsedColor(MONSTER_SPRITES.BAT); },
+            get G_VIPER() { return SPRITE_COLORS.getMostUsedColor(MONSTER_SPRITES.G_VIPER); },
             get GOBLIN() { return SPRITE_COLORS.getMostUsedColor(MONSTER_SPRITES.GOBLIN); },
-            get SNAKE() { return SPRITE_COLORS.getMostUsedColor(MONSTER_SPRITES.SNAKE); },
-            get SPIDER() { return SPRITE_COLORS.getMostUsedColor(MONSTER_SPRITES.SPIDER); },
+            get G_SPIDER() { return SPRITE_COLORS.getMostUsedColor(MONSTER_SPRITES.G_SPIDER); },
             get SKELETON() { return SPRITE_COLORS.getMostUsedColor(MONSTER_SPRITES.SKELETON); },
             get ZOMBIE() { return SPRITE_COLORS.getMostUsedColor(MONSTER_SPRITES.ZOMBIE); },
             get GHOST() { return SPRITE_COLORS.getMostUsedColor(MONSTER_SPRITES.GHOST); },
@@ -226,11 +226,11 @@ const GAME_CONSTANTS = {
 
         // 初期値（プレイヤー用）
         DEFAULT_VALUES: {
-            str: 20,
-            dex: 20,
-            con: 20,
-            int: 20,
-            wis: 20
+            str: 10,
+            dex: 10,
+            con: 10,
+            int: 10,
+            wis: 10
         },
 
         // ステータスの説明
@@ -360,36 +360,36 @@ const GAME_CONSTANTS = {
             return Math.min(50, Math.max(0, 45 - Math.floor(stats.int * 2.5)));
         },
         SPEED: (stats) => {
-            // 速度：DEXと(STR+CON)のバランスで決定
-            const baseSpeed = Math.floor(stats.dex * 0.7);  // DEXからの基本値
-            const size = GAME_CONSTANTS.FORMULAS.SIZE(stats);
-            const sizeModifier = 1 + ((3 - size.value) * 0.1);  // Medium(3)を基準に ±10%
-            const penalty = Math.floor((stats.str + stats.con) / 15);  // 重量ペナルティ
-            const rawSpeed = Math.max(1, Math.floor(baseSpeed * sizeModifier) - penalty);
+            // 全てのステータスが同じ値なら必ずNormal
+            if (stats.str === stats.dex && stats.dex === stats.con && 
+                stats.con === stats.int && stats.int === stats.wis) {
+                return { value: 3, name: "Normal" };
+            }
 
-            // DEXと(STR+CON)の比率で速度を決定（サイズ修正を加味）
-            const dexRatio = (stats.dex * sizeModifier) / ((stats.str + stats.con) / 2);
-
-            if (dexRatio <= 0.7) return { value: 1, name: "Very Slow" };
-            if (dexRatio <= 0.9) return { value: 2, name: "Slow" };
-            if (dexRatio <= 1.1) return { value: 3, name: "Normal" };
-            if (dexRatio <= 1.3) return { value: 4, name: "Fast" };
+            // それ以外はDEXと(STR+CON)/2で判定
+            const baseSpeed = stats.dex - ((stats.str + stats.con) / 2);
+            
+            if (baseSpeed <= -4) return { value: 1, name: "Very Slow" };
+            if (baseSpeed <= -2) return { value: 2, name: "Slow" };
+            if (baseSpeed <= 2) return { value: 3, name: "Normal" };
+            if (baseSpeed <= 4) return { value: 4, name: "Fast" };
             return { value: 5, name: "Very Fast" };
         },
         SIZE: (stats) => {
-            // 基準値（10）からの偏差を計算
-            const strDev = stats.str - 10;
-            const conDev = stats.con - 10;
-            const intDev = stats.int - 10;
+            // 全てのステータスが同じ値なら必ずMedium
+            if (stats.str === stats.dex && stats.dex === stats.con && 
+                stats.con === stats.int && stats.int === stats.wis) {
+                return { value: 3, name: "Medium" };
+            }
 
-            // サイズ値 = STRとCONの平均偏差
-            const sizeValue = (strDev + conDev) / 2;
-
-            if (sizeValue <= -5) return { value: 1, name: "Tiny" };     // 非常に小さい
-            if (sizeValue <= -3) return { value: 2, name: "Small" };    // 小さい
-            if (sizeValue <= 3) return { value: 3, name: "Medium" };    // 中型
-            if (sizeValue <= 5) return { value: 4, name: "Large" };     // 大きい
-            return { value: 5, name: "Huge" };                          // 非常に大きい
+            // それ以外はCONとINTで判定
+            const baseSize = stats.con - (stats.int / 2);
+            
+            if (baseSize <= 5) return { value: 1, name: "Tiny" };
+            if (baseSize <= 8) return { value: 2, name: "Small" };
+            if (baseSize <= 12) return { value: 3, name: "Medium" };
+            if (baseSize <= 15) return { value: 4, name: "Large" };
+            return { value: 5, name: "Huge" };
         },
         // 自然回復の処理を追加
         NATURAL_HEALING: {

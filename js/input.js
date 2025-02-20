@@ -61,63 +61,75 @@ class InputHandler {
                             console.log('Hiding sprite preview...');
                         } else {
                             console.log('Showing sprite preview...');
-                            const monsters = [
-                                { type: 'RAT', containerId: 'sprite-preview-container' },
-                                { type: 'BAT', containerId: 'sprite-preview-container2' },
-                                { type: 'GOBLIN', containerId: 'sprite-preview-container3' },
-                                { type: 'SNAKE', containerId: 'sprite-preview-container4' },
-                                { type: 'SPIDER', containerId: 'sprite-preview-container5' },
-                                { type: 'SKELETON', containerId: 'sprite-preview-container6' },
-                                { type: 'ZOMBIE', containerId: 'sprite-preview-container7' },
-                                { type: 'GHOST', containerId: 'sprite-preview-container8' },
-                                { type: 'TROLL', containerId: 'sprite-preview-container9' }
-                            ];
+                            // モンスターの定義を確認
+                            if (!MONSTERS) {
+                                console.error('MONSTERS is not defined');
+                                return;
+                            }
+
+                            const monsters = Object.keys(MONSTERS).map((type, index) => ({
+                                type,
+                                containerId: `sprite-preview-container${index === 0 ? '' : index + 1}`
+                            }));
                             
                             monsters.forEach(({ type, containerId }) => {
                                 const container = document.getElementById(containerId);
-                                if (!container) return;
-
-                                // スプライトの描画
-                                this.game.renderer.previewMonsterSprite(type, containerId);
-
-                                // ステータス情報の表示
-                                const monsterStats = GAME_CONSTANTS.MONSTERS[type].stats;
-                                const size = GAME_CONSTANTS.FORMULAS.SIZE(monsterStats);
-                                const speed = GAME_CONSTANTS.FORMULAS.SPEED(monsterStats);
-                                const attack = GAME_CONSTANTS.FORMULAS.ATTACK(monsterStats);
-                                const defense = GAME_CONSTANTS.FORMULAS.DEFENSE(monsterStats);
-                                const accuracy = GAME_CONSTANTS.FORMULAS.ACCURACY(monsterStats);
-                                const evasion = GAME_CONSTANTS.FORMULAS.EVASION(monsterStats);
-                                const maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(monsterStats, GAME_CONSTANTS.MONSTERS[type].level);
-
-                                const statsHtml = `
-                                    <div style="text-align: left; margin-top: 10px; font-family: monospace;">
-                                        <div style="color: #ffd700">Level ${GAME_CONSTANTS.MONSTERS[type].level}</div>
-                                        <div>HP: ${maxHp}</div>
-                                        <div>ATK: ${attack.base}+${attack.diceCount}d${attack.diceSides}</div>
-                                        <div>DEF: ${defense.base}+${defense.diceCount}d${defense.diceSides}</div>
-                                        <div>ACC: ${accuracy}%</div>
-                                        <div>EVA: ${evasion}%</div>
-                                        <div>PER: ${GAME_CONSTANTS.FORMULAS.PERCEPTION(monsterStats)}</div>
-                                        <div style="color: ${GAME_CONSTANTS.COLORS.SIZE[size.value].color}">Size: ${size.name}</div>
-                                        <div style="color: ${GAME_CONSTANTS.COLORS.SPEED[speed.value].color}">Speed: ${speed.name}</div>
-                                        <div style="color: #3498db">Stats:</div>
-                                        <div>STR: ${monsterStats.str}</div>
-                                        <div>DEX: ${monsterStats.dex}</div>
-                                        <div>CON: ${monsterStats.con}</div>
-                                        <div>INT: ${monsterStats.int}</div>
-                                        <div>WIS: ${monsterStats.wis}</div>
-                                    </div>
-                                `;
-
-                                // 既存のステータス情報があれば更新、なければ新規作成
-                                let statsDiv = container.querySelector('.monster-stats');
-                                if (!statsDiv) {
-                                    statsDiv = document.createElement('div');
-                                    statsDiv.className = 'monster-stats';
-                                    container.appendChild(statsDiv);
+                                if (!container) {
+                                    console.warn(`Container ${containerId} not found`);
+                                    return;
                                 }
-                                statsDiv.innerHTML = statsHtml;
+
+                                try {
+                                    // スプライトの描画
+                                    this.game.renderer.previewMonsterSprite(type, containerId);
+
+                                    // ステータス情報の表示
+                                    const monsterData = MONSTERS[type];
+                                    if (!monsterData || !monsterData.stats) {
+                                        console.error(`Invalid monster data for type: ${type}`);
+                                        return;
+                                    }
+
+                                    const monsterStats = monsterData.stats;
+                                    const size = GAME_CONSTANTS.FORMULAS.SIZE(monsterStats);
+                                    const speed = GAME_CONSTANTS.FORMULAS.SPEED(monsterStats);
+                                    const attack = GAME_CONSTANTS.FORMULAS.ATTACK(monsterStats);
+                                    const defense = GAME_CONSTANTS.FORMULAS.DEFENSE(monsterStats);
+                                    const accuracy = GAME_CONSTANTS.FORMULAS.ACCURACY(monsterStats);
+                                    const evasion = GAME_CONSTANTS.FORMULAS.EVASION(monsterStats);
+                                    const maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(monsterStats, MONSTERS[type].level);
+
+                                    const statsHtml = `
+                                        <div style="text-align: left; margin-top: 10px; font-family: monospace;">
+                                            <div style="color: #ffd700">Level ${MONSTERS[type].level}</div>
+                                            <div>HP: ${maxHp}</div>
+                                            <div>ATK: ${attack.base}+${attack.diceCount}d${attack.diceSides}</div>
+                                            <div>DEF: ${defense.base}+${defense.diceCount}d${defense.diceSides}</div>
+                                            <div>ACC: ${accuracy}%</div>
+                                            <div>EVA: ${evasion}%</div>
+                                            <div>PER: ${GAME_CONSTANTS.FORMULAS.PERCEPTION(monsterStats)}</div>
+                                            <div style="color: ${GAME_CONSTANTS.COLORS.SIZE[size.value].color}">Size: ${size.name}</div>
+                                            <div style="color: ${GAME_CONSTANTS.COLORS.SPEED[speed.value].color}">Speed: ${speed.name}</div>
+                                            <div style="color: #3498db">Stats:</div>
+                                            <div>STR: ${monsterStats.str}</div>
+                                            <div>DEX: ${monsterStats.dex}</div>
+                                            <div>CON: ${monsterStats.con}</div>
+                                            <div>INT: ${monsterStats.int}</div>
+                                            <div>WIS: ${monsterStats.wis}</div>
+                                        </div>
+                                    `;
+
+                                    // 既存のステータス情報があれば更新、なければ新規作成
+                                    let statsDiv = container.querySelector('.monster-stats');
+                                    if (!statsDiv) {
+                                        statsDiv = document.createElement('div');
+                                        statsDiv.className = 'monster-stats';
+                                        container.appendChild(statsDiv);
+                                    }
+                                    statsDiv.innerHTML = statsHtml;
+                                } catch (error) {
+                                    console.error(`Error processing monster ${type}:`, error);
+                                }
                             });
                         }
                     }
