@@ -61,20 +61,34 @@ class CombatSystem {
 
         // 命中判定（修正された命中率を使用）
         if (!this.resolveHitCheck(attacker, defender, attackContext, game)) {
+            // 命中失敗時は hit: false で結果を返す
+            game.lastAttackResult = {
+                hit: false,
+                evaded: false,
+                damage: 0,
+                context: attackContext
+            };
             return { hit: false };
         }
 
         // 回避判定（クリティカルまたは機会攻撃の場合はスキップ）
         if (!attackContext.isCritical && !context.isOpportunityAttack) {
             if (!this.resolveEvadeCheck(attacker, defender, attackContext, game)) {
-                return { hit: false, evaded: true };
+                // 回避成功時は evaded: true で結果を返す
+                game.lastAttackResult = {
+                    hit: true,
+                    evaded: true,
+                    damage: 0,
+                    context: attackContext
+                };
+                return { hit: true, evaded: true };
             }
         }
         
         // ダメージ計算
         const damageResult = this.calculateDamage(attacker, defender, attackContext);
         
-        // ダメージ適用（HPが0未満にならないように制限）
+        // ダメージ適用
         const finalDamage = Math.min(defender.hp, damageResult.damage);
         const result = defender.takeDamage(finalDamage, { 
             isCritical: attackContext.isCritical,
@@ -92,13 +106,17 @@ class CombatSystem {
             }
         }
 
-        return {
+        // 攻撃結果を保存
+        game.lastAttackResult = {
             hit: true,
             evaded: false,
+            damage: finalDamage,
             ...result,
             damageResult,
             context: attackContext
         };
+
+        return game.lastAttackResult;
     }
 
     static prepareAttackContext(attacker, defender, game, context = {}) {

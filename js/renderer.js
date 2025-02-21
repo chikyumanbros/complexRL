@@ -365,8 +365,12 @@ class Renderer {
                     this.game.lastAttackLocation.x === x &&
                     this.game.lastAttackLocation.y === y;
 
-                if (isAttackTarget && this.game.lastAttackHit === true) {
-                    classes.push('melee-attack');
+                // 命中判定と回避判定に成功し、実際にダメージが発生した場合のみエフェクトを表示
+                if (isAttackTarget && this.game.lastAttackResult && 
+                    this.game.lastAttackResult.hit && 
+                    !this.game.lastAttackResult.evaded &&
+                    this.game.lastAttackResult.damage > 0) {
+                    classes.push('damage');
                 }
 
                 const classString = classes.length > 0 ? `class="${classes.join(' ')}"` : '';
@@ -657,13 +661,13 @@ class Renderer {
     // New method for next attack modifier effect
     showNextAttackModifierEffect(x, y) {
         const playerChar = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
-        console.log('Player char element:', playerChar); // Debug log
+        //console.log('Player char element:', playerChar); // Debug log
         if (playerChar) {
             playerChar.classList.add('next-attack-modifier');
-            console.log('Added next-attack-modifier class'); // Debug log
+            //console.log('Added next-attack-modifier class'); // Debug log
             setTimeout(() => {
                 playerChar.classList.remove('next-attack-modifier');
-                console.log('Removed next-attack-modifier class'); // Debug log
+                //console.log('Removed next-attack-modifier class'); // Debug log
             }, 500);
         }
     }
@@ -1116,7 +1120,7 @@ class Renderer {
     previewMonsterSprite(monsterType, containerId, pixelSize = 8) {
         const sprite = MONSTER_SPRITES[monsterType];  // GAME_CONSTANTSから直接参照に変更
         if (!sprite) {
-            console.error(`Sprite not found for monster type: ${monsterType}`);
+            //console.error(`Sprite not found for monster type: ${monsterType}`);
             return;
         }
 
@@ -1126,7 +1130,7 @@ class Renderer {
         // コンテナ要素を取得
         const container = document.getElementById(containerId);
         if (!container) {
-            console.error(`Container element not found with ID: ${containerId}`);
+            //console.error(`Container element not found with ID: ${containerId}`);
             return;
         }
         container.style.display = 'block';
@@ -1300,12 +1304,12 @@ class Renderer {
     flashLogPanel() {
         const logPanel = document.getElementById('log-panel');
         if (!logPanel) {
-            console.error('Log panel element not found');
+            //console.error('Log panel element not found');
             return;
         }
 
-        console.log('Flashing log panel...');
-        console.log('Current classes:', logPanel.classList.toString());
+        //console.log('Flashing log panel...');
+        //console.log('Current classes:', logPanel.classList.toString());
 
         // 既存のアニメーションをリセット
         logPanel.classList.remove('log-panel-flash');
@@ -1316,7 +1320,7 @@ class Renderer {
         // アニメーションを再適用
         logPanel.classList.add('log-panel-flash');
         
-        console.log('Classes after flash:', logPanel.classList.toString());
+        //console.log('Classes after flash:', logPanel.classList.toString());
     }
 
     // 新しいメソッドを追加

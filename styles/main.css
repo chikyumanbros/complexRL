@@ -333,14 +333,14 @@ h3 {
     100% { opacity: 1; }
 }
 
-@keyframes melee-attack {
+@keyframes damage {
     0% { background-color: rgba(251, 77, 60, 0.8); }
     50% { background-color: rgba(251, 77, 60, 0.5); }
     100% { background-color: transparent; }
 }
 
-.melee-attack {
-    animation: melee-attack 0.2s ease-out;
+.damage {
+    animation: damage 0.2s ease-out;
 }
 
 @keyframes damage-flash {
