@@ -68,6 +68,7 @@ class Game {
         this.rooms = [];
         this.isGameOver = false;
         this.floorLevel = 1;
+        this.player.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;  // リセット時にVigorを初期化
 
         // 危険度をランダムに決定
         const dangerLevels = Object.keys(GAME_CONSTANTS.DANGER_LEVELS);
@@ -289,6 +290,44 @@ class Game {
             return;
         }
 
+        // Vigorの減少チェック
+        if (this.player.hp > 0) {
+            // NaNチェックと修正
+            if (isNaN(this.player.vigor)) {
+                console.warn('Vigor was NaN, resetting to default value');
+                this.player.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;
+            }
+
+            const decreaseChance = GAME_CONSTANTS.VIGOR.calculateDecreaseChance(this.turn);
+            const roll = Math.floor(Math.random() * 100);
+            
+            //// デバッグ用：毎ターンVigor関連の情報を表示
+            //console.log(`Current Vigor: ${this.player.vigor} (${GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats).name})`);
+            //console.log(`Turn: ${this.turn}, Decrease chance: ${decreaseChance}%, Roll: ${roll}`);
+            
+            if (roll < decreaseChance) {
+                // 現在の状態を保存
+                const currentStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+                
+                const healthStatus = GAME_CONSTANTS.HEALTH_STATUS.getStatus(
+                    this.player.hp,
+                    this.player.maxHp,
+                    this.player.stats
+                );
+                const decrease = GAME_CONSTANTS.VIGOR.DECREASE[healthStatus.name.toUpperCase()];
+                this.player.vigor = Math.max(0, this.player.vigor - decrease);
+
+                // 新しい状態を取得
+                const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+                
+                // 状態が変化した場合はログに表示とフラッシュエフェクト
+                if (currentStatus.name !== newStatus.name) {
+                    this.logger.add(`Your vigor has decreased to ${newStatus.name.toLowerCase()} level.`, "warning");
+                    this.renderer.flashLogPanel();  // フラッシュエフェクトを追加
+                }
+            }
+        }
+
         // スキルのクールダウン処理
         if (this.player.hp > 0) {
             for (const [_, skill] of this.player.skills) {
@@ -417,7 +456,33 @@ class Game {
         const intBonus = 1 + Math.max(0, (this.player.stats.int - 10) * 0.03);
         const xpGained = Math.max(1, Math.floor(baseXP * levelMultiplier * intBonus));
 
-        // 経験値とCodexポイントの獲得ログをまとめる
+        // Vigor変動処理を追加
+        const maxRoll = this.player.level + this.player.stats.wis;
+        const roll = Math.floor(Math.random() * maxRoll) + 1;  // d(level + wis)
+        
+        let vigorChange;
+        if (roll <= this.player.level) {
+            // 失敗：Vigorが減少
+            vigorChange = -Math.floor(Math.random() * this.player.stats.wis) - 1;  // -d(wis)
+        } else {
+            // 成功：Vigor回復（最大値を超えないように制限）
+            const maxRecovery = GAME_CONSTANTS.VIGOR.MAX - this.player.vigor;
+            vigorChange = Math.min(roll, maxRecovery);
+        }
+
+        // Vigor値の更新（0-100の範囲に収める）
+        if (vigorChange !== 0) {
+            const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+            this.player.vigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, this.player.vigor + vigorChange));
+            const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+            
+            // 状態が変化した場合のみログ表示
+            if (oldStatus.name !== newStatus.name) {
+                this.logger.add(`Your vigor has ${vigorChange < 0 ? 'decreased' : 'increased'} to ${newStatus.name.toLowerCase()} level.`, "warning");
+            }
+        }
+
+        // 経験値とCodexポイントの獲得ログ
         let rewardText = `Gained ${xpGained} XP!`;
         if (monster.codexPoints) {
             rewardText += ` and ${monster.codexPoints} codex points!`;
@@ -447,22 +512,53 @@ class Game {
 
         // 1ターンごとの回復処理
         const healAmount = this.player.meditation.healPerTurn;
+
+        // HP回復処理
         const actualHeal = Math.min(healAmount, this.player.maxHp - this.player.hp);
         this.player.hp += actualHeal;
         this.player.meditation.totalHealed += actualHeal;
 
+        // Vigor変動処理
+        const maxRoll = this.player.level + this.player.stats.wis;
+        const roll = Math.floor(Math.random() * maxRoll) + 1;  // d(level + wis)
+        
+        let vigorChange;
+        if (roll <= this.player.level) {
+            // 失敗：Vigorが減少
+            vigorChange = -Math.floor(Math.random() * this.player.stats.wis) - 1;  // -d(wis)
+        } else {
+            // 成功：Vigor回復
+            vigorChange = roll;
+        }
+
+        // Vigor値の更新（0-100の範囲に収める）
+        const oldVigor = this.player.vigor;
+        this.player.vigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, this.player.vigor + vigorChange));
+
         // ログ出力
-        if (actualHeal > 0) {
-            this.logger.add(`Meditation heals you for ${actualHeal} HP.`, "playerInfo");
+        let messages = [];
+        if (actualHeal > 0) messages.push(`${actualHeal} HP`);
+        if (vigorChange !== 0) {
+            const vigorMsg = vigorChange > 0 ? 
+                `gained ${vigorChange} Vigor` : 
+                `lost ${Math.abs(vigorChange)} Vigor`;
+            messages.push(vigorMsg);
+        }
+        if (messages.length > 0) {
+            this.logger.add(`Meditation: ${messages.join(", ")}.`, "playerInfo");
         }
 
         this.player.meditation.turnsRemaining--;
 
         // 瞑想終了条件のチェック
-        if (this.player.hp >= this.player.maxHp || this.player.meditation.turnsRemaining <= 0) {
-            const endMessage = this.player.hp >= this.player.maxHp 
-                ? `HP fully restored! Meditation complete.`
-                : `Meditation complete. (Total healed: ${this.player.meditation.totalHealed})`;
+        if ((this.player.hp >= this.player.maxHp && this.player.vigor >= GAME_CONSTANTS.VIGOR.MAX) || 
+            this.player.meditation.turnsRemaining <= 0) {
+            let endMessage;
+            if (this.player.meditation.turnsRemaining <= 0) {
+                endMessage = `Meditation complete. (Total healed: ${this.player.meditation.totalHealed} HP, Total Vigor: ${this.player.vigor})`;
+            } else {
+                endMessage = "You feel fully restored!";
+            }
             
             this.logger.add(endMessage, "playerInfo");
             this.player.meditation = null;
@@ -696,6 +792,7 @@ class Game {
         this.monsters = [];
         this.totalMonstersSpawned = 0;
         this.explored = this.initializeExplored();
+        this.turn = 0;  // フロアごとのターン数をリセット
 
         this.placePlayerInRoom();
         this.player.autoExploring = false;
@@ -943,7 +1040,8 @@ class Game {
                     slot,
                     skillId: skill.id,
                     remainingCooldown: skill.remainingCooldown
-                }))
+                })),
+                vigor: this.player.vigor
             },
             monsters: this.monsters.map(monster => ({
                 type: monster.type,
@@ -1017,6 +1115,7 @@ class Game {
                 this.player.xpToNextLevel = data.player.xpToNextLevel || 100;
                 this.player.codexPoints = data.player.codexPoints || 0;
                 this.player.stats = data.player.stats || this.player.stats;
+                this.player.vigor = data.player.vigor || GAME_CONSTANTS.VIGOR.DEFAULT;  // Vigorを復元（デフォルト値を設定）
             }
 
             // スキルの復元

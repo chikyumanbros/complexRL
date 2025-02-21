@@ -32,6 +32,7 @@ class Player {
         this.autoExploring = false;  // 自動探索フラグを追加
         this.detectedPresences = new Set();  // 既に感知した存在を記録
         this.name = '';  // プレイヤー名を追加
+        this.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;
     }
 
     // ===== Experience and Leveling Methods =====

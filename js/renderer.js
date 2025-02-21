@@ -434,11 +434,18 @@ class Renderer {
             hpTextElement.classList.add(healthStatus.name.toLowerCase().replace(' ', '-'));
         }
 
-        // 体力状態名の表示を追加
+        // Health Status
         const healthStatusElement = document.getElementById('health-status');
         if (healthStatusElement) {
             const healthStatus = player.getHealthStatus(player.hp, player.maxHp);
             healthStatusElement.innerHTML = `<span style="color: ${healthStatus.color}">${healthStatus.name}</span>`;
+        }
+
+        // Vigor Status
+        const vigorStatusElement = document.getElementById('vigor-status');
+        if (vigorStatusElement) {
+            const vigorStatus = GAME_CONSTANTS.VIGOR.getStatus(player.vigor, player.stats);
+            vigorStatusElement.innerHTML = `<span style="color: ${vigorStatus.color}">${vigorStatus.name}</span>`;
         }
 
         // Update player level display
@@ -565,7 +572,7 @@ class Renderer {
 
                         // スロット番号の使用可否判定
                         const isAvailable = skillData.remainingCooldown === 0 && 
-                            (skill.id !== 'meditation' || player.hp < player.maxHp);
+                            (skill.id !== 'meditation' || player.hp < player.maxHp || player.vigor < GAME_CONSTANTS.VIGOR.MAX);
                         const slotClass = isAvailable ? 'skill-slot available' : 'skill-slot';
 
                         return `[<span class="${slotClass}">${slot}</span>] ` +
@@ -982,87 +989,91 @@ class Renderer {
             });
         });
 
-        // 右列：戦闘システム
-        rightColumn += `<div style="color: #ffd700; font-size: 18px; margin-bottom: 8px;">■ COMBAT SYSTEM</div>\n`;
+        // 右列：ステータスと戦闘システム
+        rightColumn += `<div style="color: #ffd700; font-size: 18px; margin-bottom: 8px;">■ STATUS SYSTEM</div>\n`;
 
-        // Base Stats
-        rightColumn += `<div style="color: #3498db; margin-bottom: 4px;">● Base Stats</div>\n`;
-        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `HP: (CON×2 + STR/4) × Size Mod × Level\n`;
-        rightColumn += `ATK: (STR×0.7 - DEX/4) × Size Mod + Dice\n`;
-        rightColumn += `DEF: (CON×0.5 - INT/5) × Size Mod + Dice\n`;
-        rightColumn += `Size Mod: 0.9~1.3 (by STR+CON)\n`;
+        // Health Status の説明
+        rightColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● HEALTH STATUS</div>\n`;
+        rightColumn += `<div style="margin-left: 8px;">`;
+        rightColumn += `<span style="color: #2ecc71;">Healthy</span>: 75-100% HP<br>`;
+        rightColumn += `<span style="color: #f1c40f;">Wounded</span>: 50-75% HP<br>`;
+        rightColumn += `<span style="color: #e67e22;">Badly Wounded</span>: 25-50% HP<br>`;
+        rightColumn += `<span style="color: #e74c3c;">Near Death</span>: 0-25% HP`;
         rightColumn += `</div>\n`;
 
-        // Combat Dice
-        rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Combat Dice</div>\n`;
-        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `ATK: √(DEX/2) × 1d(√STR×2)\n`;
-        rightColumn += `DEF: √(CON/3) × 1d(√CON×1.5)\n`;
+        // Vigor の説明
+        rightColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● VIGOR SYSTEM</div>\n`;
+        rightColumn += `<div style="margin-left: 8px;">`;
+        rightColumn += `<span style="color: #2ecc71;">High</span>: 75-100% - Full potential<br>`;
+        rightColumn += `<span style="color: #f1c40f;">Moderate</span>: 50-75% - Slight penalties<br>`;
+        rightColumn += `<span style="color: #e67e22;">Low</span>: 25-50% - Moderate penalties<br>`;
+        rightColumn += `<span style="color: #e74c3c;">Critical</span>: 0-25% - Severe penalties<br><br>`;
+        rightColumn += `Vigor affects accuracy and evasion.<br>`;
+        rightColumn += `Recovers through meditation or combat victories.<br>`;
+        rightColumn += `Meditation: d(Level+WIS) recovery, but risk -d(WIS) on low roll.`;
         rightColumn += `</div>\n`;
 
-        // Hit Chance
-        rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Hit Chance</div>\n`;
+        rightColumn += `<div style="color: #ffd700; font-size: 18px; margin-top: 12px;">■ COMBAT SYSTEM</div>\n`;
+
+        // 戦闘システムの説明
+        rightColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● BASE STATS</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `ACC: 50 + DEX×0.8 + WIS×0.4 - CON/4\n`;
-        rightColumn += `EVA: 8 + DEX×0.6 + WIS×0.3 - STR/5\n`;
-        rightColumn += `CRIT: 3% + (DEX-10)×0.15 + (INT-10)×0.1\n`;
-        rightColumn += `(Critical hits ignore EVA & DEF)\n`;
+        rightColumn += `HP: (CON×2 + STR/4) × Size Mod × Level<br>`;
+        rightColumn += `ATK: (STR×0.7 - DEX/4) × Size Mod + Dice<br>`;
+        rightColumn += `DEF: (CON×0.5 - INT/5) × Size Mod + Dice<br>`;
+        rightColumn += `Size Mod: 0.9~1.3 (by STR+CON)`;
         rightColumn += `</div>\n`;
 
-        // Size & Speed
-        rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Size & Speed</div>\n`;
+        rightColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● DAMAGE ROLLS</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `Size: Based on CON×0.7 + STR×0.3\n`;
-        rightColumn += `Tiny ≤7, Small ≤10, Medium ≤14\n`;
-        rightColumn += `Large ≤18, Huge >18\n\n`;
-        rightColumn += `Speed: Based on DEX vs (STR+CON)\n`;
-        rightColumn += `Very Slow: ≤-4, Slow: ≤-2\n`;
-        rightColumn += `Normal: ≤2, Fast: ≤4, Very Fast: >4\n`;
+        rightColumn += `ATK: √(DEX/2) × 1d(√STR×2)<br>`;
+        rightColumn += `DEF: √(CON/3) × 1d(√CON×1.5)`;
         rightColumn += `</div>\n`;
 
-        // Combat Flow
-        rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Combat Flow</div>\n`;
+        rightColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● COMBAT STATS</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `1. Speed Check\n`;
-        rightColumn += `2. Roll(100) vs ACC for hit\n`;
-        rightColumn += `3. Roll(100) vs EVA if not crit\n`;
-        rightColumn += `4. DMG = ATK - DEF (if not crit)\n`;
-        rightColumn += `5. DMG = ATK (if critical hit)\n`;
+        rightColumn += `ACC: 50 + DEX×0.8 + WIS×0.4 - CON/4<br>`;
+        rightColumn += `EVA: 8 + DEX×0.6 + WIS×0.3 - STR/5<br>`;
+        rightColumn += `CRIT: 3% + (DEX-10)×0.15 + (INT-10)×0.1<br>`;
+        rightColumn += `(Critical hits ignore EVA & DEF)`;
         rightColumn += `</div>\n`;
 
-        // Distance Calculation（新規追加）
-        rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Distance</div>\n`;
+        rightColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● SIZE & SPEED</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `Uses Euclidean distance for\n`;
-        rightColumn += `natural line of sight and range\n`;
-        rightColumn += `calculations\n`;
+        rightColumn += `Size: Based on CON×0.7 + STR×0.3<br>`;
+        rightColumn += `Tiny ≤7, Small ≤10, Medium ≤14<br>`;
+        rightColumn += `Large ≤18, Huge >18<br><br>`;
+        rightColumn += `Speed: Based on DEX vs (STR+CON)<br>`;
+        rightColumn += `Very Slow: ≤-4, Slow: ≤-2<br>`;
+        rightColumn += `Normal: ≤2, Fast: ≤4, Very Fast: >4`;
         rightColumn += `</div>\n`;
 
-        // Penalties
-        rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Penalties</div>\n`;
+        rightColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● COMBAT FLOW</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `Surrounded: -15% ACC/EVA per enemy\n`;
-        rightColumn += `(Max: -60%)\n`;
+        rightColumn += `1. Speed Check<br>`;
+        rightColumn += `2. Roll(100) vs ACC for hit<br>`;
+        rightColumn += `3. Roll(100) vs EVA if not crit<br>`;
+        rightColumn += `4. DMG = ATK - DEF (if not crit)<br>`;
+        rightColumn += `5. DMG = ATK (if critical hit)`;
         rightColumn += `</div>\n`;
 
-        // Opportunity Attack
-        rightColumn += `<div style="color: #3498db; margin-top: 8px; margin-bottom: 4px;">● Opportunity Attack</div>\n`;
+        rightColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● DISTANCE & RANGE</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `When enemy flees: -30% ACC, +50% DMG\n`;
-        rightColumn += `No counter-attack chance\n`;
+        rightColumn += `Uses Euclidean distance for<br>`;
+        rightColumn += `natural line of sight and range<br>`;
+        rightColumn += `calculations`;
         rightColumn += `</div>\n`;
 
-        // 2列レイアウトを作成
-        const display = `
-            <div style="display: flex; justify-content: space-between; gap: 20px;">
-                <div style="flex: 1;">${leftColumn}</div>
-                <div style="flex: 1;">${rightColumn}</div>
-            </div>
-            <div style="text-align: center; margin-top: 12px; color: #7f8c8d;">[ESC] to return</div>
-        `;
+        rightColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● COMBAT PENALTIES</div>\n`;
+        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
+        rightColumn += `Surrounded: -15% ACC/EVA per enemy<br>`;
+        rightColumn += `(Max: -60%)<br><br>`;
+        rightColumn += `Opportunity Attack:<br>`;
+        rightColumn += `-30% ACC, +50% DMG<br>`;
+        rightColumn += `No counter-attack chance`;
+        rightColumn += `</div>\n`;
 
-        return display;
+        return `<div style="display: flex; gap: 20px;"><div>${leftColumn}</div><div>${rightColumn}</div></div>`;
     }
 
     drawMonsterSprite(canvas, monsterType, monsterId = null) {

@@ -511,5 +511,75 @@ const GAME_CONSTANTS = {
             const dy = y2 - y1;
             return Math.sqrt(dx * dx + dy * dy);
         }
+    },
+
+    VIGOR: {
+        MAX: 100,
+        DEFAULT: 100,
+        
+        // 基本となる閾値（%）
+        THRESHOLDS: {
+            HIGH: 75,     // 健全
+            MODERATE: 50, // 疲労
+            LOW: 25,      // 消耗
+            CRITICAL: 10  // 限界
+        },
+
+        // 状態による減少値
+        DECREASE: {
+            HEALTHY: 1,
+            WOUNDED: 3,
+            BADLY_WOUNDED: 5,
+            NEAR_DEATH: 10
+        },
+
+        // ターン経過による減少確率の計算
+        calculateDecreaseChance: (turnsInFloor) => {
+            const baseChance = 5;  // 基本確率 5%
+            const turnModifier = Math.floor(turnsInFloor / 20);  // 20ターンごとに確率上昇
+            return Math.min(25, baseChance + turnModifier);  // 最大25%まで
+        },
+
+        // 閾値の計算（STRとINTの影響を受ける）
+        calculateThresholds: function(stats) {
+            // STRとINTが高いほど、より低い%でも良好な状態を維持できる
+            const strModifier = (stats.str - 10) * 0.5;  // 力による修正（±0.5%ずつ）
+            const intModifier = (stats.int - 10) * 0.5;  // 知力による修正（±0.5%ずつ）
+            
+            return {
+                HIGH: Math.floor(Math.min(90, Math.max(60, this.THRESHOLDS.HIGH - strModifier - intModifier))),
+                MODERATE: Math.floor(Math.min(65, Math.max(35, this.THRESHOLDS.MODERATE - strModifier - intModifier))),
+                LOW: Math.floor(Math.min(40, Math.max(15, this.THRESHOLDS.LOW - strModifier - intModifier))),
+                CRITICAL: Math.floor(Math.min(15, Math.max(5, this.THRESHOLDS.CRITICAL - strModifier - intModifier)))
+            };
+        },
+
+        // Vigorの状態判定
+        getStatus: function(currentVigor, stats) {
+            if (currentVigor <= 0) return {
+                name: "Exhausted",
+                color: "#4a4a4a"  // 暗いグレー
+            };
+
+            const percentage = (currentVigor / this.MAX) * 100;
+            const thresholds = this.calculateThresholds(stats);
+
+            if (percentage <= thresholds.CRITICAL) return {
+                name: "Critical",
+                color: "#8e44ad"  // 紫色
+            };
+            if (percentage <= thresholds.LOW) return {
+                name: "Low",
+                color: "#e74c3c"  // 赤色
+            };
+            if (percentage <= thresholds.MODERATE) return {
+                name: "Moderate",
+                color: "#f1c40f"  // 黄色
+            };
+            return {
+                name: "High",
+                color: "#2ecc71"  // 緑色
+            };
+        }
     }
 };

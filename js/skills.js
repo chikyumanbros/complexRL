@@ -219,21 +219,22 @@ const SKILLS = {
                 // --- Meditation Skill ---
                 id: 'meditation',
                 name: 'Meditation',
-                desc: 'Meditate to recover HP. Move or take damage to cancel. (Heal: WIS/2 per turn, Max turns: WIS)',
+                desc: 'Meditate to recover HP and Vigor. Move or take damage to cancel. (HP: WIS/3 per turn, Vigor: d(Level+WIS) with risk, Max turns: WIS/2)',
                 cost: 30,
                 cooldown: 100,
-                isFreeAction: false,  // フリーアクションではないため、ターン消費する
+                isFreeAction: false,
                 requiresTarget: false,
                 cancelOnDamage: true,
                 getEffectText: (player) => {
                     const healPerTurn = Math.floor(player.stats.wis / 3);
                     const maxTurns = Math.floor(player.stats.wis / 2);
-                    return `[${healPerTurn} HP/turn, ${maxTurns} turns]`;
+                    const maxVigorRoll = player.level + player.stats.wis;
+                    return `[HP: ${healPerTurn}/turn, Vigor: d${maxVigorRoll}, ${maxTurns} turns]`;
                 },
                 effect: (game, player) => {
-                    // ---- HP Check ----
-                    if (player.hp >= player.maxHp) {
-                        game.logger.add("Cannot meditate as HP is full.", "warning");
+                    // ---- Status Check ----
+                    if (player.hp >= player.maxHp && player.vigor >= GAME_CONSTANTS.VIGOR.MAX) {
+                        game.logger.add("Cannot meditate as both HP and Vigor are full.", "warning");
                         return false;
                     }
 
@@ -252,7 +253,7 @@ const SKILLS = {
 
                     game.logger.add("Started meditating...", "playerInfo");
                     game.renderer.render();
-                    return { success: true, skipTurnProcess: true };  // ターン処理をスキップするフラグを追加
+                    return { success: true, skipTurnProcess: true };
                 }
             }
         ]
