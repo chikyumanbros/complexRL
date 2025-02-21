@@ -71,12 +71,22 @@ class Monster {
         this.spriteColors = {};
         const sprite = MONSTER_SPRITES[type];
         if (sprite) {
+            // ステータス変動の総量を計算
+            let totalVariation = 0;
+            for (const [stat, value] of Object.entries(template.stats)) {
+                const minPercent = GAME_CONSTANTS.STATS.VARIATION.MIN_PERCENT;
+                const maxPercent = GAME_CONSTANTS.STATS.VARIATION.MAX_PERCENT;
+                const baseVariation = value * (maxPercent - minPercent) / 100;
+                const actualVariation = Math.abs(this.stats[stat] - value);
+                totalVariation += actualVariation;
+            }
+
             // スプライトで使用される各文字に対して固有の色を生成
             for (let row of sprite) {
                 for (let char of row) {
                     if (char !== ' ' && !this.spriteColors[char]) {
                         const baseColor = SPRITE_COLORS[char];
-                        this.spriteColors[char] = SPRITE_COLORS.getRandomizedColor(baseColor);
+                        this.spriteColors[char] = SPRITE_COLORS.getRandomizedColor(baseColor, totalVariation);
                     }
                 }
             }
@@ -140,23 +150,30 @@ class Monster {
     // ========================== updateStats Method ==========================
     // 新規: モンスターの派生ステータスを更新するメソッド
     updateStats() {
-        // HPの最大値を超えないように制限
-        this.hp = Math.min(this.hp, this.maxHp);
+        // maxHpを先に再計算
+        this.maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(this.stats, this.level);
         
-        // 攻撃力の再計算
+        // HPの検証
+        this.validateHP();
+        
+        // 他のステータス更新
         this.attackPower = GAME_CONSTANTS.FORMULAS.ATTACK(this.stats);
-        
-        // 防御力の再計算
         this.defense = GAME_CONSTANTS.FORMULAS.DEFENSE(this.stats);
-        
-        // 命中率の再計算
         this.accuracy = GAME_CONSTANTS.FORMULAS.ACCURACY(this.stats);
-        
-        // 回避率の再計算
         this.evasion = GAME_CONSTANTS.FORMULAS.EVASION(this.stats);
-        
-        // 知覚の再計算
         this.perception = GAME_CONSTANTS.FORMULAS.PERCEPTION(this.stats);
+    }
+
+    validateHP() {
+        if (this.hp > this.maxHp) {
+            console.warn(`Monster HP validation failed: ${this.name}`, {
+                hp: this.hp,
+                maxHp: this.maxHp,
+                stats: this.stats,
+                level: this.level
+            });
+            this.hp = this.maxHp;
+        }
     }
 
     // ========================== checkEscapeRoute Method ==========================

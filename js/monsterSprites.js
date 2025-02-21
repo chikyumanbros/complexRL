@@ -165,14 +165,18 @@ const MONSTER_SPRITES = {
 
 // SPRITE_COLORS セクション: スプライト用の色定義（16色対応）
 const SPRITE_COLORS = {
-    getRandomizedColor: function(baseColor) {
+    getRandomizedColor: function(baseColor, statVariation = 0) {
         if (!baseColor) return null;
         
         const r = parseInt(baseColor.slice(1,3), 16);
         const g = parseInt(baseColor.slice(3,5), 16);
         const b = parseInt(baseColor.slice(5,7), 16);
         
-        const variation = () => (Math.random() * 0.2 - 0.1);
+        // ステータス変動に基づいて色のブレ幅を調整
+        // 通常の0.1から、statVariationに応じて0.05～0.3の範囲で変動
+        const variationRange = Math.min(0.3, Math.max(0.05, 0.1 + (statVariation * 0.002)));
+        const variation = () => (Math.random() * (variationRange * 2) - variationRange);
+        
         const clamp = (n) => Math.min(255, Math.max(0, Math.round(n)));
         
         const newR = clamp(r * (1 + variation()));

@@ -355,6 +355,15 @@ class Game {
                         const healModifier = GAME_CONSTANTS.FORMULAS.HEAL_MODIFIER(monster.stats);
                         const healResult = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.calculateHeal(healingDice, healModifier);
                         const actualHeal = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.applyHeal(monster, healResult.amount);
+
+                        // 回復後に再度maxHPチェック
+                        if (monster.hp > monster.maxHp) {
+                            console.warn(`Monster HP exceeded maxHP after healing: ${monster.name}`, {
+                                hp: monster.hp,
+                                maxHp: monster.maxHp
+                            });
+                            monster.hp = monster.maxHp;
+                        }
                     }
 
                     if (monster.hasStartedFleeing && (monster.hp / monster.maxHp) > monster.fleeThreshold) {
@@ -1038,7 +1047,8 @@ class Game {
                 this.monsters = data.monsters.map(monsterData => {
                     if (!monsterData || !monsterData.type) return null;
                     const monster = new Monster(monsterData.type, monsterData.x || 0, monsterData.y || 0, this);
-                    monster.hp = monsterData.hp || monster.hp;
+                    // HPを設定する前にmaxHPを確認
+                    monster.hp = Math.min(monsterData.hp || monster.hp, monster.maxHp);
                     monster.isSleeping = monsterData.isSleeping || false;
                     monster.hasStartedFleeing = monsterData.hasStartedFleeing || false;
                     return monster;
