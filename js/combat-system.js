@@ -222,6 +222,11 @@ class CombatSystem {
     }
 
     static processCombatResult(attacker, defender, result, damageResult, context, game) {
+        // プレイヤーが死亡している場合は処理を中断
+        if (!context.isPlayer && defender.hp <= 0) {
+            return;
+        }
+
         if (!result.evaded) {
             // killed フラグが true の場合は即座に死亡処理を実行
             if (result.killed) {
@@ -269,6 +274,11 @@ class CombatSystem {
     }
 
     static preparePlayerAttackContext(attacker, defender, game, baseContext) {
+        // プレイヤーが死亡している場合は処理を中断
+        if (attacker.hp <= 0) {
+            return baseContext;
+        }
+
         const surroundingMonsters = attacker.countSurroundingMonsters(game);
         const surroundingPenalty = attacker.calculateSurroundingPenalty(surroundingMonsters);
         
