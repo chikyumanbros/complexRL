@@ -23,6 +23,9 @@ class Game {
         this.lastAttackLocation = null;  // Added property to track last attack location
         this.hasDisplayedPresenceWarning = false;  // Added hasDisplayedPresenceWarning property
 
+        // 死亡したモンスターの処理キューを追加
+        this.pendingMonsterDeaths = [];
+
         this.init();
 
         // 保存されたデータがあれば読み込む
@@ -280,32 +283,185 @@ class Game {
         // 明るさの揺らぎを更新
         this.renderer.updateFlickerValues();
 
-        // Process player's cooldown
-        this.player.processTurn();
+        // 死亡処理キューをクリア
+        const deathsToProcess = [...this.pendingMonsterDeaths];
+        this.pendingMonsterDeaths = [];
 
-        // Only allow alive monsters to act
-        this.monsters = this.monsters.filter(monster => monster.hp > 0);
+        // プレイヤーのターン処理
+        if (this.player.hp > 0) {
+            // 前回の位置を更新
+            if (!this.player.lastPosition) {
+                this.player.lastPosition = { x: this.player.x, y: this.player.y };
+            }
+            
+            // 攻撃修飾子をクリア
+            if (this.player.nextAttackModifiers?.length > 0) {
+                this.player.nextAttackModifiers = [];
+                this.logger.add("Attack modifiers expired.", "playerInfo");
+            }
 
-        // Monster action phase
-        for (const monster of this.monsters) {
-            monster.act(this);
+            // スキルのクールダウン処理
+            for (const [_, skill] of this.player.skills) {
+                if (skill.remainingCooldown > 0) {
+                    skill.remainingCooldown--;
+                }
+            }
 
-            // If the player dies
-            if (this.player.hp <= 0) {
-                return;
+            // メディテーション処理
+            if (this.player.meditation?.active) {
+                this.processMeditation();
             }
         }
 
-        // Update explored information at the end of the turn
+        // 死亡したモンスターの処理を実行
+        for (const deathInfo of deathsToProcess) {
+            this.processMonsterDeath(deathInfo);
+        }
+
+        // 生存しているモンスターの処理
+        this.monsters = this.monsters.filter(monster => monster.hp > 0);
+        for (const monster of this.monsters) {
+            // モンスターの行動処理
+            if (!monster.hasActedThisTurn) {
+                monster.act(this);
+                if (this.player.hp <= 0) {
+                    return;
+                }
+                monster.hasActedThisTurn = false;
+            }
+        }
+
+        // 戦闘後の自然回復処理（生存者のみ）
+        if (this.player.hp > 0 && !this.player.meditation && this.player.hp < this.player.maxHp) {
+            this.processNaturalHealing(this.player);
+        }
+
+        for (const monster of this.monsters) {
+            if (monster.hp > 0 && monster.hp < monster.maxHp) {
+                this.processNaturalHealing(monster);
+                // 回復による逃走状態の解除
+                if (monster.hasStartedFleeing && (monster.hp / monster.maxHp) > monster.fleeThreshold) {
+                    monster.hasStartedFleeing = false;
+                }
+            }
+        }
+
+        // ターン終了時の更新処理
         this.updateExplored();
-        // Update room information
         this.updateRoomInfo();
-        // 幻覚エフェクトのターンカウントを更新
         this.renderer.psychedelicTurn++;
         this.renderer.render();
-
-        // 各ターン終了時にセーブ
         this.saveGame();
+    }
+
+    processMonsterDeath(deathInfo) {
+        const { monster, result, damageResult, context } = deathInfo;
+        
+        // 機会攻撃とキルのログを1行にまとめる
+        const attackDesc = context.isOpportunityAttack ? "Opportunity attack" : context.attackType;
+        const criticalText = context.isCritical ? " [CRITICAL HIT!]" : "";
+        const damageCalc = `(ATK: ${this.player.attackPower.base}+[${damageResult.attackRolls.join(',')}]` +
+            `${context.damageMultiplier !== 1 ? ` ×${context.damageMultiplier.toFixed(1)}` : ''} ` +
+            `${context.isCritical ? '[DEF IGNORED]' : `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}]`})`;
+        
+        this.logger.add(
+            `${attackDesc}${criticalText} kills ${monster.name} with ${result.damage} damage! ${damageCalc}`,
+            context.isCritical ? "playerCrit" : "kill"
+        );
+
+        // クリティカルヒット時のエフェクトを表示
+        if (context.isCritical) {
+            this.renderer.showCritEffect(monster.x, monster.y);
+        }
+        
+        // モンスターを削除し、死亡エフェクトを表示
+        this.removeMonster(monster);
+        this.renderer.showDeathEffect(monster.x, monster.y);
+
+        // 経験値の計算と付与
+        const levelDiff = monster.level - this.player.level;
+        const baseXP = Math.floor(monster.baseXP || monster.level);
+        const levelMultiplier = levelDiff > 0 
+            ? 1 + (levelDiff * 0.2)
+            : Math.max(0.1, 1 + (levelDiff * 0.1));
+        const intBonus = 1 + Math.max(0, (this.player.stats.int - 10) * 0.03);
+        const xpGained = Math.max(1, Math.floor(baseXP * levelMultiplier * intBonus));
+
+        // 経験値とCodexポイントの獲得ログをまとめる
+        let rewardText = `Gained ${xpGained} XP!`;
+        if (monster.codexPoints) {
+            rewardText += ` and ${monster.codexPoints} codex points!`;
+        }
+        this.logger.add(rewardText, "playerInfo");
+
+        // 知力ボーナスがある場合は別行で表示
+        if (intBonus > 1) {
+            this.logger.add(`Intelligence bonus: +${Math.floor((intBonus - 1) * 100)}% XP!`, "playerInfo");
+        }
+
+        this.player.addExperience(xpGained);
+        if (monster.codexPoints) {
+            this.player.codexPoints += monster.codexPoints;
+        }
+    }
+
+    // メディテーション処理を分離
+    processMeditation() {
+        if (this.player.meditation.initialDelay) {
+            delete this.player.meditation.initialDelay;
+            this.logger.add("Meditation begins... (Healing starts next turn)", "playerInfo");
+            return;
+        }
+
+        const beforeHeal = this.player.hp;
+        this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.meditation.healPerTurn);
+        const actualHeal = this.player.hp - beforeHeal;
+
+        if (actualHeal > 0) {
+            this.player.meditation.totalHealed += actualHeal;
+            this.logger.add(`Meditation heals ${actualHeal} HP (+${this.player.meditation.totalHealed} total)`, "heal");
+        }
+
+        this.player.meditation.turnsRemaining--;
+
+        if (this.player.hp >= this.player.maxHp || this.player.meditation.turnsRemaining <= 0) {
+            const endMessage = this.player.hp >= this.player.maxHp 
+                ? `HP fully restored! Meditation complete.`
+                : `Meditation complete. (Total healed: ${this.player.meditation.totalHealed})`;
+            
+            this.logger.add(endMessage, "playerInfo");
+            this.player.meditation = null;
+        }
+    }
+
+    // 自然回復処理を汎用化（プレイヤーとモンスター共通）
+    processNaturalHealing(entity) {
+        const successChance = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.getSuccessChance(entity.stats);
+        const successRoll = Math.floor(Math.random() * 100);
+        
+        if (successRoll <= successChance) {
+            const healResult = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.calculateHeal(
+                entity.healingDice,
+                entity.healModifier
+            );
+
+            if (healResult.amount > 0) {
+                const actualHeal = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.applyHeal(entity, healResult.amount);
+                
+                if (actualHeal > 0 && entity === this.player) {
+                    this.logger.add(
+                        `Natural healing: [${healResult.rolls.join(',')}]` +
+                        `${entity.healModifier >= 0 ? '+' : ''}${entity.healModifier} → +${actualHeal} HP`, 
+                        "heal"
+                    );
+                }
+
+                // モンスターの場合はステータス更新
+                if (entity !== this.player) {
+                    entity.updateStats();
+                }
+            }
+        }
     }
 
     toggleMode() {

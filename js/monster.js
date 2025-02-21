@@ -37,9 +37,10 @@ class Monster {
         this.codexPoints = Math.max(1, Math.floor(basePoints * wisBonus * levelBonus));
         
         // --- Derived Parameters ---
-        // 派生パラメータを計算
+        // maxHpを先に計算
         this.maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(this.stats, this.level);
-        this.hp = this.maxHp;
+        // hpを確実にmaxHp以下に設定
+        this.hp = Math.min(this.maxHp, this.maxHp);
         this.attackPower = GAME_CONSTANTS.FORMULAS.ATTACK(this.stats);
         this.defense = GAME_CONSTANTS.FORMULAS.DEFENSE(this.stats);
         this.accuracy = GAME_CONSTANTS.FORMULAS.ACCURACY(this.stats);
@@ -224,30 +225,6 @@ class Monster {
             this.hasActedThisTurn = false;
             return;
         }
-        
-        // --- Natural Healing ---
-        if (this.hp < this.maxHp) {
-            const successChance = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.getSuccessChance(this.stats);
-            const successRoll = Math.floor(Math.random() * 100);
-            
-            if (successRoll <= successChance) {
-                const healResult = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.calculateHeal(
-                    this.healingDice,
-                    this.healModifier
-                );
-
-                if (healResult.amount > 0) {
-                    const actualHeal = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.applyHeal(this, healResult.amount);
-                    
-                    if (actualHeal > 0 && this.hasStartedFleeing && (this.hp / this.maxHp) > this.fleeThreshold) {
-                        this.hasStartedFleeing = false;
-                    }
-                    
-                    // HPの上限チェックを追加
-                    this.updateStats();
-                }
-            }
-        }
 
         // --- Fleeing Action ---
         if (this.hasStartedFleeing) {
@@ -373,106 +350,14 @@ class Monster {
 
     // ========================== attackPlayer Method ==========================
     attackPlayer(player, game) {
-        // 睡眠中は攻撃できない
-        if (this.isSleeping) {
-            return;
-        }
-
-        // --- Combat Setup ---
+        if (this.isSleeping) return;
+        
         game.lastCombatMonster = this;
         game.renderer.examineTarget(this.x, this.y);
-
-        const hitChance = this.accuracy;
-        const roll = Math.floor(Math.random() * 100) + 1;  // 1-100
-        const criticalRange = GAME_CONSTANTS.FORMULAS.CRITICAL_RANGE(this.stats);
-        const isCritical = roll <= criticalRange;  // ここは正しい
-
-        game.logger.add(
-            `${this.name} attacks! (ACC: ${Math.floor(hitChance)}% | Roll: ${roll}${isCritical ? ' [CRITICAL HIT!]' : ''})`,
-            isCritical ? "monsterCrit" : "monsterInfo"
-        );
         
-        // クリティカル判定を命中判定の前に行う
-        if (isCritical) {
-            const finalDamage = this.calculateDamage(true);
-            const result = player.takeDamage(finalDamage.damage, { isCritical: true });
-            game.renderer.showCritEffect(player.x, player.y, true);  // isMonster フラグを true に設定
-            
-            // ダメージログの書式を統一
-            game.logger.add(
-                `${this.name} hits you for ${result.damage} damage! ` +
-                `(ATK: ${this.attackPower.base}+[${finalDamage.attackRolls.join(',')}] ` +
-                `[DEF IGNORED]) (HP: ${player.hp}/${player.maxHp})`,
-                "monsterCrit"
-            );
-            return;
-        }
-        
-        if (roll >= hitChance) {
-            game.logger.add(`${this.name}'s attack misses!`, "monsterMiss");
-            game.renderer.showMissEffect(player.x, player.y, 'miss');
-            return;
-        }
-
-        // --- Evade Check ---
-        const evadeRoll = Math.floor(Math.random() * 100) + 1;
-        const evadeChance = player.evasion;
-        if (evadeRoll < evadeChance) {
-            game.logger.add(
-                `You dodge ${this.name}'s attack! (EVA: ${Math.floor(evadeChance)}% | Roll: ${Math.floor(evadeRoll)})`,
-                "playerEvade"
-            );
-            game.renderer.showMissEffect(player.x, player.y, 'evade');
-            return;
-        }
-
-        // --- Damage Roll Calculation ---
-        let attackRolls = [];
-        let damage = this.attackPower.base;
-        for (let i = 0; i < this.attackPower.diceCount; i++) {
-            const diceRoll = Math.floor(Math.random() * this.attackPower.diceSides) + 1;
-            attackRolls.push(diceRoll);
-            damage += diceRoll;
-        }
-
-        let defenseRolls = [];
-        let defense = 0;
-        if (!isCritical) {
-            defense = player.defense.base;
-            for (let i = 0; i < player.defense.diceCount; i++) {
-                const diceRoll = Math.floor(Math.random() * player.defense.diceSides) + 1;
-                defenseRolls.push(diceRoll);
-                defense += diceRoll;
-            }
-        }
-
-        const finalDamage = Math.max(1, damage - defense);
-        const result = player.takeDamage(finalDamage, { isCritical });
-        
-        // 通常攻撃のダメージログも統一
-        game.logger.add(
-            `${this.name} hits you for ${result.damage} damage! ` +
-            `(ATK: ${this.attackPower.base}+[${attackRolls.join(',')}] ` +
-            `${isCritical ? '[DEF IGNORED]' : `vs DEF: ${player.defense.base}+[${defenseRolls.join(',')}]`}) ` +
-            `(HP: ${player.hp}/${player.maxHp})`,
-            isCritical ? "monsterCrit" : "monsterHit"
-        );
-    }
-
-    // ダメージ計算を別メソッドに分離
-    calculateDamage(isCritical = false) {
-        let attackRolls = [];
-        let damage = this.attackPower.base;
-        for (let i = 0; i < this.attackPower.diceCount; i++) {
-            const diceRoll = Math.floor(Math.random() * this.attackPower.diceSides) + 1;
-            attackRolls.push(diceRoll);
-            damage += diceRoll;
-        }
-
-        return {
-            damage: damage,
-            attackRolls: attackRolls
-        };
+        return CombatSystem.resolveCombatAction(this, player, game, {
+            isPlayer: false
+        });
     }
 
     // ========================== getStatus Method ==========================

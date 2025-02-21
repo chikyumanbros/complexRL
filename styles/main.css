@@ -142,6 +142,7 @@ body {
 #message-log .important { color: #ffd32a; }
 #message-log .death { color: #ff4757; }
 #message-log .kill { color: #2ed573; }
+#message-log .playerAction { color: #4ecdc4; }  /* 追加：プレイヤーアクション用の色 */
 
 /* スクロールバーのスタイル */
 #message-log::-webkit-scrollbar {
