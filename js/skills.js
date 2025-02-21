@@ -62,7 +62,7 @@ const SKILLS = {
                     const currentSpeed = GAME_CONSTANTS.FORMULAS.SPEED(player.stats);
                     const speedNames = ["Very Slow", "Slow", "Normal", "Fast", "Very Fast"];
                     const newSpeedIndex = Math.min(4, speedNames.indexOf(currentSpeed.name) + 1);
-                    return `[ACC: +20%, SPD: ${currentSpeed.name} → ${speedNames[newSpeedIndex]}]`;
+                    return `[ACC: +20%, SPD: ${currentSpeed.name} > ${speedNames[newSpeedIndex]}]`;
                 },
                 isFreeAction: true,
                 requiresTarget: false,

@@ -39,8 +39,8 @@ class Monster {
         // --- Derived Parameters ---
         // maxHpを先に計算
         this.maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(this.stats, this.level);
-        // hpを確実にmaxHp以下に設定
-        this.hp = Math.min(this.maxHp, this.maxHp);
+        // hpをmaxHpに設定（モンスター生成時は満タン）
+        this.hp = this.maxHp;
         this.attackPower = GAME_CONSTANTS.FORMULAS.ATTACK(this.stats);
         this.defense = GAME_CONSTANTS.FORMULAS.DEFENSE(this.stats);
         this.accuracy = GAME_CONSTANTS.FORMULAS.ACCURACY(this.stats);
@@ -67,11 +67,6 @@ class Monster {
         this.fleeThreshold = Math.min(0.8, Math.max(0.1, baseThreshold + wisModifier + strModifier));
         this.hasStartedFleeing = false;
         
-        // --- Healing Parameters ---
-        // 回復関連のパラメータを追加
-        this.healingDice = GAME_CONSTANTS.FORMULAS.HEALING_DICE(this.stats);
-        this.healModifier = GAME_CONSTANTS.FORMULAS.HEAL_MODIFIER(this.stats);
-        
         // モンスター生成時に個体固有の色情報を生成
         this.spriteColors = {};
         const sprite = MONSTER_SPRITES[type];
@@ -85,6 +80,17 @@ class Monster {
                     }
                 }
             }
+        }
+
+        // デバッグ用のHP検証
+        const calculatedMaxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(this.stats, this.level);
+        if (this.hp > calculatedMaxHp) {
+            console.warn(`Monster HP validation failed: ${this.name}`, {
+                hp: this.hp,
+                maxHp: calculatedMaxHp,
+                stats: this.stats,
+                level: this.level
+            });
         }
     }
 
@@ -104,6 +110,15 @@ class Monster {
 
         // 派生パラメータの再計算
         this.updateStats();
+
+        // HPの上限チェック
+        if (this.hp > this.maxHp) {
+            console.warn(`Monster HP exceeded maxHP after damage: ${this.name}`, {
+                hp: this.hp,
+                maxHp: this.maxHp
+            });
+            this.hp = this.maxHp;
+        }
 
         const result = {
             damage: damage,
@@ -515,41 +530,59 @@ class Monster {
     // ========================== flee Method ==========================
     // 逃走行動を実行するメソッド
     flee(game) {
-        // 現在のプレイヤーとの距離を計算
+        // プレイヤーとの距離を計算
         const currentDistance = GAME_CONSTANTS.DISTANCE.calculate(
             this.x, this.y,
             game.player.x, game.player.y
         );
 
-        // 周囲8方向の移動候補を生成
+        // 移動候補を生成（斜め移動を含む8方向）
         const directions = [
             { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 },
             { dx: -1, dy: 0 },                      { dx: 1, dy: 0 },
             { dx: -1, dy: 1 },  { dx: 0, dy: 1 },  { dx: 1, dy: 1 }
         ];
 
-        // 最適な移動先を探す
+        // 移動候補をシャッフル（より自然な逃走行動のため）
+        for (let i = directions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [directions[i], directions[j]] = [directions[j], directions[i]];
+        }
+
+        // 最適な逃走先を探す
         let bestMove = null;
-        let maxDistance = currentDistance;
+        let bestDistance = currentDistance;
+        let bestSafety = -1;  // 周囲の壁や障害物による安全度
 
         for (const dir of directions) {
             const newX = this.x + dir.dx;
             const newY = this.y + dir.dy;
 
-            if (this.canMoveTo(newX, newY, game) && 
-                !game.getMonsterAt(newX, newY) && 
-                game.tiles[newY][newX] !== GAME_CONSTANTS.TILES.DOOR.CLOSED) {
-                
-                const newDistance = GAME_CONSTANTS.DISTANCE.calculate(
-                    newX, newY,
-                    game.player.x, game.player.y
-                );
+            if (!this.canMoveTo(newX, newY, game) || 
+                game.getMonsterAt(newX, newY) || 
+                game.tiles[newY][newX] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                continue;
+            }
 
-                // より遠い位置が見つかった場合、更新
-                if (newDistance > maxDistance) {
-                    maxDistance = newDistance;
-                    bestMove = dir;
-                }
+            const newDistance = GAME_CONSTANTS.DISTANCE.calculate(
+                newX, newY,
+                game.player.x, game.player.y
+            );
+
+            // 安全度を計算（周囲の壁や障害物の数）
+            let safety = 0;
+            for (const checkDir of directions) {
+                const checkX = newX + checkDir.dx;
+                const checkY = newY + checkDir.dy;
+                if (!this.canMoveTo(checkX, checkY, game)) safety++;
+            }
+
+            // より遠い位置、または同じ距離でもより安全な位置を選択
+            if (newDistance > bestDistance || 
+                (newDistance === bestDistance && safety > bestSafety)) {
+                bestDistance = newDistance;
+                bestSafety = safety;
+                bestMove = dir;
             }
         }
 
@@ -560,7 +593,10 @@ class Monster {
             return true;
         }
 
-        return false;  // 移動できる場所が見つからなかった
+        // 逃げ場がない場合は、プレイヤーに背を向けて戦う
+        this.hasStartedFleeing = false;
+        game.logger.add(`${this.name} is cornered and turns to fight!`, "monsterInfo");
+        return false;
     }
 
     // ========================== hasClosedDoorBetween Method ==========================

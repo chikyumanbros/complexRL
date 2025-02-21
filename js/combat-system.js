@@ -2,8 +2,50 @@ class CombatSystem {
     // ... 既存のコード ...
 
     static resolveCombatAction(attacker, defender, game, context = {}) {
+        // 機会攻撃の場合の特別処理
+        if (context.isOpportunityAttack) {
+            // 機会攻撃用の修正を適用
+            context.accuracyMod = 0.2;  // 20% 命中ボーナス
+            context.damageMod = 1.5;    // 50% ダメージボーナス
+            context.attackType = "Opportunity attack";
+            game.logger.add("Opportunity Attack!", "playerInfo");
+        }
+
         // 攻撃修飾子のチェック（プレイヤーの場合）
-        if (context.isPlayer && (!attacker.nextAttackModifiers || attacker.nextAttackModifiers.length === 0)) {
+        if (context.isPlayer && attacker.nextAttackModifiers && attacker.nextAttackModifiers.length > 0) {
+            const mods = attacker.nextAttackModifiers;
+            
+            // 速度修正の適用
+            const speedMod = mods.find(mod => mod.speedTier);
+            if (speedMod) {
+                context.speedTier = speedMod.speedTier;
+            }
+            
+            // 攻撃タイプの設定
+            context.attackType = mods.map(mod => mod.name).join(' + ');
+            
+            // 攻撃修飾子の効果をログに表示
+            if (mods.length > 1) {
+                game.logger.add("Combined Attack!", "playerInfo");
+            }
+            
+            // 修飾子の効果を適用（乗算的なダメージ修正、加算的な命中修正）
+            context.accuracyMod = mods.reduce((total, mod) => total + (mod.accuracyMod || 0), 0);
+            context.damageMod = mods.reduce((total, mod) => total * (mod.damageMod || 1), 1);
+            
+            // 効果の説明をログに表示
+            const effects = [];
+            if (context.damageMod !== 1) effects.push(`DMG: ${((context.damageMod - 1) * 100).toFixed(0)}%`);
+            if (context.accuracyMod) effects.push(`ACC: ${(context.accuracyMod * 100).toFixed(0)}%`);
+            if (context.speedTier) effects.push(`Speed Tier: ${context.speedTier}`);
+            
+            if (effects.length > 0) {
+                game.logger.add(`Attack modifiers: [${effects.join(', ')}]`, "playerInfo");
+            }
+
+            // 攻撃修飾子をクリア（ログ出力なし）
+            attacker.nextAttackModifiers = [];
+        } else {
             // 通常攻撃として処理
             context.attackType = "attack";
         }
@@ -11,11 +53,17 @@ class CombatSystem {
         // 攻撃コンテキストの準備
         const attackContext = this.prepareAttackContext(attacker, defender, game, context);
         
-        // 命中判定
+        // スピード情報の更新（Quick Slashなどの効果を反映）
+        if (context.speedTier) {
+            const speedNames = ["Very Slow", "Slow", "Normal", "Fast", "Very Fast"];
+            attackContext.speedName = speedNames[Math.min(4, context.speedTier - 1)];
+        }
+
+        // 命中判定（修正された命中率を使用）
         if (!this.resolveHitCheck(attacker, defender, attackContext, game)) {
             return { hit: false };
         }
-        
+
         // 回避判定（クリティカルまたは機会攻撃の場合はスキップ）
         if (!attackContext.isCritical && !context.isOpportunityAttack) {
             if (!this.resolveEvadeCheck(attacker, defender, attackContext, game)) {
@@ -38,8 +86,10 @@ class CombatSystem {
         
         // 戦闘後の処理
         if (context.isPlayer) {
-            // 攻撃修飾子をクリア（ターン処理と整合性を取る）
-            attacker.nextAttackModifiers = [];
+            // 攻撃修飾子を静かにクリア
+            if (attacker.nextAttackModifiers?.length > 0) {
+                attacker.nextAttackModifiers = [];
+            }
         }
 
         return {
@@ -155,15 +205,15 @@ class CombatSystem {
 
     static processCombatResult(attacker, defender, result, damageResult, context, game) {
         if (!result.evaded) {
-            // killed フラグが true の場合に死亡処理キューに追加
+            // killed フラグが true の場合は即座に死亡処理を実行
             if (result.killed) {
-                game.pendingMonsterDeaths.push({
+                game.processMonsterDeath({
                     monster: defender,
                     result,
                     damageResult,
                     context
                 });
-                return; // 死亡時は通常のダメージログをスキップ
+                return;
             }
 
             // 通常のダメージログ処理（死亡していない場合）
@@ -173,14 +223,23 @@ class CombatSystem {
             
             const logPrefix = context.isPlayer ? "" : `${attacker.name} `;
             const logTarget = context.isPlayer ? defender.name : "you";
-            const damageText = `${logPrefix}hits ${logTarget} for ${result.damage} damage!`;
             
+            // 攻撃修飾子の効果を表示に含める
+            const modifierText = context.effectDesc || "";
+            const damageText = `${logPrefix}hits ${logTarget}${modifierText} for ${result.damage} damage!`;
+            
+            // 攻撃計算の詳細を表示
             const attackCalc = `ATK: ${attacker.attackPower.base}+[${damageResult.attackRolls.join(',')}]` +
                 (context.damageMultiplier !== 1 ? ` ×${context.damageMultiplier.toFixed(1)}` : '');
             
             const defenseCalc = context.isCritical 
                 ? '[DEF IGNORED]' 
                 : `vs DEF: ${defender.defense.base}+[${damageResult.defenseRolls.join(',')}]`;
+            
+            // Combined Attackの場合は特別なメッセージを追加
+            if (context.isCombinedAttack) {
+                game.logger.add("Combined Attack!", "playerInfo");
+            }
             
             game.logger.add(
                 `${damageText} (${attackCalc} ${defenseCalc}) (${healthStatus})`,
@@ -195,29 +254,23 @@ class CombatSystem {
         const surroundingMonsters = attacker.countSurroundingMonsters(game);
         const surroundingPenalty = attacker.calculateSurroundingPenalty(surroundingMonsters);
         
-        let totalAccuracyMod = 0;
-        let totalDamageMod = 1;
-        let effectDesc = [];
+        // 基本命中率に修飾子の効果を適用（パーセンテージで計算）
+        const modifiedAccuracy = baseContext.hitChance * (1 + (baseContext.accuracyMod || 0));
+        const finalAccuracy = Math.floor(modifiedAccuracy * (1 - surroundingPenalty));
         
-        if (attacker.nextAttackModifiers?.length > 0) {
-            const mods = this.processAttackModifiers(attacker.nextAttackModifiers);
-            totalAccuracyMod = mods.accuracyMod;
-            totalDamageMod = mods.damageMod;
-            effectDesc = mods.effectDesc;
-        }
-        
-        const finalAccuracy = Math.floor(baseContext.hitChance * (1 + totalAccuracyMod) * (1 - surroundingPenalty));
-        
-        if (surroundingPenalty > 0) {
-            game.logger.add(`Surrounded! (-${Math.floor(surroundingPenalty * 100)}% evasion)`, "warning");
+        // 機会攻撃の場合はペナルティを無視
+        if (baseContext.isOpportunityAttack && surroundingPenalty > 0) {
+            game.logger.add("Opportunity attack ignores surrounding penalty!", "playerInfo");
+        } else if (surroundingPenalty > 0) {
+            game.logger.add(`Surrounded! (-${Math.floor(surroundingPenalty * 100)}% accuracy)`, "warning");
         }
 
         return {
             ...baseContext,
-            hitChance: finalAccuracy,
-            damageMultiplier: totalDamageMod,
-            effectDesc: effectDesc.length ? ` [${effectDesc.join(', ')}]` : "",
-            surroundingPenalty
+            hitChance: baseContext.isOpportunityAttack ? modifiedAccuracy : finalAccuracy,
+            damageMultiplier: baseContext.damageMod || 1,
+            speedTier: baseContext.speedTier,
+            effectDesc: baseContext.effectDesc || ""
         };
     }
 
@@ -240,14 +293,17 @@ class CombatSystem {
             for (const mod of modifiers) {
                 if (mod.accuracyMod) totalAccuracyMod += mod.accuracyMod;
                 if (mod.damageMod) totalDamageMod *= mod.damageMod;
+                if (mod.desc) effectDesc.push(mod.desc);
             }
             effectDesc = [
+                `Combined: ${effectDesc.join(' + ')}`,
                 `DMG: ${((totalDamageMod - 1) * 100).toFixed(0)}%`,
                 `ACC: ${(totalAccuracyMod * 100).toFixed(0)}%`
             ];
         } else {
             // 単一スキルの処理
             const mod = modifiers[0];
+            if (mod.desc) effectDesc.push(mod.desc);
             if (mod.accuracyMod) {
                 totalAccuracyMod = mod.accuracyMod;
                 effectDesc.push(`ACC: ${(mod.accuracyMod * 100).toFixed(0)}%`);

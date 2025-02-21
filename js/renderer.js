@@ -10,7 +10,7 @@ class Renderer {
         this.flickerValues = new Array(20).fill(0);  // 揺らぎ値を保持
 
         // 幻覚エフェクト用の変数
-        this.psychedelicTurn = 0;  // ターン数を記録
+        this.psychedelicTurn = 0;  // 追加：サイケデリックエフェクトのターンカウンター
         this.psychedelicColors = [
             '#8B0000',  // ダークレッド
             '#4B0082',  // インディゴ
@@ -158,6 +158,7 @@ class Renderer {
         ));
 
         if (distance <= effectRange) {
+            // ターンカウンターを使用してシード値を生成
             const seed = this.psychedelicTurn * 1000 + x * 100 + y;
             const rand = Math.abs(Math.sin(seed));
             

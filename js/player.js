@@ -25,10 +25,6 @@ class Player {
         this.nextAttackModifiers = [];  // 攻撃修飾効果の初期化
         this.meditation = null;  // メディテーション状態を追加
 
-        // 治療関連のパラメータを定数ファイルから取得
-        this.healingDice = GAME_CONSTANTS.FORMULAS.HEALING_DICE(this.stats);
-        this.healModifier = GAME_CONSTANTS.FORMULAS.HEAL_MODIFIER(this.stats);
-
         // 各種パラメータの計算
         this.updateDerivedStats();
 
@@ -202,10 +198,7 @@ class Player {
         // HPが0になった場合の処理
         if (this.hp === 0) {
             this.game.renderer.showDeathEffect(this.x, this.y);
-            // 少し待ってからゲームオーバー処理
-            setTimeout(() => {
-                this.game.gameOver();
-            }, 100);
+            this.game.gameOver();
         }
         
         // ダメージを受けた時にステータスパネルをフラッシュ
@@ -247,41 +240,35 @@ class Player {
             // speedTierが設定されている場合はそれを使用
             const speedTierMod = this.nextAttackModifiers.find(mod => mod.speedTier);
             if (speedTierMod) {
-                effectivePlayerSpeed = speedTierMod.speedTier;
-            } else if (this.nextAttackModifiers[0].speedMod) {
-                effectivePlayerSpeed = Math.floor(basePlayerSpeed * (1 + this.nextAttackModifiers[0].speedMod));
+                // speedTierを適用した新しいスピードオブジェクトを作成
+                const speedNames = ["Very Slow", "Slow", "Normal", "Fast", "Very Fast"];
+                effectivePlayerSpeed = {
+                    value: speedTierMod.speedTier,
+                    name: speedNames[Math.min(4, speedTierMod.speedTier - 1)]
+                };
             }
         }
 
         const monsterSpeed = GAME_CONSTANTS.FORMULAS.SPEED(monster.stats);
-        const playerSpeedObj = GAME_CONSTANTS.FORMULAS.SPEED(this.stats);
-        const monsterSpeedObj = GAME_CONSTANTS.FORMULAS.SPEED(monster.stats);
-        game.logger.add(`Speed Order: Player (${playerSpeedObj.name}) vs ${monster.name} (${monsterSpeedObj.name})`);
+        
+        // 修正されたスピード値でログを出力
+        game.logger.add(`Speed Order: Player (${effectivePlayerSpeed.name}) vs ${monster.name} (${monsterSpeed.name})`);
 
         // イニシアチブ判定を修正：speedの値を直接比較
         if (effectivePlayerSpeed.value >= monsterSpeed.value) {
             // プレイヤーの攻撃が先行する場合
-            this.resolvePlayerAttack(monster, game);
-            if (monster.hp > 0) {
-                // モンスターの反撃を遅延実行
-                setTimeout(() => {
-                    game.logger.add(`${monster.name} attempts a counterattack!`, "monsterInfo");
-                    monster.attackPlayer(this, game);
-                    monster.hasActedThisTurn = true;
-                    this.updateCombatEffects(game, monster);
-                }, 200);
+            const attackResult = this.resolvePlayerAttack(monster, game);
+            if (monster.hp > 0 && !attackResult.killed) {  // 追加: killed チェック
+                monster.attackPlayer(this, game);
+                monster.hasActedThisTurn = true;
             }
         } else {
             // モンスターの攻撃が先行する場合（先制反撃）
             game.logger.add(`${monster.name} acts preemptively!`, "monsterInfo");
             monster.attackPlayer(this, game);
             monster.hasActedThisTurn = true;
-            if (this.hp > 0 && monster.hp > 0) {
-                // プレイヤーの攻撃を遅延実行
-                setTimeout(() => {
-                    this.resolvePlayerAttack(monster, game);
-                    this.updateCombatEffects(game, monster);
-                }, 200);
+            if (this.hp > 0) {
+                this.resolvePlayerAttack(monster, game);
             }
         }
 
