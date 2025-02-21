@@ -43,7 +43,7 @@ const SKILLS = {
                     });
                     
                     game.logger.add(
-                        `You prepare a powerful strike! ${this.findSkillById('powerStrike').getEffectText(player)}`, 
+                        `You prepare a powerful strike! ${game.codexSystem.findSkillById('powerStrike').getEffectText(player)}`, 
                         "playerInfo"
                     );
                     game.renderer.render();
@@ -87,7 +87,7 @@ const SKILLS = {
                     });
                     
                     game.logger.add(
-                        `You prepare a quick strike! ${this.findSkillById('quick').getEffectText(player)}`, 
+                        `You prepare a quick strike! ${game.codexSystem.findSkillById('quick').getEffectText(player)}`, 
                         "playerInfo"
                     );
                     game.renderer.render();

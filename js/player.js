@@ -6,7 +6,7 @@ class Player {
         this.game = game;
         this.char = '@';
         this.level = 1;
-        this.codexPoints = 0;  // codexポイントのみを使用
+        this.codexPoints = 100;  // codexポイントのみを使用
         this.xp = 0;                  // 経験値の初期化
         this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
         this.stats = { ...GAME_CONSTANTS.STATS.DEFAULT_VALUES };
