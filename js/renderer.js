@@ -325,6 +325,9 @@ class Renderer {
                     if (content === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
                         style += '; opacity: ' + opacity;
                         classes.push('portal-tile');
+                    } else if (content === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
+                        style += '; opacity: ' + opacity;
+                        classes.push('void-tile');
                     }
                 } else if (isExplored) {
                     opacity = 0.3;

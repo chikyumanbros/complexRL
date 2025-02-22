@@ -935,3 +935,52 @@ body::before {
     line-height: 1em;
     text-align: center;
 }
+
+/* VOIDポータルのアニメーション */
+@keyframes void-animation {
+    0%, 100% {
+        color: #800080;  /* 紫 */
+    }
+    20% {
+        color: #A020F0;  /* 薄紫 */
+    }
+    40% {
+        color: #DDA0DD;  /* 薄い紫 */
+    }
+    60% {
+        color: #EE82EE;  /* バイオレット */
+    }
+    80% {
+        color: #FFFFFF;  /* 白 */
+    }
+}
+
+.void-tile {
+    animation: void-animation 1s infinite;
+}
+
+/* VOIDの文字切り替えアニメーション */
+@keyframes void-char-animation {
+    0%, 45% {
+        content: '§';
+    }
+    50%, 65% {
+        content: '░';
+    }
+    70%, 85% {
+        content: '▒';
+    }
+    90%, 100% {
+        content: '░';
+    }
+}
+
+.void-tile::before {
+    content: '§';
+    animation: void-char-animation 1.5s infinite;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+}

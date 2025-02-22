@@ -23,6 +23,7 @@ class MapGenerator {
             this.connectRooms(this.rooms);
             this.placeDoors(this.rooms);
             this.placeStairs(this.rooms);
+            this.placeVoidPortal(); // VOIDポータルを追加
         }
         
         return {
@@ -875,5 +876,34 @@ class MapGenerator {
         if (this.game) {
             this.game.dangerLevel = 'SAFE';
         }
+    }
+
+    placeVoidPortal() {
+        // 最初の部屋以外からランダムに部屋を選択
+        const availableRooms = this.rooms.slice(1);
+        if (availableRooms.length === 0) return;
+
+        const room = availableRooms[Math.floor(Math.random() * availableRooms.length)];
+        
+        // 部屋内の有効な位置を探す
+        const validPositions = [];
+        for (let y = room.y; y < room.y + room.height; y++) {
+            for (let x = room.x; x < room.x + room.width; x++) {
+                if (this.map[y][x] === 'floor' && 
+                    this.tiles[y][x] !== GAME_CONSTANTS.STAIRS.CHAR) {
+                    validPositions.push({x, y});
+                }
+            }
+        }
+
+        if (validPositions.length === 0) return;
+
+        // ランダムな位置を選択
+        const pos = validPositions[Math.floor(Math.random() * validPositions.length)];
+        
+        // VOIDポータルを配置
+        this.map[pos.y][pos.x] = 'void';  // 'portal'から'void'に変更
+        this.tiles[pos.y][pos.x] = GAME_CONSTANTS.PORTAL.VOID.CHAR;
+        this.colors[pos.y][pos.x] = GAME_CONSTANTS.PORTAL.VOID.COLORS[0];
     }
 } 

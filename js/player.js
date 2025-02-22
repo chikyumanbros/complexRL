@@ -192,6 +192,35 @@ class Player {
                         this.game.setInputMode('normal');
                     }
                 });
+            } else if (this.game.tiles[this.y][this.x] === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
+                // VOIDポータルの処理
+                this.game.logger.add("Enter the VOID portal? [y/n]", "important");
+                this.game.setInputMode('confirm', {
+                    callback: (confirmed) => {
+                        if (confirmed) {
+                            this.game.logger.add("You step into the VOID portal...", "important");
+                            // ポータル通過アニメーションを開始
+                            this.game.renderer.startPortalTransition(() => {
+                                this.game.floorLevel = 0;  // ホームフロアに戻る
+                                this.game.generateNewFloor();
+                                
+                                // プレイヤーをホームフロアのポータルの1マス下に配置
+                                for (let y = 0; y < this.game.height; y++) {
+                                    for (let x = 0; x < this.game.width; x++) {
+                                        if (this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+                                            this.x = x;
+                                            this.y = y + 1;  // ポータルの1マス下
+                                            return;
+                                        }
+                                    }
+                                }
+                            });
+                        } else {
+                            this.game.logger.add("You decide not to enter the VOID portal.", "info");
+                        }
+                        this.game.setInputMode('normal');
+                    }
+                });
             }
 
             return true;
@@ -215,8 +244,9 @@ class Player {
         const isFloor = map[y][x] === 'floor';
         const isStairs = this.game.tiles[y][x] === GAME_CONSTANTS.STAIRS.CHAR;
         const isPortal = this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.GATE.CHAR;
+        const isVoid = this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.VOID.CHAR;
         
-        return isFloor || isStairs || isPortal;
+        return isFloor || isStairs || isPortal || isVoid;
     }
 
     // ===== Skill Management Methods =====

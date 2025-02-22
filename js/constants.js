@@ -60,7 +60,17 @@ const GAME_CONSTANTS = {
                 '#FFFFFF'   // 白
             ]
         },
-        // 将来的に他のポータルタイプを追加可能
+        VOID: {
+            CHAR: '§',
+            ANIMATION_CHARS: ['§','פ','∂', '░', '▒', '░',],
+            COLORS: [
+                '#800080',  // 紫
+                '#A020F0',  // 薄紫
+                '#DDA0DD',  // 薄い紫
+                '#EE82EE',  // バイオレット
+                '#FFFFFF'   // 白
+            ]
+        }   
     },
 
     // COLORS Section: Color definitions for various elements
