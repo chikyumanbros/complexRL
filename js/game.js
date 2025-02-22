@@ -28,6 +28,12 @@ class Game {
         // 死亡したモンスターの処理キューを追加
         this.pendingMonsterDeaths = [];
 
+        // BGM用のプロパティを追加
+        this.homeBGM = new Audio('assets/sounds/complex_nexus.wav');
+        this.homeBGM.loop = true;
+        this.homeBGM.volume = 0.5;  // 初期音量を50%に設定
+        this.fadeOutInterval = null;  // フェードアウト用のインターバルID
+
         this.init();
 
         // 保存されたデータがあれば読み込む
@@ -49,6 +55,12 @@ class Game {
         // Clean up the input handler first
         if (this.inputHandler) {
             this.inputHandler.unbindKeys();
+        }
+
+        // フェードアウトが進行中の場合はキャンセル
+        if (this.fadeOutInterval) {
+            clearInterval(this.fadeOutInterval);
+            this.fadeOutInterval = null;
         }
 
         // モードをリセット
@@ -154,6 +166,9 @@ class Game {
         // プレイヤー名入力画面を表示
         this.renderer.renderNamePrompt('');
         this.inputHandler.setMode('name');
+
+        // リセット時にBGMも更新
+        this.updateBGM();
     }
 
     init() {
@@ -815,6 +830,11 @@ class Game {
 
         // Display game over message via Logger.
         this.logger.showGameOverMessage(finalScore);
+
+        // ゲームオーバー時にフェードアウト
+        if (!this.homeBGM.paused) {
+            this.fadeOutBGM(2000);  // ゲームオーバー時は2秒かけてフェードアウト
+        }
     }
 
     generateNewFloor() {
@@ -872,6 +892,9 @@ class Game {
         // Setup input handling and rendering
         this.renderer.render();
         this.inputHandler.bindKeys();
+
+        // フロアが変わる時にBGMの再生状態を更新
+        this.updateBGM();
     }
 
     setInputMode(mode, options = {}) {
@@ -1325,6 +1348,53 @@ class Game {
             }
         }
         this.lastHomeFloorUpdate = this.turn;
+    }
+
+    // BGMの管理メソッドを更新
+    updateBGM() {
+        if (this.floorLevel === 0) {
+            // ホームフロアでBGMを再生
+            if (this.homeBGM.paused) {
+                this.homeBGM.volume = 0.5;  // 音量を初期値に戻す
+                this.homeBGM.play().catch(error => {
+                    console.warn('BGM playback failed:', error);
+                });
+            }
+        } else {
+            // 他のフロアに移動時はフェードアウト
+            if (!this.homeBGM.paused) {
+                this.fadeOutBGM();
+            }
+        }
+    }
+
+    // フェードアウト機能を追加
+    fadeOutBGM(duration = 1000) {  // デフォルトで1秒
+        if (this.fadeOutInterval) {
+            clearInterval(this.fadeOutInterval);
+        }
+
+        const originalVolume = this.homeBGM.volume;
+        const steps = 20;  // フェードアウトのステップ数
+        const volumeStep = originalVolume / steps;
+        const intervalTime = duration / steps;
+
+        this.fadeOutInterval = setInterval(() => {
+            if (this.homeBGM.volume > volumeStep) {
+                this.homeBGM.volume -= volumeStep;
+            } else {
+                this.homeBGM.pause();
+                this.homeBGM.volume = originalVolume;  // 音量を元に戻す
+                this.homeBGM.currentTime = 0;
+                clearInterval(this.fadeOutInterval);
+                this.fadeOutInterval = null;
+            }
+        }, intervalTime);
+    }
+
+    // 音量調整用メソッド（必要に応じて）
+    setBGMVolume(volume) {
+        this.homeBGM.volume = Math.max(0, Math.min(1, volume));
     }
 }
 
