@@ -273,6 +273,19 @@ class InputHandler {
     // Game Mode Input Handling
     // ----------------------
     handleGameModeInput(key) {
+        // confirmモードの場合、Y/Nの入力のみを受け付ける
+        if (this.mode === 'confirm') {
+            const upperKey = key.toLowerCase();  // 小文字に変換
+            if (upperKey === 'y' || upperKey === 'n') {  // 小文字で比較
+                if (this.confirmCallback) {
+                    this.confirmCallback(upperKey === 'y');  // 小文字で比較
+                    this.confirmCallback = null;
+                    this.mode = 'normal';  // 通常モードに戻す
+                }
+            }
+            return;
+        }
+
         // --- Look Mode Processing ---
         if (this.lookMode) {
             this.handleLookMode(key);
@@ -779,6 +792,9 @@ class InputHandler {
         if (mode === 'statSelect') {
             this.statSelectCallback = options.callback;
         }
+        if (mode === 'confirm') {
+            this.confirmCallback = options.callback;
+        }
     }
 
     // ----------------------
@@ -892,5 +908,15 @@ class InputHandler {
             }
         }
         return null;
+    }
+
+    handleConfirm(key) {
+        const upperKey = key.toUpperCase();
+        if (upperKey === 'y' || upperKey === 'n') {
+            if (this.confirmCallback) {
+                this.confirmCallback(upperKey === 'y');
+                this.confirmCallback = null;
+            }
+        }
     }
 }

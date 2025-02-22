@@ -37,6 +37,7 @@ const GAME_CONSTANTS = {
             '#90caf9',  // 薄い青
             '#4fc3f7',  // 明るい青
             '#e1bee7',  // 淡い紫
+            '#FFFFFF',
         ],
     },
 
@@ -44,6 +45,22 @@ const GAME_CONSTANTS = {
     STAIRS: {
         CHAR: '>',
         COLOR: '#FFFF00',
+    },
+
+    // PORTALセクションを追加
+    PORTAL: {
+        GATE: {
+            CHAR: '∩',
+            ANIMATION_CHARS: ['∩','∩','∩', '░', '▒', '░',],
+            COLORS: [
+                '#FF00FF',  // マゼンタ
+                '#FF66FF',  // 明るいマゼンタ
+                '#FFB3FF',  // さらに明るいマゼンタ
+                '#FFE6FF',  // 非常に明るいマゼンタ
+                '#FFFFFF'   // 白
+            ]
+        },
+        // 将来的に他のポータルタイプを追加可能
     },
 
     // COLORS Section: Color definitions for various elements
@@ -561,10 +578,37 @@ const GAME_CONSTANTS = {
         },
 
         // ターン経過による減少確率の計算
-        calculateDecreaseChance: (turnsInFloor) => {
-            const baseChance = 5;  // 基本確率 5%
+        calculateDecreaseChance: (turnsInFloor, dangerLevel) => {
+            // 基本確率をフロアの危険度によって変更
+            let baseChance;
+            switch (dangerLevel) {
+                case 'SAFE':
+                    baseChance = 1;  // 安全: 1%
+                    break;
+                case 'NORMAL':
+                    baseChance = 3;  // 通常: 3%
+                    break;
+                case 'DANGEROUS':
+                    baseChance = 6;  // 危険: 6%
+                    break;
+                case 'DEADLY':
+                    baseChance = 9; // 致命的: 9%
+                    break;
+                default:
+                    baseChance = 3;  // デフォルト値
+            }
+
             const turnModifier = Math.floor(turnsInFloor / 20);  // 20ターンごとに確率上昇
-            return Math.min(25, baseChance + turnModifier);  // 最大25%まで
+
+            // 最大確率も危険度によって変動
+            const maxChance = {
+                SAFE: 15,      // 安全: 最大15%
+                NORMAL: 25,    // 通常: 最大25%（変更なし）
+                DANGEROUS: 35, // 危険: 最大35%
+                DEADLY: 45     // 致命的: 最大45%
+            }[dangerLevel] || 25;
+
+            return Math.min(maxChance, baseChance + turnModifier);
         },
 
         // 閾値の計算（STRとINTの影響を受ける）

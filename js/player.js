@@ -164,6 +164,34 @@ class Player {
             this.lastPosition = { x: this.x, y: this.y };
             this.x = newX;
             this.y = newY;
+
+            // 自動探索を停止する条件をチェック
+            if (this.autoExploring) {
+                this.checkAutoExploreStop();
+            }
+
+            // ポータルチェックを追加
+            if (this.game.floorLevel === 0 && 
+                this.game.tiles[this.y][this.x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+                // ポータルの処理を直接ここで行う
+                this.game.logger.add("Enter the portal? [y/n]", "important");
+                this.game.setInputMode('confirm', {
+                    callback: (confirmed) => {
+                        if (confirmed) {
+                            this.game.logger.add("You step into the portal...", "important");
+                            // ポータル通過アニメーションを開始
+                            this.game.renderer.startPortalTransition(() => {
+                                this.game.floorLevel++;
+                                this.game.generateNewFloor();
+                            });
+                        } else {
+                            this.game.logger.add("You decide not to enter the portal.", "info");
+                        }
+                        this.game.setInputMode('normal');
+                    }
+                });
+            }
+
             return true;
         }
         return false;
@@ -184,8 +212,9 @@ class Player {
         
         const isFloor = map[y][x] === 'floor';
         const isStairs = this.game.tiles[y][x] === GAME_CONSTANTS.STAIRS.CHAR;
+        const isPortal = this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.GATE.CHAR;
         
-        return isFloor || isStairs;
+        return isFloor || isStairs || isPortal;
     }
 
     // ===== Skill Management Methods =====
@@ -439,6 +468,29 @@ class Player {
 
     // ===== Floor Navigation and Surroundings Methods =====
     descendStairs() {
+        // ポータルの処理を追加
+        if (this.game.floorLevel === 0 && 
+            this.game.tiles[this.y][this.x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+            this.game.logger.add("Enter the portal? [y/n]", "important");
+            this.game.setInputMode('confirm', {
+                callback: (confirmed) => {
+                    if (confirmed) {
+                        this.game.logger.add("You step into the portal...", "important");
+                        // ポータル通過アニメーションを開始
+                        this.game.renderer.startPortalTransition(() => {
+                            this.game.floorLevel++;
+                            this.game.generateNewFloor();
+                        });
+                    } else {
+                        this.game.logger.add("You decide not to enter the portal.", "info");
+                    }
+                    this.game.setInputMode('normal');
+                }
+            });
+            return true;
+        }
+        
+        // 通常の階段の処理
         if (this.game.tiles[this.y][this.x] === GAME_CONSTANTS.STAIRS.CHAR) {
             this.game.floorLevel++;
             this.game.logger.add(`You descend to floor ${this.game.floorLevel}...`, "important");

@@ -61,6 +61,7 @@ class Game {
         this.tiles = [];
         this.colors = [];
         this.player = new Player(0, 0, this);
+        this.player.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;  // この行を追加
         this.codexSystem = new CodexSystem();
         this.logger = new Logger(this);
         this.turn = 0;
@@ -165,7 +166,15 @@ class Game {
         this.explored = this.initializeExplored();
         this.totalMonstersSpawned = 0;
         this.turn = 0;
-        this.floorLevel = 0;  // Changed from 1 to 0
+        this.floorLevel = 0;
+
+        // プレイヤーを初期化
+        this.player = new Player(0, 0, this);
+        // Vigorを明示的に初期化
+        this.player.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;  // この行を追加
+        this.codexSystem = new CodexSystem();
+        this.logger = new Logger(this);
+        this.isGameOver = false;
 
         // 危険度をランダムに決定（reset()と同じロジック）
         const dangerLevels = Object.keys(GAME_CONSTANTS.DANGER_LEVELS);
@@ -180,8 +189,6 @@ class Game {
                 break;
             }
         }
-
-        this.isGameOver = false;
 
         // Generate a new floor (including player placement and monster generation)
         this.generateNewFloor();
@@ -201,9 +208,6 @@ class Game {
         // プレイヤー名入力画面を表示
         this.renderer.renderNamePrompt('');
         this.inputHandler.setMode('name');
-
-        this.player = new Player(0, 0, this);
-        this.player.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;  // 明示的に初期化
     }
 
     placePlayerInRoom() {
@@ -1085,10 +1089,12 @@ class Game {
             floorLevel: this.floorLevel
         };
 
-        if (this._lastSaveState &&
-            JSON.stringify(currentState) === JSON.stringify(this._lastSaveState)) {
-            return;
-        }
+    // 状態が変化していない場合はスキップ（ただしフロアレベルが変化した場合は必ずセーブ）
+    if (this._lastSaveState &&
+        JSON.stringify(currentState) === JSON.stringify(this._lastSaveState) &&
+        this._lastSaveState.floorLevel === this.floorLevel) {
+        return;
+    }
 
         const saveData = {
             player: {

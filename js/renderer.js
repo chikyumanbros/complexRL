@@ -349,6 +349,11 @@ class Renderer {
                             backgroundColor = `linear-gradient(${backgroundColor || 'transparent'}, ${highlightColor})`;
                         }
                     }
+
+                    if (content === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+                        style += '; opacity: ' + opacity;
+                        classes.push('portal-tile');
+                    }
                 } else if (isExplored) {
                     opacity = 0.3;
                     content = this.game.tiles[y][x];
@@ -1423,5 +1428,53 @@ class Renderer {
 
         // 最新のメッセージが見えるようにスクロール
         messageLogElement.scrollTop = messageLogElement.scrollHeight;
+    }
+
+    startPortalTransition(callback) {
+        const duration = 1000; // アニメーション時間を5秒に延長
+        const steps = 40; // より細かいステップ数に増加
+        let currentStep = 0;
+
+        const animate = () => {
+            if (currentStep >= steps) {
+                callback();
+                return;
+            }
+
+            // マップ全体のタイルを宇宙空間のタイルと色に変更
+            for (let y = 0; y < this.game.height; y++) {
+                for (let x = 0; x < this.game.width; x++) {
+                    // ポータルからの距離を計算
+                    const distanceFromPortal = Math.sqrt(
+                        Math.pow(x - this.game.player.x, 2) + 
+                        Math.pow(y - this.game.player.y, 2)
+                    );
+
+                    // 距離に応じて変化の確率を調整
+                    const changeThreshold = (currentStep / steps) * 15 - distanceFromPortal;
+                    
+                    if (Math.random() < Math.max(0, changeThreshold / 15)) {
+                        // SPACE配列からランダムにタイルを選択
+                        this.game.tiles[y][x] = GAME_CONSTANTS.TILES.SPACE[
+                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE.length)
+                        ];
+                        
+                        // SPACE_COLORSからランダムに色を選択
+                        this.game.colors[y][x] = GAME_CONSTANTS.TILES.SPACE_COLORS[
+                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE_COLORS.length)
+                        ];
+                    }
+                }
+            }
+
+            currentStep++;
+            this.render();
+
+            // 次のフレームをスケジュール
+            setTimeout(animate, duration / steps);
+        };
+
+        // アニメーションを開始
+        animate();
     }
 }

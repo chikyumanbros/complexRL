@@ -842,7 +842,8 @@ class MapGenerator {
                     this.tiles[y][x] = GAME_CONSTANTS.TILES.CYBER_WALL[
                         Math.floor(Math.random() * GAME_CONSTANTS.TILES.CYBER_WALL.length)
                     ];
-                    this.colors[y][x] = '#FFFFFF';
+                    const cyberWallColors = ['#ADFF2F', '#00FFFF', '#FF00FF', '#FFFFFF']; 
+                    this.colors[y][x] = cyberWallColors[Math.floor(Math.random() * cyberWallColors.length)];
                 }
             }
         }
@@ -856,22 +857,23 @@ class MapGenerator {
             }
         }
 
-        // Place stairs in a fixed position (bottom right of the room)
-        const stairsX = centerRoom.x + centerRoom.width - 2;
-        const stairsY = centerRoom.y + centerRoom.height - 2;
+        // ポータルを部屋の中心に配置
+        const portalX = centerRoom.x + Math.floor(centerRoom.width / 2);
+        const portalY = centerRoom.y + Math.floor(centerRoom.height / 2);
         
-        this.map[stairsY][stairsX] = 'floor';
-        this.tiles[stairsY][stairsX] = GAME_CONSTANTS.STAIRS.CHAR;
-        this.colors[stairsY][stairsX] = GAME_CONSTANTS.STAIRS.COLOR;
+        this.map[portalY][portalX] = 'portal';
+        this.tiles[portalY][portalX] = GAME_CONSTANTS.PORTAL.GATE.CHAR;
+        this.colors[portalY][portalX] = GAME_CONSTANTS.PORTAL.GATE.COLORS[0]; // 初期色はマゼンタ
 
-        // Place player in a fixed position (center of the room)
+        // プレイヤーの位置をポータルの手前に設定
         if (this.game && this.game.player) {
-            this.game.player.x = centerRoom.x + Math.floor(centerRoom.width / 2);
-            this.game.player.y = centerRoom.y + Math.floor(centerRoom.height / 2);
+            this.game.player.x = portalX;
+            this.game.player.y = portalY + 2; // ポータルの2マス下に配置
         }
-                // 危険度を'SAFE'に設定
-                if (this.game) {
-                    this.game.dangerLevel = 'SAFE';
-                }
+
+        // 危険度を'SAFE'に設定
+        if (this.game) {
+            this.game.dangerLevel = 'SAFE';
+        }
     }
 } 
