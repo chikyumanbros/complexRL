@@ -1288,7 +1288,7 @@ class Renderer {
         // スケールを考慮した実際の位置を計算
         return {
             x: (tileRect.left - containerRect.left - tileRect.width / 4) / scale,
-            y: (tileRect.top - containerRect.top + tileRect.height) / scale,
+            y: (tileRect.top - containerRect.top - tileRect.height / 4) / scale,
             width: tileRect.width / scale,
             height: tileRect.height / scale
         };
