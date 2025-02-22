@@ -10,7 +10,8 @@ class Renderer {
         this.flickerValues = new Array(20).fill(0);  // 揺らぎ値を保持
 
         // 幻覚エフェクト用の変数
-        this.psychedelicTurn = 0;  // 追加：サイケデリックエフェクトのターンカウンター
+        this.psychedelicTurn = 0;  // サイケデリックエフェクトのターンカウンター
+        this.fleeingTurn = 0;      // 追加：逃走アニメーションのターンカウンター
 
         // 初期の揺らぎ値を生成
         this.updateFlickerValues();
@@ -193,6 +194,10 @@ class Renderer {
     }
 
     render() {
+        // ターンカウンターを更新
+        this.fleeingTurn = (this.fleeingTurn + 1) % 2;  // 追加：0と1を交互に
+        this.psychedelicTurn = (this.psychedelicTurn + 1) % 1000;
+
         // Initialize movement effects state
         if (!this.movementEffects) {
             this.movementEffects = new Set();
@@ -285,9 +290,9 @@ class Renderer {
                             // 既存のモンスター描画処理
                             const monster = this.game.getMonsterAt(x, y);
                             if (monster) {
-                                // 逃走中のモンスターの場合、文字を交互に表示
+                                // 逃走中のモンスターの場合、ターンごとに文字を交互に表示
                                 content = monster.hasStartedFleeing ? 
-                                    (Date.now() % 1000 < 500 ? monster.char : '»') : 
+                                    (this.fleeingTurn === 0 ? monster.char : '»') : 
                                     monster.char;
                                 let monsterOpacity = 1;
                                 if (monster.hasStartedFleeing) {
