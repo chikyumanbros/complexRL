@@ -773,8 +773,8 @@ class Renderer {
         const pos = this.getTilePosition(x, y);
         if (!pos) return;
 
-        const centerX = pos.x;
-        const centerY = pos.y - pos.height / 2;
+        const centerX = pos.x - pos.width / 4;
+        const centerY = pos.y - pos.height / 4;
 
         const particleCount = 50;
         for (let i = 0; i < particleCount; i++) {
