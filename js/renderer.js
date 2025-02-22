@@ -601,8 +601,8 @@ class Renderer {
                     const healthStatus = monster.getHealthStatus(monster.hp, monster.maxHp);
                     const healthClass = healthStatus.name.toLowerCase().replace(' ', '-');
 
-                    const sleepStatus = monster.isSleeping ? ' Z' : '';
-                    const fleeingStatus = monster.hasStartedFleeing ? ' >' : '';
+                    const sleepStatus = monster.isSleeping ? 'Zzz' : '';
+                    const fleeingStatus = monster.hasStartedFleeing ? '>>' : '';
                     const monsterSymbol = monster.char ? monster.char : 'M';
                     const monsterColor = GAME_CONSTANTS.COLORS.MONSTER[monster.type];
 
@@ -613,9 +613,13 @@ class Renderer {
                     const direction = this.getDirectionIndicator(dx, dy);
                     const directionColor = this.getDirectionColor(distance);
 
+                    const hpBars = Math.ceil((monster.hp / monster.maxHp) * 10);
+                    const hpText = '|'.repeat(hpBars).padEnd(10, ' ');
+
                     return `<span style="color: ${monsterColor}">` +
-                        `<span style="color: ${directionColor}; display: inline-block; width: 2em">${direction}</span>${monsterSymbol} ${monster.name}</span>` +
-                        ` [<span class="${healthClass}">${monster.hp}/${monster.maxHp}</span>]` +
+                        `<span style="color: ${directionColor}; display: inline-block; width: 2em">${direction}</span>${monsterSymbol} </span>` +
+                        `<span style="color: ${monsterColor}">${monster.name}</span><br>` +
+                        ` [<span class="${healthClass}">${hpText} ${monster.hp}/${monster.maxHp}</span>]` +
                         `${sleepStatus}${fleeingStatus}`;
                 }).join('<br>');
                 monstersInSightElement.innerHTML = monsterList;
@@ -1360,37 +1364,32 @@ class Renderer {
         // ログパネルをクリア
         messageLogElement.innerHTML = '';
 
-        // ブロック文字のタイトル（バッククォートを通常の引用符に変更）
-        const titleArt = [
+        // タイトルアートの後に追加するクレジット情報
+        const credits = [
+            "v0.1.0 alpha",
 
-            "''' '''' '' '' ' ''' '' '' '' '' '' '''' ' '' ' '' '' '' '''''' '' '' ' ''' ''  ' '' '' ' '' ''' '' '",
-            "' '  '' ...  '''  ..  '' '' ...,  ' ' ' ......'.  ' ' '' '  '  '' '' ' '' ' ''. '' '''''......,  '' ' ",
-            "''''.JMMMMM:' .MMMMMMMNa.' .TMMM|'''  dMMM#^ T\"MMMMMMN,'dMMMMMM> ''.MMMMMMMMN WMMMMMM@^(WMMMM$' '' ",
+            "Font: IBM EGA 9x8 || Source: The Ultimate Oldschool PC Font Pack by VileR || Licensed under CC BY-SA 4.0",
+            "https://int10h.org/oldschool-pc-fonts/",
+        ];
+
+        // バージョン表記とタイトルアートを表示
+        const titleArt = [
+            "''''.JMMMMM:' .MMMMMMMNa.' .TMMM|'''  dMMM#^ T''MMMMMMN,'dMMMMMM> ''.MMMMMMMMN WMMMMMM@^(WMMMM$' '' ",
             "''' .MM@^_7^ '(MMD''' 7MMN,'''dMMN  ''dMM]''''''JM#''(WM[' (MM%'' '' '' MM%''.T$'' ,MMM,'.d#^'' '' '",
-            "''  MMF' '' '.MMF'  '' .MMM_ 'MMMM]' .MMM]'  ' ',M# ' JMF''.MM>' '' ' '.MM: ' '' ''' TMNJM\"' ' '' ' ",
+            "''  MMF' '' '.MMF'  '' .MMM_ 'MMMM]' .MMM]'  ' ',M# ' JMF''.MM>' '' ' '.MM: ' '' ''' TMNJM''' ' '' ' ",
             "'''MM)' ''' (MM]''' '''dMM''.Mt(MN..MDWM]''' ' -M#.gMMB'''-M#' '' ''' .MMNMMM_ ' ' ''JMMN '' '' '''",
             "'  MM]''  ...MMN,' ' ' dMF' ,M}.MMNM3'JM# '' ''(MN ''' 'JM#'' '' ,'',MM ' ?'' ' ' (M@WMN.'' ' ' ' ",
             "'dMM,..JM^',MMMa,''.JMF''(M' ,MM'''-MM_' '.JMN'  '''''JMN....&MF '.MM/' ..,'''.M#^''TMM,'' '''  ",
             "''' WMMMM@''''.'WMMMMM9'.JgNMMJ, T^ gNMMMMNp,MMMMMMM'' 'jMMMMMMMMMD'(NMMMMMMMF dMMMMb '.+MMMMMN.'''",
-            "''' ''' ''' '' '''''' '''''' ''  '' ''''''''' '' '' '''''  '' '''' ''' '' '' ' '' ' '''  '  _?'_\"'  '",
-            "''  '' '''  ' '  '' ' '  ''' ' ' ''  ' '  '' ''' '' ' ''' ''  ''' ' '' ' '' '' ''' '''' ''' ''' ''  ",
         ];
 
-        // バージョン表記を追加
-        titleArt.unshift("v0.1.0 alpha");
-
-        titleArt.forEach(line => {
+        // バージョン、タイトルアート、クレジットを表示
+        [...titleArt, '', ...credits].forEach(line => {
             const div = document.createElement('div');
             div.textContent = line;
             div.className = 'message title';
             messageLogElement.appendChild(div);
         });
-
-        // 空行を追加
-        const spacer = document.createElement('div');
-        spacer.className = 'message';
-        spacer.innerHTML = '&nbsp;';
-        messageLogElement.appendChild(spacer);
 
         // プロンプトメッセージを追加
         const messages = [

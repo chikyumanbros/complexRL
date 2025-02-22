@@ -237,6 +237,20 @@ class Game {
     }
 
     placePlayerInRoom() {
+        // ホームフロア（レベル0）の場合は、ポータルの1マス下に配置
+        if (this.floorLevel === 0) {
+            for (let y = 0; y < this.height; y++) {
+                for (let x = 0; x < this.width; x++) {
+                    if (this.tiles[y][x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+                        this.player.x = x;
+                        this.player.y = y + 1;
+                        return;
+                    }
+                }
+            }
+        }
+
+        // 通常フロアの場合は既存のロジックを使用
         if (!this.rooms || this.rooms.length === 0) {
             // 部屋がない場合のフォールバック処理
             this.player.x = Math.floor(this.width / 2);
