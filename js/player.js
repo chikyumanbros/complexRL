@@ -734,7 +734,6 @@ class Player {
 
         const message = this.getPresenceMessage(effectivePresence, largestMonster);
         game.logger.add(message, "playerInfo");
-        game.renderer.flashLogPanel();
         game.hasDisplayedPresenceWarning = true;
     }
 
@@ -767,12 +766,6 @@ class Player {
         }
         game.lastAttackLocation = { x: monster.x, y: monster.y };
         game.renderer.render();
-        this.attackEffectTimer = setTimeout(() => {
-            game.lastAttackLocation = null;
-            game.renderer.render();
-            this.attackEffectTimer = null;
-        }, 200);
-
         // 攻撃後にlook情報を更新
         game.renderer.examineTarget(monster.x, monster.y);
     }

@@ -14,10 +14,17 @@ class MapGenerator {
         this.map = this.initializeMap();
         this.tiles = this.initializeTiles();
         this.colors = this.initializeColors();
-        this.rooms = this.generateRooms();  // roomsをクラスのプロパティとして保存
-        this.connectRooms(this.rooms);
-        this.placeDoors(this.rooms);
-        this.placeStairs(this.rooms);
+        
+        // Add special handling for floor 0
+        if (this.floorLevel === 0) {
+            this.generateHomeFloor();
+        } else {
+            this.rooms = this.generateRooms();
+            this.connectRooms(this.rooms);
+            this.placeDoors(this.rooms);
+            this.placeStairs(this.rooms);
+        }
+        
         return {
             map: this.map,
             tiles: this.tiles,
@@ -53,6 +60,17 @@ class MapGenerator {
     initializeColors() {
         const colors = [];
         
+        // ホームフロア（レベル0）の場合は壁を白に
+        if (this.floorLevel === 0) {
+            for (let y = 0; y < this.height; y++) {
+                colors[y] = [];
+                for (let x = 0; x < this.width; x++) {
+                    colors[y][x] = this.map[y][x] === 'wall' ? '#FFFFFF' : GAME_CONSTANTS.COLORS.FLOOR;
+                }
+            }
+            return colors;
+        }
+
         // 階層の下一桁を取得 (0-9)
         const floorDigit = this.floorLevel % 10;
         
@@ -786,6 +804,65 @@ class MapGenerator {
                 styles.push(`color: ${this.colors[y][x]}; background-color: black; font-weight: bold;`);
             }
             //console.log(rowStr, ...styles);
+        }
+    }
+
+    // Add new method for generating home floor
+    generateHomeFloor() {
+        // Create a single large central room
+        const centerRoom = {
+            x: Math.floor(this.width / 2) - 10,
+            y: Math.floor(this.height / 2) - 7,
+            width: 20,
+            height: 14,
+            brightness: 100  // 最大の明るさに固定
+        };
+        
+        this.rooms = [centerRoom];
+
+        // サイバー風の壁タイル
+        const cyberWallTiles = [
+            '╢', '╖', '╕', '╣', '║', '╗', '╝', '╜', '╞', '╟',
+            '╚', '╔', '╩', '╦', '╠', '═', '╬', '╧', '╨', '╤',
+            '╥', '╙', '╘', '╒', '╓'
+        ];
+
+        // 全マップを壁で初期化
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                this.tiles[y][x] = cyberWallTiles[
+                    Math.floor(Math.random() * cyberWallTiles.length)
+                ];
+            }
+        }
+
+        // 部屋を生成（床タイルは'0'と'1'のみを使用）
+        for (let y = centerRoom.y; y < centerRoom.y + centerRoom.height; y++) {
+            for (let x = centerRoom.x; x < centerRoom.x + centerRoom.width; x++) {
+                this.map[y][x] = 'floor';
+                // 床タイルを'0'と'1'からランダムに選択（ゲーム本体で更新される）
+                this.tiles[y][x] = Math.random() < 0.5 ? '0' : '1';
+                this.colors[y][x] = GAME_CONSTANTS.COLORS.FLOOR;
+            }
+        }
+
+        // Place stairs in a fixed position (bottom right of the room)
+        const stairsX = centerRoom.x + centerRoom.width - 2;
+        const stairsY = centerRoom.y + centerRoom.height - 2;
+        
+        this.map[stairsY][stairsX] = 'floor';
+        this.tiles[stairsY][stairsX] = GAME_CONSTANTS.STAIRS.CHAR;
+        this.colors[stairsY][stairsX] = GAME_CONSTANTS.STAIRS.COLOR;
+
+        // Place player in a fixed position (center of the room)
+        if (this.game && this.game.player) {
+            this.game.player.x = centerRoom.x + Math.floor(centerRoom.width / 2);
+            this.game.player.y = centerRoom.y + Math.floor(centerRoom.height / 2);
+        }
+
+        // 危険度を'SAFE'に設定
+        if (this.game) {
+            this.game.dangerLevel = 'SAFE';
         }
     }
 } 

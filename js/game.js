@@ -6,6 +6,7 @@ class Game {
         this.tiles = [];
         this.colors = [];
         this.player = new Player(0, 0, this);  // Coordinates will be set later
+        this.player.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;  // 明示的に設定
         this.codexSystem = new CodexSystem();
         this.renderer = new Renderer(this);
         this.inputHandler = new InputHandler(this);
@@ -17,11 +18,12 @@ class Game {
         this.maxTotalMonsters = 100;
         this.rooms = [];  // Stores room information
         this.isGameOver = false;
-        this.floorLevel = 1;  // Added floor level
+        this.floorLevel = 0;  // Changed from 1 to 0 for starting at home floor
         this.dangerLevel = 'NORMAL';  // Added danger level
         this.explored = this.initializeExplored();  // Added explored information
         this.lastAttackLocation = null;  // Added property to track last attack location
         this.hasDisplayedPresenceWarning = false;  // Added hasDisplayedPresenceWarning property
+        this.lastHomeFloorUpdate = 0;  // ホームフロアの最終更新ターン
 
         // 死亡したモンスターの処理キューを追加
         this.pendingMonsterDeaths = [];
@@ -59,6 +61,7 @@ class Game {
         this.tiles = [];
         this.colors = [];
         this.player = new Player(0, 0, this);
+        this.player.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;  // リセット時にも設定
         this.codexSystem = new CodexSystem();
         this.logger = new Logger(this);
         this.turn = 0;
@@ -67,7 +70,7 @@ class Game {
         this.maxTotalMonsters = 30;
         this.rooms = [];
         this.isGameOver = false;
-        this.floorLevel = 1;
+        this.floorLevel = 0;  // Changed from 1 to 0
         this.player.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;  // リセット時にVigorを初期化
 
         // 危険度をランダムに決定
@@ -163,7 +166,7 @@ class Game {
         this.explored = this.initializeExplored();
         this.totalMonstersSpawned = 0;
         this.turn = 0;
-        this.floorLevel = 1;
+        this.floorLevel = 0;  // Changed from 1 to 0
 
         // 危険度をランダムに決定（reset()と同じロジック）
         const dangerLevels = Object.keys(GAME_CONSTANTS.DANGER_LEVELS);
@@ -199,6 +202,9 @@ class Game {
         // プレイヤー名入力画面を表示
         this.renderer.renderNamePrompt('');
         this.inputHandler.setMode('name');
+
+        this.player = new Player(0, 0, this);
+        this.player.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;  // 明示的に初期化
     }
 
     placePlayerInRoom() {
@@ -290,40 +296,50 @@ class Game {
             return;
         }
 
-        // Vigorの減少チェック
+        // Vigorの処理 (floor 0では全回復)
         if (this.player.hp > 0) {
-            // NaNチェックと修正
-            if (isNaN(this.player.vigor)) {
-                console.warn('Vigor was NaN, resetting to default value');
-                this.player.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;
-            }
+            if (this.floorLevel === 0) {
+                // floor 0では最大値まで回復
+                if (this.player.vigor < GAME_CONSTANTS.VIGOR.MAX) {
+                    const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+                    this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
+                    const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+                    
+                    // 状態が変化した場合のみログ表示
+                    if (oldStatus.name !== newStatus.name) {
+                        this.logger.add(`Your vigor has been restored to ${newStatus.name.toLowerCase()} level.`, "playerInfo");
+                    }
+                }
+            } else {
+                // 通常フロアでの既存のVigor減少処理
+                if (isNaN(this.player.vigor)) {
+                    console.warn('Vigor was NaN, resetting to default value');
+                    this.player.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;
+                }
 
-            const decreaseChance = GAME_CONSTANTS.VIGOR.calculateDecreaseChance(this.turn);
-            const roll = Math.floor(Math.random() * 100);
-            
-            //// デバッグ用：毎ターンVigor関連の情報を表示
-            //console.log(`Current Vigor: ${this.player.vigor} (${GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats).name})`);
-            //console.log(`Turn: ${this.turn}, Decrease chance: ${decreaseChance}%, Roll: ${roll}`);
-            
-            if (roll < decreaseChance) {
-                // 現在の状態を保存
-                const currentStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+                const decreaseChance = GAME_CONSTANTS.VIGOR.calculateDecreaseChance(this.turn);
+                const roll = Math.floor(Math.random() * 100);
                 
-                const healthStatus = GAME_CONSTANTS.HEALTH_STATUS.getStatus(
-                    this.player.hp,
-                    this.player.maxHp,
-                    this.player.stats
-                );
-                const decrease = GAME_CONSTANTS.VIGOR.DECREASE[healthStatus.name.toUpperCase()];
-                this.player.vigor = Math.max(0, this.player.vigor - decrease);
+                if (roll < decreaseChance) {
+                    // 現在の状態を保存
+                    const currentStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+                    
+                    const healthStatus = GAME_CONSTANTS.HEALTH_STATUS.getStatus(
+                        this.player.hp,
+                        this.player.maxHp,
+                        this.player.stats
+                    );
+                    const decrease = GAME_CONSTANTS.VIGOR.DECREASE[healthStatus.name.toUpperCase()];
+                    this.player.vigor = Math.max(0, this.player.vigor - decrease);
 
-                // 新しい状態を取得
-                const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
-                
-                // 状態が変化した場合はログに表示とフラッシュエフェクト
-                if (currentStatus.name !== newStatus.name) {
-                    this.logger.add(`Your vigor has decreased to ${newStatus.name.toLowerCase()} level.`, "warning");
-                    this.renderer.flashLogPanel();  // フラッシュエフェクトを追加
+                    // 新しい状態を取得
+                    const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+                    
+                    // 状態が変化した場合はログに表示とフラッシュエフェクト
+                    if (currentStatus.name !== newStatus.name) {
+                        this.logger.add(`Your vigor has decreased to ${newStatus.name.toLowerCase()} level.`, "warning");
+                        this.renderer.flashLogPanel();  // フラッシュエフェクトを追加
+                    }
                 }
             }
         }
@@ -418,6 +434,10 @@ class Game {
         this.renderer.psychedelicTurn++;
         this.renderer.render();
         this.saveGame();
+
+        if (this.floorLevel === 0) {
+            this.updateHomeFloor();
+        }
     }
 
     processMonsterDeath(deathInfo) {
@@ -527,25 +547,26 @@ class Game {
             // 失敗：Vigorが減少
             vigorChange = -Math.floor(Math.random() * this.player.stats.wis) - 1;  // -d(wis)
         } else {
-            // 成功：Vigor回復
-            vigorChange = roll;
+            // 成功：Vigor回復（最大値を超えないように制限）
+            const maxRecovery = GAME_CONSTANTS.VIGOR.MAX - this.player.vigor;
+            vigorChange = Math.min(roll, maxRecovery);
         }
 
-        // Vigor値の更新（0-100の範囲に収める）
-        const oldVigor = this.player.vigor;
-        this.player.vigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, this.player.vigor + vigorChange));
-
-        // ログ出力
-        let messages = [];
-        if (actualHeal > 0) messages.push(`${actualHeal} HP`);
+        // Vigor値の更新と状態変化チェック
         if (vigorChange !== 0) {
-            const vigorMsg = vigorChange > 0 ? 
-                `gained ${vigorChange} Vigor` : 
-                `lost ${Math.abs(vigorChange)} Vigor`;
-            messages.push(vigorMsg);
+            const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+            this.player.vigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, this.player.vigor + vigorChange));
+            const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+            
+            // 状態が変化した場合のみログ表示
+            if (oldStatus.name !== newStatus.name) {
+                this.logger.add(`Your vigor has ${vigorChange < 0 ? 'decreased' : 'increased'} to ${newStatus.name.toLowerCase()} level.`, "warning");
+            }
         }
-        if (messages.length > 0) {
-            this.logger.add(`Meditation: ${messages.join(", ")}.`, "playerInfo");
+
+        // HP回復のログ出力
+        if (actualHeal > 0) {
+            this.logger.add(`Meditation heals you for ${actualHeal} HP.`, "playerInfo");
         }
 
         this.player.meditation.turnsRemaining--;
@@ -555,7 +576,7 @@ class Game {
             this.player.meditation.turnsRemaining <= 0) {
             let endMessage;
             if (this.player.meditation.turnsRemaining <= 0) {
-                endMessage = `Meditation complete. (Total healed: ${this.player.meditation.totalHealed} HP, Total Vigor: ${this.player.vigor})`;
+                endMessage = `Meditation complete. (Total healed: ${this.player.meditation.totalHealed} HP)`;
             } else {
                 endMessage = "You feel fully restored!";
             }
@@ -1010,12 +1031,13 @@ class Game {
     saveGame() {
         if (this.isGameOver) return;
 
-        // 前回のセーブから変更がない場合はスキップ
         const currentState = {
             playerPos: `${this.player.x},${this.player.y}`,
             playerHp: this.player.hp,
+            playerVigor: this.player.vigor,  // Vigorの状態も追加
             monstersState: this.monsters.map(m => `${m.x},${m.y},${m.hp}`).join('|'),
-            turn: this.turn
+            turn: this.turn,
+            floorLevel: this.floorLevel
         };
 
         if (this._lastSaveState &&
@@ -1023,7 +1045,6 @@ class Game {
             return;
         }
 
-        // セーブ処理
         const saveData = {
             player: {
                 name: this.player.name,
@@ -1041,7 +1062,21 @@ class Game {
                     skillId: skill.id,
                     remainingCooldown: skill.remainingCooldown
                 })),
-                vigor: this.player.vigor
+                vigor: Number.isFinite(this.player.vigor) ? 
+                    this.player.vigor : 
+                    GAME_CONSTANTS.VIGOR.DEFAULT,  // 数値チェックを追加
+            },
+            gameState: {
+                floorLevel: this.floorLevel,  // フロアレベルも変更チェックに追加
+                dangerLevel: this.dangerLevel,
+                turn: this.turn
+            },
+            mapData: {
+                map: this.map,
+                tiles: this.tiles,
+                colors: this.colors,
+                rooms: this.rooms,
+                explored: this.explored
             },
             monsters: this.monsters.map(monster => ({
                 type: monster.type,
@@ -1050,15 +1085,7 @@ class Game {
                 hp: monster.hp,
                 isSleeping: monster.isSleeping,
                 hasStartedFleeing: monster.hasStartedFleeing
-            })),
-            map: this.map,
-            tiles: this.tiles,
-            colors: this.colors,
-            rooms: this.rooms,
-            explored: this.explored,
-            floorLevel: this.floorLevel,
-            dangerLevel: this.dangerLevel,
-            turn: this.turn
+            }))
         };
 
         try {
@@ -1081,7 +1108,7 @@ class Game {
             const data = JSON.parse(savedData);
             
             // データの検証
-            if (!data || !data.player) {
+            if (!data || !data.player || !data.gameState || !data.mapData) {
                 console.error('Invalid save data format');
                 this.init();
                 return;
@@ -1092,73 +1119,77 @@ class Game {
 
             // プレイヤー名が保存されている場合
             if (data.player.name) {
-                // タイトル画面のみ表示し、ゲームモードに設定
                 this.renderer.renderNamePrompt('');
                 this.inputHandler.mode = 'game';
-                
-                // 少し遅延してタイトルを消去し、ウェルカムメッセージを表示
-                setTimeout(() => {
-                    this.logger.clearTitle();
-                    this.logger.add(`Welcome back, ${data.player.name}!`, "important");
-                }, 3000);
+                this.logger.clearTitle();
+                this.logger.add(`Welcome back, ${data.player.name}!`, "important");
             }
 
-            // プレイヤーの復元（nullチェック付き）
-            if (data.player) {
-                this.player.name = data.player.name || 'Unknown';
-                this.player.x = data.player.x || 0;
-                this.player.y = data.player.y || 0;
-                this.player.hp = data.player.hp || this.player.maxHp;
-                this.player.maxHp = data.player.maxHp || this.player.maxHp;
-                this.player.level = data.player.level || 1;
-                this.player.xp = data.player.xp || 0;
-                this.player.xpToNextLevel = data.player.xpToNextLevel || 100;
-                this.player.codexPoints = data.player.codexPoints || 0;
-                this.player.stats = data.player.stats || this.player.stats;
-                this.player.vigor = data.player.vigor || GAME_CONSTANTS.VIGOR.DEFAULT;  // Vigorを復元（デフォルト値を設定）
-            }
+            // プレイヤーデータの復元
+            this.player.name = data.player.name ?? 'Unknown';
+            this.player.x = data.player.x ?? 0;
+            this.player.y = data.player.y ?? 0;
+            this.player.hp = data.player.hp ?? this.player.maxHp;
+            this.player.maxHp = data.player.maxHp ?? this.player.maxHp;
+            this.player.level = data.player.level ?? 1;
+            this.player.xp = data.player.xp ?? 0;
+            this.player.xpToNextLevel = data.player.xpToNextLevel ?? 100;
+            this.player.codexPoints = data.player.codexPoints ?? 0;
+            this.player.stats = data.player.stats ?? this.player.stats;
+
+            // Vigorの復元（数値チェック付き）
+            const loadedVigor = data.player.vigor;
+            this.player.vigor = Number.isFinite(loadedVigor) ? 
+                loadedVigor : 
+                GAME_CONSTANTS.VIGOR.DEFAULT;
 
             // スキルの復元
             this.player.skills = new Map();
-            if (data.player.skills && Array.isArray(data.player.skills)) {
+            if (data.player.skills?.length > 0) {
                 data.player.skills.forEach(skillData => {
-                    if (skillData && skillData.slot && skillData.skillId) {
+                    if (skillData?.slot && skillData?.skillId) {
                         this.player.skills.set(skillData.slot, {
                             id: skillData.skillId,
-                            remainingCooldown: skillData.remainingCooldown || 0
+                            remainingCooldown: skillData.remainingCooldown ?? 0
                         });
                     }
                 });
             }
 
-            // マップデータの復元（nullチェック付き）
-            this.map = data.map || this.map;
-            this.tiles = data.tiles || this.tiles;
-            this.colors = data.colors || this.colors;
-            this.rooms = data.rooms || this.rooms;
-            this.explored = data.explored || this.explored;
-            this.floorLevel = data.floorLevel || 1;
-            this.dangerLevel = data.dangerLevel || 'NORMAL';
-            this.turn = data.turn || 0;
+            // ゲーム状態の復元
+            this.floorLevel = data.gameState.floorLevel ?? 0;  // デフォルト値を0に変更
+            this.dangerLevel = data.gameState.dangerLevel ?? 'SAFE';
+            this.turn = data.gameState.turn ?? 0;
 
-            // モンスターの復元（nullチェック付き）
+            // マップデータの復元
+            this.map = data.mapData.map ?? this.map;
+            this.tiles = data.mapData.tiles ?? this.tiles;
+            this.colors = data.mapData.colors ?? this.colors;
+            this.rooms = data.mapData.rooms ?? [];
+            this.explored = data.mapData.explored ?? this.initializeExplored();
+
+            // モンスターの復元
             if (Array.isArray(data.monsters)) {
-                this.monsters = data.monsters.map(monsterData => {
-                    if (!monsterData || !monsterData.type) return null;
-                    const monster = new Monster(monsterData.type, monsterData.x || 0, monsterData.y || 0, this);
-                    // HPを設定する前にmaxHPを確認
-                    monster.hp = Math.min(monsterData.hp || monster.hp, monster.maxHp);
-                    monster.isSleeping = monsterData.isSleeping || false;
-                    monster.hasStartedFleeing = monsterData.hasStartedFleeing || false;
-                    return monster;
-                }).filter(monster => monster !== null);
+                this.monsters = data.monsters
+                    .filter(monsterData => monsterData?.type)
+                    .map(monsterData => {
+                        const monster = new Monster(
+                            monsterData.type,
+                            monsterData.x ?? 0,
+                            monsterData.y ?? 0,
+                            this
+                        );
+                        monster.hp = Math.min(monsterData.hp ?? monster.hp, monster.maxHp);
+                        monster.isSleeping = monsterData.isSleeping ?? false;
+                        monster.hasStartedFleeing = monsterData.hasStartedFleeing ?? false;
+                        return monster;
+                    });
             }
 
             this.renderer.render();
             this.logger.add("Previous save data loaded", "important");
         } catch (e) {
             console.error('Failed to load save data:', e);
-            // 読み込みに失敗した場合は新規ゲームを開始
             this.init();
         }
     }
@@ -1186,6 +1217,38 @@ class Game {
             }
         }
         return false;
+    }
+
+    updateHomeFloor() {
+        // ホームフロアでのみ実行
+        if (this.floorLevel !== 0) return;
+
+        // サイバー風の壁タイル
+        const cyberWallTiles = [
+            '╢', '╖', '╕', '╣', '║', '╗', '╝', '╜', '╞', '╟',
+            '╚', '╔', '╩', '╦', '╠', '═', '╬', '╧', '╨', '╤',
+            '╥', '╙', '╘', '╒', '╓'
+        ];
+
+        // 毎ターン床タイルと壁タイルをランダムに変更
+        const centerRoom = this.rooms[0];  // ホームフロアは1つの部屋のみ
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                if (y >= centerRoom.y && y < centerRoom.y + centerRoom.height &&
+                    x >= centerRoom.x && x < centerRoom.x + centerRoom.width) {
+                    // 部屋の中（床）の処理
+                    if (this.tiles[y][x] !== GAME_CONSTANTS.STAIRS.CHAR) {
+                        this.tiles[y][x] = Math.random() < 0.5 ? '0' : '1';
+                    }
+                } else {
+                    // 壁の処理
+                    this.tiles[y][x] = cyberWallTiles[
+                        Math.floor(Math.random() * cyberWallTiles.length)
+                    ];
+                }
+            }
+        }
+        this.lastHomeFloorUpdate = this.turn;
     }
 }
 

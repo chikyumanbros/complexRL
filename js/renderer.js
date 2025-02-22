@@ -369,7 +369,8 @@ class Renderer {
                 if (isAttackTarget && this.game.lastAttackResult && 
                     this.game.lastAttackResult.hit && 
                     !this.game.lastAttackResult.evaded &&
-                    this.game.lastAttackResult.damage > 0) {
+                    this.game.lastAttackResult.damage > 0 &&
+                    !this.game.lastAttackResult.miss) {
                     classes.push('damage');
                 }
 
@@ -411,7 +412,10 @@ class Renderer {
         const floorLevelElement = document.getElementById('floor-level');
         if (floorLevelElement) {
             const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.game.dangerLevel];
-            floorLevelElement.innerHTML = `${this.game.floorLevel} <span style="color: ${dangerInfo.color}">[${dangerInfo.name}]</span>`;
+            const floorDisplay = this.game.floorLevel === 0 ? 
+                "◄ THE NEXUS ►" : 
+                this.game.floorLevel;
+            floorLevelElement.innerHTML = `${floorDisplay} <span style="color: ${dangerInfo.color}">[${dangerInfo.name}]</span>`;
         }
 
         // Update HP numerical and bar display
@@ -659,9 +663,6 @@ class Renderer {
         const statusPanel = document.getElementById('status-panel');
         if (statusPanel) {
             statusPanel.classList.add('damage-flash');
-            setTimeout(() => {
-                statusPanel.classList.remove('damage-flash');
-            }, 200);
         }
     }
 
@@ -672,10 +673,6 @@ class Renderer {
         if (playerChar) {
             playerChar.classList.add('next-attack-modifier');
             //console.log('Added next-attack-modifier class'); // Debug log
-            setTimeout(() => {
-                playerChar.classList.remove('next-attack-modifier');
-                //console.log('Removed next-attack-modifier class'); // Debug log
-            }, 500);
         }
     }
     // New method for meditation effect
@@ -959,10 +956,6 @@ class Renderer {
     
         if (this.statusPanelFlashing) {
             panel.classList.add('flash');
-            setTimeout(() => {
-                panel.classList.remove('flash');
-                this.statusPanelFlashing = false;
-            }, 100);
         }
     }
 
