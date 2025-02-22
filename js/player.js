@@ -26,11 +26,12 @@ class Player {
         this.meditation = null;  // メディテーション状態を追加
 
         // vigorの初期化を確実に行う
-        if (!Number.isFinite(GAME_CONSTANTS.VIGOR.DEFAULT)) {
-            console.error('VIGOR.DEFAULT is not a valid number:', GAME_CONSTANTS.VIGOR.DEFAULT);
+        const defaultVigor = GAME_CONSTANTS.VIGOR.DEFAULT;
+        if (!Number.isFinite(defaultVigor)) {
+            console.error('VIGOR.DEFAULT is not a valid number:', defaultVigor);
             this.vigor = 100; // フォールバック値
         } else {
-            this.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;
+            this.vigor = defaultVigor;
         }
 
         // 各種パラメータの計算
@@ -918,7 +919,8 @@ class Player {
     validateVigor() {
         if (!Number.isFinite(this.vigor)) {
             console.warn('Vigor was invalid, resetting to default value');
-            this.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;
+            const defaultVigor = GAME_CONSTANTS.VIGOR.DEFAULT;
+            this.vigor = Number.isFinite(defaultVigor) ? defaultVigor : 100;
         }
         // 範囲内に収める
         this.vigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, this.vigor));

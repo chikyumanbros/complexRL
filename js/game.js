@@ -75,7 +75,6 @@ class Game {
         this.tiles = [];
         this.colors = [];
         this.player = new Player(0, 0, this);
-        this.player.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;  // この行を追加
         this.codexSystem = new CodexSystem();
         this.logger = new Logger(this);
         this.turn = 0;
@@ -85,7 +84,15 @@ class Game {
         this.rooms = [];
         this.isGameOver = false;
         this.floorLevel = 0;  // Changed from 1 to 0
-        this.player.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;  // リセット時にVigorを初期化
+
+        // Vigorの初期化を一箇所に統一し、検証を追加
+        const defaultVigor = GAME_CONSTANTS.VIGOR.DEFAULT;
+        if (!Number.isFinite(defaultVigor)) {
+            console.error('VIGOR.DEFAULT is not a valid number:', defaultVigor);
+            this.player.vigor = 100; // フォールバック値
+        } else {
+            this.player.vigor = defaultVigor;
+        }
 
         // 危険度をランダムに決定
         const dangerLevels = Object.keys(GAME_CONSTANTS.DANGER_LEVELS);
@@ -322,9 +329,13 @@ class Game {
         if (this.player.hp > 0) {
             if (this.floorLevel === 0) {
                 // floor 0では最大値まで回復
-                if (this.player.vigor < GAME_CONSTANTS.VIGOR.MAX) {
+                const currentVigor = Number.isFinite(this.player.vigor) ? 
+                    this.player.vigor : 
+                    GAME_CONSTANTS.VIGOR.DEFAULT;
+
+                if (currentVigor < GAME_CONSTANTS.VIGOR.MAX) {
                     const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(
-                        Number.isFinite(this.player.vigor) ? this.player.vigor : GAME_CONSTANTS.VIGOR.DEFAULT,
+                        currentVigor,
                         this.player.stats
                     );
                     this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
@@ -336,21 +347,15 @@ class Game {
                     }
                 }
             } else {
-                // 通常フロアでの既存のVigor減少処理
-                // Vigorの値を安全に取得
-                let currentVigor = this.player.vigor;
-                if (!Number.isFinite(currentVigor)) {
-                    console.warn('Vigor was invalid, resetting to default value');
-                    currentVigor = GAME_CONSTANTS.VIGOR.DEFAULT;
-                    this.player.vigor = currentVigor;
-                }
-
+                // 通常フロアでのVigor減少処理
+                this.player.validateVigor();  // 検証メソッドを呼び出し
+                
                 const decreaseChance = GAME_CONSTANTS.VIGOR.calculateDecreaseChance(this.turn);
                 const roll = Math.floor(Math.random() * 100);
 
                 if (roll < decreaseChance) {
                     // 現在の状態を保存
-                    const currentStatus = GAME_CONSTANTS.VIGOR.getStatus(currentVigor, this.player.stats);
+                    const currentStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
 
                     const healthStatus = GAME_CONSTANTS.HEALTH_STATUS.getStatus(
                         this.player.hp,
@@ -358,7 +363,7 @@ class Game {
                         this.player.stats
                     );
                     const decrease = GAME_CONSTANTS.VIGOR.DECREASE[healthStatus.name.toUpperCase()];
-                    this.player.vigor = Math.max(0, currentVigor - decrease);
+                    this.player.vigor = Math.max(0, this.player.vigor - decrease);
 
                     // 新しい状態を取得
                     const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
