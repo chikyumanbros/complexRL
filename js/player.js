@@ -165,11 +165,6 @@ class Player {
             this.x = newX;
             this.y = newY;
 
-            // 自動探索を停止する条件をチェック
-            if (this.autoExploring) {
-                this.checkAutoExploreStop();
-            }
-
             // ポータルチェックを追加
             if (this.game.floorLevel === 0 && 
                 this.game.tiles[this.y][this.x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {

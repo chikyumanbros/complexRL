@@ -51,7 +51,7 @@ body {
     color: #cfcfcf;
     font-size: 15px;
     font-family: 'IBM EGA 9x8', monospace;
-    height: 550px;  /* 高さを固定 */
+    height: 580px;  /* 高さを固定 */
     justify-content: center;
 }
 
@@ -59,7 +59,7 @@ body {
     background: black;
     padding: 10px;
     width: 270px;
-    height: 550px;  /* gameと同じ高さに固定 */
+    height: 580px;  /* gameと同じ高さに固定 */
     color: rgb(207, 207, 207);
     display: flex;
     flex-direction: column;
@@ -72,14 +72,14 @@ body {
     width: calc(100vw - 1320px);
     min-width: 480px;
     max-width: 800px;
-    height: 550px;  /* gameと同じ高さに固定 */
+    height: 580px;  /* gameと同じ高さに固定 */
     color: rgb(207, 207, 207);
 }
 
 .bottom-panels {
     display: flex;
     gap: 5px;
-    height: calc(100vh - 550px);  /* 固定値から可変値に変更 */
+    height: calc(100vh - 580px);  /* 固定値から可変値に変更 */
     min-height: 200px;  /* 最小の高さを設定 */
 }
 

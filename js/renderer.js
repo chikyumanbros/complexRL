@@ -11,23 +11,6 @@ class Renderer {
 
         // 幻覚エフェクト用の変数
         this.psychedelicTurn = 0;  // 追加：サイケデリックエフェクトのターンカウンター
-        this.psychedelicColors = [
-            '#8B0000',  // ダークレッド
-            '#4B0082',  // インディゴ
-            '#006400',  // ダークグリーン
-            '#483D8B',  // ダークスレートブルー
-            '#800080',  // パープル
-            '#9400D3',  // ダークバイオレット
-            '#8B4513',  // サドルブラウン
-            '#4B0082',  // インディゴ
-            '#556B2F',  // ダークオリーブグリーン
-            '#8A2BE2',  // ブルーバイオレット
-            '#9932CC',  // ダークオーキッド
-            '#6B8E23',  // オリーブドラブ
-            '#FF1493',  // ディープピンク
-            '#FF4500',  // オレンジレッド
-            '#7B68EE',  // ミディアムスレートブルー
-        ];
 
         // 初期の揺らぎ値を生成
         this.updateFlickerValues();
@@ -171,26 +154,15 @@ class Renderer {
             const rand = Math.abs(Math.sin(seed));
             
             if (rand < 0.5) {
-                const possibleChars = 
-                    // 基本ASCII文字と拡張文字
-                    '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~' +
-                    // 特殊記号と通貨記号
-                    '¢£¤¥¦§¨©ª«¬®¯°±²³´µ¶·¸¹º»¼½¾¿' +
-                    // ギリシャ文字
-                    'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρςστυφχψω' +
-                    // キリル文字
-                    'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ' +
-                    // 罫線とブロック要素
-                    '─│┌┐└┘├┤┬┴┼═║╒╓╔╕╖╗╘╙╚╛╜╝╞╟╠╡╢╣╤╥╦╧╨╩╪╫╬▀▁▄█▌▐░▒▓' +
-                    // その他の特殊記号
-                    '■□▪▫▬▲►▼◄◊○●◘◙♠♣♥♦♪♫☺☻☼♀♂⌂';
+                const possibleChars = GAME_CONSTANTS.TILES.SPACE;
+                const possibleColors = GAME_CONSTANTS.TILES.SPACE_COLORS;
 
                 const charIndex = Math.floor(Math.abs(Math.sin(seed * 0.3)) * possibleChars.length);
-                const colorIndex = Math.floor(Math.abs(Math.cos(seed * 0.4)) * this.psychedelicColors.length);
+                const colorIndex = Math.floor(Math.abs(Math.cos(seed * 0.4)) * possibleColors.length);
 
                 return {
                     char: possibleChars[charIndex] || baseChar,
-                    color: this.psychedelicColors[colorIndex] || baseColor
+                    color: possibleColors[colorIndex] || baseColor
                 };
             }
         }
