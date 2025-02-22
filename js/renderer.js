@@ -285,7 +285,10 @@ class Renderer {
                             // 既存のモンスター描画処理
                             const monster = this.game.getMonsterAt(x, y);
                             if (monster) {
-                                content = monster.char;
+                                // 逃走中のモンスターの場合、文字を交互に表示
+                                content = monster.hasStartedFleeing ? 
+                                    (Date.now() % 1000 < 500 ? monster.char : '»') : 
+                                    monster.char;
                                 let monsterOpacity = 1;
                                 if (monster.hasStartedFleeing) {
                                     monsterOpacity = 0.9;

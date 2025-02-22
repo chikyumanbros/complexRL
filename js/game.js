@@ -29,10 +29,12 @@ class Game {
         this.pendingMonsterDeaths = [];
 
         // BGM用のプロパティを追加
-        this.homeBGM = new Audio('assets/sounds/complex_nexus.wav');
+        this.homeBGM = new Audio('assets/sounds/complex_nexus.ogg');
         this.homeBGM.loop = true;
         this.homeBGM.volume = 0.5;  // 初期音量を50%に設定
         this.fadeOutInterval = null;  // フェードアウト用のインターバルID
+
+        this.userInteracted = false;  // ユーザー操作検知用フラグを追加
 
         this.init();
 
@@ -223,6 +225,8 @@ class Game {
         // プレイヤー名入力画面を表示
         this.renderer.renderNamePrompt('');
         this.inputHandler.setMode('name');
+
+        // BGMの初期化はここで行わない
     }
 
     placePlayerInRoom() {
@@ -1352,16 +1356,40 @@ class Game {
 
     // BGMの管理メソッドを更新
     updateBGM() {
+        // ユーザー操作検知用フラグを追加
+        if (!this.userInteracted) {
+            // 初回操作を検知するイベントリスナーを設定
+            const handleFirstInteraction = () => {
+                this.userInteracted = true;
+                document.removeEventListener('click', handleFirstInteraction);
+                document.removeEventListener('keydown', handleFirstInteraction);
+                
+                // ホームフロアの場合のみ再生
+                if (this.floorLevel === 0 && this.homeBGM.paused) {
+                    this.homeBGM.play().catch(error => {
+                        if (error.name !== 'NotAllowedError') {
+                            console.warn('BGM playback failed:', error);
+                        }
+                    });
+                }
+            };
+
+            document.addEventListener('click', handleFirstInteraction);
+            document.addEventListener('keydown', handleFirstInteraction);
+            return;
+        }
+
+        // 通常のBGM処理
         if (this.floorLevel === 0) {
-            // ホームフロアでBGMを再生
             if (this.homeBGM.paused) {
-                this.homeBGM.volume = 0.5;  // 音量を初期値に戻す
+                this.homeBGM.volume = 0.5;
                 this.homeBGM.play().catch(error => {
-                    console.warn('BGM playback failed:', error);
+                    if (error.name !== 'NotAllowedError') {
+                        console.warn('BGM playback failed:', error);
+                    }
                 });
             }
         } else {
-            // 他のフロアに移動時はフェードアウト
             if (!this.homeBGM.paused) {
                 this.fadeOutBGM();
             }

@@ -452,10 +452,16 @@ class Player {
     }
 
     updateDerivedStats() {
+        this.validateVigor();  // Vigorの検証を追加
         // Calculate perception
         this.perception = GAME_CONSTANTS.FORMULAS.PERCEPTION(this.stats);
         
-        // 必要に応じた派生ステータスの更新処理
+        // 他の派生パラメータの更新
+        this.maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(this.stats, this.level);
+        this.attackPower = GAME_CONSTANTS.FORMULAS.ATTACK(this.stats);
+        this.defense = GAME_CONSTANTS.FORMULAS.DEFENSE(this.stats);
+        this.accuracy = GAME_CONSTANTS.FORMULAS.ACCURACY(this.stats);
+        this.evasion = GAME_CONSTANTS.FORMULAS.EVASION(this.stats);
     }
 
     getCodexPoints() {
@@ -907,5 +913,14 @@ class Player {
         const penaltyPerMonster = 15; // 1体につき15%のペナルティ
         // 2体以上からペナルティ適用（surroundingMonsters - 1）
         return Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
+    }
+
+    validateVigor() {
+        if (!Number.isFinite(this.vigor)) {
+            console.warn('Vigor was invalid, resetting to default value');
+            this.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;
+        }
+        // 範囲内に収める
+        this.vigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, this.vigor));
     }
 } 
