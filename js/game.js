@@ -304,7 +304,10 @@ class Game {
             if (this.floorLevel === 0) {
                 // floor 0では最大値まで回復
                 if (this.player.vigor < GAME_CONSTANTS.VIGOR.MAX) {
-                    const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+                    const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(
+                        Number.isFinite(this.player.vigor) ? this.player.vigor : GAME_CONSTANTS.VIGOR.DEFAULT,
+                        this.player.stats
+                    );
                     this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
                     const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
 
@@ -315,9 +318,12 @@ class Game {
                 }
             } else {
                 // 通常フロアでの既存のVigor減少処理
-                if (isNaN(this.player.vigor)) {
-                    console.warn('Vigor was NaN, resetting to default value');
-                    this.player.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;
+                // Vigorの値を安全に取得
+                let currentVigor = this.player.vigor;
+                if (!Number.isFinite(currentVigor)) {
+                    console.warn('Vigor was invalid, resetting to default value');
+                    currentVigor = GAME_CONSTANTS.VIGOR.DEFAULT;
+                    this.player.vigor = currentVigor;
                 }
 
                 const decreaseChance = GAME_CONSTANTS.VIGOR.calculateDecreaseChance(this.turn);
@@ -325,7 +331,7 @@ class Game {
 
                 if (roll < decreaseChance) {
                     // 現在の状態を保存
-                    const currentStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+                    const currentStatus = GAME_CONSTANTS.VIGOR.getStatus(currentVigor, this.player.stats);
 
                     const healthStatus = GAME_CONSTANTS.HEALTH_STATUS.getStatus(
                         this.player.hp,
@@ -333,7 +339,7 @@ class Game {
                         this.player.stats
                     );
                     const decrease = GAME_CONSTANTS.VIGOR.DECREASE[healthStatus.name.toUpperCase()];
-                    this.player.vigor = Math.max(0, this.player.vigor - decrease);
+                    this.player.vigor = Math.max(0, currentVigor - decrease);
 
                     // 新しい状態を取得
                     const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
@@ -341,7 +347,7 @@ class Game {
                     // 状態が変化した場合はログに表示とフラッシュエフェクト
                     if (currentStatus.name !== newStatus.name) {
                         this.logger.add(`Your vigor has decreased to ${newStatus.name.toLowerCase()} level.`, "warning");
-                        this.renderer.flashLogPanel();  // フラッシュエフェクトを追加
+                        this.renderer.flashLogPanel();
                     }
                 }
             }
@@ -788,6 +794,9 @@ class Game {
     gameOver() {
         // セーブデータを削除
         localStorage.removeItem('complexRL_saveData');
+
+        // vigorを安全な値にリセット
+        this.player.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;
 
         // Calculate final score.
         const monstersKilled = this.maxTotalMonsters - this.monsters.length;

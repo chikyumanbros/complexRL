@@ -812,15 +812,15 @@ class MapGenerator {
         // 中央の部屋を作成
         const centerRoom = {
             x: Math.floor(this.width / 2) - 10,
-            y: Math.floor(this.height / 2) - 6,
+            y: Math.floor(this.height / 2) - 8,
             width: 20,
-            height: 12,
+            height: 16,
             brightness: 100
         };
         
         this.rooms = [centerRoom];
 
-        // まず全マップを宇宙空間で初期化
+        // まず全マップを宇宙空間で初期化（表示領域全体を使用）
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
                 this.map[y][x] = 'space';

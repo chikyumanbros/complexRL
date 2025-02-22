@@ -25,6 +25,14 @@ class Player {
         this.nextAttackModifiers = [];  // 攻撃修飾効果の初期化
         this.meditation = null;  // メディテーション状態を追加
 
+        // vigorの初期化を確実に行う
+        if (!Number.isFinite(GAME_CONSTANTS.VIGOR.DEFAULT)) {
+            console.error('VIGOR.DEFAULT is not a valid number:', GAME_CONSTANTS.VIGOR.DEFAULT);
+            this.vigor = 100; // フォールバック値
+        } else {
+            this.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;
+        }
+
         // 各種パラメータの計算
         this.updateDerivedStats();
 
@@ -32,7 +40,6 @@ class Player {
         this.autoExploring = false;  // 自動探索フラグを追加
         this.detectedPresences = new Set();  // 既に感知した存在を記録
         this.name = '';  // プレイヤー名を追加
-        this.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;
     }
 
     // ===== Experience and Leveling Methods =====

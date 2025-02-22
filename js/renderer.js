@@ -352,10 +352,7 @@ class Renderer {
 
                 // 命中判定と回避判定に成功し、実際にダメージが発生した場合のみエフェクトを表示
                 if (isAttackTarget && this.game.lastAttackResult && 
-                    this.game.lastAttackResult.hit && 
-                    !this.game.lastAttackResult.evaded &&
-                    this.game.lastAttackResult.damage > 0 &&
-                    !this.game.lastAttackResult.miss) {
+                    this.game.lastAttackResult.damage > 0) {
                     classes.push('damage');
                 }
 
@@ -719,8 +716,8 @@ class Renderer {
         const pos = this.getTilePosition(x, y);
         if (!pos) return;
 
-        const centerX = pos.x - pos.width / 8;
-        const centerY = pos.y - pos.height / 8;
+        const centerX = pos.x;
+        const centerY = pos.y - pos.height / 2;
 
         const particleCount = 50;
         for (let i = 0; i < particleCount; i++) {
@@ -750,8 +747,8 @@ class Renderer {
         const pos = this.getTilePosition(x, y);
         if (!pos) return;
 
-        const centerX = pos.x - pos.width / 8;
-        const centerY = pos.y - pos.height / 8;
+        const centerX = pos.x;
+        const centerY = pos.y - pos.height / 2;
         const bottomValue = particleLayer.offsetHeight - centerY;
 
         const pillar = document.createElement('div');
@@ -773,8 +770,8 @@ class Renderer {
         const pos = this.getTilePosition(x, y);
         if (!pos) return;
 
-        const centerX = pos.x - pos.width / 8;
-        const centerY = pos.y - pos.height / 8;
+        const centerX = pos.x;
+        const centerY = pos.y - pos.height / 2;
 
         const particleCount = 50;
         for (let i = 0; i < particleCount; i++) {
@@ -806,8 +803,8 @@ class Renderer {
         const pos = this.getTilePosition(x, y);
         if (!pos) return;
 
-        const centerX = pos.x + pos.width / 8;
-        const centerY = pos.y + pos.height / 8;
+        const centerX = pos.x + pos.width / 2;
+        const centerY = pos.y + pos.height / 2;
 
         // エフェクトの設定
         const config = {
@@ -1287,8 +1284,8 @@ class Renderer {
 
         // スケールを考慮した実際の位置を計算
         return {
-            x: (tileRect.left - containerRect.left) / scale,
-            y: (tileRect.top - containerRect.top) / scale,
+            x: (tileRect.left - containerRect.left - tileRect.width / 4) / scale,
+            y: (tileRect.top - containerRect.top + tileRect.height) / scale,
             width: tileRect.width / scale,
             height: tileRect.height / scale
         };
