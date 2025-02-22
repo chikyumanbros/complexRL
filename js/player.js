@@ -7,7 +7,7 @@ class Player {
         this.char = '@';
         this.level = 1;
         this.codexPoints = 100;  // codexポイントのみを使用
-        this.xp = 0;                  // 経験値の初期化
+        this.xp = 14;                  // 経験値の初期化
         this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
         this.stats = { ...GAME_CONSTANTS.STATS.DEFAULT_VALUES };
 
@@ -71,7 +71,7 @@ class Player {
         // エフェクトの表示
         this.game.renderer.showLevelUpEffect(this.x, this.y);
         this.game.renderer.showLightPillarEffect(this.x, this.y);
-        this.game.renderer.flashLogPanel(); // フラッシュエフェクトを追加
+        this.game.renderer.flashLogPanel();
         
         this.game.setInputMode('statSelect', {
             callback: (stat) => {
@@ -82,13 +82,62 @@ class Player {
                 const statNames = GAME_CONSTANTS.STATS.NAMES;
                 this.game.logger.add(`${statNames[stat]} increased to ${this.stats[stat]}!`, "playerInfo");
                 
+                // 以前のmaxHpを保存
+                const oldMaxHp = this.maxHp;
+                
                 // 派生パラメータの再計算
                 this.maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(this.stats, this.level);
-                this.hp = this.maxHp;
+                
+                // HPの増加分を計算
+                const hpIncrease = Math.max(0, this.maxHp - oldMaxHp);
+                
+                // Wisdomに基づくvigor回復量を計算（NaNチェック追加）
+                const vigorRecovery = !this.stats.WIS || isNaN(this.stats.WIS) 
+                    ? 0 
+                    : Math.floor(this.stats.WIS / 2);
+                
+                // 総回復量を計算（最大HPを超えない範囲で）
+                const totalRecovery = Math.min(
+                    this.maxHp - this.hp,  // 最大HPまでの残り
+                    hpIncrease + vigorRecovery  // 総回復量
+                );
+                
+                // HP回復を適用（NaNチェックと最大値制限を追加）
+                if (isNaN(totalRecovery)) {
+                    console.error('Total recovery was NaN:', {
+                        maxHp: this.maxHp,
+                        oldMaxHp,
+                        hpIncrease,
+                        vigorRecovery,
+                        currentHp: this.hp,
+                        stats: this.stats
+                    });
+                    this.hp = Math.min(this.hp + hpIncrease, this.maxHp);
+                } else {
+                    this.hp = Math.min(this.hp + totalRecovery, this.maxHp);
+                }
+                
+                // vigor回復（NaNチェック追加）
+                if (!isNaN(vigorRecovery) && vigorRecovery > 0) {
+                    const oldVigor = this.vigor;
+                    this.vigor = Math.min(GAME_CONSTANTS.VIGOR.MAX, this.vigor + vigorRecovery);
+                    const vigorGained = this.vigor - oldVigor;
+                    if (vigorGained > 0) {
+                        this.game.logger.add(`Vigor restored by ${vigorGained} points!`, "playerInfo");
+                    }
+                }
+                
+                // 他のステータスの更新
                 this.attackPower = GAME_CONSTANTS.FORMULAS.ATTACK(this.stats);
                 this.defense = GAME_CONSTANTS.FORMULAS.DEFENSE(this.stats);
                 this.accuracy = GAME_CONSTANTS.FORMULAS.ACCURACY(this.stats);
                 this.evasion = GAME_CONSTANTS.FORMULAS.EVASION(this.stats);
+                
+                // HP増加と回復のログを表示
+                this.game.logger.add(`Maximum HP increased by ${hpIncrease}!`, "playerInfo");
+                if (totalRecovery > 0) {
+                    this.game.logger.add(`You feel invigorated! (Recovered ${totalRecovery} HP)`, "playerInfo");
+                }
                 
                 // 画面更新
                 this.game.renderer.render();

@@ -100,7 +100,15 @@ class Renderer {
 
     // 揺らぎ効果を計算する関数（明るさと色用）
     calculateFlicker(baseOpacity, x, y) {
-        // 現在の揺らぎ効果を計算
+        // ホームフロアでは灯りのエフェクトを無効化
+        if (this.game.floorLevel === 0) {
+            return {
+                opacity: baseOpacity,
+                color: 'transparent'  // 灯りの色も無効化
+            };
+        }
+
+        // 通常フロアの場合は既存の処理
         const index1 = ((x * 3 + y * 2 + this.flickerTime) % this.flickerValues.length);
         const index2 = ((x * 7 + y * 5 + this.flickerTime * 3) % this.flickerValues.length);
         const index3 = ((x * 2 + y * 7 + this.flickerTime * 2) % this.flickerValues.length);
@@ -413,7 +421,7 @@ class Renderer {
         if (floorLevelElement) {
             const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.game.dangerLevel];
             const floorDisplay = this.game.floorLevel === 0 ? 
-                "◄ THE NEXUS ►" : 
+                "< THE NEXUS >" : 
                 this.game.floorLevel;
             floorLevelElement.innerHTML = `${floorDisplay} <span style="color: ${dangerInfo.color}">[${dangerInfo.name}]</span>`;
         }
@@ -449,7 +457,12 @@ class Renderer {
         const vigorStatusElement = document.getElementById('vigor-status');
         if (vigorStatusElement) {
             const vigorStatus = GAME_CONSTANTS.VIGOR.getStatus(player.vigor, player.stats);
-            vigorStatusElement.innerHTML = `<span style="color: ${vigorStatus.color}">${vigorStatus.name}</span>`;
+            const vigorBars = Math.ceil((player.vigor / GAME_CONSTANTS.VIGOR.MAX) * 10);
+            const vigorText = '|'.repeat(vigorBars).padEnd(10, ' ');
+            
+            vigorStatusElement.innerHTML = `${player.vigor}/${GAME_CONSTANTS.VIGOR.MAX} ` +
+                `<span style="color: ${vigorStatus.color}">${vigorStatus.name}</span> ` +
+                `<span class="bar ${vigorStatus.name.toLowerCase().replace(' ', '-')}">${vigorText}</span>`;
         }
 
         // Update player level display

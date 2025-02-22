@@ -46,32 +46,40 @@ body {
 
 #game {
     white-space: pre;
+    padding: 10px;
     background: #000;
     color: #cfcfcf;
     font-size: 15px;
     font-family: 'IBM EGA 9x8', monospace;
+    height: 550px;  /* 高さを固定 */
+    justify-content: center;
 }
 
 #status-panel {
     background: black;
     padding: 10px;
-    width: 250px;
+    width: 270px;
+    height: 550px;  /* gameと同じ高さに固定 */
     color: rgb(207, 207, 207);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 #skills-panel {
     background: black;
     padding: 10px;
-    width: calc(100vw - 1320px);  /* 固定値から可変値に変更 */
-    min-width: 500px;  /* 最小幅を設定 */
-    max-width: 800px;  /* 最大幅を設定 */
+    width: calc(100vw - 1320px);
+    min-width: 480px;
+    max-width: 800px;
+    height: 550px;  /* gameと同じ高さに固定 */
     color: rgb(207, 207, 207);
 }
 
 .bottom-panels {
     display: flex;
     gap: 5px;
-    height: calc(100vh - 590px);  /* 固定値から可変値に変更 */
+    height: calc(100vh - 550px);  /* 固定値から可変値に変更 */
     min-height: 200px;  /* 最小の高さを設定 */
 }
 
@@ -81,7 +89,7 @@ body {
     padding: 10px;
     display: flex;
     flex-direction: column;
-    min-width: 800px;  /* 最小幅を調整 */
+    min-width: 975px;  /* 最小幅を調整 */
 }
 
 #message-log {
@@ -184,6 +192,7 @@ body {
     display: flex;
     justify-content: space-between;
     width: 100%;
+    line-height: 0;
 }
 
 .stat::before {
@@ -267,7 +276,6 @@ h3 {
 
 /* HPバーのスタイル */
 .bar {
-    font-family: monospace;
     white-space: pre;
 }
 
@@ -591,7 +599,7 @@ body.help-mode #codex-panel {  /* help-modeを追加 */
 }
 
 #nearby-enemies {
-    max-height: 200px;  /* 約8体分の高さ */
+    max-height: 1000px;  /* 約8体分の高さ */
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: #444 #222;
@@ -806,4 +814,65 @@ body::before {
     font-family: 'Proggy Clean', monospace;
     font-size: 18px;
     line-height: 0;
+}
+
+.bar.high { color: #2ecc71; }
+.bar.moderate { color: #f1c40f; }
+.bar.low { color: #e67e22; }
+.bar.critical { color: #e74c3c; }
+
+/* 基本情報セクション */
+.basic-info {
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+}
+
+/* HPとVigorのセクション */
+.vitals-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+}
+
+/* XPとCodexのセクション */
+.progress-section {
+    display: grid;
+    grid-template-columns: auto 1fr auto;  /* 3列グリッド: XP CODEX Points */
+    gap: 10px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 6px;
+    align-items: center;
+}
+
+.xp-numbers {
+    white-space: nowrap;
+}
+
+.codex-label {
+    text-align: center;
+}
+
+#codexPoints {
+    text-align: right;
+    color: #6cf;  /* 数値を強調 */
+}
+
+/* 基本ステータスのグリッド */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 5px 10px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+}
+
+/* 派生ステータスのグリッド */
+.derived-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 5px 15px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
 }

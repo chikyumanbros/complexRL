@@ -809,38 +809,48 @@ class MapGenerator {
 
     // Add new method for generating home floor
     generateHomeFloor() {
-        // Create a single large central room
+        // 中央の部屋を作成
         const centerRoom = {
             x: Math.floor(this.width / 2) - 10,
-            y: Math.floor(this.height / 2) - 7,
+            y: Math.floor(this.height / 2) - 6,
             width: 20,
-            height: 14,
-            brightness: 100  // 最大の明るさに固定
+            height: 12,
+            brightness: 100
         };
         
         this.rooms = [centerRoom];
 
-        // サイバー風の壁タイル
-        const cyberWallTiles = [
-            '╢', '╖', '╕', '╣', '║', '╗', '╝', '╜', '╞', '╟',
-            '╚', '╔', '╩', '╦', '╠', '═', '╬', '╧', '╨', '╤',
-            '╥', '╙', '╘', '╒', '╓'
-        ];
-
-        // 全マップを壁で初期化
+        // まず全マップを宇宙空間で初期化
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
-                this.tiles[y][x] = cyberWallTiles[
-                    Math.floor(Math.random() * cyberWallTiles.length)
+                this.map[y][x] = 'space';
+                this.tiles[y][x] = GAME_CONSTANTS.TILES.SPACE[
+                    Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE.length)
+                ];
+                this.colors[y][x] = GAME_CONSTANTS.TILES.SPACE_COLORS[
+                    Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE_COLORS.length)
                 ];
             }
         }
 
-        // 部屋を生成（床タイルは'0'と'1'のみを使用）
+        // 部屋の壁を設定
+        for (let y = centerRoom.y - 1; y <= centerRoom.y + centerRoom.height; y++) {
+            for (let x = centerRoom.x - 1; x <= centerRoom.x + centerRoom.width; x++) {
+                if (x === centerRoom.x - 1 || x === centerRoom.x + centerRoom.width ||
+                    y === centerRoom.y - 1 || y === centerRoom.y + centerRoom.height) {
+                    this.map[y][x] = 'wall';
+                    this.tiles[y][x] = GAME_CONSTANTS.TILES.CYBER_WALL[
+                        Math.floor(Math.random() * GAME_CONSTANTS.TILES.CYBER_WALL.length)
+                    ];
+                    this.colors[y][x] = '#FFFFFF';
+                }
+            }
+        }
+
+        // 部屋の内部を床にする
         for (let y = centerRoom.y; y < centerRoom.y + centerRoom.height; y++) {
             for (let x = centerRoom.x; x < centerRoom.x + centerRoom.width; x++) {
                 this.map[y][x] = 'floor';
-                // 床タイルを'0'と'1'からランダムに選択（ゲーム本体で更新される）
                 this.tiles[y][x] = Math.random() < 0.5 ? '0' : '1';
                 this.colors[y][x] = GAME_CONSTANTS.COLORS.FLOOR;
             }
@@ -859,10 +869,9 @@ class MapGenerator {
             this.game.player.x = centerRoom.x + Math.floor(centerRoom.width / 2);
             this.game.player.y = centerRoom.y + Math.floor(centerRoom.height / 2);
         }
-
-        // 危険度を'SAFE'に設定
-        if (this.game) {
-            this.game.dangerLevel = 'SAFE';
-        }
+                // 危険度を'SAFE'に設定
+                if (this.game) {
+                    this.game.dangerLevel = 'SAFE';
+                }
     }
 } 
