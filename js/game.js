@@ -1283,6 +1283,12 @@ class Game {
         // ホームフロアでのみ実行
         if (this.floorLevel !== 0) return;
 
+        // HPを全回復
+        if (this.player.hp < this.player.maxHp) {
+            const healAmount = this.player.maxHp - this.player.hp;
+            this.player.hp = this.player.maxHp;
+        }
+
         // サイバー風の壁タイルをGAME_CONSTANTSから使用
         const cyberWallTiles = GAME_CONSTANTS.TILES.CYBER_WALL;
 
