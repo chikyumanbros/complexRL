@@ -1403,8 +1403,8 @@ class Renderer {
     }
 
     startPortalTransition(callback) {
-        const duration = 1000; // アニメーション時間を5秒に延長
-        const steps = 40; // より細かいステップ数に増加
+        const duration = 1000;
+        const steps = 120;
         let currentStep = 0;
 
         const animate = () => {
