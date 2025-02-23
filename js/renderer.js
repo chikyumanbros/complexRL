@@ -183,6 +183,22 @@ class Renderer {
             return false;
         }
 
+        // ジャンプスキルのターゲット選択時の処理を追加
+        if (this.game.inputHandler.mode === 'skillTarget' && 
+            this.game.inputHandler.currentSkill?.id === 'jump') {
+            const player = this.game.player;
+            const distance = GAME_CONSTANTS.SKILL_DISTANCE.calculate(
+                player.x, player.y, x, y
+            );
+            
+            // ジャンプの有効範囲を計算
+            const jumpRange = Math.floor((player.stats.dex - player.stats.con) / 3) + 3;
+            
+            if (distance > jumpRange) {
+                return false;  // 範囲外の場合はハイライトしない
+            }
+        }
+
         this.highlightedTile = { x, y };
         this.render();
         return true;  // 視界内の場合は true を返す
@@ -315,7 +331,7 @@ class Renderer {
                     }
 
                     if (isHighlighted) {
-                        const targetDistance = GAME_CONSTANTS.DISTANCE.calculate(x, y, this.game.player.x, this.game.player.y);
+                        const targetDistance = GAME_CONSTANTS.SKILL_DISTANCE.calculate(x, y, this.game.player.x, this.game.player.y);
 
                         if (this.game.inputHandler.targetingMode === 'look') {
                             backgroundColor = `linear-gradient(${backgroundColor || 'transparent'}, rgba(255, 255, 255, 1))`;
@@ -607,9 +623,9 @@ class Renderer {
                     const monsterColor = GAME_CONSTANTS.COLORS.MONSTER[monster.type];
 
                     // プレイヤーから見た方角と距離を計算
+                    const distance = GAME_CONSTANTS.DISTANCE.calculate(this.game.player.x, this.game.player.y, monster.x, monster.y);
                     const dx = monster.x - this.game.player.x;
                     const dy = monster.y - this.game.player.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
                     const direction = this.getDirectionIndicator(dx, dy);
                     const directionColor = this.getDirectionColor(distance);
 
@@ -617,10 +633,9 @@ class Renderer {
                     const hpText = '|'.repeat(hpBars).padEnd(10, ' ');
 
                     return `<span style="color: ${monsterColor}">` +
-                        `<span style="color: ${directionColor}; display: inline-block; width: 2em">${direction}</span>${monsterSymbol} </span>` +
-                        `<span style="color: ${monsterColor}">${monster.name}</span><br>` +
-                        ` [<span class="${healthClass}">${hpText} ${monster.hp}/${monster.maxHp}</span>]` +
-                        `${sleepStatus}${fleeingStatus}`;
+                        `<span style="color: ${directionColor}; display: inline-block; width: 2em">${direction}</span>[${monsterSymbol}] </span>` +
+                        `<span style="color: ${monsterColor}">${monster.name}</span> ${sleepStatus}${fleeingStatus} <br>` +
+                        `HP: ${monster.hp}/${monster.maxHp} <span class="${healthClass}">${hpText}</span>`;
                 }).join('<br>');
                 monstersInSightElement.innerHTML = monsterList;
             } else {
@@ -972,10 +987,10 @@ class Renderer {
         let rightColumn = '';
 
         // 左列：コントロール
-        leftColumn += `<div style="color: #ffd700; font-size: 18px; margin-bottom: 8px;">■ CONTROLS</div>\n`;
+        leftColumn += `<div style="color: #ffd700; font-size: 15px; margin-bottom: 8px;">■ CONTROLS</div>\n`;
         const categories = Object.entries(GAME_CONSTANTS.CONTROLS);
         categories.forEach(([category, data]) => {
-            leftColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● ${data.title}</div>\n`;
+            leftColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● ${data.title}</div>\n`;
             data.keys.forEach(keyInfo => {
                 leftColumn += `<div style="margin-left: 8px;">`;
                 leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 50px;">[${keyInfo.key}]</span>`;
@@ -985,10 +1000,10 @@ class Renderer {
         });
 
         // 右列：ステータスと戦闘システム
-        rightColumn += `<div style="color: #ffd700; font-size: 18px; margin-bottom: 8px;">■ STATUS SYSTEM</div>\n`;
+        rightColumn += `<div style="color: #ffd700; font-size: 15px; margin-bottom: 8px;">■ STATUS SYSTEM</div>\n`;
 
         // Health Status の説明
-        rightColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● HEALTH STATUS</div>\n`;
+        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● HEALTH STATUS</div>\n`;
         rightColumn += `<div style="margin-left: 8px;">`;
         rightColumn += `<span style="color: #2ecc71;">Healthy</span>: 75-100% HP<br>`;
         rightColumn += `<span style="color: #f1c40f;">Wounded</span>: 50-75% HP<br>`;
@@ -1008,10 +1023,10 @@ class Renderer {
         rightColumn += `Meditation: d(Level+WIS) recovery, but risk -d(WIS) on low roll.`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div style="color: #ffd700; font-size: 18px; margin-top: 12px;">■ COMBAT SYSTEM</div>\n`;
+        rightColumn += `<div style="color: #ffd700; font-size: 15px; margin-top: 12px;">■ COMBAT SYSTEM</div>\n`;
 
         // 戦闘システムの説明
-        rightColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● BASE STATS</div>\n`;
+        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● BASE STATS</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
         rightColumn += `HP: (CON×2 + STR/4) × Size Mod × Level<br>`;
         rightColumn += `ATK: (STR×0.7 - DEX/4) × Size Mod + Dice<br>`;
@@ -1019,13 +1034,13 @@ class Renderer {
         rightColumn += `Size Mod: 0.9~1.3 (by STR+CON)`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● DAMAGE ROLLS</div>\n`;
+        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● DAMAGE ROLLS</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
         rightColumn += `ATK: √(DEX/2) × 1d(√STR×2)<br>`;
         rightColumn += `DEF: √(CON/3) × 1d(√CON×1.5)`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● COMBAT STATS</div>\n`;
+        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● COMBAT STATS</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
         rightColumn += `ACC: 50 + DEX×0.8 + WIS×0.4 - CON/4<br>`;
         rightColumn += `EVA: 8 + DEX×0.6 + WIS×0.3 - STR/5<br>`;
@@ -1033,7 +1048,7 @@ class Renderer {
         rightColumn += `(Critical hits ignore EVA & DEF)`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● SIZE & SPEED</div>\n`;
+        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● SIZE & SPEED</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
         rightColumn += `Size: Based on CON×0.7 + STR×0.3<br>`;
         rightColumn += `Tiny ≤7, Small ≤10, Medium ≤14<br>`;
@@ -1043,7 +1058,7 @@ class Renderer {
         rightColumn += `Normal: ≤2, Fast: ≤4, Very Fast: >4`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● COMBAT FLOW</div>\n`;
+        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● COMBAT FLOW</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
         rightColumn += `1. Speed Check<br>`;
         rightColumn += `2. Roll(100) vs ACC for hit<br>`;
@@ -1052,14 +1067,14 @@ class Renderer {
         rightColumn += `5. DMG = ATK (if critical hit)`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● DISTANCE & RANGE</div>\n`;
+        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● DISTANCE & RANGE</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
         rightColumn += `Uses Euclidean distance for<br>`;
         rightColumn += `natural line of sight and range<br>`;
         rightColumn += `calculations`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● COMBAT PENALTIES</div>\n`;
+        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● COMBAT PENALTIES</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
         rightColumn += `Surrounded: -15% ACC/EVA per enemy<br>`;
         rightColumn += `(Max: -60%)<br><br>`;
@@ -1368,7 +1383,8 @@ class Renderer {
         const credits = [
             "v0.1.0 alpha",
 
-            "Font: IBM EGA 9x8 || Source: The Ultimate Oldschool PC Font Pack by VileR || Licensed under CC BY-SA 4.0",
+            "Font: IBM EGA 9x8 & IBM VGA 8x16 || Source: The Ultimate Oldschool PC Font Pack by VileR",
+            "Licensed under CC BY-SA 4.0",
             "https://int10h.org/oldschool-pc-fonts/",
         ];
 

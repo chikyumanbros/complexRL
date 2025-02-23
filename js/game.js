@@ -749,9 +749,7 @@ class Game {
                     this.tiles[y][x] !== GAME_CONSTANTS.TILES.DOOR.CLOSED && // 閉じた扉のチェックを追加
                     this.tiles[y][x] !== GAME_CONSTANTS.STAIRS.CHAR;
 
-                const dx = x - this.player.x;
-                const dy = y - this.player.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+                const distance = GAME_CONSTANTS.DISTANCE.calculate(x, y, this.player.x, this.player.y);
 
                 if (isValidSpawn && distance >= GAME_CONSTANTS.ROOM.SAFE_RADIUS) {
 
@@ -778,9 +776,7 @@ class Game {
                                 const packY = y + Math.floor(Math.random() * 3) - 1;
 
                                 // Ensure pack members maintain a safe distance from the player.
-                                const packDx = packX - this.player.x;
-                                const packDy = packY - this.player.y;
-                                const packDistance = Math.sqrt(packDx * packDx + packDy * packDy);
+                                const packDistance = GAME_CONSTANTS.DISTANCE.calculate(packX, packY, this.player.x, this.player.y);
 
                                 const isValidPackSpawn = this.isValidPosition(packX, packY) &&
                                     this.map[packY][packX] === 'floor' &&
@@ -1024,7 +1020,7 @@ class Game {
             for (let x = 0; x < this.width; x++) {
                 const dx = x - this.player.x;
                 const dy = y - this.player.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+                const distance = GAME_CONSTANTS.DISTANCE.calculate(x, y, this.player.x, this.player.y);
 
                 // 対象タイルが属する部屋を検出
                 const roomAtTile = this.getRoomAt(x, y);
@@ -1085,9 +1081,7 @@ class Game {
         } else {
             // 廊下でのモンスターカウント（チェビシェフ距離からユークリッド距離に変更）
             monsterCount = this.monsters.filter(monster => {
-                const dx = monster.x - px;
-                const dy = monster.y - py;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+                const distance = GAME_CONSTANTS.DISTANCE.calculate(monster.x, monster.y, px, py);
                 return distance <= 2.5;  // 円形の範囲で確認
             }).length;
         }

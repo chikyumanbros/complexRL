@@ -567,6 +567,14 @@ const GAME_CONSTANTS = {
         }
     },
 
+    SKILL_DISTANCE: {
+        calculate: (x1, y1, x2, y2) => {
+            const dx = Math.abs(x2 - x1);
+            const dy = Math.abs(y2 - y1);
+            return Math.max(dx, dy);
+        }
+    },
+
     VIGOR: {
         MAX: 100,
         DEFAULT: 100,

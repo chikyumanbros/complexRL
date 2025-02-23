@@ -496,9 +496,7 @@ class InputHandler {
         const player = this.game.player;
         // チェビシェフ距離からユークリッド距離に変更
         for (const monster of this.game.monsters) {
-            const dx = monster.x - player.x;
-            const dy = monster.y - player.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
+            const distance = GAME_CONSTANTS.DISTANCE.calculate(monster.x, monster.y, player.x, player.y);
             if (distance <= 1.5) {  // 斜め距離も考慮して1.5に設定
                 return monster;
             }
@@ -737,10 +735,7 @@ class InputHandler {
         const range = skill.range || 3; // デフォルトの範囲を3に設定
 
         // --- Validate Target Distance and Tile ---
-        // チェビシェフ距離からユークリッド距離に変更
-        const dx = this.targetX - player.x;
-        const dy = this.targetY - player.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        const distance = GAME_CONSTANTS.SKILL_DISTANCE.calculate(this.targetX, this.targetY, player.x, player.y);
 
         if (distance > range || this.game.map[this.targetY][this.targetX] !== 'floor') {
             this.game.logger.add("Invalid target location!", "warning");
@@ -842,9 +837,10 @@ class InputHandler {
         } else if (operation === 'c' && door.tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
             const monster = this.game.getMonsterAt(door.x, door.y);
             if (monster) {
-                const massiveDamage = monster.hp + 999;
-                const result = monster.takeDamage(massiveDamage);
-                this.game.logger.add(`The closing door crushes ${monster.name} for massive damage!`, "playerCrit");
+                // モンスターのHPを確実に0にする
+                const damage = Math.max(monster.hp, 1);  // 最低1ダメージ保証
+                const result = monster.takeDamage(damage);
+                this.game.logger.add(`The closing door crushes ${monster.name}!`, "playerCrit");
 
                 // --- Record Door Kill Location ---
                 this.game.lastDoorKillLocation = { x: door.x, y: door.y };
@@ -861,8 +857,10 @@ class InputHandler {
                         this.game.logger.add(`The door has destroyed ${monster.name}!`, "kill");
                         this.game.removeMonster(monster);
                         const currentRoom = this.game.getCurrentRoom();
-                        const monsterCount = this.game.getMonstersInRoom(currentRoom).length;
-                        this.game.logger.updateRoomInfo(currentRoom, monsterCount, true);
+                        if (currentRoom) {
+                            const monsterCount = this.game.getMonstersInRoom(currentRoom).length;
+                            this.game.logger.updateRoomInfo(currentRoom, monsterCount, true);
+                        }
                     }
 
                     this.game.renderer.render();

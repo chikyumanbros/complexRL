@@ -127,14 +127,14 @@ const SKILLS = {
                         game.logger.add("Can't jump to unseen location!", "warning");
                         return false;
                     }
-
-                    // ---- Calculate Jump Range ----
-                    const jumpRange = Math.floor((player.stats.dex - player.stats.con) / 3) + 3;
                     
-                    // ---- Distance Check (Chebyshev distance) ----
-                    const dx = Math.abs(target.x - player.x);
-                    const dy = Math.abs(target.y - player.y);
-                    const distance = Math.max(dx, dy);
+                    // ---- Distance Check ----
+                    const distance = GAME_CONSTANTS.SKILL_DISTANCE.calculate(
+                        player.x, player.y, target.x, target.y
+                    );
+                    
+                    // ジャンプの有効範囲を計算
+                    const jumpRange = Math.floor((player.stats.dex - player.stats.con) / 3) + 3;
                     
                     if (distance > jumpRange) {
                         game.logger.add("Too far to jump!", "warning");
