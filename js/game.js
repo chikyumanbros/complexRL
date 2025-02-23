@@ -65,6 +65,13 @@ class Game {
         document.body.classList.remove('codex-mode');
         document.body.classList.remove('help-mode');
 
+        // スキルのクールダウンをリセット
+        if (this.player.skills) {
+            for (const skill of this.player.skills.values()) {
+                skill.remainingCooldown = 0;
+            }
+        }
+
         // Fully reset the state
         this.map = [];
         this.tiles = [];
@@ -239,6 +246,7 @@ class Game {
                     if (this.tiles[y][x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
                         this.player.x = x;
                         this.player.y = y + 1;
+                        this.updateHomeFloor();
                         return;
                     }
                 }
@@ -1349,6 +1357,13 @@ class Game {
         // Vigorを全回復
         if (this.player.vigor < GAME_CONSTANTS.VIGOR.MAX) {
             this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
+        }
+
+        // スキルのクールダウンをリセット
+        if (this.player.skills) {
+            for (const skill of this.player.skills.values()) {
+                skill.remainingCooldown = 0;
+            }
         }
 
         // サイバー風の壁タイルをGAME_CONSTANTSから使用

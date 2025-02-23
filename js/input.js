@@ -34,6 +34,11 @@ class InputHandler {
     // Main Input Handler Method
     // ----------------------
     handleInput(event) {
+        // ポータルアニメーション中は入力を無視
+        if (this.game.isPortalTransitioning) {
+            return;
+        }
+
         // 入力クールダウンのチェック
         const currentTime = Date.now();
         if (currentTime - this.lastInputTime < this.inputCooldown) {

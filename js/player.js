@@ -328,7 +328,7 @@ class Player {
         // HPが0になった場合の処理
         if (this.hp === 0) {
             this.game.renderer.showDeathEffect(this.x, this.y);
-            this.game.playSound('playerdeathSound');  // 死亡時にSEを再生
+            this.game.playSound('playerDeathSound');  // 死亡時にSEを再生
             this.game.gameOver();
         }
         

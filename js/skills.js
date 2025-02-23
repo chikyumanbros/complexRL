@@ -48,6 +48,10 @@ const SKILLS = {
                     );
                     game.renderer.render();
                     game.renderer.showNextAttackModifierEffect(player.x, player.y);
+
+                    // 効果音を再生
+                    game.playSound('nextAttackModifierSound');
+
                     return true;
                 }
             },
@@ -92,6 +96,10 @@ const SKILLS = {
                     );
                     game.renderer.render();
                     game.renderer.showNextAttackModifierEffect(player.x, player.y);
+
+                    // 効果音を再生
+                    game.playSound('nextAttackModifierSound');
+
                     return true;
                 }
             }

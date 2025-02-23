@@ -2,6 +2,10 @@ class CombatSystem {
     // ... 既存のコード ...
 
     static resolveCombatAction(attacker, defender, game, context = {}) {
+        if (!game) {
+            console.error('Game object is undefined in resolveCombatAction');
+            return { hit: false };
+        }
         // 機会攻撃の場合の特別処理
         if (context.isOpportunityAttack) {
             // 機会攻撃用の修正を適用

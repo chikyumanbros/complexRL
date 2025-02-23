@@ -1431,8 +1431,13 @@ class Renderer {
         const steps = 120;
         let currentStep = 0;
 
+        // ポータル遷移開始フラグを設定
+        this.game.isPortalTransitioning = true;
+
         const animate = () => {
             if (currentStep >= steps) {
+                // ポータル遷移終了フラグをリセット
+                this.game.isPortalTransitioning = false;
                 callback();
                 return;
             }

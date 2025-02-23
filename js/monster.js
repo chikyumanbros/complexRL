@@ -4,13 +4,16 @@ class Monster {
 
     // -------------------------- Constructor: Initialization --------------------------
     constructor(type, x, y, game) {
+        if (!game) {
+            console.error('Game object is undefined in Monster constructor');
+        }
+        this.game = game;
         this.id = Monster.nextId++;  // 一意のIDを割り当て
         // --- Template Initialization ---
         const template = MONSTERS[type];
         this.type = type;
         this.x = x;
         this.y = y;
-        this.game = game;
         this.char = template.char;
         this.name = template.name;
         this.level = template.level;
@@ -106,12 +109,17 @@ class Monster {
 
     // ========================== takeDamage Method ==========================
     takeDamage(amount, game) {
+        if (!game) {
+            console.error('Game object is undefined in takeDamage');
+            return { damage: amount, killed: false };
+        }
+
         const damage = Math.max(1, amount);
         this.hp -= damage;
 
         // 睡眠状態の解除判定を追加
         if (this.isSleeping) {
-            const wakeupChance = 80;  // 攻撃を受けた時は高確率で起床
+            const wakeupChance = 80;
             if (Math.random() * 100 < wakeupChance) {
                 this.isSleeping = false;
                 game.logger.add(`${this.name} wakes up!`, "monsterInfo");
@@ -138,7 +146,6 @@ class Monster {
             newlyFled: false
         };
 
-        // 睡眠状態でない場合のみ、逃走判定を行う
         if (!this.isSleeping && !this.hasStartedFleeing && this.shouldFlee()) {
             this.hasStartedFleeing = true;
             result.newlyFled = true;
@@ -146,9 +153,9 @@ class Monster {
 
         if (this.hp <= 0) {
             // 死亡時の処理
-            this.isSleeping = false; // 寝ている場合は解除
-            this.hasStartedFleeing = false; // 逃走中の場合は解除
-            this.game.removeMonster(this); // モンスターを削除
+            this.isSleeping = false;
+            this.hasStartedFleeing = false;
+            game.removeMonster(this);
         }
 
         return result;
