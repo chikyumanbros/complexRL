@@ -89,3 +89,15 @@ fleeのアニメーションをリアルタイムに
 
 statusパネルを横展開に右側をenemies
 下側にskills
+
+    updateCombatEffects(game, monster) {
+        // 攻撃エフェクトの処理
+        if (this.attackEffectTimer) {
+            clearTimeout(this.attackEffectTimer);
+            game.lastAttackLocation = null;
+        }
+        game.lastAttackLocation = { x: monster.x, y: monster.y };
+        game.renderer.render();
+        // 攻撃後にlook情報を更新
+        game.renderer.examineTarget(monster.x, monster.y);
+    }

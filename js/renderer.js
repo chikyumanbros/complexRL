@@ -1193,10 +1193,6 @@ class Renderer {
     examineTarget(targetX, targetY, lookMode = false) {
         let monster = this.game.getMonsterAt(targetX, targetY);
 
-        if (!lookMode) {
-            monster = this.game.getMonsterAt(targetX, targetY);
-        }
-
         const container = document.createElement('div');
         container.style.display = 'flex';
         container.style.alignItems = 'flex-start';
@@ -1210,7 +1206,7 @@ class Renderer {
         infoDiv.style.width = '200px';
         infoDiv.style.flexShrink = '0';
 
-        if (monster) {
+        if (monster && monster.hp > 0) {
             // Fallback: compute attack and defense if undefined
             if (!monster.attackPower) {
                 monster.attackPower = GAME_CONSTANTS.FORMULAS.ATTACK(monster.stats);

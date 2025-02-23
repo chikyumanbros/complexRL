@@ -21,6 +21,8 @@ class SoundManager {
         this.missSound = new Audio('assets/sounds/miss.wav'); // miss用SE
         this.critSound = new Audio('assets/sounds/crit.wav'); // crit用SE
         this.damageSound = new Audio('assets/sounds/damage.wav'); // damage用SE
+        this.takeDamageSound = new Audio('assets/sounds/takedamage.wav'); // takedamage用SE
+        this.playerDeathSound = new Audio('assets/sounds/playerdeath.wav'); // playerdeath用SE
 
         // SEのボリューム (0.0 - 1.0, 初期値は0.5)
         this.seVolume = 0.5;
@@ -114,6 +116,8 @@ class SoundManager {
         this.missSound.volume = this.seVolume;  // missの音量を設定
         this.critSound.volume = this.seVolume;  // critの音量を設定
         this.damageSound.volume = this.seVolume; // damageの音量を設定
+        this.takeDamageSound.volume = 0.3; // takedamageの音量を設定
+        this.playerDeathSound.volume = this.seVolume; // playerdeathの音量を設定
     }
 
     // 効果音を再生するメソッド

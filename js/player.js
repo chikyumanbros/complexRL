@@ -328,12 +328,16 @@ class Player {
         // HPが0になった場合の処理
         if (this.hp === 0) {
             this.game.renderer.showDeathEffect(this.x, this.y);
+            this.game.playSound('playerdeathSound');  // 死亡時にSEを再生
             this.game.gameOver();
         }
         
         // ダメージを受けた時にステータスパネルをフラッシュ
         this.game.renderer.flashStatusPanel();
         this.game.renderer.render();
+
+        // ダメージを受けた時にSEを再生
+        this.game.soundManager.playSound(this.game.soundManager.takeDamageSound);
 
         // ダメージ結果を返す
         const result = {
