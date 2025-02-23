@@ -90,11 +90,7 @@ class CombatSystem {
         
         // ダメージ適用
         const finalDamage = Math.min(defender.hp, damageResult.damage);
-        const result = defender.takeDamage(finalDamage, {
-            isCritical: attackContext.isCritical,
-            game: game,
-            ...context
-        });
+        const result = defender.takeDamage(finalDamage, game);
         
         // 結果の処理
         this.processCombatResult(attacker, defender, result, damageResult, attackContext, game);

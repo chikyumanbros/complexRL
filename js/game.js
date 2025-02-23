@@ -474,7 +474,6 @@ class Game {
         this.updateExplored();
         this.updateRoomInfo();
         this.renderer.psychedelicTurn++;
-        this.renderer.examineTarget();
         this.renderer.render();
         this.saveGame();
 
