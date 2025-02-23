@@ -339,9 +339,12 @@ class Renderer {
                             const skillId = this.game.inputHandler.targetingMode;
                             const skill = this.game.codexSystem.findSkillById(skillId);
                             const range = skill ? skill.range : 1;
-                            const highlightColor = targetDistance <= range && this.game.tiles[y][x] !== '#' 
-                                ? 'rgba(46, 204, 113, 1)' 
-                                : 'rgba(231, 76, 60, 1)';
+                            const highlightColor = targetDistance <= range &&
+                                 !GAME_CONSTANTS.TILES.WALL.includes(this.game.tiles[y][x]) &&
+                                 !GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.game.tiles[y][x]) &&
+                                 this.game.tiles[y][x] !== GAME_CONSTANTS.TILES.DOOR.CLOSED
+                                ? 'rgba(46, 204, 113, 1)'  // 範囲内：緑
+                                : 'rgba(231, 76, 60, 1)'; // 範囲外：赤
                             backgroundColor = `linear-gradient(${backgroundColor || 'transparent'}, ${highlightColor})`;
                         }
                     }

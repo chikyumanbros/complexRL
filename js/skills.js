@@ -119,23 +119,23 @@ const SKILLS = {
                 effect: (game, player, target) => {
                     // ---- Visibility Check ----
                     const visibleTiles = game.getVisibleTiles();
-                    const isVisible = visibleTiles.some(tile => 
+                    const isVisible = visibleTiles.some(tile =>
                         tile.x === target.x && tile.y === target.y
                     );
-                    
+
                     if (!isVisible) {
                         game.logger.add("Can't jump to unseen location!", "warning");
                         return false;
                     }
-                    
+
                     // ---- Distance Check ----
                     const distance = GAME_CONSTANTS.SKILL_DISTANCE.calculate(
                         player.x, player.y, target.x, target.y
                     );
-                    
+
                     // ジャンプの有効範囲を計算
                     const jumpRange = Math.floor((player.stats.dex - player.stats.con) / 3) + 3;
-                    
+
                     if (distance > jumpRange) {
                         game.logger.add("Too far to jump!", "warning");
                         return false;
@@ -169,9 +169,9 @@ const SKILLS = {
                     // ---- Execute Jump ----
                     player.x = target.x;
                     player.y = target.y;
-                    
+
                     game.logger.add("Jump!", "playerAction");
-                    
+
                     return { success: true, skipTurnProcess: true };  // ターン処理をスキップするフラグを追加
                 }
             }
