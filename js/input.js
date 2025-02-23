@@ -846,7 +846,7 @@ class InputHandler {
             this.game.renderer.render();
 
             // ドア開くSEを再生
-            this.game.playSound(this.game.doorOpenSound);
+            this.game.playSound('doorOpenSound');
         } else if (operation === 'c' && door.tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
             const monster = this.game.getMonsterAt(door.x, door.y);
             if (monster) {
@@ -883,7 +883,7 @@ class InputHandler {
                 this.game.renderer.render();
 
                 // ドアキルSEを再生
-                this.game.playSound(this.game.doorKillSound);
+                this.game.playSound('doorKillSound');
             } else {
                 this.game.tiles[door.y][door.x] = GAME_CONSTANTS.TILES.DOOR.CLOSED;
                 this.game.colors[door.y][door.x] = GAME_CONSTANTS.COLORS.DOOR;
@@ -894,7 +894,7 @@ class InputHandler {
                 this.game.renderer.render();
 
                 // ドア閉じるSEを再生
-                this.game.playSound(this.game.doorCloseSound);
+                this.game.playSound('doorCloseSound');
             }
         }
     }

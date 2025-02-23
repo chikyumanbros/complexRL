@@ -289,11 +289,11 @@ const GAME_CONSTANTS = {
 
         // ステータスの説明
         DESCRIPTIONS: {
-            str: 'Physical power, affects attack damage',
-            dex: 'Agility and precision, affects accuracy and evasion',
-            con: 'Endurance and toughness, affects HP and defense',
-            int: 'Mental acuity, affects skills and learning',
-            wis: 'Perception and intuition, affects healing and awareness'
+            str: 'Increases physical attack damage and slightly affects max HP.',
+            dex: 'Affects accuracy, evasion, and slightly influences attack speed.',
+            con: 'Determines max HP and affects natural healing rate.',
+            int: 'Increases critical hit chance and resistance to status effects.',
+            wis: 'Improves perception, affects meditation, and slightly increases max vigor.'
         },
 
         // ステータスの最小値と最大値
@@ -304,6 +304,18 @@ const GAME_CONSTANTS = {
         VARIATION: {
             MIN_PERCENT: -10,  // -10%
             MAX_PERCENT: 10    // +10%
+        },
+
+        // ステータス補正の限界値
+        MODIFIER_LIMITS: {
+            MAX_HP: 100,
+            ATTACK: 100,
+            DEFENSE: 100,
+            ACCURACY: 100,
+            EVASION: 100,
+            PERCEPTION: 100,
+            HEALING_DICE: 100,
+            HEAL_MODIFIER: 100
         }
     },
 

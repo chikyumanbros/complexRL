@@ -28,25 +28,8 @@ class Game {
         // 死亡したモンスターの処理キューを追加
         this.pendingMonsterDeaths = [];
 
-        // BGM用のプロパティを追加
-        this.homeBGM = new Audio('assets/sounds/complex_nexus.ogg');
-        this.homeBGM.loop = true;
-        this.homeBGM.volume = 0.5;  // 初期音量を50%に設定
-        this.fadeOutInterval = null;  // フェードアウト用のインターバルID
-
-        this.userInteracted = false;  // ユーザー操作検知用フラグを追加
-
-        // 効果音を読み込む
-        this.doorOpenSound = new Audio('assets/sounds/doorOpen.wav');
-        this.doorCloseSound = new Audio('assets/sounds/doorClose.wav');
-        this.doorKillSound = new Audio('assets/sounds/doorKill.wav'); // Door Kill用SE
-
-        // ポータル/ヴォイドポータル用のSE
-        this.portalSound = new Audio('assets/sounds/portal.wav');
-
-        // SEのボリューム (0.0 - 1.0, 初期値は0.5)
-        this.seVolume = 0.5;
-        this.setSeVolume(this.seVolume); // 初期ボリュームを設定
+        // サウンド管理を初期化
+        this.soundManager = new SoundManager(this);
 
         this.init();
 
@@ -72,9 +55,9 @@ class Game {
         }
 
         // フェードアウトが進行中の場合はキャンセル
-        if (this.fadeOutInterval) {
-            clearInterval(this.fadeOutInterval);
-            this.fadeOutInterval = null;
+        if (this.soundManager.fadeOutInterval) { // soundManager経由でアクセス
+            clearInterval(this.soundManager.fadeOutInterval);
+            this.soundManager.fadeOutInterval = null;
         }
 
         // モードをリセット
@@ -189,7 +172,7 @@ class Game {
         this.inputHandler.setMode('name');
 
         // リセット時にBGMも更新
-        this.updateBGM();
+        this.soundManager.updateBGM(); // soundManager経由で呼び出し
     }
 
     init() {
@@ -245,7 +228,7 @@ class Game {
         this.renderer.renderNamePrompt('');
         this.inputHandler.setMode('name');
 
-        // BGMの初期化はここで行わない
+        // BGMの初期化はSoundManagerに任せる
     }
 
     placePlayerInRoom() {
@@ -566,22 +549,20 @@ class Game {
         const newStatus = GAME_CONSTANTS.VIGOR.getStatus(newVigor, this.player.stats);
 
         // Vigor変動のログ出力を修正
-        if (vigorChange !== 0) {
-            const changeDesc = vigorChange > 0 ? "restores" : "depletes";
-            // Vigor増減の言葉遣いを精神的な意味合いも込めて変更
-            const vigorVerb = vigorChange > 0 ? "is invigorated" : "is drained";
-            this.logger.add(
-                `Combat ${changeDesc} your vigor. Your spirit ${vigorVerb}.`,
-                vigorChange > 0 ? "playerInfo" : "warning"
-            );
+        const changeDesc = vigorChange > 0 ? "restores" : "depletes";
+        // Vigor増減の言葉遣いを精神的な意味合いも込めて変更
+        const vigorVerb = vigorChange > 0 ? "is invigorated" : "is drained";
+        this.logger.add(
+            `Combat ${changeDesc} your vigor. Your spirit ${vigorVerb}.`,
+            vigorChange > 0 ? "playerInfo" : "warning"
+        );
 
-            // 状態が変化した場合は追加のメッセージ（既存のまま）
-            if (oldStatus.name !== newStatus.name) {
-                this.logger.add(
-                    `Your vigor state changed to ${newStatus.name.toLowerCase()}.`,
-                    "warning"
-                );
-            }
+        // 状態が変化した場合は追加のメッセージ（既存のまま）
+        if (oldStatus.name !== newStatus.name) {
+            this.logger.add(
+                `Your vigor state changed to ${newStatus.name.toLowerCase()}.`,
+                "warning"
+            );
         }
 
         // 経験値とCodexポイントの獲得ログ
@@ -869,8 +850,8 @@ class Game {
         this.logger.showGameOverMessage(finalScore);
 
         // ゲームオーバー時にフェードアウト
-        if (!this.homeBGM.paused) {
-            this.fadeOutBGM(2000);  // ゲームオーバー時は2秒かけてフェードアウト
+        if (!this.soundManager.homeBGM.paused) {
+            this.soundManager.fadeOutBGM(2000);  // ゲームオーバー時は2秒かけてフェードアウト
         }
     }
 
@@ -919,10 +900,10 @@ class Game {
         this.spawnInitialMonsters();
 
         // BGMを更新
-        this.updateBGM();
+        this.soundManager.updateBGM();
 
          // ポータル効果音をフェードアウト
-        this.fadeOutBGM.call({ homeBGM: this.portalSound }); // コンテキストを修正
+        this.soundManager.fadeOutBGM.call({ homeBGM: this.soundManager.portalSound }); // コンテキストを修正
 
         // Initialize and display information
         const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
@@ -937,7 +918,7 @@ class Game {
         this.inputHandler.bindKeys();
 
         // フロアが変わる時にBGMの再生状態を更新
-        this.updateBGM();
+        this.soundManager.updateBGM();
     }
 
     setInputMode(mode, options = {}) {
@@ -1263,9 +1244,18 @@ class Game {
 
             // Vigorの復元（数値チェック付き）
             const loadedVigor = data.player.vigor;
-            this.player.vigor = Number.isFinite(loadedVigor) ?
-                loadedVigor :
-                GAME_CONSTANTS.VIGOR.DEFAULT;
+            // Vigorの復元（詳細なチェックとフォールバック）
+            let restoredVigor = GAME_CONSTANTS.VIGOR.DEFAULT; // デフォルト値をフォールバックとして使用
+            if (Number.isFinite(loadedVigor)) {
+                if (loadedVigor >= GAME_CONSTANTS.VIGOR.MIN && loadedVigor <= GAME_CONSTANTS.VIGOR.MAX) {
+                    restoredVigor = loadedVigor; // 有効な範囲内の場合はそのまま使用
+                } else {
+                    console.warn(`Vigor value out of range (${loadedVigor}), resetting to default.`);
+                }
+            } else {
+                console.warn('Vigor was invalid, resetting to default value');
+            }
+            this.player.vigor = restoredVigor;
 
             // スキルの復元
             this.player.skills = new Map();
@@ -1391,100 +1381,11 @@ class Game {
         this.lastHomeFloorUpdate = this.turn;
     }
 
-    // BGMの管理メソッドを更新
-    updateBGM() {
-        // ユーザー操作検知用フラグを追加
-        if (!this.userInteracted) {
-            // 初回操作を検知するイベントリスナーを設定
-            const handleFirstInteraction = () => {
-                this.userInteracted = true;
-                document.removeEventListener('click', handleFirstInteraction);
-                document.removeEventListener('keydown', handleFirstInteraction);
-                
-                // ホームフロアの場合のみ再生
-                if (this.floorLevel === 0 && this.homeBGM.paused) {
-                    this.homeBGM.play().catch(error => {
-                        if (error.name !== 'NotAllowedError') {
-                            console.warn('BGM playback failed:', error);
-                        }
-                    });
-                }
-            };
-
-            document.addEventListener('click', handleFirstInteraction);
-            document.addEventListener('keydown', handleFirstInteraction);
-            return;
+    playSound(audioName) {  // 引数を変更
+        const audio = this.soundManager[audioName];  // SoundManagerから取得
+        if (audio) {
+            this.soundManager.playSound(audio);
         }
-
-        // 通常のBGM処理
-        if (this.floorLevel === 0) {
-            if (this.homeBGM.paused) {
-                this.homeBGM.volume = 0.5;
-                this.homeBGM.play().catch(error => {
-                    if (error.name !== 'NotAllowedError') {
-                        console.warn('BGM playback failed:', error);
-                    }
-                });
-            }
-        } else {
-            if (!this.homeBGM.paused) {
-                this.fadeOutBGM();
-            }
-        }
-    }
-
-    // フェードアウト機能を追加
-    fadeOutBGM(duration = 1000) {  // デフォルトで1秒
-        if (this.fadeOutInterval) {
-            clearInterval(this.fadeOutInterval);
-        }
-
-        const originalVolume = this.homeBGM.volume;
-        const steps = 20;  // フェードアウトのステップ数
-        const volumeStep = originalVolume / steps;
-        const intervalTime = duration / steps;
-
-        this.fadeOutInterval = setInterval(() => {
-            if (this.homeBGM.volume > volumeStep) {
-                this.homeBGM.volume -= volumeStep;
-            } else {
-                this.homeBGM.pause();
-                this.homeBGM.volume = originalVolume;  // 音量を元に戻す
-                this.homeBGM.currentTime = 0;
-                clearInterval(this.fadeOutInterval);
-                this.fadeOutInterval = null;
-            }
-        }, intervalTime);
-    }
-
-    // 音量調整用メソッド（必要に応じて）
-    setBGMVolume(volume) {
-        this.homeBGM.volume = Math.max(0, Math.min(1, volume));
-    }
-
-    // SEのボリュームを設定するメソッド
-    setSeVolume(volume) {
-        this.seVolume = Math.max(0, Math.min(1, volume)); // 0.0 - 1.0の範囲に制限
-        this.doorOpenSound.volume = this.seVolume;
-        this.doorCloseSound.volume = this.seVolume;
-        this.doorKillSound.volume = 0.7;
-    }
-
-    // 新規: 効果音を再生するメソッド
-    playSound(audio) {
-        // ユーザーが操作したか確認
-        if (!this.userInteracted) return;
-
-        // ボリュームを設定
-        audio.volume = this.seVolume;
-
-        // currentTimeを0に設定して、常に最初から再生
-        audio.currentTime = 0;
-        audio.play().catch(error => {
-            if (error.name !== 'NotAllowedError') {
-                console.warn('Sound playback failed:', error);
-            }
-        });
     }
 }
 

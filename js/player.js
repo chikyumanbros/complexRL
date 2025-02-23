@@ -83,6 +83,9 @@ class Player {
         this.game.renderer.showLightPillarEffect(this.x, this.y);
         this.game.renderer.flashLogPanel();
         
+        // レベルアップ時にSEを再生
+        this.game.playSound('levelUpSound');
+        
         this.game.setInputMode('statSelect', {
             callback: (stat) => {
                 // 選択されたステータスを増加
@@ -190,7 +193,7 @@ class Player {
                                 this.game.generateNewFloor();
                             });
                             // ポータル効果音を再生
-                            this.game.portalSound.play();
+                            this.game.playSound('portalSound');
                         } else {
                             this.game.logger.add("You decide not to enter the portal.", "info");
                         }
@@ -226,7 +229,7 @@ class Player {
                                 }
                             });
                             // ポータル効果音を再生
-                            this.game.portalSound.play();
+                            this.game.playSound('portalSound');
                         } else {
                             this.game.logger.add("You decide not to enter the VOID portal.", "info");
                         }
@@ -306,7 +309,6 @@ class Player {
         // 周囲のモンスター数によるペナルティを計算
         const surroundingMonsters = this.countSurroundingMonsters(this.game);
         const penaltyPerMonster = 15; // 1体につき15%のペナルティ
-        // 2体以上からペナルティ適用（surroundingMonsters - 1）
         const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
 
         // 回避率にペナルティを一時的に適用
