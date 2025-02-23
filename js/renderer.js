@@ -458,12 +458,9 @@ class Renderer {
         const vigorStatusElement = document.getElementById('vigor-status');
         if (vigorStatusElement) {
             const vigorStatus = GAME_CONSTANTS.VIGOR.getStatus(player.vigor, player.stats);
-            const vigorBars = Math.ceil((player.vigor / GAME_CONSTANTS.VIGOR.MAX) * 10);
-            const vigorText = '|'.repeat(vigorBars).padEnd(10, ' ');
-            
-            vigorStatusElement.innerHTML = `${player.vigor}/${GAME_CONSTANTS.VIGOR.MAX} ` +
-                `<span style="color: ${vigorStatus.color}">${vigorStatus.name}</span> ` +
-                `<span class="bar ${vigorStatus.name.toLowerCase().replace(' ', '-')}">${vigorText}</span>`;
+            vigorStatusElement.innerHTML =
+                `<span style="color: ${vigorStatus.color}"> [${vigorStatus.ascii}]</span> ` +
+                `<span class="bar ${vigorStatus.name.toLowerCase().replace(' ', '-')}"></span>`;
         }
 
         // Update player level display
@@ -928,7 +925,7 @@ class Renderer {
             maxHpElement.textContent = maxHp;
     
             // HPの割合に基づいて色を設定
-            const hpPercentage = (parseInt(currentHp) / parseInt(maxHp)) * 100;
+            const hpPercentage = ((parseInt(currentHp) / parseInt(maxHp)) * 100);
             let healthColor = '#ffffff'; // デフォルト白
             if (hpPercentage <= 25) {
                 healthColor = '#e74c3c'; // Near Death（赤）

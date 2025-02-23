@@ -259,7 +259,6 @@ h3 {
 
 .hp-bar {
     display: flex;
-    align-items: center;
     gap: 10px;
 }
 

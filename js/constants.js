@@ -647,7 +647,8 @@ const GAME_CONSTANTS = {
         getStatus: function(currentVigor, stats) {
             if (currentVigor <= 0) return {
                 name: "Exhausted",
-                color: "#4a4a4a"  // 暗いグレー
+                color: "#4a4a4a",  // 暗いグレー
+                ascii: "(x_xל)"
             };
 
             const percentage = (currentVigor / this.MAX) * 100;
@@ -655,19 +656,23 @@ const GAME_CONSTANTS = {
 
             if (percentage <= thresholds.CRITICAL) return {
                 name: "Critical",
-                color: "#8e44ad"  // 紫色
+                color: "#8e44ad",  // 紫色
+                ascii: "◦˛⁔◦ל"
             };
             if (percentage <= thresholds.LOW) return {
                 name: "Low",
-                color: "#e74c3c"  // 赤色
+                color: "#e74c3c",  // 赤色
+                ascii: "•˛⁔•ל"
             };
             if (percentage <= thresholds.MODERATE) return {
                 name: "Moderate",
-                color: "#f1c40f"  // 黄色
+                color: "#f1c40f",  // 黄色
+                ascii: "∈Ō_Ōל"
             };
             return {
                 name: "High",
-                color: "#2ecc71"  // 緑色
+                color: "#2ecc71",  // 緑色
+                ascii: "∈ϴ‿ϴל"  // 変更
             };
         }
     }

@@ -553,16 +553,17 @@ class Game {
         const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(oldVigor, this.player.stats);
         const newStatus = GAME_CONSTANTS.VIGOR.getStatus(newVigor, this.player.stats);
 
-        // ログメッセージの生成
+        // Vigor変動のログ出力を修正
         if (vigorChange !== 0) {
             const changeDesc = vigorChange > 0 ? "restores" : "depletes";
-            const amount = Math.abs(vigorChange);
+            // Vigor増減の言葉遣いを精神的な意味合いも込めて変更
+            const vigorVerb = vigorChange > 0 ? "is invigorated" : "is drained";
             this.logger.add(
-                `Combat ${changeDesc} ${amount} vigor! (${newVigor}/${GAME_CONSTANTS.VIGOR.MAX})`,
+                `Combat ${changeDesc} your vigor. Your spirit ${vigorVerb}.`,
                 vigorChange > 0 ? "playerInfo" : "warning"
             );
 
-            // 状態が変化した場合は追加のメッセージ
+            // 状態が変化した場合は追加のメッセージ（既存のまま）
             if (oldStatus.name !== newStatus.name) {
                 this.logger.add(
                     `Your vigor state changed to ${newStatus.name.toLowerCase()}.`,
@@ -634,14 +635,13 @@ class Game {
             }
         }
 
-        // Vigor回復のログ出力
-        if (actualHeal > 0) {
-            this.logger.add(`Meditation heals you for ${actualHeal} HP.`, "playerInfo");
-        }
+        // Vigor回復のログ出力を修正
+        // Vigor増減の言葉遣いを精神的な意味合いも込めて変更
+        const vigorVerb = vigorChange > 0 ? "is invigorated" : "is drained";
         if (vigorChange > 0) {
-            this.logger.add(`Meditation restores ${vigorChange} vigor.`, "playerInfo");
+            this.logger.add(`Meditation successful. Your spirit ${vigorVerb}.`, "playerInfo");
         } else if (vigorChange < 0) {
-            this.logger.add(`Failed meditation depletes ${Math.abs(vigorChange)} vigor!`, "warning");
+            this.logger.add(`Meditation failed. Your spirit ${vigorVerb}.`, "warning");
         }
 
         this.player.meditation.turnsRemaining--;
