@@ -142,13 +142,18 @@ const SKILLS = {
                     }
 
                     // ---- Check Destination Validity ----
+                    const targetTile = game.tiles[target.y][target.x];
                     // 閉じたドアへのジャンプを禁止
-                    if (game.tiles[target.y][target.x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                    if (targetTile === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
                         game.logger.add("Can't jump through closed doors!", "warning");
                         return false;
                     }
-
-                    if (game.map[target.y][target.x] !== 'floor') {
+                    // 壁、スペース、cyberwallへのジャンプを禁止
+                    if (
+                        GAME_CONSTANTS.TILES.WALL.includes(targetTile) ||
+                        targetTile === 'space' ||
+                        targetTile === 'cyberwall'
+                    ) {
                         game.logger.add("Can't jump there!", "warning");
                         return false;
                     }

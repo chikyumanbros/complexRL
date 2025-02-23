@@ -34,6 +34,8 @@ class Player {
             this.vigor = defaultVigor;
         }
 
+        this.validateVigor();  // Vigorの検証を追加
+
         // 各種パラメータの計算
         this.updateDerivedStats();
 
@@ -191,6 +193,11 @@ class Player {
                             this.game.logger.add("You decide not to enter the portal.", "info");
                         }
                         this.game.setInputMode('normal');
+                    },
+                    // '>'キーで'y'、'escape'キーで'n'を選択可能にする
+                    additionalKeys: {
+                        '>': true,   // '>'キーでtrue（y）
+                        'escape': false // 'escape'キーでfalse（n）
                     }
                 });
             } else if (this.game.tiles[this.y][this.x] === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
@@ -220,6 +227,11 @@ class Player {
                             this.game.logger.add("You decide not to enter the VOID portal.", "info");
                         }
                         this.game.setInputMode('normal');
+                    },
+                    // '>'キーで'y'、'escape'キーで'n'を選択可能にする
+                    additionalKeys: {
+                        '>': true,   // '>'キーでtrue（y）
+                        'escape': false // 'escape'キーでfalse（n）
                     }
                 });
             }
@@ -453,7 +465,6 @@ class Player {
     }
 
     updateDerivedStats() {
-        this.validateVigor();  // Vigorの検証を追加
         // Calculate perception
         this.perception = GAME_CONSTANTS.FORMULAS.PERCEPTION(this.stats);
         

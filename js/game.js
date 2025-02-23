@@ -36,6 +36,15 @@ class Game {
 
         this.userInteracted = false;  // ユーザー操作検知用フラグを追加
 
+        // 効果音を読み込む
+        this.doorOpenSound = new Audio('assets/sounds/doorOpen.wav');
+        this.doorCloseSound = new Audio('assets/sounds/doorClose.wav');
+        this.doorKillSound = new Audio('assets/sounds/doorKill.wav'); // Door Kill用SE
+
+        // SEのボリューム (0.0 - 1.0, 初期値は0.5)
+        this.seVolume = 0.5;
+        this.setSeVolume(this.seVolume); // 初期ボリュームを設定
+
         this.init();
 
         // 保存されたデータがあれば読み込む
@@ -747,7 +756,10 @@ class Game {
                     this.map[y][x] === 'floor' &&
                     !this.getMonsterAt(x, y) &&
                     this.tiles[y][x] !== GAME_CONSTANTS.TILES.DOOR.CLOSED && // 閉じた扉のチェックを追加
-                    this.tiles[y][x] !== GAME_CONSTANTS.STAIRS.CHAR;
+                    this.tiles[y][x] !== GAME_CONSTANTS.STAIRS.CHAR && //階段
+                    !GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][x]) && //障害物
+                    !GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.tiles[y][x]) && //透明な障害物
+                    this.tiles[y][x] !== GAME_CONSTANTS.PORTAL.VOID.CHAR;  // VOIDポータルを避ける
 
                 const distance = GAME_CONSTANTS.DISTANCE.calculate(x, y, this.player.x, this.player.y);
 
@@ -783,6 +795,9 @@ class Game {
                                     !this.getMonsterAt(packX, packY) &&
                                     this.tiles[packY][packX] !== GAME_CONSTANTS.TILES.DOOR.CLOSED &&
                                     this.tiles[packY][packX] !== GAME_CONSTANTS.STAIRS.CHAR &&
+                                    !GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[packY][packX]) &&
+                                    !GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.tiles[packY][packX]) &&
+                                    this.tiles[packY][packX] !== GAME_CONSTANTS.PORTAL.VOID.CHAR &&  // VOIDポータルを避ける
                                     packDistance >= GAME_CONSTANTS.ROOM.SAFE_RADIUS;
 
                                 if (isValidPackSpawn) {
@@ -1436,6 +1451,31 @@ class Game {
     // 音量調整用メソッド（必要に応じて）
     setBGMVolume(volume) {
         this.homeBGM.volume = Math.max(0, Math.min(1, volume));
+    }
+
+    // SEのボリュームを設定するメソッド
+    setSeVolume(volume) {
+        this.seVolume = Math.max(0, Math.min(1, volume)); // 0.0 - 1.0の範囲に制限
+        this.doorOpenSound.volume = this.seVolume;
+        this.doorCloseSound.volume = this.seVolume;
+        this.doorKillSound.volume = 0.7;
+    }
+
+    // 新規: 効果音を再生するメソッド
+    playSound(audio) {
+        // ユーザーが操作したか確認
+        if (!this.userInteracted) return;
+
+        // ボリュームを設定
+        audio.volume = this.seVolume;
+
+        // currentTimeを0に設定して、常に最初から再生
+        audio.currentTime = 0;
+        audio.play().catch(error => {
+            if (error.name !== 'NotAllowedError') {
+                console.warn('Sound playback failed:', error);
+            }
+        });
     }
 }
 

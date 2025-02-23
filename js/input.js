@@ -283,6 +283,14 @@ class InputHandler {
                     this.mode = 'normal';  // 通常モードに戻す
                 }
             }
+            // ここにadditionalKeysの処理を追加
+            else if (this.additionalKeys && this.additionalKeys[key] !== undefined) {
+                if (this.confirmCallback) {
+                    this.confirmCallback(this.additionalKeys[key]);
+                    this.confirmCallback = null;
+                    this.mode = 'normal';
+                }
+            }
             return;
         }
 
@@ -789,6 +797,8 @@ class InputHandler {
         }
         if (mode === 'confirm') {
             this.confirmCallback = options.callback;
+            // additionalKeysをオプションとして受け取る
+            this.additionalKeys = options.additionalKeys || {};
         }
     }
 
@@ -834,6 +844,9 @@ class InputHandler {
             // 扉を開けた後に視界を更新
             this.game._visibleTilesCache = null;  // キャッシュをクリア
             this.game.renderer.render();
+
+            // ドア開くSEを再生
+            this.game.playSound(this.game.doorOpenSound);
         } else if (operation === 'c' && door.tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
             const monster = this.game.getMonsterAt(door.x, door.y);
             if (monster) {
@@ -869,6 +882,8 @@ class InputHandler {
                 // --- Immediate Rendering for Effect Display ---
                 this.game.renderer.render();
 
+                // ドアキルSEを再生
+                this.game.playSound(this.game.doorKillSound);
             } else {
                 this.game.tiles[door.y][door.x] = GAME_CONSTANTS.TILES.DOOR.CLOSED;
                 this.game.colors[door.y][door.x] = GAME_CONSTANTS.COLORS.DOOR;
@@ -877,6 +892,9 @@ class InputHandler {
                 // 扉を閉めた後に視界を更新
                 this.game._visibleTilesCache = null;  // キャッシュをクリア
                 this.game.renderer.render();
+
+                // ドア閉じるSEを再生
+                this.game.playSound(this.game.doorCloseSound);
             }
         }
     }

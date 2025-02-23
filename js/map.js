@@ -382,6 +382,11 @@ class MapGenerator {
         if (!isFloorTile) {
             return false;
         }
+        
+        // 追加：VOIDポータルとの重複チェック
+        if (this.map[y][x] === 'void') {
+            return false;
+        }
 
         // プレイヤーの初期位置からの安全距離チェック
         if (this.game?.player) {
@@ -890,8 +895,12 @@ class MapGenerator {
         for (let y = room.y; y < room.y + room.height; y++) {
             for (let x = room.x; x < room.x + room.width; x++) {
                 if (this.map[y][x] === 'floor' && 
-                    this.tiles[y][x] !== GAME_CONSTANTS.STAIRS.CHAR) {
-                    validPositions.push({x, y});
+                    this.tiles[y][x] !== GAME_CONSTANTS.STAIRS.CHAR &&
+                    this.tiles[y][x] !== GAME_CONSTANTS.TILES.DOOR.CLOSED &&
+                    !GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][x]) &&
+                    !GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.tiles[y][x])
+                ) {
+                    validPositions.push({ x, y });
                 }
             }
         }

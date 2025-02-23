@@ -342,7 +342,9 @@ class Renderer {
                             const highlightColor = targetDistance <= range &&
                                  !GAME_CONSTANTS.TILES.WALL.includes(this.game.tiles[y][x]) &&
                                  !GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.game.tiles[y][x]) &&
-                                 this.game.tiles[y][x] !== GAME_CONSTANTS.TILES.DOOR.CLOSED
+                                 this.game.tiles[y][x] !== GAME_CONSTANTS.TILES.DOOR.CLOSED &&
+                                 !GAME_CONSTANTS.TILES.SPACE.includes(this.game.tiles[y][x]) &&
+                                 !GAME_CONSTANTS.TILES.CYBER_WALL.includes(this.game.tiles[y][x])
                                 ? 'rgba(46, 204, 113, 1)'  // 範囲内：緑
                                 : 'rgba(231, 76, 60, 1)'; // 範囲外：赤
                             backgroundColor = `linear-gradient(${backgroundColor || 'transparent'}, ${highlightColor})`;
