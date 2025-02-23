@@ -852,7 +852,7 @@ class InputHandler {
             if (monster) {
                 // モンスターのHPを確実に0にする
                 const damage = Math.max(monster.hp, 1);  // 最低1ダメージ保証
-                const result = monster.takeDamage(damage);
+                const result = monster.takeDamage(damage, this.game);
                 this.game.logger.add(`The closing door crushes ${monster.name}!`, "playerCrit");
 
                 // --- Record Door Kill Location ---

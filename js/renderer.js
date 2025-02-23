@@ -11,7 +11,6 @@ class Renderer {
 
         // 幻覚エフェクト用の変数
         this.psychedelicTurn = 0;  // サイケデリックエフェクトのターンカウンター
-        this.fleeingTurn = 0;      // 追加：逃走アニメーションのターンカウンター
 
         // 初期の揺らぎ値を生成
         this.updateFlickerValues();
@@ -211,7 +210,6 @@ class Renderer {
 
     render() {
         // ターンカウンターを更新
-        this.fleeingTurn = (this.fleeingTurn + 1) % 2;  // 追加：0と1を交互に
         this.psychedelicTurn = (this.psychedelicTurn + 1) % 1000;
 
         // Initialize movement effects state
@@ -303,19 +301,19 @@ class Renderer {
                             content = this.game.player.char;
                             style = `color: ${GAME_CONSTANTS.COLORS.PLAYER}; opacity: ${trailEffect.opacity}; text-shadow: 0 0 5px ${backgroundColor}`;
                         } else {
-                            // 既存のモンスター描画処理
                             const monster = this.game.getMonsterAt(x, y);
                             if (monster) {
-                                // 逃走中のモンスターの場合、ターンごとに表示文字を交互に切り替える
-                                let displayChar = monster.char; // 表示用の文字を別に用意
-                                if (monster.hasStartedFleeing) {
-                                    displayChar = this.fleeingTurn === 0 ? monster.char : '»';
-                                }
+                                // 逃走中のモンスターの場合、CSSクラスを追加
+                                let displayChar = monster.char;
                                 let monsterOpacity = 1;
-                                if (monster.hasStartedFleeing) {
-                                    monsterOpacity = 0.9;
-                                }
                                 style = `color: ${GAME_CONSTANTS.COLORS.MONSTER[monster.type]}; opacity: ${monsterOpacity}; text-shadow: 0 0 5px ${backgroundColor}`;
+
+                                if (monster.hasStartedFleeing) {
+                                    classes.push('fleeing-monster');
+                                    // data-char属性に元の文字を保存
+                                    style += `; --char: '${monster.char}'`;
+                                }
+
                                 if (monster.isSleeping) {
                                     style += '; animation: sleeping-monster 1s infinite';
                                 }
