@@ -357,6 +357,7 @@ h3 {
 
 .damage-flash {
     animation: damage-flash 0.2s ease-out;
+    animation-fill-mode: forwards;
 }
 
 @keyframes door-kill {

@@ -306,10 +306,11 @@ class Renderer {
                             // 既存のモンスター描画処理
                             const monster = this.game.getMonsterAt(x, y);
                             if (monster) {
-                                // 逃走中のモンスターの場合、ターンごとに文字を交互に表示
-                                content = monster.hasStartedFleeing ? 
-                                    (this.fleeingTurn === 0 ? monster.char : '»') : 
-                                    monster.char;
+                                // 逃走中のモンスターの場合、ターンごとに表示文字を交互に切り替える
+                                let displayChar = monster.char; // 表示用の文字を別に用意
+                                if (monster.hasStartedFleeing) {
+                                    displayChar = this.fleeingTurn === 0 ? monster.char : '»';
+                                }
                                 let monsterOpacity = 1;
                                 if (monster.hasStartedFleeing) {
                                     monsterOpacity = 0.9;
@@ -318,6 +319,7 @@ class Renderer {
                                 if (monster.isSleeping) {
                                     style += '; animation: sleeping-monster 1s infinite';
                                 }
+                                content = displayChar; // 表示用の文字を content に設定
                             } else {
                                 const psychedelicEffect = this.calculatePsychedelicEffect(x, y, content, this.game.colors[y][x], true);
                                 content = psychedelicEffect.char;
@@ -444,7 +446,7 @@ class Renderer {
         const hpTextElement = document.getElementById('hp-text');
         if (hpTextElement) {
             const hpBars = Math.ceil((player.hp / player.maxHp) * 20);
-            const hpText = '|'.repeat(hpBars).padEnd(20, ' ');
+            const hpText = '|'.repeat(Math.max(0, hpBars)).padEnd(20, ' '); // Ensure hpBars is not negative
             hpTextElement.textContent = hpText;
             // 体力状態に基づいてクラスを設定
             const healthStatus = player.getHealthStatus(player.hp, player.maxHp);
@@ -682,6 +684,11 @@ class Renderer {
         const statusPanel = document.getElementById('status-panel');
         if (statusPanel) {
             statusPanel.classList.add('damage-flash');
+            // アニメーション終了後にクラスを削除
+            statusPanel.addEventListener('animationend', function() {
+                statusPanel.classList.remove('damage-flash');
+                statusPanel.style.backgroundColor = 'black'; // 背景色を黒に戻す
+            }, { once: true }); // イベントリスナーを一度だけ実行
         }
     }
 
@@ -1188,10 +1195,8 @@ class Renderer {
     examineTarget(targetX, targetY, lookMode = false) {
         let monster = this.game.getMonsterAt(targetX, targetY);
 
-        if (!lookMode && this.game.lastCombatMonster && this.game.lastCombatMonster.hp > 0) {
-            monster = this.game.lastCombatMonster;
-            targetX = monster.x;
-            targetY = monster.y;
+        if (!lookMode) {
+            monster = this.game.getMonsterAt(targetX, targetY);
         }
 
         const container = document.createElement('div');

@@ -12,15 +12,15 @@ class SoundManager {
         this.doorOpenSound = new Audio('assets/sounds/doorOpen.wav');
         this.doorCloseSound = new Audio('assets/sounds/doorClose.wav');
         this.doorKillSound = new Audio('assets/sounds/doorKill.wav'); // Door Kill用SE
-
-        // ポータル/ヴォイドポータル用のSE
         this.portalSound = new Audio('assets/sounds/portal.wav');
-
-        // レベルアップSE
         this.levelUpSound = new Audio('assets/sounds/levelup.wav');
-
-        // 階段を降りるSE
         this.descendStairsSound = new Audio('assets/sounds/descend_stairs.wav');
+        
+        // 新しい効果音: killMonsterSound
+        this.killMonsterSound = new Audio('assets/sounds/killmonster.wav'); // killmonster用SE
+        this.missSound = new Audio('assets/sounds/miss.wav'); // miss用SE
+        this.critSound = new Audio('assets/sounds/crit.wav'); // crit用SE
+        this.damageSound = new Audio('assets/sounds/damage.wav'); // damage用SE
 
         // SEのボリューム (0.0 - 1.0, 初期値は0.5)
         this.seVolume = 0.5;
@@ -108,6 +108,12 @@ class SoundManager {
         this.portalSound.volume = this.seVolume;
         this.levelUpSound.volume = 0.7; // レベルアップSEの音量を設定
         this.descendStairsSound.volume = this.seVolume; // 階段を降りるSEの音量を設定
+
+        // 新しい効果音の音量を設定
+        this.killMonsterSound.volume = this.seVolume; // killmonsterの音量を設定
+        this.missSound.volume = this.seVolume;  // missの音量を設定
+        this.critSound.volume = this.seVolume;  // critの音量を設定
+        this.damageSound.volume = this.seVolume; // damageの音量を設定
     }
 
     // 効果音を再生するメソッド

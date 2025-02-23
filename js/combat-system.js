@@ -170,13 +170,13 @@ class CombatSystem {
     }
 
     static resolveHitCheck(attacker, defender, context, game) {
-        const roll = Math.floor(Math.random() * 100) + 1;  // 1-100
+        const roll = Math.floor(Math.random() * 100) + 1;
         const criticalRange = GAME_CONSTANTS.FORMULAS.CRITICAL_RANGE(attacker.stats);
         const isCritical = roll <= criticalRange;
-        
+
         const logPrefix = context.isPlayer ? "You" : attacker.name;
         const logTarget = context.isPlayer ? defender.name : "you";
-        
+
         game.logger.add(
             `${logPrefix} ${context.attackType}${context.effectDesc} ${logTarget} ` +
             `(ACC: ${Math.floor(context.hitChance)}% | Roll: ${roll}${isCritical ? ' [CRITICAL HIT!]' : ''})`,
@@ -186,15 +186,20 @@ class CombatSystem {
         if (isCritical) {
             context.isCritical = true;
             game.renderer.showCritEffect(defender.x, defender.y, !context.isPlayer);
+            game.playSound('critSound');
             return true;
         }
-        
+
         if (roll >= context.hitChance) {
             game.logger.add(
                 `${context.attackType} misses!`,
                 context.isPlayer ? "playerMiss" : "monsterMiss"
             );
             game.renderer.showMissEffect(defender.x, defender.y, 'miss');
+
+            // ミス効果音を再生（プレイヤー、モンスター両方）
+            game.playSound('missSound');
+
             return false;
         }
 
@@ -216,6 +221,10 @@ class CombatSystem {
                 context.isPlayer ? "monsterEvade" : "playerEvade"
             );
             game.renderer.showMissEffect(defender.x, defender.y, 'evade');
+
+            // 回避成功時に効果音を再生（プレイヤー、モンスター両方）
+            game.playSound('missSound');
+
             return false;
         }
         return true;
@@ -270,6 +279,11 @@ class CombatSystem {
                     ? (context.isPlayer ? "playerCrit" : "monsterCrit")
                     : (context.isPlayer ? "playerHit" : "monsterHit")
             );
+
+            // プレイヤーがダメージを与えた場合に効果音を再生
+            if (context.isPlayer) {
+                game.playSound('damageSound');
+            }
         }
     }
 

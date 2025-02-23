@@ -144,6 +144,13 @@ class Monster {
             result.newlyFled = true;
         }
 
+        if (this.hp <= 0) {
+            // 死亡時の処理
+            this.isSleeping = false; // 寝ている場合は解除
+            this.hasStartedFleeing = false; // 逃走中の場合は解除
+            this.game.removeMonster(this); // モンスターを削除
+        }
+
         return result;
     }
 

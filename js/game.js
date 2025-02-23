@@ -400,14 +400,14 @@ class Game {
             this.player.lastPosition = { x: this.player.x, y: this.player.y };
         }
 
-        // 生存しているモンスターのみを対象とする
-        this.monsters = this.monsters.filter(monster => monster.hp > 0);
-
-        // モンスターの行動処理（プレイヤーの行動は入力ハンドラーで処理済み）
+        // 全てのモンスターの行動処理
         for (const monster of this.monsters) {
             if (this.player.hp <= 0) return;
             monster.act(this);
         }
+
+        // 生存しているモンスターのみを対象とする
+        this.monsters = this.monsters.filter(monster => monster.hp > 0);
 
         // モンスターの行動フラグをリセット
         for (const monster of this.monsters) {
@@ -508,6 +508,9 @@ class Game {
         // モンスターを削除し、死亡エフェクトを表示
         this.removeMonster(monster);
         this.renderer.showDeathEffect(monster.x, monster.y);
+
+        // 新規: モンスターを倒した時の効果音を再生
+        this.playSound('killMonsterSound');
 
         // 経験値の計算
         const levelDiff = monster.level - this.player.level;
@@ -1341,6 +1344,11 @@ class Game {
         if (this.player.hp < this.player.maxHp) {
             const healAmount = this.player.maxHp - this.player.hp;
             this.player.hp = this.player.maxHp;
+        }
+
+        // Vigorを全回復
+        if (this.player.vigor < GAME_CONSTANTS.VIGOR.MAX) {
+            this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
         }
 
         // サイバー風の壁タイルをGAME_CONSTANTSから使用
