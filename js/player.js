@@ -189,6 +189,8 @@ class Player {
                                 this.game.floorLevel++;
                                 this.game.generateNewFloor();
                             });
+                            // ポータル効果音を再生
+                            this.game.portalSound.play();
                         } else {
                             this.game.logger.add("You decide not to enter the portal.", "info");
                         }
@@ -223,6 +225,8 @@ class Player {
                                     }
                                 }
                             });
+                            // ポータル効果音を再生
+                            this.game.portalSound.play();
                         } else {
                             this.game.logger.add("You decide not to enter the VOID portal.", "info");
                         }

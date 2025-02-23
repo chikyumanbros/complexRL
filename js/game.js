@@ -41,6 +41,9 @@ class Game {
         this.doorCloseSound = new Audio('assets/sounds/doorClose.wav');
         this.doorKillSound = new Audio('assets/sounds/doorKill.wav'); // Door Kill用SE
 
+        // ポータル/ヴォイドポータル用のSE
+        this.portalSound = new Audio('assets/sounds/portal.wav');
+
         // SEのボリューム (0.0 - 1.0, 初期値は0.5)
         this.seVolume = 0.5;
         this.setSeVolume(this.seVolume); // 初期ボリュームを設定
@@ -914,6 +917,12 @@ class Game {
 
         // モンスターの生成
         this.spawnInitialMonsters();
+
+        // BGMを更新
+        this.updateBGM();
+
+         // ポータル効果音をフェードアウト
+        this.fadeOutBGM.call({ homeBGM: this.portalSound }); // コンテキストを修正
 
         // Initialize and display information
         const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
