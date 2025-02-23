@@ -6,6 +6,9 @@ class SoundManager {
         this.homeBGM = new Audio('assets/sounds/complex_nexus.ogg');
         this.homeBGM.loop = true;
         this.homeBGM.volume = 0.5;  // 初期音量を50%に設定
+        this.floor1BGM = new Audio('assets/sounds/floor1.ogg'); // floor1BGM を追加
+        this.floor1BGM.loop = true;
+        this.floor1BGM.volume = 0.5;  // 初期音量を50%に設定
         this.fadeOutInterval = null;  // フェードアウト用のインターバルID
 
         // 効果音を読み込む
@@ -68,7 +71,22 @@ class SoundManager {
                     }
                 });
             }
+            // floor1BGMが再生中の場合は停止
+            if (!this.floor1BGM.paused) {
+                this.floor1BGM.pause();
+                this.floor1BGM.currentTime = 0;
+            }
         } else {
+            // floorLevel が 0 以外の場合 floor1BGM を再生
+            if (this.floor1BGM.paused) {
+                this.floor1BGM.volume = 0.5;
+                this.floor1BGM.play().catch(error => {
+                    if (error.name !== 'NotAllowedError') {
+                        console.warn('BGM playback failed:', error);
+                    }
+                });
+            }
+            // homeBGM が再生中の場合はフェードアウト
             if (!this.homeBGM.paused) {
                 this.fadeOutBGM();
             }

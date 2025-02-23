@@ -760,10 +760,10 @@ class Game {
 
                 if (isValidSpawn && distance >= GAME_CONSTANTS.ROOM.SAFE_RADIUS) {
 
-                    monster = Monster.spawnRandomMonster(x, y, this.floorLevel, this.dangerLevel);
+                    monster = Monster.spawnRandomMonster(x, y, this.floorLevel, this.dangerLevel, this);
                     this.monsters.push(monster);
                     this.totalMonstersSpawned++;
-                    //console.log(`Spawned ${monster.name} (Level ${monster.level}) at (${x}, ${y})`);
+                    console.log(`Spawned ${monster.name} (Level ${monster.level}) at (${x}, ${y})`);
 
                     // Handle pack spawning.
                     const template = MONSTERS[monster.type];
@@ -796,7 +796,7 @@ class Game {
                                     packDistance >= GAME_CONSTANTS.ROOM.SAFE_RADIUS;
 
                                 if (isValidPackSpawn) {
-                                    const packMember = new Monster(monster.type, packX, packY);
+                                    const packMember = new Monster(monster.type, packX, packY, this);
                                     this.monsters.push(packMember);
                                     this.totalMonstersSpawned++;
                                     packSpawned = true;
