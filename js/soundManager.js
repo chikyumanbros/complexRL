@@ -19,6 +19,9 @@ class SoundManager {
         // レベルアップSE
         this.levelUpSound = new Audio('assets/sounds/levelup.wav');
 
+        // 階段を降りるSE
+        this.descendStairsSound = new Audio('assets/sounds/descend_stairs.wav');
+
         // SEのボリューム (0.0 - 1.0, 初期値は0.5)
         this.seVolume = 0.5;
         this.setSeVolume(this.seVolume); // 初期ボリュームを設定
@@ -104,6 +107,7 @@ class SoundManager {
         this.doorKillSound.volume = 0.7; // Door Killの音量は大きめに設定
         this.portalSound.volume = this.seVolume;
         this.levelUpSound.volume = 0.7; // レベルアップSEの音量を設定
+        this.descendStairsSound.volume = this.seVolume; // 階段を降りるSEの音量を設定
     }
 
     // 効果音を再生するメソッド

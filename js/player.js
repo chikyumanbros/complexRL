@@ -551,6 +551,7 @@ class Player {
             this.game.floorLevel++;
             this.game.logger.add(`You descend to floor ${this.game.floorLevel}...`, "important");
             this.game.generateNewFloor();
+            this.game.playSound('descendStairsSound');
             return true;
         }
         return false;
