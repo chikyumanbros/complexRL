@@ -194,10 +194,13 @@ class Game {
         this.turn = 0;
         this.floorLevel = 0;
 
-        // プレイヤーを初期化
+        // プレイヤーを初期化（ステータスは未割り振りの状態で）
         this.player = new Player(0, 0, this);
-        // Vigorを明示的に初期化
-        this.player.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;  // この行を追加
+        // 初期ステータスをすべて5に設定
+        Object.keys(this.player.stats).forEach(stat => {
+            this.player.stats[stat] = 5;
+        });
+        this.player.remainingStatPoints = 12;  // 割り振り可能なポイント
         this.codexSystem = new CodexSystem();
         this.logger = new Logger(this);
         this.isGameOver = false;
@@ -321,7 +324,14 @@ class Game {
     removeMonster(monster) {
         const index = this.monsters.indexOf(monster);
         if (index > -1) {
+            monster.isRemoved = true; // 削除フラグを追加
+            monster.lastSeenTurn = this.turn; // 最後に確認されたターンを記録
             this.monsters.splice(index, 1);
+            
+            // lastCombatMonsterの更新
+            if (this.lastCombatMonster && this.lastCombatMonster.id === monster.id) {
+                this.lastCombatMonster = null;
+            }
         }
     }
 
@@ -410,6 +420,9 @@ class Game {
         if (!this.player.lastPosition) {
             this.player.lastPosition = { x: this.player.x, y: this.player.y };
         }
+
+        // プレイヤーのnextAttackModifiersをクリア
+        this.player.nextAttackModifiers = [];
 
         // 全てのモンスターの行動処理
         for (const monster of this.monsters) {

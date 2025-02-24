@@ -90,6 +90,11 @@ class InputHandler {
             return;
         }
 
+        if (this.mode === 'characterCreation') {
+            this.handleCharacterCreation(key);
+            return;
+        }
+
         // 名前入力モード以外の場合はタイプライターエフェクトを有効化
         const messageLogElement = document.getElementById('message-log');
         if (messageLogElement) {
@@ -285,10 +290,14 @@ class InputHandler {
 
         if (key === 'Enter' && this.nameBuffer.trim().length > 0) {
             this.game.player.name = this.nameBuffer.trim();
-            this.mode = 'game';
-            this.game.logger.clearTitle();  // タイトルを消去
-            this.game.logger.add(`Welcome, ${this.game.player.name}!`, "important");
-            this.game.renderer.render();
+            this.mode = 'characterCreation';  // 名前入力後はキャラクター作成モードへ
+            this.game.logger.clearTitle();
+            this.game.logger.add(`Welcome, ${this.game.player.name}! Let's create your character.`, "important");
+            this.game.logger.add(`You have ${this.game.player.remainingStatPoints} points to distribute.`, "info");
+            this.game.logger.add("Use these keys to adjust stats:", "info");
+            this.game.logger.add("[S]trength | [D]exterity | [C]onstitution | [I]ntelligence | [W]isdom", "info");
+            this.game.logger.add("Press ENTER when finished", "info");
+            this.showCurrentStats();
             return;
         }
 
@@ -303,6 +312,62 @@ class InputHandler {
 
         // 名前入力プロンプトの更新
         this.game.renderer.renderNamePrompt(this.nameBuffer);
+    }
+
+    // 新規: キャラクター作成モードの入力処理
+    handleCharacterCreation(key) {
+        const statMap = {
+            's': 'str',
+            'd': 'dex',
+            'c': 'con',
+            'i': 'int',
+            'w': 'wis'
+        };
+
+        if (key === 'enter' && this.game.player.remainingStatPoints === 0) {
+            // キャラクター作成完了
+            this.mode = 'game';
+            this.game.player.updateDerivedStats();
+            this.game.logger.add("Character creation complete!", "important");
+            
+            // ゲームの初期化処理を追加
+            this.game.generateNewFloor();  // generateFloor から generateNewFloor に修正
+            this.game.mode = GAME_CONSTANTS.MODES.GAME;  // ゲームモードに設定
+            this.game.renderer.render();  // 画面を更新
+            return;
+        }
+
+        const stat = statMap[key.toLowerCase()];
+        if (stat && this.game.player.remainingStatPoints > 0) {
+            this.game.player.stats[stat]++;
+            this.game.player.remainingStatPoints--;
+            this.showCurrentStats();
+            
+            // ステータスパネルを更新
+            this.game.player.updateDerivedStats();  // 派生ステータスを更新
+            this.game.renderer.renderStatus();      // ステータスパネルを更新
+        }
+    }
+
+    // 新規: 現在のステータスを表示
+    showCurrentStats() {
+        const player = this.game.player;
+        
+        // ログをクリアしてから新しい情報を表示
+        this.game.logger.clear();
+        
+        this.game.logger.add(`Welcome, ${player.name}! Let's create your character.`, "important");
+        this.game.logger.add(`You have ${player.remainingStatPoints} points to distribute.`, "info");
+        this.game.logger.add("Use these keys to adjust stats:", "info");
+        this.game.logger.add("[S]trength | [D]exterity | [C]onstitution | [I]ntelligence | [W]isdom", "info");
+        this.game.logger.add("Press ENTER when finished", "info");
+        this.game.logger.add("\nCurrent Stats:", "playerInfo");
+        
+        Object.entries(player.stats).forEach(([stat, value]) => {
+            const statName = GAME_CONSTANTS.STATS.NAMES[stat];
+            this.game.logger.add(`${statName}: ${value}`, "playerInfo");
+        });
+        this.game.logger.add(`\nRemaining Points: ${player.remainingStatPoints}`, "important");
     }
 
     // ----------------------
@@ -904,24 +969,38 @@ class InputHandler {
             const monster = this.game.getMonsterAt(door.x, door.y);
             if (monster) {
                 // モンスターのHPを確実に0にする
-                const damage = Math.max(monster.hp, 1);  // 最低1ダメージ保証
+                const damage = Math.max(monster.hp, 1);
                 const result = monster.takeDamage(damage, this.game);
                 this.game.logger.add(`The closing door crushes ${monster.name}!`, "playerCrit");
 
-                // --- Record Door Kill Location ---
-                this.game.lastDoorKillLocation = { x: door.x, y: door.y };
+                // モンスターを即座に削除
+                monster.isRemoved = true;
+                this.game.removeMonster(monster);
 
-                // --- Delayed Tile Update ---
+                // lastCombatMonsterを確実にクリア
+                this.game.lastCombatMonster = null;
+
+                // 位置情報を正しく記録
+                this.game.lastDoorKillLocation = { 
+                    x: door.x, 
+                    y: door.y
+                };
+
+                // タイル更新を遅延実行
                 setTimeout(() => {
-                    this.game.lastDoorKillLocation = null;
+                    // 床タイルに変更
                     this.game.tiles[door.y][door.x] = GAME_CONSTANTS.TILES.FLOOR[
                         Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
                     ];
                     this.game.colors[door.y][door.x] = GAME_CONSTANTS.COLORS.FLOOR;
 
+                    // lastDoorKillLocationをクリア
+                    this.game.lastDoorKillLocation = null;
+
                     if (result.killed) {
                         this.game.logger.add(`The door has destroyed ${monster.name}!`, "kill");
-                        this.game.removeMonster(monster);
+                        
+                        // 部屋の情報更新
                         const currentRoom = this.game.getCurrentRoom();
                         if (currentRoom) {
                             const monsterCount = this.game.getMonstersInRoom(currentRoom).length;
@@ -929,11 +1008,20 @@ class InputHandler {
                         }
                     }
 
+                    // 視界の更新を強制
+                    this.game._visibleTilesCache = null;
                     this.game.renderer.render();
+                    
+                    // Look情報を更新
+                    this.game.renderer.examineTarget(door.x, door.y, true);
                 }, 400);
 
-                // --- Immediate Rendering for Effect Display ---
+                // 即座にレンダリング
+                this.game._visibleTilesCache = null;
                 this.game.renderer.render();
+                
+                // Look情報を即座に更新
+                this.game.renderer.examineTarget(door.x, door.y, true);
 
                 // ドアキルSEを再生
                 this.game.playSound('doorKillSound');

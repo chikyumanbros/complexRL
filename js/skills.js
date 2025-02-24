@@ -119,7 +119,9 @@ const SKILLS = {
                 cooldown: 30,
                 isFreeAction: false,
                 requiresTarget: true,
-                range: 3,
+                getRange: (player) => {
+                    return Math.floor((player.stats.dex - player.stats.con) / 3) + 3;
+                },
                 getEffectText: (player) => {
                     const jumpRange = Math.floor((player.stats.dex - player.stats.con) / 3) + 3;
                     return `[Range: ${jumpRange}]`;

@@ -4,7 +4,7 @@ class Renderer {
         this.highlightedTile = null;
         this.movementEffects = null;
         this.spriteColorCache = new Map();
-        
+
         // 揺らぎのための変数
         this.flickerTime = 0;
         this.flickerValues = new Array(20).fill(0);  // 揺らぎ値を保持
@@ -26,12 +26,12 @@ class Renderer {
 
         const baseWidth = 1780;
         const baseHeight = 980;
-        
+
         // ウィンドウサイズに基づいてスケール比を計算
         const scaleX = window.innerWidth / baseWidth;
         const scaleY = window.innerHeight / baseHeight;
         const scale = Math.min(scaleX, scaleY, 1); // 最大スケールを1に制限
-        
+
         // CSSカスタムプロパティとしてスケール比を設定
         document.documentElement.style.setProperty('--scale-ratio', scale);
     }
@@ -39,17 +39,17 @@ class Renderer {
     // フリッカー値を更新（ターンベース）
     updateFlickerValues() {
         this.flickerTime = (this.flickerTime + 1) % 60;
-        
+
         // より不規則な揺らぎ値を生成
         for (let i = 0; i < this.flickerValues.length; i++) {
             // 複数の周期の異なるノイズを組み合わせる
             const noise1 = Math.sin(this.flickerTime * 0.1 + i * 0.7) * 0.5;
             const noise2 = Math.sin(this.flickerTime * 0.05 + i * 1.3) * 0.3;
             const noise3 = Math.sin(this.flickerTime * 0.15 + i * 0.4) * 0.1;
-            
+
             // ランダム性を追加
             const randomNoise = (Math.random() - 0.5) * 0.1;
-            
+
             // 複数のノイズを組み合わせて最終的な揺らぎを生成
             this.flickerValues[i] = (noise1 + noise2 + noise3 + randomNoise) * 0.8;
         }
@@ -66,7 +66,7 @@ class Renderer {
         elements.forEach(el => {
             const x = parseInt(el.dataset.x);
             const y = parseInt(el.dataset.y);
-            
+
             // 視界内のタイルのみ処理
             if (visibleTiles.has(`${x},${y}`)) {
                 const style = window.getComputedStyle(el);
@@ -95,38 +95,38 @@ class Renderer {
         const index1 = ((x * 3 + y * 2 + this.flickerTime) % this.flickerValues.length);
         const index2 = ((x * 7 + y * 5 + this.flickerTime * 3) % this.flickerValues.length);
         const index3 = ((x * 2 + y * 7 + this.flickerTime * 2) % this.flickerValues.length);
-        
+
         const flicker = (
-            this.flickerValues[index1] * 0.5 + 
-            this.flickerValues[index2] * 0.3 + 
+            this.flickerValues[index1] * 0.5 +
+            this.flickerValues[index2] * 0.3 +
             this.flickerValues[index3] * 0.2
         );
-        
+
         // 近隣タイルをチェックして影効果を追加する
         let shadowAdjustment = 0;
         const neighborOffsets = [[1, 0], [-1, 0], [0, 1], [0, -1]];
         neighborOffsets.forEach(offset => {
-           const nx = x + offset[0], ny = y + offset[1];
-           if (this.game.map[ny] && this.game.map[ny][nx]) {
-               // 壁や遮蔽物に隣接していれば、影として明るさを少し下げる
-               if (this.game.map[ny][nx] === 'wall' ||
-                   (this.game.map[ny][nx] === 'obstacle' &&
-                    GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.game.tiles[ny][nx]))) {
-                   shadowAdjustment -= 0.05;
-               }
-           }
+            const nx = x + offset[0], ny = y + offset[1];
+            if (this.game.map[ny] && this.game.map[ny][nx]) {
+                // 壁や遮蔽物に隣接していれば、影として明るさを少し下げる
+                if (this.game.map[ny][nx] === 'wall' ||
+                    (this.game.map[ny][nx] === 'obstacle' &&
+                        GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.game.tiles[ny][nx]))) {
+                    shadowAdjustment -= 0.05;
+                }
+            }
         });
-        
+
         // 最終的なタイルの明るさ（影効果を加味）
         const opacity = Math.max(0.4, Math.min(0.8, baseOpacity + flicker * 0.3 + shadowAdjustment));
-        
+
         // 灯りの色の計算
         const warmth1 = Math.sin(this.flickerTime * 0.07 + x * 0.23 + y * 0.31) * 0.1;
         const warmth2 = Math.sin(this.flickerTime * 0.13 + x * 0.17 + y * 0.19) * 0.05;
         const warmthTotal = (warmth1 + warmth2) * 0.7 + 0.1;
-        
+
         const lightColor = `rgba(255, ${170 + Math.floor(warmthTotal * 85)}, ${100 + Math.floor(warmthTotal * 155)}, 0.12)`;
-        
+
         return {
             opacity,
             color: lightColor
@@ -144,7 +144,7 @@ class Renderer {
             this.game.player.x, this.game.player.y
         );
 
-        const effectRange = Math.max(1, Math.min(8, 
+        const effectRange = Math.max(1, Math.min(8,
             Math.floor(this.game.player.stats.wis - Math.floor(this.game.player.stats.int / 2)) * 2
         ));
 
@@ -152,7 +152,7 @@ class Renderer {
             // ターンカウンターを使用してシード値を生成
             const seed = this.psychedelicTurn * 1000 + x * 100 + y;
             const rand = Math.abs(Math.sin(seed));
-            
+
             if (rand < 0.5) {
                 const possibleChars = GAME_CONSTANTS.TILES.SPACE;
                 const possibleColors = GAME_CONSTANTS.TILES.SPACE_COLORS;
@@ -184,7 +184,7 @@ class Renderer {
         }
 
         // 視界内チェックは不要になったので、以下は常に実行
-        this.highlightedTile = {x, y};
+        this.highlightedTile = { x, y };
         this.render();
         return true;
     }
@@ -237,8 +237,8 @@ class Renderer {
             for (let x = 0; x < this.game.width; x++) {
                 const isVisible = visibleTiles.has(`${x},${y}`);
                 const isExplored = this.game.explored[y][x];
-                const isHighlighted = this.highlightedTile && 
-                    this.highlightedTile.x === x && 
+                const isHighlighted = this.highlightedTile &&
+                    this.highlightedTile.x === x &&
                     this.highlightedTile.y === y;
 
                 let content = '';
@@ -251,8 +251,8 @@ class Renderer {
                 // ランドマークターゲットモードの場合、探索済みなら描画
                 if (this.game.inputHandler.landmarkTargetMode && isExplored) {
                     content = this.game.tiles[y][x];
-                    style = `color: ${isHighlighted ? 'lime' : 'black'}; opacity: ${isHighlighted? 1: 0.6}`; // 強調表示
-                    backgroundColor = isHighlighted? 'rgba(0, 255, 0, 0.4)' : 'black'; // 背景色
+                    style = `color: ${isHighlighted ? 'lime' : 'black'}; opacity: ${isHighlighted ? 1 : 0.6}`; // 強調表示
+                    backgroundColor = isHighlighted ? 'rgba(0, 255, 0, 0.4)' : 'black'; // 背景色
                     if (GAME_CONSTANTS.TILES.WALL.includes(content)) {
                         style = `color: darkgray; opacity: 0.7`; // 壁は暗い灰色
                         backgroundColor = 'black';
@@ -271,9 +271,9 @@ class Renderer {
                     // タイルごとに部屋を判定する
                     const roomAtTile = this.game.getRoomAt(x, y);
                     const tileVisibility = (currentRoom && roomAtTile && roomAtTile === currentRoom) ? currentRoom.brightness : 2;
-                    
+
                     const distance = GAME_CONSTANTS.DISTANCE.calculate(x, y, px, py);
-                    
+
                     // 基本的な明るさを計算
                     let baseOpacity;
                     if (distance <= 1) {
@@ -310,7 +310,7 @@ class Renderer {
                         content = this.game.player.char;
                         const healthStatus = this.game.player.getHealthStatus(this.game.player.hp, this.game.player.maxHp);
                         style = `color: ${healthStatus.color}; opacity: 1; text-shadow: 0 0 5px ${backgroundColor}`;
-                        
+
                         // プレイヤーがポータル上にいる場合、特別なクラスを追加
                         if (this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
                             classes.push('player-on-portal');
@@ -361,13 +361,15 @@ class Renderer {
                         } else {
                             const skillId = this.game.inputHandler.targetingMode;
                             const skill = this.game.codexSystem.findSkillById(skillId);
-                            const range = skill ? skill.range : 1;
+                            const range = skill && skill.getRange 
+                                ? skill.getRange(this.game.player) 
+                                : (skill ? skill.range : 1);
                             const highlightColor = targetDistance <= range &&
-                                 !GAME_CONSTANTS.TILES.WALL.includes(this.game.tiles[y][x]) &&
-                                 !GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.game.tiles[y][x]) &&
-                                 this.game.tiles[y][x] !== GAME_CONSTANTS.TILES.DOOR.CLOSED &&
-                                 !GAME_CONSTANTS.TILES.SPACE.includes(this.game.tiles[y][x]) &&
-                                 !GAME_CONSTANTS.TILES.CYBER_WALL.includes(this.game.tiles[y][x])
+                                !GAME_CONSTANTS.TILES.WALL.includes(this.game.tiles[y][x]) &&
+                                !GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.game.tiles[y][x]) &&
+                                this.game.tiles[y][x] !== GAME_CONSTANTS.TILES.DOOR.CLOSED &&
+                                !GAME_CONSTANTS.TILES.SPACE.includes(this.game.tiles[y][x]) &&
+                                !GAME_CONSTANTS.TILES.CYBER_WALL.includes(this.game.tiles[y][x])
                                 ? 'rgba(46, 204, 113, 1)'  // 範囲内：緑
                                 : 'rgba(231, 76, 60, 1)'; // 範囲外：赤
                             backgroundColor = `linear-gradient(${backgroundColor || 'transparent'}, ${highlightColor})`;
@@ -406,7 +408,7 @@ class Renderer {
                     this.game.lastAttackLocation.y === y;
 
                 // 命中判定と回避判定に成功し、実際にダメージが発生した場合のみエフェクトを表示
-                if (isAttackTarget && this.game.lastAttackResult && 
+                if (isAttackTarget && this.game.lastAttackResult &&
                     this.game.lastAttackResult.damage > 0) {
                     classes.push('damage');
                 }
@@ -449,8 +451,8 @@ class Renderer {
         const floorLevelElement = document.getElementById('floor-level');
         if (floorLevelElement) {
             const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.game.dangerLevel];
-            const floorDisplay = this.game.floorLevel === 0 ? 
-                "< THE NEXUS >" : 
+            const floorDisplay = this.game.floorLevel === 0 ?
+                "< THE NEXUS >" :
                 this.game.floorLevel;
             floorLevelElement.innerHTML = `${floorDisplay} <span style="color: ${dangerInfo.color}">[${dangerInfo.name}]</span>`;
         }
@@ -614,12 +616,12 @@ class Renderer {
                         }
 
                         // スロット番号の使用可否判定
-                        const isAvailable = skillData.remainingCooldown === 0 && 
+                        const isAvailable = skillData.remainingCooldown === 0 &&
                             (skill.id !== 'meditation' || player.hp < player.maxHp || player.vigor < GAME_CONSTANTS.VIGOR.MAX);
                         const slotClass = isAvailable ? 'skill-slot available' : 'skill-slot';
 
                         return `[<span class="${slotClass}">${slot}</span>] ` +
-                               `<span style="color: ${categoryColor}">${skill.name[0]}</span>${skill.name.slice(1)} ${effectText}${cooldownText}`;
+                            `<span style="color: ${categoryColor}">${skill.name[0]}</span>${skill.name.slice(1)} ${effectText}${cooldownText}`;
                     })
                     .join('<br>')
                 : 'NO SKILLS';
@@ -633,13 +635,38 @@ class Renderer {
                 this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
             );
 
-            const visibleMonsters = this.game.monsters.filter(monster =>
-                visibleTiles.has(`${monster.x},${monster.y}`)
-            );
+            const visibleMonsters = this.game.monsters
+                .filter(monster =>
+                    visibleTiles.has(`${monster.x},${monster.y}`)
+                )
+                .map(monster => ({
+                    ...monster,
+                    distance: GAME_CONSTANTS.DISTANCE.calculate(
+                        this.game.player.x,
+                        this.game.player.y,
+                        monster.x,
+                        monster.y
+                    )
+                }))
+                .sort((a, b) => a.distance - b.distance); // 距離でソート
 
             if (visibleMonsters.length > 0) {
                 const monsterList = visibleMonsters.map(monster => {
-                    const healthStatus = monster.getHealthStatus(monster.hp, monster.maxHp);
+                    // ヘルスステータスの計算を直接行う
+                    const hpPercentage = (monster.hp / monster.maxHp) * 100;
+                    let healthStatus = {
+                        name: 'Healthy',
+                        color: '#2ecc71'
+                    };
+                    
+                    if (hpPercentage <= 25) {
+                        healthStatus = { name: 'Near Death', color: '#e74c3c' };
+                    } else if (hpPercentage <= 50) {
+                        healthStatus = { name: 'Badly Wounded', color: '#e67e22' };
+                    } else if (hpPercentage <= 75) {
+                        healthStatus = { name: 'Wounded', color: '#f1c40f' };
+                    }
+                    
                     const healthClass = healthStatus.name.toLowerCase().replace(' ', '-');
 
                     const sleepStatus = monster.isSleeping ? 'Zzz' : '';
@@ -648,11 +675,10 @@ class Renderer {
                     const monsterColor = GAME_CONSTANTS.COLORS.MONSTER[monster.type];
 
                     // プレイヤーから見た方角と距離を計算
-                    const distance = GAME_CONSTANTS.DISTANCE.calculate(this.game.player.x, this.game.player.y, monster.x, monster.y);
                     const dx = monster.x - this.game.player.x;
                     const dy = monster.y - this.game.player.y;
                     const direction = this.getDirectionIndicator(dx, dy);
-                    const directionColor = this.getDirectionColor(distance);
+                    const directionColor = this.getDirectionColor(monster.distance);
 
                     const hpBars = Math.ceil((monster.hp / monster.maxHp) * 20);
                     const hpText = '|'.repeat(hpBars).padEnd(20, ' ');
@@ -706,7 +732,7 @@ class Renderer {
         if (statusPanel) {
             statusPanel.classList.add('damage-flash');
             // アニメーション終了後にクラスを削除
-            statusPanel.addEventListener('animationend', function() {
+            statusPanel.addEventListener('animationend', function () {
                 statusPanel.classList.remove('damage-flash');
                 statusPanel.style.backgroundColor = 'black'; // 背景色を黒に戻す
             }, { once: true }); // イベントリスナーを一度だけ実行
@@ -746,8 +772,8 @@ class Renderer {
         for (let i = 1; i <= trailCount; i++) {
             const x = Math.round(fromX + (dx * i / (trailCount + 1)));
             const y = Math.round(fromY + (dy * i / (trailCount + 1)));
-            this.movementEffects.add({ 
-                x, 
+            this.movementEffects.add({
+                x,
                 y,
                 opacity: 1 - (i / (trailCount + 1)) // 徐々に薄くなる
             });
@@ -881,11 +907,11 @@ class Renderer {
         };
 
         const settings = config[type];
-        
+
         // リングエフェクトの生成
         const ring = document.createElement('div');
         ring.classList.add('miss-ring');
-        
+
         // リングのスタイル設定
         ring.style.left = (centerX - settings.size) + "px";
         ring.style.top = (centerY - settings.size) + "px";
@@ -912,18 +938,18 @@ class Renderer {
         const popup = document.createElement('div');
         popup.className = 'crit-popup';
         popup.textContent = 'CRIT!';
-        
+
         // モンスターとプレイヤーで色を分ける
         if (isMonster) {
             popup.style.color = '#ff4444';  // モンスターのクリティカル: 赤色
         } else {
             popup.style.color = '#44ff44';  // プレイヤーのクリティカル: 緑色
         }
-        
+
         // 位置を設定
         popup.style.left = pos.x + 'px';
         popup.style.top = (pos.y - pos.height / 2) + 'px';
-        
+
         particleLayer.appendChild(popup);
 
         // アニメーション終了時に要素を削除
@@ -934,20 +960,20 @@ class Renderer {
 
     updateStatusPanel(status) {
         const panel = document.getElementById('status-panel');
-    
+
         // Update floor level element
         const floorLevelElement = document.getElementById('floor-level');
         if (floorLevelElement) {
             const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.game.dangerLevel];
             floorLevelElement.innerHTML = `${this.game.floorLevel} <span style="color: ${dangerInfo.color}">[${dangerInfo.name}]</span>`;
         }
-    
+
         // Update level display
         const levelElement = document.getElementById('level');
         if (levelElement) {
             levelElement.textContent = status.level;
         }
-    
+
         // Update HP and Health Status display
         const hpElement = document.getElementById('hp');
         const maxHpElement = document.getElementById('max-hp');
@@ -956,7 +982,7 @@ class Renderer {
             const [currentHp, maxHp] = status.hp.split('/');
             hpElement.textContent = currentHp;
             maxHpElement.textContent = maxHp;
-    
+
             // HPの割合に基づいて色を設定
             const hpPercentage = ((parseInt(currentHp) / parseInt(maxHp)) * 100);
             let healthColor = '#ffffff'; // デフォルト白
@@ -967,12 +993,12 @@ class Renderer {
             } else if (hpPercentage <= 75) {
                 healthColor = '#f1c40f'; // Wounded（黄色）
             }
-            
+
             if (healthStatusElement) {
                 healthStatusElement.innerHTML = `<span style="color: ${healthColor}">${status.healthStatus}</span>`;
             }
         }
-    
+
         // Update base stats
         for (const [key, value] of Object.entries(status.stats)) {
             const element = document.getElementById(key);
@@ -980,7 +1006,7 @@ class Renderer {
                 element.textContent = value;
             }
         }
-    
+
         // Update derived stats (using innerHTML to allow HTML tags)
         for (const [key, value] of Object.entries(status.derived)) {
             const element = document.getElementById(key);
@@ -988,19 +1014,19 @@ class Renderer {
                 element.innerHTML = value;
             }
         }
-    
+
         // Update XP display
         const xpElement = document.getElementById('xp');
         if (xpElement) {
             xpElement.textContent = status.xp;
         }
-    
+
         // Update Codex points display
         const codexElement = document.getElementById('codexPoints');
         if (codexElement) {
             codexElement.textContent = this.game.player.codexPoints;
         }
-    
+
         if (this.statusPanelFlashing) {
             panel.classList.add('flash');
         }
@@ -1221,7 +1247,7 @@ class Renderer {
 
     examineTarget(targetX, targetY, lookMode = false) {
         let monster = this.game.getMonsterAt(targetX, targetY);
-
+        
         const container = document.createElement('div');
         container.style.display = 'flex';
         container.style.alignItems = 'flex-start';
@@ -1235,7 +1261,8 @@ class Renderer {
         infoDiv.style.width = '200px';
         infoDiv.style.flexShrink = '0';
 
-        if (monster && monster.hp > 0) {
+        // モンスターの存在と生存状態を厳密にチェック
+        if (monster && monster.hp > 0 && !monster.isRemoved) {
             // Fallback: compute attack and defense if undefined
             if (!monster.attackPower) {
                 monster.attackPower = GAME_CONSTANTS.FORMULAS.ATTACK(monster.stats);
@@ -1305,29 +1332,52 @@ class Renderer {
         } else {
             const tile = this.game.tiles[targetY][targetX];
             let lookInfo = '';
-            if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
-                lookInfo = "You see a closed door here.";
-            } else if (tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
-                lookInfo = "You see an open door here.";
-            } else if (tile === GAME_CONSTANTS.STAIRS.CHAR) {
-                lookInfo = "You see stairs leading down here.";
-            } else if (GAME_CONSTANTS.TILES.FLOOR.includes(tile)) {
-                lookInfo = "You see a floor here.";
-            } else if (GAME_CONSTANTS.TILES.WALL.includes(tile)) {
-                lookInfo = "You see a wall here.";
-            } else if (GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(tile)) {
-                lookInfo = "You see a massive stone pillar blocking your view.";
-            } else if (GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tile)) {
-                lookInfo = "You see some decorative furniture.";
-            } else if (GAME_CONSTANTS.TILES.SPACE.includes(tile)) {
-                lookInfo = "You see the vast expanse of space here.";
-            } else if (tile === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
-                lookInfo = "You see a shimmering portal gate here.";
-            } else if (tile === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
-                lookInfo = "You see a swirling void portal here.";
+
+            // lastCombatMonsterとlastDoorKillLocationの両方をチェック
+            if (this.game.lastDoorKillLocation && 
+                this.game.lastDoorKillLocation.x === targetX && 
+                this.game.lastDoorKillLocation.y === targetY) {
+                // ドアキルの場合は特別な表示
+                lookInfo = "You see the aftermath of a door crushing.";
+            } else if (this.game.lastCombatMonster && 
+                      !this.game.lastCombatMonster.isRemoved &&
+                      targetX === this.game.lastCombatMonster.x && 
+                      targetY === this.game.lastCombatMonster.y &&
+                      this.game.turn - this.game.lastCombatMonster.lastSeenTurn <= 1 &&
+                      GAME_CONSTANTS.DISTANCE.calculate(
+                          this.game.player.x,
+                          this.game.player.y,
+                          targetX,
+                          targetY
+                      ) <= 1.5) {
+                lookInfo = `You see signs of ${this.game.lastCombatMonster.name}'s recent presence here.`;
             } else {
-                lookInfo = `You see ${tile} here.`;
+                // 通常のタイル情報表示
+                if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                    lookInfo = "You see a closed door here.";
+                } else if (tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
+                    lookInfo = "You see an open door here.";
+                } else if (tile === GAME_CONSTANTS.STAIRS.CHAR) {
+                    lookInfo = "You see stairs leading down here.";
+                } else if (GAME_CONSTANTS.TILES.FLOOR.includes(tile)) {
+                    lookInfo = "You see a floor here.";
+                } else if (GAME_CONSTANTS.TILES.WALL.includes(tile)) {
+                    lookInfo = "You see a wall here.";
+                } else if (GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(tile)) {
+                    lookInfo = "You see a massive stone pillar blocking your view.";
+                } else if (GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tile)) {
+                    lookInfo = "You see some decorative furniture.";
+                } else if (GAME_CONSTANTS.TILES.SPACE.includes(tile)) {
+                    lookInfo = "You see the vast expanse of space here.";
+                } else if (tile === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+                    lookInfo = "You see a shimmering portal gate here.";
+                } else if (tile === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
+                    lookInfo = "You see a swirling void portal here.";
+                } else {
+                    lookInfo = `You see ${tile} here.`;
+                }
             }
+            
             infoDiv.innerHTML = lookInfo;
             container.appendChild(infoDiv);
         }
@@ -1370,13 +1420,13 @@ class Renderer {
 
         // 既存のアニメーションをリセット
         logPanel.classList.remove('log-panel-flash');
-        
+
         // 強制的にリフロー
         void logPanel.offsetWidth;
-        
+
         // アニメーションを再適用
         logPanel.classList.add('log-panel-flash');
-        
+
         //console.log('Classes after flash:', logPanel.classList.toString());
     }
 
@@ -1482,19 +1532,19 @@ class Renderer {
                 for (let x = 0; x < this.game.width; x++) {
                     // ポータルからの距離を計算
                     const distanceFromPortal = Math.sqrt(
-                        Math.pow(x - this.game.player.x, 2) + 
+                        Math.pow(x - this.game.player.x, 2) +
                         Math.pow(y - this.game.player.y, 2)
                     );
 
                     // 距離に応じて変化の確率を調整
                     const changeThreshold = (currentStep / steps) * 15 - distanceFromPortal;
-                    
+
                     if (Math.random() < Math.max(0, changeThreshold / 15)) {
                         // SPACE配列からランダムにタイルを選択
                         this.game.tiles[y][x] = GAME_CONSTANTS.TILES.SPACE[
                             Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE.length)
                         ];
-                        
+
                         // SPACE_COLORSからランダムに色を選択
                         this.game.colors[y][x] = GAME_CONSTANTS.TILES.SPACE_COLORS[
                             Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE_COLORS.length)

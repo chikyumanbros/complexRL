@@ -293,11 +293,11 @@ const GAME_CONSTANTS = {
 
         // 初期値（プレイヤー用）
         DEFAULT_VALUES: {
-            str: 12,
-            dex: 12,
-            con: 12,
-            int: 12,
-            wis: 12
+            str: 6,
+            dex: 6,
+            con: 6,
+            int: 6,
+            wis: 6
         },
 
         // ステータスの説明

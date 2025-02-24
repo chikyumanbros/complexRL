@@ -10,6 +10,7 @@ class Player {
         this.xp = 14;                  // 経験値の初期化
         this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
         this.stats = { ...GAME_CONSTANTS.STATS.DEFAULT_VALUES };
+        this.remainingStatPoints = 12;  // 追加: 残りのステータスポイント
 
         // HPの計算
         this.maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(this.stats, this.level);
