@@ -50,6 +50,35 @@ class InputHandler {
         }
         this.lastInputTime = currentTime;
 
+        const key = event.key.toLowerCase();
+
+        // ESCキーの処理を最優先で行う
+        if (key === 'escape') {
+            if (this.lookMode) {
+                this.endLookMode();
+                return;
+            }
+            if (this.landmarkTargetMode) {
+                this.endLandmarkTargetMode();
+                return;
+            }
+            if (this.targetingMode) {
+                this.cancelTargeting();
+                return;
+            }
+            // ヘルプモードの解除を追加
+            if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
+                this.game.toggleMode();
+                return;
+            }
+            // Codexモードの解除を追加
+            if (this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
+                this.game.toggleMode();
+                return;
+            }
+            return;
+        }
+
         // プレイヤー名入力モードの処理
         if (this.mode === 'name') {
             // 名前入力モードの時点でタイプライターエフェクトを無効化
@@ -69,25 +98,6 @@ class InputHandler {
 
         // --- Clean up visual effects on new input ---
         this.game.renderer.clearEffects();
-
-        const key = event.key.toLowerCase();
-
-        // ESCキーの処理を最優先で行う
-        if (key === 'escape') {
-            if (this.lookMode) {
-                this.endLookMode();
-                return;
-            }
-            if (this.landmarkTargetMode) {
-                this.endLandmarkTargetMode();
-                return;
-            }
-            if (this.targetingMode) {
-                this.cancelTargeting();
-                return;
-            }
-            return;
-        }
 
         // バックスペースでランドマークナビゲーション開始（他のモードでない時のみ）
         if (key === 'backspace' && !this.lookMode && !this.landmarkTargetMode && !this.targetingMode) {
@@ -214,25 +224,20 @@ class InputHandler {
             return;  // その他のキー入力を無視
         }
 
-        // --- Help Mode Activation ---
+        // --- Help Mode Activation/Deactivation ---
         if (key === '?') {
-            this.game.enterHelpMode();  // 変更: 新しいメソッドを使用
-            return;
-        }
-
-        // --- Help Mode Cancellation (First Block) ---
-        if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
-            if (key === 'escape') {
-                this.game.toggleMode();  // 変更: toggleModeを使用
+            if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
+                this.game.toggleMode();  // ヘルプモードを解除
+            } else {
+                this.game.enterHelpMode();  // ヘルプモードを開始
             }
             return;
         }
 
-        // --- Help Mode Cancellation (Second Block) ---
-        if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
+        // --- Help Mode Cancellation (First Block) ---
+        if (this.game.mode === GAME_CONSTANTS.MODES.HELP && !document.body.classList.contains('codex-mode')) {
             if (key === 'escape') {
-                this.game.mode = GAME_CONSTANTS.MODES.GAME;
-                this.game.logger.renderLookPanel();
+                this.game.toggleMode();  // 変更: toggleModeを使用
             }
             return;
         }

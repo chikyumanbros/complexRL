@@ -1013,3 +1013,24 @@ body::before {
 .fleeing-monster:nth-child(2n)::before {
      content: " ";
 }
+
+/* ポータル上のプレイヤーのエフェクト（より明るく） */
+#game span[data-x][data-y].player-on-portal {
+    text-shadow: 0 0 12px #bbdefb, 0 0 24px #bbdefb, 0 0 36px #bbdefb !important; /* 影をさらに強く、より白っぽい青 */
+    animation: portal-player-glow 1.1s infinite; /* アニメーション速度を微調整 */
+}
+
+#game span[data-x][data-y].player-on-void {
+    text-shadow: 0 0 12px #e1bee7, 0 0 24px #e1bee7, 0 0 36px #e1bee7 !important; /* 影をさらに強く、色もより白っぽい紫に変更 */
+    animation: void-player-glow 1.1s infinite; /* アニメーション速度を微調整 */
+}
+
+@keyframes portal-player-glow {
+    0%, 100% { text-shadow: 0 0 12px #bbdefb, 0 0 24px #bbdefb, 0 0 30px #bbdefb; } /* 影を調整、より白っぽい青 */
+    50% { text-shadow: 0 0 18px #bbdefb, 0 0 36px #bbdefb, 0 0 42px #bbdefb; } /* 影を調整、より白っぽい青 */
+}
+
+@keyframes void-player-glow {
+    0%, 100% { text-shadow: 0 0 12px #e1bee7, 0 0 24px #e1bee7, 0 0 30px #e1bee7; } /* 影を調整、色をより白っぽい紫に変更 */
+    50% { text-shadow: 0 0 18px #e1bee7, 0 0 36px #e1bee7, 0 0 42px #e1bee7; } /* 影を調整、色をより白っぽい紫に変更 */
+}

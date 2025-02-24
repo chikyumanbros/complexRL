@@ -310,6 +310,13 @@ class Renderer {
                         content = this.game.player.char;
                         const healthStatus = this.game.player.getHealthStatus(this.game.player.hp, this.game.player.maxHp);
                         style = `color: ${healthStatus.color}; opacity: 1; text-shadow: 0 0 5px ${backgroundColor}`;
+                        
+                        // プレイヤーがポータル上にいる場合、特別なクラスを追加
+                        if (this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+                            classes.push('player-on-portal');
+                        } else if (this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
+                            classes.push('player-on-void');
+                        }
                     } else {
                         // 残像エフェクトの描画
                         const trailEffect = Array.from(this.movementEffects).find(effect => effect.x === x && effect.y === y);
@@ -1016,8 +1023,8 @@ class Renderer {
             leftColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● ${data.title}</div>\n`;
             data.keys.forEach(keyInfo => {
                 leftColumn += `<div style="margin-left: 8px;">`;
-                leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 50px;">[${keyInfo.key}]</span>`;
-                leftColumn += `<span style="color: #ecf0f1;">${keyInfo.desc}</span>`;
+                leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[${keyInfo.key}]</span>`;  // 幅を広げて、説明と分離
+                leftColumn += `<span style="color: #ecf0f1;">${keyInfo.desc}</span>`; // 説明をspanで囲む
                 leftColumn += `</div>\n`;
             });
         });
@@ -1035,7 +1042,7 @@ class Renderer {
         rightColumn += `</div>\n`;
 
         // Vigor の説明
-        rightColumn += `<div style="color: #66ccff; font-size: 18px; margin-top: 6px;">● VIGOR SYSTEM</div>\n`;
+        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● VIGOR SYSTEM</div>\n`;
         rightColumn += `<div style="margin-left: 8px;">`;
         rightColumn += `<span style="color: #2ecc71;">High</span>: 75-100% - Full potential<br>`;
         rightColumn += `<span style="color: #f1c40f;">Moderate</span>: 50-75% - Slight penalties<br>`;
@@ -1106,7 +1113,13 @@ class Renderer {
         rightColumn += `No counter-attack chance`;
         rightColumn += `</div>\n`;
 
-        return `<div style="display: flex; gap: 20px;"><div>${leftColumn}</div><div>${rightColumn}</div></div>`;
+        // ランドマークターゲットモードの説明は不要なので削除
+
+        // レイアウトを調整してカラムを並べて表示、gapを50pxに
+        return `<div style="display: flex; gap: 50px;">
+                    <div style="flex: 1; padding-right: 20px;">${leftColumn}</div>
+                    <div style="flex: 1;">${rightColumn}</div>
+                </div>`;
     }
 
     drawMonsterSprite(canvas, monsterType, monsterId = null) {

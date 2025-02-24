@@ -229,31 +229,44 @@ const GAME_CONSTANTS = {
     // CONTROLS Section: Key bindings for game controls
     CONTROLS: {
         MOVEMENT: {
-            title: "Movement",
+            title: 'MOVEMENT',
             keys: [
-                { key: "h/←", desc: "Move left" },
-                { key: "j/↓", desc: "Move down" },
-                { key: "k/↑", desc: "Move up" },
-                { key: "l/→", desc: "Move right" },
-                { key: "y", desc: "Move diagonally up-left" },
-                { key: "u", desc: "Move diagonally up-right" },
-                { key: "b", desc: "Move diagonally down-left" },
-                { key: "n", desc: "Move diagonally down-right" },
-                { key: ".", desc: "Wait one turn" },
-                { key: "z", desc: "Auto explore" }
+                { key: 'h', desc: 'Move left' },
+                { key: 'j', desc: 'Move down' },
+                { key: 'k', desc: 'Move up' },
+                { key: 'l', desc: 'Move right' },
+                { key: 'y', desc: 'Move diagonally up-left' },
+                { key: 'u', desc: 'Move diagonally up-right' },
+                { key: 'b', desc: 'Move diagonally down-left' },
+                { key: 'n', desc: 'Move diagonally down-right' },
+                { key: '.', desc: 'Wait a turn' }
             ]
         },
-        ACTIONS: {
-            title: "Actions",
+        INTERACTION: {
+            title: 'INTERACTION',
             keys: [
-                { key: "1-9", desc: "Use skill" },
-                { key: "o", desc: "Open door" },
-                { key: "c", desc: "Close door" },
-                { key: ">", desc: "Descend stairs | Auto move to stairs" },
-                { key: "Tab", desc: "Toggle Codex menu" },
-                { key: ";", desc: "Look mode" },
-                { key: "?", desc: "Show this help" },
-                { key: "Esc", desc: "Cancel/Close menu" }
+                { key: ',', desc: 'Pick up item' },
+                { key: 'd', desc: 'Drop item' },
+                { key: 'i', desc: 'Show inventory' },
+                { key: 'e', desc: 'Eat/Equip item' },
+                { key: '>', desc: 'Use stairs down' },
+                { key: '<', desc: 'Use stairs up' },
+                { key: 'c', desc: 'Close door' },
+                { key: 's', desc: 'Show skill tree' },
+                { key: 'z', desc: 'Cast skill (with number)' },
+                { key: 'm', desc: 'Toggle music' },
+                { key: '?', desc: 'Show help menu' },
+                { key: 'ctrl+s', desc: 'Show monster sprite preview' }
+            ]
+        },
+        // ランドマークターゲットモードの説明を追記
+        LANDMARK: {
+            title: 'LANDMARK TARGET',
+            keys: [
+                { key: 'Backspace', desc: 'Enter landmark target mode' },
+                { key: 'Movement keys', desc: 'Select a landmark' },
+                { key: 'Enter', desc: 'Start auto-move to the selected landmark' },
+                { key: 'Esc', desc: 'Cancel landmark target mode' }
             ]
         }
     },
