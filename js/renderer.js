@@ -1290,6 +1290,12 @@ class Renderer {
                 lookInfo = "You see a massive stone pillar blocking your view.";
             } else if (GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tile)) {
                 lookInfo = "You see some decorative furniture.";
+            } else if (GAME_CONSTANTS.TILES.SPACE.includes(tile)) {
+                lookInfo = "You see the vast expanse of space here.";
+            } else if (tile === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+                lookInfo = "You see a shimmering portal gate here.";
+            } else if (tile === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
+                lookInfo = "You see a swirling void portal here.";
             } else {
                 lookInfo = `You see ${tile} here.`;
             }
