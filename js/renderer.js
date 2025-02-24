@@ -176,31 +176,17 @@ class Renderer {
             this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
         );
 
-        // 指定された座標が視界内かチェック
-        if (!visibleTiles.has(`${x},${y}`)) {
-            // 視界外の場合は現在のハイライトを維持して false を返す
-            return false;
+        // ランドマークターゲットモードの場合は視界チェックをスキップ
+        if (this.game.inputHandler.landmarkTargetMode) {
+            this.highlightedTile = { x, y };
+            this.render();
+            return true;
         }
 
-        // ジャンプスキルのターゲット選択時の処理を追加
-        if (this.game.inputHandler.mode === 'skillTarget' && 
-            this.game.inputHandler.currentSkill?.id === 'jump') {
-            const player = this.game.player;
-            const distance = GAME_CONSTANTS.SKILL_DISTANCE.calculate(
-                player.x, player.y, x, y
-            );
-            
-            // ジャンプの有効範囲を計算
-            const jumpRange = Math.floor((player.stats.dex - player.stats.con) / 3) + 3;
-            
-            if (distance > jumpRange) {
-                return false;  // 範囲外の場合はハイライトしない
-            }
-        }
-
-        this.highlightedTile = { x, y };
+        // 視界内チェックは不要になったので、以下は常に実行
+        this.highlightedTile = {x, y};
         this.render();
-        return true;  // 視界内の場合は true を返す
+        return true;
     }
 
     clearHighlight() {
@@ -262,14 +248,33 @@ class Renderer {
                 let opacity = 1.0;
                 let lightColor = '';
 
-                if (isVisible) {
+                // ランドマークターゲットモードの場合、探索済みなら描画
+                if (this.game.inputHandler.landmarkTargetMode && isExplored) {
+                    content = this.game.tiles[y][x];
+                    style = `color: ${isHighlighted ? 'lime' : 'black'}; opacity: ${isHighlighted? 1: 0.7}`; // 強調表示
+                    backgroundColor = isHighlighted? 'rgba(0, 255, 0, 0.3)' : 'black'; // 背景色
+                    if (GAME_CONSTANTS.TILES.WALL.includes(content)) {
+                        style = `color: darkgray; opacity: 0.7`; // 壁は暗い灰色
+                        backgroundColor = 'black';
+                    }
+                    if (content === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
+                        content === GAME_CONSTANTS.TILES.DOOR.OPEN ||
+                        content === GAME_CONSTANTS.STAIRS.CHAR ||
+                        content === GAME_CONSTANTS.PORTAL.GATE.CHAR ||
+                        content === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
+                        style = `color: white; opacity: 0.8`; // ランドマークは白
+                    }
+                    if (isHighlighted) {
+                        //backgroundColor = `linear-gradient(transparent, rgba(255, 255, 255, 1))`;
+                    }
+                } else if (isVisible) {
                     // タイルごとに部屋を判定する
                     const roomAtTile = this.game.getRoomAt(x, y);
-                    // プレイヤーがいる部屋と同じならその brightness を、そうでなければ通路用の視界定数を使用
                     const tileVisibility = (currentRoom && roomAtTile && roomAtTile === currentRoom) ? currentRoom.brightness : 2;
                     
                     const distance = GAME_CONSTANTS.DISTANCE.calculate(x, y, px, py);
                     
+                    // 基本的な明るさを計算
                     let baseOpacity;
                     if (distance <= 1) {
                         baseOpacity = 1.0;
@@ -288,6 +293,17 @@ class Renderer {
 
                     content = this.game.tiles[y][x];
                     style = `color: ${this.game.colors[y][x]}`;
+
+                    // プレイヤー、モンスター、エフェクトの場合は常に最大の明るさを使用
+                    if (x === this.game.player.x && y === this.game.player.y ||
+                        this.game.getMonsterAt(x, y) ||
+                        isHighlighted ||
+                        content === GAME_CONSTANTS.PORTAL.GATE.CHAR ||
+                        content === GAME_CONSTANTS.PORTAL.VOID.CHAR ||
+                        content === GAME_CONSTANTS.STAIRS.CHAR ||
+                        Array.from(this.movementEffects).some(effect => effect.x === x && effect.y === y)) {
+                        opacity = 1.0;
+                    }
 
                     // プレイヤー、モンスター、ハイライトの場合は opacity を上書きする処理はそのまま
                     if (x === this.game.player.x && y === this.game.player.y) {
@@ -631,8 +647,8 @@ class Renderer {
                     const direction = this.getDirectionIndicator(dx, dy);
                     const directionColor = this.getDirectionColor(distance);
 
-                    const hpBars = Math.ceil((monster.hp / monster.maxHp) * 10);
-                    const hpText = '|'.repeat(hpBars).padEnd(10, ' ');
+                    const hpBars = Math.ceil((monster.hp / monster.maxHp) * 20);
+                    const hpText = '|'.repeat(hpBars).padEnd(20, ' ');
 
                     return `<span style="color: ${monsterColor}">` +
                         `<span style="color: ${directionColor}; display: inline-block; width: 2em">${direction}</span>[${monsterSymbol}] </span>` +

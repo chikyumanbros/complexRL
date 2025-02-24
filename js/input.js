@@ -746,38 +746,28 @@ class InputHandler {
         }
 
         if (dx !== 0 || dy !== 0) {
-            const visibleTiles = new Set(
-                this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
-            );
-
             // 新しい座標を計算
             let newX = this.targetX + dx;
             let newY = this.targetY + dy;
 
             // マップ範囲内かチェック
             if (newX >= 0 && newX < this.game.width && newY >= 0 && newY < this.game.height) {
-                // 視界内のタイルを探す
-                while (!visibleTiles.has(`${newX},${newY}`)) {
-                    newX += dx;
-                    newY += dy;
-                    
-                    // マップ範囲外に出たら中止
-                    if (newX < 0 || newX >= this.game.width || newY < 0 || newY >= this.game.height) {
-                        return;
-                    }
-                    
-                    // 次の視界内タイルが見つかった場合
+                // ↓↓↓ 変更箇所: ランドマークターゲットモードかどうかで処理を分岐 ↓↓↓
+                if (this.landmarkTargetMode) {
+                    // ランドマークターゲットモードの場合は視界外も許可
+                    this.targetX = newX;
+                    this.targetY = newY;
+                } else {
+                    // 通常のターゲティングモードの場合は視界内のみ
+                    const visibleTiles = new Set(
+                        this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
+                    );
                     if (visibleTiles.has(`${newX},${newY}`)) {
                         this.targetX = newX;
                         this.targetY = newY;
-                        this.game.renderer.highlightTarget(this.targetX, this.targetY);
-                        return;
                     }
                 }
-
-                // 隣接タイルが視界内の場合は通常通り移動
-                this.targetX = newX;
-                this.targetY = newY;
+                // ↑↑↑ 変更箇所: ランドマークターゲットモードかどうかで処理を分岐 ↑↑↑
                 this.game.renderer.highlightTarget(this.targetX, this.targetY);
             }
         }
@@ -994,7 +984,7 @@ class InputHandler {
     // Landmark Navigation Methods
     // ----------------------
     startLandmarkNavigation() {
-        const landmarks = this.findVisibleLandmarks();
+        const landmarks = this.findExploredLandmarks();
         if (landmarks.length === 0) {
             this.game.logger.add("No notable landmarks in sight.", "warning");
             return;
@@ -1018,19 +1008,15 @@ class InputHandler {
         }
 
         switch (key) {
-            case 'arrowleft':
             case 'h':
                 this.cycleLandmark(-1, 0);
                 break;
-            case 'arrowright':
             case 'l':
                 this.cycleLandmark(1, 0);
                 break;
-            case 'arrowup':
             case 'k':
                 this.cycleLandmark(0, -1);
                 break;
-            case 'arrowdown':
             case 'j':
                 this.cycleLandmark(0, 1);
                 break;
@@ -1057,6 +1043,10 @@ class InputHandler {
     }
 
     cycleLandmark(dx, dy) {
+        if (!this.currentLandmarks || this.currentLandmarks.length === 0) {
+            return;
+        }
+
         if (dx === 0 && dy === 0) return;
 
         let minDistance = Infinity;
@@ -1083,27 +1073,30 @@ class InputHandler {
             const landmark = this.currentLandmarks[this.currentLandmarkIndex];
             this.targetX = landmark.x;
             this.targetY = landmark.y;
+            // 視界外でもハイライト
             this.game.renderer.highlightTarget(this.targetX, this.targetY, true);
             this.game.renderer.examineTarget(this.targetX, this.targetY, true);
         }
     }
 
-    findVisibleLandmarks() {
+    findExploredLandmarks() {
         const landmarks = [];
-        const visibleTiles = new Set(
-            this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
-        );
+        // const visibleTiles = new Set( // 不要なので削除
+        //     this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
+        // );
 
         for (let y = 0; y < this.game.height; y++) {
             for (let x = 0; x < this.game.width; x++) {
+                // if (!visibleTiles.has(`${x},${y}`)) continue; // 不要なので削除
+                // ↓↓↓ 変更箇所: 探索済みかどうかをチェック ↓↓↓
                 if (!this.game.explored[y][x]) continue;
-                
+                // ↑↑↑ 変更箇所: 探索済みかどうかをチェック ↑↑↑
                 const tile = this.game.tiles[y][x];
                 if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
                     tile === GAME_CONSTANTS.TILES.DOOR.OPEN ||
                     tile === GAME_CONSTANTS.STAIRS.CHAR ||
                     tile === GAME_CONSTANTS.PORTAL.GATE.CHAR ||
-                    tile === GAME_CONSTANTS.PORTAL.VOID.CHAR) { // VOIDポータルを追加
+                    tile === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
                     landmarks.push({ x, y, type: tile });
                 }
             }
