@@ -1020,11 +1020,31 @@ class InputHandler {
         switch (key) {
             case 'arrowleft':
             case 'h':
-                this.cycleLandmark(-1);
+                this.cycleLandmark(-1, 0);
                 break;
             case 'arrowright':
             case 'l':
-                this.cycleLandmark(1);
+                this.cycleLandmark(1, 0);
+                break;
+            case 'arrowup':
+            case 'k':
+                this.cycleLandmark(0, -1);
+                break;
+            case 'arrowdown':
+            case 'j':
+                this.cycleLandmark(0, 1);
+                break;
+            case 'y':
+                this.cycleLandmark(-1, -1);
+                break;
+            case 'u':
+                this.cycleLandmark(1, -1);
+                break;
+            case 'b':
+                this.cycleLandmark(-1, 1);
+                break;
+            case 'n':
+                this.cycleLandmark(1, 1);
                 break;
             case 'enter':
             case ' ':
@@ -1036,13 +1056,36 @@ class InputHandler {
         }
     }
 
-    cycleLandmark(direction) {
-        this.currentLandmarkIndex = (this.currentLandmarkIndex + direction + this.currentLandmarks.length) % this.currentLandmarks.length;
-        const landmark = this.currentLandmarks[this.currentLandmarkIndex];
-        this.targetX = landmark.x;
-        this.targetY = landmark.y;
-        this.game.renderer.highlightTarget(this.targetX, this.targetY, true);
-        this.game.renderer.examineTarget(this.targetX, this.targetY, true);
+    cycleLandmark(dx, dy) {
+        if (dx === 0 && dy === 0) return;
+
+        let minDistance = Infinity;
+        let closestLandmarkIndex = -1;
+
+        for (let i = 0; i < this.currentLandmarks.length; i++) {
+            if (i === this.currentLandmarkIndex) continue;
+
+            const landmark = this.currentLandmarks[i];
+            const diffX = landmark.x - this.targetX;
+            const diffY = landmark.y - this.targetY;
+            const angle = Math.atan2(diffY, diffX);
+            const targetAngle = Math.atan2(dy, dx);
+            const distance = Math.abs(angle - targetAngle);
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestLandmarkIndex = i;
+            }
+        }
+
+        if (closestLandmarkIndex !== -1) {
+            this.currentLandmarkIndex = closestLandmarkIndex;
+            const landmark = this.currentLandmarks[this.currentLandmarkIndex];
+            this.targetX = landmark.x;
+            this.targetY = landmark.y;
+            this.game.renderer.highlightTarget(this.targetX, this.targetY, true);
+            this.game.renderer.examineTarget(this.targetX, this.targetY, true);
+        }
     }
 
     findVisibleLandmarks() {
@@ -1060,7 +1103,7 @@ class InputHandler {
                     tile === GAME_CONSTANTS.TILES.DOOR.OPEN ||
                     tile === GAME_CONSTANTS.STAIRS.CHAR ||
                     tile === GAME_CONSTANTS.PORTAL.GATE.CHAR ||
-                    tile === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
+                    tile === GAME_CONSTANTS.PORTAL.VOID.CHAR) { // VOIDポータルを追加
                     landmarks.push({ x, y, type: tile });
                 }
             }

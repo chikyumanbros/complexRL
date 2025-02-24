@@ -1042,7 +1042,8 @@ class Player {
                 const newY = current.y + dir.dy;
                 
                 if (this.game.isValidPosition(newX, newY) && 
-                    this.game.map[newY][newX] === 'floor') {
+                    (this.game.map[newY][newX] === 'floor' ||
+                     this.game.tiles[newY][newX] === GAME_CONSTANTS.PORTAL.VOID.CHAR)) { // VOIDポータルを許可
                     queue.push({
                         x: newX,
                         y: newY,
