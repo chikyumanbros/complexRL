@@ -361,6 +361,8 @@ class Game {
                     // 状態が変化した場合のみログ表示
                     if (oldStatus.name !== newStatus.name) {
                         this.logger.add(`Your vigor has been restored to ${newStatus.name.toLowerCase()} level.`, "playerInfo");
+                        // Vigor状態変化時に効果音を再生
+                        this.playSound('vigorUpSound');
                     }
                 }
             } else {
@@ -389,6 +391,8 @@ class Game {
                     if (currentStatus.name !== newStatus.name) {
                         this.logger.add(`Your vigor has decreased to ${newStatus.name.toLowerCase()} level.`, "warning");
                         this.renderer.flashLogPanel();
+                        // Vigor状態変化時に効果音を再生
+                        this.playSound('vigorDownSound');
                     }
                 }
             }
@@ -574,6 +578,12 @@ class Game {
                 `Your vigor state changed to ${newStatus.name.toLowerCase()}.`,
                 "warning"
             );
+            // Vigor状態変化時に効果音を再生
+            if (vigorChange > 0) {
+                this.playSound('vigorUpSound');
+            } else {
+                this.playSound('vigorDownSound');
+            }
         }
 
         // 経験値とCodexポイントの獲得ログ
@@ -636,6 +646,12 @@ class Game {
             // 状態が変化した場合のみログ表示
             if (oldStatus.name !== newStatus.name) {
                 this.logger.add(`Your vigor has ${vigorChange < 0 ? 'decreased' : 'increased'} to ${newStatus.name.toLowerCase()} level.`, "warning");
+                // Vigor状態変化時に効果音を再生
+                if (vigorChange > 0) {
+                    this.playSound('vigorUpSound');
+                } else {
+                    this.playSound('vigorDownSound');
+                }
             }
         }
 

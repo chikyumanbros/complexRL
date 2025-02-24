@@ -5,10 +5,10 @@ class SoundManager {
         // BGM用のプロパティ
         this.homeBGM = new Audio('assets/sounds/complex_nexus.ogg');
         this.homeBGM.loop = true;
-        this.homeBGM.volume = 0.2;  // 初期音量を50%に設定
+        this.homeBGM.volume = 0.5;  // 初期音量を50%に設定
         this.floor1BGM = new Audio('assets/sounds/floor1.ogg'); // floor1BGM を追加
         this.floor1BGM.loop = true;
-        this.floor1BGM.volume = 1;  // 初期音量を50%に設定
+        this.floor1BGM.volume = 0.5;  // 初期音量を50%に設定
         this.fadeOutInterval = null;  // フェードアウト用のインターバルID
 
         // 効果音を読み込む
@@ -33,6 +33,18 @@ class SoundManager {
         // 新しい効果音: meditationSound, jumpSound
         this.meditationSound = new Audio('assets/sounds/meditation.wav'); // meditation用SE
         this.jumpSound = new Audio('assets/sounds/jump.wav'); // jump用SE
+
+        // move sound
+        this.moveSounds = {
+            'move1': new Audio('assets/sounds/move1.wav'),
+            'move2': new Audio('assets/sounds/move2.wav'),
+            'move3': new Audio('assets/sounds/move3.wav'),
+            'move4': new Audio('assets/sounds/move4.wav'),
+        };
+
+        // Vigor up/down sounds
+        this.vigorUpSound = new Audio('assets/sounds/vigorup.wav');
+        this.vigorDownSound = new Audio('assets/sounds/vigordown.wav');
 
         // SEのボリューム (0.0 - 1.0, 初期値は0.5)
         this.seVolume = 0.5;
@@ -154,6 +166,17 @@ class SoundManager {
         // 新しい効果音の音量を設定
         this.meditationSound.volume = this.seVolume; // meditationの音量を設定
         this.jumpSound.volume = this.seVolume; // jumpの音量を設定
+
+        // move sound の音量を設定
+        for (const key in this.moveSounds) {
+            if (this.moveSounds.hasOwnProperty(key)) {
+                this.moveSounds[key].volume = this.seVolume;
+            }
+        }
+
+        // Vigor up/down sounds
+        this.vigorUpSound.volume = this.seVolume;
+        this.vigorDownSound.volume = this.seVolume;
     }
 
     // 効果音を再生するメソッド
@@ -161,11 +184,18 @@ class SoundManager {
         // ユーザーが操作したか確認
         if (!this.userInteracted) return;
 
-        const audio = this[audioName]; // audioNameを使ってオーディオ要素を取得
+        console.log("playSound called with audioName:", audioName); // 追加: audioNameを確認
+
+        // moveSounds の場合は this[audioName] ではなく this.moveSounds[audioName] を使う
+        let audio = this.moveSounds[audioName] || this[audioName];
         if (!audio) {
             console.warn(`Sound "${audioName}" not found.`);
             return;
         }
+          // audioNameがオブジェクトの場合、audioName.nameをaudioに代入する
+          if (typeof audioName === 'object' && audioName !== null && audioName.name) {
+            audio = this[audioName.name];
+          }
 
         // ボリュームを設定
         audio.volume = this.seVolume;

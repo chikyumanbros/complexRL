@@ -212,6 +212,20 @@ class InputHandler {
             return;
         }
 
+        // --- Escape Key Handling for Codex & Mode Toggle ---
+        if (key === 'escape') {
+            // lookモードが有効な場合は解除
+            if (this.lookMode) {
+                this.endLookMode();
+            }
+            // codexモードが有効な場合は解除
+            if (document.body.classList.contains('codex-mode')) {
+                this.toggleCodexMode();
+                this.game.toggleMode();
+            }
+            return;
+        }
+
         // --- Stat Selection Mode Handling ---
         if (this.mode === 'statSelect') {
             this.handleStatSelection(key);

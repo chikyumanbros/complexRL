@@ -178,6 +178,12 @@ class Player {
             this.x = newX;
             this.y = newY;
 
+            // 移動効果音を再生
+            const moveSoundKeys = Object.keys(this.game.soundManager.moveSounds);
+            const randomIndex = Math.floor(Math.random() * moveSoundKeys.length);
+            const soundName = moveSoundKeys[randomIndex];
+            this.game.playSound(soundName);
+
             // ポータルチェックを追加
             if (this.game.floorLevel === 0 && 
                 this.game.tiles[this.y][this.x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
@@ -337,7 +343,7 @@ class Player {
         this.game.renderer.render();
 
         // ダメージを受けた時にSEを再生
-        this.game.soundManager.playSound(this.game.soundManager.takeDamageSound);
+        this.game.playSound('takeDamageSound');
 
         // ダメージ結果を返す
         const result = {
