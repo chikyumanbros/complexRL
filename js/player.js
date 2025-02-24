@@ -166,6 +166,7 @@ class Player {
         // 移動時にメディテーションを解除
         if (this.meditation && this.meditation.active) {
             this.game.logger.add(`Meditation cancelled. (Total healed: ${this.meditation.totalHealed})`, "playerInfo");
+            this.game.stopSound('meditationSound');
             this.meditation = null;
         }
 
@@ -305,6 +306,7 @@ class Player {
             const meditationSkill = this.game.codexSystem.findSkillById('meditation');
             if (meditationSkill && meditationSkill.cancelOnDamage) {
                 this.game.logger.add(`Meditation cancelled. (Total healed: ${this.meditation.totalHealed})`, "playerInfo");
+                this.game.stopSound('meditationSound');
                 this.meditation = null;
             }
         }

@@ -339,7 +339,6 @@ class Game {
         // メディテーション処理（最優先）
         if (this.player.hp > 0 && this.player.meditation?.active) {
             this.processMeditation();
-            return;
         }
 
         // Vigorの処理 (floor 0では全回復)
