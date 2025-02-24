@@ -251,8 +251,8 @@ class Renderer {
                 // ランドマークターゲットモードの場合、探索済みなら描画
                 if (this.game.inputHandler.landmarkTargetMode && isExplored) {
                     content = this.game.tiles[y][x];
-                    style = `color: ${isHighlighted ? 'lime' : 'black'}; opacity: ${isHighlighted? 1: 0.7}`; // 強調表示
-                    backgroundColor = isHighlighted? 'rgba(0, 255, 0, 0.3)' : 'black'; // 背景色
+                    style = `color: ${isHighlighted ? 'lime' : 'black'}; opacity: ${isHighlighted? 1: 0.6}`; // 強調表示
+                    backgroundColor = isHighlighted? 'rgba(0, 255, 0, 0.4)' : 'black'; // 背景色
                     if (GAME_CONSTANTS.TILES.WALL.includes(content)) {
                         style = `color: darkgray; opacity: 0.7`; // 壁は暗い灰色
                         backgroundColor = 'black';
@@ -766,7 +766,7 @@ class Renderer {
         setTimeout(() => {
             this.movementEffects.clear();
             this.render();
-        }, 250);
+        }, 200);
     }
 
     showLevelUpEffect(x, y) {
