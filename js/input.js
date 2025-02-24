@@ -100,7 +100,11 @@ class InputHandler {
         this.game.renderer.clearEffects();
 
         // バックスペースでランドマークナビゲーション開始（他のモードでない時のみ）
-        if (key === 'backspace' && !this.lookMode && !this.landmarkTargetMode && !this.targetingMode) {
+        if (key === 'backspace' && 
+            !this.lookMode && 
+            !this.landmarkTargetMode && 
+            !this.targetingMode && 
+            this.game.mode === GAME_CONSTANTS.MODES.GAME) {  // ゲームモードの時のみ許可
             this.startLandmarkNavigation();
             return;
         }
