@@ -1304,6 +1304,9 @@ class Game {
                 });
             }
 
+            // 派生ステータスを再計算
+            this.player.updateDerivedStats();
+
             // マップデータの復元
             this.map = data.mapData.map ?? this.map;
             this.tiles = data.mapData.tiles ?? this.tiles;
