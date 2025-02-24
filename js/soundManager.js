@@ -5,10 +5,10 @@ class SoundManager {
         // BGM用のプロパティ
         this.homeBGM = new Audio('assets/sounds/complex_nexus.ogg');
         this.homeBGM.loop = true;
-        this.homeBGM.volume = 0.5;  // 初期音量を50%に設定
+        this.homeBGM.volume = 0.2;  // 初期音量を50%に設定
         this.floor1BGM = new Audio('assets/sounds/floor1.ogg'); // floor1BGM を追加
         this.floor1BGM.loop = true;
-        this.floor1BGM.volume = 0.5;  // 初期音量を50%に設定
+        this.floor1BGM.volume = 1;  // 初期音量を50%に設定
         this.fadeOutInterval = null;  // フェードアウト用のインターバルID
 
         // 効果音を読み込む
@@ -18,7 +18,7 @@ class SoundManager {
         this.portalSound = new Audio('assets/sounds/portal.wav');
         this.levelUpSound = new Audio('assets/sounds/levelup.wav');
         this.descendStairsSound = new Audio('assets/sounds/descend_stairs.wav');
-        
+
         // 新しい効果音: killMonsterSound
         this.killMonsterSound = new Audio('assets/sounds/killmonster.wav'); // killmonster用SE
         this.missSound = new Audio('assets/sounds/miss.wav'); // miss用SE
@@ -30,6 +30,10 @@ class SoundManager {
         // nextattackmodifier用SE
         this.nextAttackModifierSound = new Audio('assets/sounds/nextattackmodifier.wav');
 
+        // 新しい効果音: meditationSound, jumpSound
+        this.meditationSound = new Audio('assets/sounds/meditation.wav'); // meditation用SE
+        this.jumpSound = new Audio('assets/sounds/jump.wav'); // jump用SE
+
         // SEのボリューム (0.0 - 1.0, 初期値は0.5)
         this.seVolume = 0.5;
         this.setSeVolume(this.seVolume); // 初期ボリュームを設定
@@ -39,6 +43,8 @@ class SoundManager {
 
     // BGMの更新
     updateBGM() {
+        console.log('updateBGM called, floorLevel:', this.game.floorLevel); // ログを追加
+
         if (!this.userInteracted) {
             // 初回操作を検知するイベントリスナーを設定
             const handleFirstInteraction = () => {
@@ -78,10 +84,12 @@ class SoundManager {
             }
         } else {
             // floorLevel が 0 以外の場合 floor1BGM を再生
+            console.log('floor1BGM.paused:', this.floor1BGM.paused); // floor1BGM.paused の状態をログ出力
             if (this.floor1BGM.paused) {
                 this.floor1BGM.volume = 0.5;
                 this.floor1BGM.play().catch(error => {
                     if (error.name !== 'NotAllowedError') {
+                        console.warn('floor1BGM playback called'); // ログを追加
                         console.warn('BGM playback failed:', error);
                     }
                 });
@@ -136,21 +144,34 @@ class SoundManager {
         this.killMonsterSound.volume = 0.4; // killmonsterの音量を設定
         this.missSound.volume = 0.4;  // missの音量を設定
         this.critSound.volume = 0.4;  // critの音量を設定
-        this.damageSound.volume = 0.4; // damageの音量を設定
-        this.takeDamageSound.volume = 0.2; // takedamageの音量を設定
+        this.damageSound.volume = 0.1; // damageの音量を設定
+        this.takeDamageSound.volume = 0.5; // takedamageの音量を設定
         this.playerDeathSound.volume = this.seVolume; // playerdeathの音量を設定
 
         // nextattackmodifierの音量を設定
         this.nextAttackModifierSound.volume = this.seVolume;
+
+        // 新しい効果音の音量を設定
+        this.meditationSound.volume = this.seVolume; // meditationの音量を設定
+        this.jumpSound.volume = this.seVolume; // jumpの音量を設定
     }
 
     // 効果音を再生するメソッド
-    playSound(audio) {
+    playSound(audioName, loop = false) {
         // ユーザーが操作したか確認
         if (!this.userInteracted) return;
 
+        const audio = this[audioName]; // audioNameを使ってオーディオ要素を取得
+        if (!audio) {
+            console.warn(`Sound "${audioName}" not found.`);
+            return;
+        }
+
         // ボリュームを設定
         audio.volume = this.seVolume;
+
+        // ループ設定
+        audio.loop = loop;
 
         // currentTimeを0に設定して、常に最初から再生
         audio.currentTime = 0;
@@ -159,5 +180,14 @@ class SoundManager {
                 console.warn('Sound playback failed:', error);
             }
         });
+    }
+
+    // 効果音を停止するメソッド
+    stopSound(audioName) {
+        const audio = this[audioName];
+        if (audio) {
+            audio.pause();
+            audio.currentTime = 0; // 停止時にcurrentTimeをリセット
+        }
     }
 } 

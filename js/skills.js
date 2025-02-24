@@ -185,6 +185,9 @@ const SKILLS = {
 
                     game.logger.add("Jump!", "playerAction");
 
+                    // ジャンプの効果音を再生
+                    game.playSound('jumpSound');
+
                     return { success: true, skipTurnProcess: true };  // ターン処理をスキップするフラグを追加
                 }
             }
@@ -266,6 +269,10 @@ const SKILLS = {
 
                     game.logger.add("Started meditating...", "playerInfo");
                     game.renderer.render();
+
+                    // 瞑想開始時に効果音をループ再生
+                    game.playSound('meditationSound', true); // 第二引数にtrueを渡してループ再生
+
                     return { success: true, skipTurnProcess: true };
                 }
             }

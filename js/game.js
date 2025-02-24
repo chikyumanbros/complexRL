@@ -662,6 +662,9 @@ class Game {
 
             this.logger.add(endMessage, "playerInfo");
             this.player.meditation = null;
+
+            // 瞑想終了時に効果音を停止
+            this.stopSound('meditationSound');
         }
 
         // サイケデリックエフェクトのターンカウンターを更新
@@ -1233,6 +1236,11 @@ class Game {
             // 初期化を先に行う
             this.init();
 
+            // ゲーム状態の復元（floorLevelを先に設定）
+            this.floorLevel = data.gameState.floorLevel ?? 0;
+            this.dangerLevel = data.gameState.dangerLevel ?? 'SAFE';
+            this.turn = data.gameState.turn ?? 0;
+
             // プレイヤー名が保存されている場合
             if (data.player.name) {
                 this.renderer.renderNamePrompt('');
@@ -1281,11 +1289,6 @@ class Game {
                 });
             }
 
-            // ゲーム状態の復元
-            this.floorLevel = data.gameState.floorLevel ?? 0;  // デフォルト値を0に変更
-            this.dangerLevel = data.gameState.dangerLevel ?? 'SAFE';
-            this.turn = data.gameState.turn ?? 0;
-
             // マップデータの復元
             this.map = data.mapData.map ?? this.map;
             this.tiles = data.mapData.tiles ?? this.tiles;
@@ -1313,6 +1316,10 @@ class Game {
 
             this.renderer.render();
             this.logger.add("Previous save data loaded", "important");
+
+            // BGMの更新処理を最後に実行し、強制的に再生を試みる
+            this.soundManager.userInteracted = true;  // ユーザーインタラクションフラグを強制的に有効化
+            this.soundManager.updateBGM();
         } catch (e) {
             console.error('Failed to load save data:', e);
             this.init();
@@ -1405,10 +1412,11 @@ class Game {
     }
 
     playSound(audioName) {  // 引数を変更
-        const audio = this.soundManager[audioName];  // SoundManagerから取得
-        if (audio) {
-            this.soundManager.playSound(audio);
-        }
+        this.soundManager.playSound(audioName);  // SoundManagerのplaySoundを呼び出す
+    }
+
+    stopSound(audioName) {
+        this.soundManager.stopSound(audioName);
     }
 }
 
