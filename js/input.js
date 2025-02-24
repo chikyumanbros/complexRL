@@ -17,6 +17,9 @@ class InputHandler {
         this.lastInputTime = 0;  // 最後の入力時刻を追加
         this.inputCooldown = 30;  // 入力クールダウン時間（ミリ秒）
         this.nameBuffer = '';  // プレイヤー名入力用バッファ
+        this.landmarkTargetMode = false;
+        this.currentLandmarks = null;
+        this.currentLandmarkIndex = 0;
     }
 
     // ----------------------
@@ -68,6 +71,40 @@ class InputHandler {
         this.game.renderer.clearEffects();
 
         const key = event.key.toLowerCase();
+
+        // ESCキーの処理を最優先で行う
+        if (key === 'escape') {
+            if (this.lookMode) {
+                this.endLookMode();
+                return;
+            }
+            if (this.landmarkTargetMode) {
+                this.endLandmarkTargetMode();
+                return;
+            }
+            if (this.targetingMode) {
+                this.cancelTargeting();
+                return;
+            }
+            return;
+        }
+
+        // バックスペースでランドマークナビゲーション開始（他のモードでない時のみ）
+        if (key === 'backspace' && !this.lookMode && !this.landmarkTargetMode && !this.targetingMode) {
+            this.startLandmarkNavigation();
+            return;
+        }
+
+        // 各モードの処理
+        if (this.lookMode) {
+            this.handleLookMode(key);
+            return;
+        }
+
+        if (this.landmarkTargetMode) {
+            this.handleLandmarkTargetMode(key);
+            return;
+        }
 
         // 開発者コマンドの処理を最初に行う
         if (event.ctrlKey && event.shiftKey) {
@@ -212,20 +249,6 @@ class InputHandler {
             return;
         }
 
-        // --- Escape Key Handling for Codex & Mode Toggle ---
-        if (key === 'escape') {
-            // lookモードが有効な場合は解除
-            if (this.lookMode) {
-                this.endLookMode();
-            }
-            // codexモードが有効な場合は解除
-            if (document.body.classList.contains('codex-mode')) {
-                this.toggleCodexMode();
-                this.game.toggleMode();
-            }
-            return;
-        }
-
         // --- Stat Selection Mode Handling ---
         if (this.mode === 'statSelect') {
             this.handleStatSelection(key);
@@ -316,6 +339,18 @@ class InputHandler {
         // --- Look Mode Processing ---
         if (this.lookMode) {
             this.handleLookMode(key);
+            return;
+        }
+
+        // --- Landmark Navigation Mode ---
+        if (key === 'backspace') {
+            this.startLandmarkNavigation();
+            return;
+        }
+
+        // --- Landmark Target Mode Processing ---
+        if (this.landmarkTargetMode) {
+            this.handleLandmarkTargetMode(key);
             return;
         }
 
@@ -953,5 +988,102 @@ class InputHandler {
                 this.confirmCallback = null;
             }
         }
+    }
+
+    // ----------------------
+    // Landmark Navigation Methods
+    // ----------------------
+    startLandmarkNavigation() {
+        const landmarks = this.findVisibleLandmarks();
+        if (landmarks.length === 0) {
+            this.game.logger.add("No notable landmarks in sight.", "warning");
+            return;
+        }
+
+        this.landmarkTargetMode = true;
+        this.targetX = landmarks[0].x;
+        this.targetY = landmarks[0].y;
+        this.currentLandmarks = landmarks;
+        this.currentLandmarkIndex = 0;
+        
+        this.game.logger.add("Landmark navigation mode - Use arrow keys to cycle, ENTER to move, ESC to cancel", "info");
+        this.game.renderer.highlightTarget(this.targetX, this.targetY, true);
+        this.game.renderer.examineTarget(this.targetX, this.targetY, true);
+    }
+
+    handleLandmarkTargetMode(key) {
+        if (!this.currentLandmarks || this.currentLandmarks.length === 0) {
+            this.endLandmarkTargetMode();
+            return;
+        }
+
+        switch (key) {
+            case 'arrowleft':
+            case 'h':
+                this.cycleLandmark(-1);
+                break;
+            case 'arrowright':
+            case 'l':
+                this.cycleLandmark(1);
+                break;
+            case 'enter':
+            case ' ':
+                this.startAutoMoveToLandmark();
+                break;
+            case 'escape':
+                this.endLandmarkTargetMode();
+                break;
+        }
+    }
+
+    cycleLandmark(direction) {
+        this.currentLandmarkIndex = (this.currentLandmarkIndex + direction + this.currentLandmarks.length) % this.currentLandmarks.length;
+        const landmark = this.currentLandmarks[this.currentLandmarkIndex];
+        this.targetX = landmark.x;
+        this.targetY = landmark.y;
+        this.game.renderer.highlightTarget(this.targetX, this.targetY, true);
+        this.game.renderer.examineTarget(this.targetX, this.targetY, true);
+    }
+
+    findVisibleLandmarks() {
+        const landmarks = [];
+        const visibleTiles = new Set(
+            this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
+        );
+
+        for (let y = 0; y < this.game.height; y++) {
+            for (let x = 0; x < this.game.width; x++) {
+                if (!this.game.explored[y][x]) continue;
+                
+                const tile = this.game.tiles[y][x];
+                if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
+                    tile === GAME_CONSTANTS.TILES.DOOR.OPEN ||
+                    tile === GAME_CONSTANTS.STAIRS.CHAR ||
+                    tile === GAME_CONSTANTS.PORTAL.GATE.CHAR ||
+                    tile === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
+                    landmarks.push({ x, y, type: tile });
+                }
+            }
+        }
+
+        return landmarks;
+    }
+
+    startAutoMoveToLandmark() {
+        const landmark = {
+            x: this.targetX,
+            y: this.targetY
+        };
+        
+        this.game.player.startAutoMoveToLandmark(landmark);
+        this.endLandmarkTargetMode();
+    }
+
+    endLandmarkTargetMode() {
+        this.landmarkTargetMode = false;
+        this.currentLandmarks = null;
+        this.currentLandmarkIndex = 0;
+        this.game.renderer.clearHighlight();
+        this.game.logger.add("Exited landmark navigation mode.", "info");
     }
 }

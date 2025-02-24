@@ -188,6 +188,7 @@ class CombatSystem {
             context.isCritical = true;
             game.renderer.showCritEffect(defender.x, defender.y, !context.isPlayer);
             game.playSound('critSound');
+            game.playSound('damageSound');
             return true;
         }
 

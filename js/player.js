@@ -955,4 +955,103 @@ class Player {
         // 範囲内に収める
         this.vigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, this.vigor));
     }
+
+    startAutoMoveToLandmark(landmark) {
+        this.autoMovingToLandmark = true;
+        this.game.logger.add("Moving to landmark...", "playerInfo");
+        this.continueAutoMoveToLandmark(landmark);
+    }
+
+    continueAutoMoveToLandmark(landmark) {
+        if (!this.autoMovingToLandmark) return;
+
+        // 視界内の敵をチェック
+        const visibleTiles = this.game.getVisibleTiles();
+        const visibleTilesSet = new Set(visibleTiles.map(({x, y}) => `${x},${y}`));
+        
+        const visibleMonsters = this.game.monsters.filter(monster => {
+            const monsterKey = `${monster.x},${monster.y}`;
+            return visibleTilesSet.has(monsterKey);
+        });
+
+        if (visibleMonsters.length > 0) {
+            this.stopAutoMoveToLandmark();
+            this.game.logger.add("Enemy spotted in range!", "warning");
+            return;
+        }
+
+        // ランドマークへの方向を見つける
+        const direction = this.findDirectionToLandmark(landmark);
+        if (!direction) {
+            this.stopAutoMoveToLandmark();
+            this.game.logger.add("Cannot reach the landmark from here.", "warning");
+            return;
+        }
+
+        // 移動実行
+        if (this.move(direction.dx, direction.dy, this.game.map)) {
+            this.game.processTurn();
+            // ランドマークに到着したかチェック
+            if (this.x === landmark.x && this.y === landmark.y) {
+                this.stopAutoMoveToLandmark();
+                this.game.logger.add("You arrive at your destination.", "playerInfo");
+            } else {
+                // 次のターンの自動移動をスケジュール
+                setTimeout(() => this.continueAutoMoveToLandmark(landmark), 50);
+            }
+        } else {
+            this.stopAutoMoveToLandmark();
+        }
+    }
+
+    stopAutoMoveToLandmark() {
+        if (this.autoMovingToLandmark) {
+            this.autoMovingToLandmark = false;
+            this.game.logger.add("Auto-move to landmark stopped.", "playerInfo");
+        }
+    }
+
+    findDirectionToLandmark(landmark) {
+        // 既存のfindDirectionToStairs()メソッドと同じロジックを使用
+        const visited = new Set();
+        const queue = [{
+            x: this.x,
+            y: this.y,
+            firstStep: null
+        }];
+
+        while (queue.length > 0) {
+            const current = queue.shift();
+            const key = `${current.x},${current.y}`;
+
+            if (visited.has(key)) continue;
+            visited.add(key);
+
+            if (current.x === landmark.x && current.y === landmark.y) {
+                return current.firstStep;
+            }
+
+            const directions = [
+                {dx: -1, dy: -1}, {dx: 0, dy: -1}, {dx: 1, dy: -1},
+                {dx: -1, dy: 0},                    {dx: 1, dy: 0},
+                {dx: -1, dy: 1},  {dx: 0, dy: 1},  {dx: 1, dy: 1}
+            ];
+
+            for (const dir of directions) {
+                const newX = current.x + dir.dx;
+                const newY = current.y + dir.dy;
+                
+                if (this.game.isValidPosition(newX, newY) && 
+                    this.game.map[newY][newX] === 'floor') {
+                    queue.push({
+                        x: newX,
+                        y: newY,
+                        firstStep: current.firstStep || dir
+                    });
+                }
+            }
+        }
+
+        return null;
+    }
 } 
