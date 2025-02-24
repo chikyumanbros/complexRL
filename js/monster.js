@@ -331,11 +331,16 @@ class Monster {
                 if (!isVisibleToPlayer) {
                     // プレイヤーからモンスターが見えない場合のみ知覚チェック
                     game.player.checkPerception(game);
+                    // --- 知覚が成功した場合に cautionSound を再生 ---
+                    if (game.player.perceptionChecked && game.player.perceptionSuccess) {
+                        game.soundManager.playSound('cautionSound');
+                    }
                 } else {
                     // プレイヤーからモンスターが見える場合のみスポットメッセージ
                     const spotType = pathDistance <= effectiveSoundRange ? "hears" : "spots";
                     game.logger.add(`${this.name} ${spotType} you!`, "monsterInfo");
                     game.renderer.flashLogPanel();
+                    game.soundManager.playSound('cautionSound');
                 }
                 
                 this.hasSpottedPlayer = true;

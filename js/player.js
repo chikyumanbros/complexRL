@@ -905,6 +905,9 @@ class Player {
         const message = this.getPresenceMessage(effectivePresence, largestMonster);
         game.logger.add(message, "playerInfo");
         game.hasDisplayedPresenceWarning = true;
+
+        // ここで caution2Sound を再生
+        game.soundManager.playSound('caution2Sound');
     }
 
     // 新規: 存在感知メッセージの生成

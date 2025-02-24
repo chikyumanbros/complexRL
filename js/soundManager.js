@@ -46,6 +46,10 @@ class SoundManager {
         this.vigorUpSound = new Audio('assets/sounds/vigorup.wav');
         this.vigorDownSound = new Audio('assets/sounds/vigordown.wav');
 
+        // caution sound
+        this.cautionSound = new Audio('assets/sounds/caution.wav');
+        this.caution2Sound = new Audio('assets/sounds/caution2.wav');
+
         // SEのボリューム (0.0 - 1.0, 初期値は0.5)
         this.seVolume = 0.5;
         this.setSeVolume(this.seVolume); // 初期ボリュームを設定
@@ -177,6 +181,10 @@ class SoundManager {
         // Vigor up/down sounds
         this.vigorUpSound.volume = this.seVolume;
         this.vigorDownSound.volume = this.seVolume;
+
+        // caution sound の音量を設定
+        this.cautionSound.volume = this.seVolume;
+        this.caution2Sound.volume = this.seVolume;
     }
 
     // 効果音を再生するメソッド
