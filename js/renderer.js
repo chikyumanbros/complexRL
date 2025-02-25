@@ -25,7 +25,7 @@ class Renderer {
         if (!container) return;
 
         const baseWidth = 1780;
-        const baseHeight = 980;
+        const baseHeight = 1000;
 
         // ウィンドウサイズに基づいてスケール比を計算
         const scaleX = window.innerWidth / baseWidth;
@@ -1147,10 +1147,9 @@ class Renderer {
 
     drawMonsterSprite(canvas, monsterType, monsterId = null) {
         const ctx = canvas.getContext('2d');
-        const sprite = MONSTER_SPRITES[monsterType];  // GAME_CONSTANTSから直接参照に変更
+        const sprite = MONSTER_SPRITES[monsterType];
         if (!sprite) return;
 
-        // キャンバスをクリア
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1159,27 +1158,23 @@ class Renderer {
         const spriteHeight = sprite.length;
         const pixelSize = 8;
 
-        // キャンバスサイズをスプライトサイズに合わせて調整
         canvas.width = spriteWidth * pixelSize;
         canvas.height = spriteHeight * pixelSize;
 
-        // キャッシュキーを生成（モンスターIDがある場合は個体別のキーを使用）
         const cacheKey = monsterId ? `${monsterType}_${monsterId}` : monsterType;
 
-        // このモンスターのカラーキャッシュを取得または生成
         if (!this.spriteColorCache.has(cacheKey)) {
             const colorMap = new Map();
             sprite.forEach((row, y) => {
                 [...row].forEach((pixel, x) => {
                     const key = `${x},${y}`;
-                    const baseColor = SPRITE_COLORS[pixel];  // GAME_CONSTANTSから直接参照に変更
-                    colorMap.set(key, SPRITE_COLORS.getRandomizedColor(baseColor));  // 同上
+                    const baseColor = SPRITE_COLORS[pixel];
+                    colorMap.set(key, SPRITE_COLORS.getRandomizedColor(baseColor));
                 });
             });
             this.spriteColorCache.set(cacheKey, colorMap);
         }
 
-        // キャッシュされた色を使用して描画
         const colorMap = this.spriteColorCache.get(cacheKey);
         sprite.forEach((row, y) => {
             [...row].forEach((pixel, x) => {
@@ -1195,6 +1190,44 @@ class Renderer {
                 }
             });
         });
+
+        // グリッチ効果（ピクセル単位）
+        if (Math.random() < 0.1) {
+            const glitchCount = Math.floor(Math.random() * 5) + 1;
+            for (let i = 0; i < glitchCount; i++) {
+                const x = Math.floor(Math.random() * spriteWidth);
+                const y = Math.floor(Math.random() * spriteHeight);
+                const randomColor = SPRITE_COLORS.getRandomizedColor("#FFF");
+                ctx.fillStyle = randomColor;
+                ctx.fillRect(
+                    x * pixelSize,
+                    y * pixelSize,
+                    pixelSize,
+                    pixelSize
+                );
+            }
+        }
+
+        // 線状グリッチ効果
+        if (Math.random() < 0.2) { // 20%の確率で線状グリッチ
+            const glitchHeight = Math.floor(Math.random() * 2) + 1; // グリッチの高さ（1〜3ピクセル）
+            const glitchY = Math.floor(Math.random() * (spriteHeight - glitchHeight + 1)); // グリッチのY座標
+            const glitchX = Math.floor(Math.random() * spriteWidth); // グリッチのX座標
+            const glitchLength = Math.floor(Math.random() * (spriteWidth - glitchX + 1)); //グリッチの長さ
+            const glitchColor = SPRITE_COLORS.getRandomizedColor("#FFF"); // グリッチの色
+
+            for (let i = 0; i < glitchLength; i++){
+                for(let j = 0; j < glitchHeight; j++){
+                    ctx.fillStyle = glitchColor;
+                    ctx.fillRect(
+                        (glitchX + i) * pixelSize,
+                        (glitchY + j) * pixelSize,
+                        pixelSize,
+                        pixelSize
+                    );
+                }
+            }
+        }
     }
 
     previewMonsterSprite(monsterType, containerId, pixelSize = 8) {
@@ -1397,8 +1430,8 @@ class Renderer {
 
         // スケールを考慮した実際の位置を計算
         return {
-            x: (tileRect.left - containerRect.left - tileRect.width / 4) / scale,
-            y: (tileRect.top - containerRect.top - tileRect.height / 4) / scale,
+            x: (tileRect.left - containerRect.left - tileRect.width / 8) / scale,
+            y: (tileRect.top - containerRect.top - tileRect.height / 8) / scale,
             width: tileRect.width / scale,
             height: tileRect.height / scale
         };
@@ -1515,6 +1548,8 @@ class Renderer {
                 // ポータル遷移終了フラグをリセット
                 this.game.isPortalTransitioning = false;
                 callback();
+                // 以下を追加して、通常のレンダリングを再開
+                this.render();
                 return;
             }
 
@@ -1563,5 +1598,9 @@ class Renderer {
                 gameElement.classList.remove('damage-flash');
             }, 200);
         }
+    }
+
+    startShortPortalTransition(callback) {
+        this.animatePortal(100, 5, callback);  // 期間とステップ数を調整
     }
 }

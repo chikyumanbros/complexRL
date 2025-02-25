@@ -59,7 +59,7 @@ class SoundManager {
 
     // BGMの更新
     updateBGM() {
-        console.log('updateBGM called, floorLevel:', this.game.floorLevel); // ログを追加
+        //console.log('updateBGM called, floorLevel:', this.game.floorLevel); // ログを追加
 
         if (!this.userInteracted) {
             // 初回操作を検知するイベントリスナーを設定
@@ -100,12 +100,12 @@ class SoundManager {
             }
         } else {
             // floorLevel が 0 以外の場合 floor1BGM を再生
-            console.log('floor1BGM.paused:', this.floor1BGM.paused); // floor1BGM.paused の状態をログ出力
+            //console.log('floor1BGM.paused:', this.floor1BGM.paused); // floor1BGM.paused の状態をログ出力
             if (this.floor1BGM.paused) {
                 this.floor1BGM.volume = 0.5;
                 this.floor1BGM.play().catch(error => {
                     if (error.name !== 'NotAllowedError') {
-                        console.warn('floor1BGM playback called'); // ログを追加
+                        //console.warn('floor1BGM playback called'); // ログを追加
                         console.warn('BGM playback failed:', error);
                     }
                 });
@@ -192,7 +192,7 @@ class SoundManager {
         // ユーザーが操作したか確認
         if (!this.userInteracted) return;
 
-        console.log("playSound called with audioName:", audioName); // 追加: audioNameを確認
+        //console.log("playSound called with audioName:", audioName); // 追加: audioNameを確認
 
         // moveSounds の場合は this[audioName] ではなく this.moveSounds[audioName] を使う
         let audio = this.moveSounds[audioName] || this[audioName];

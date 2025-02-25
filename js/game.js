@@ -6,7 +6,7 @@ class Game {
         this.tiles = [];
         this.colors = [];
         this.player = new Player(0, 0, this);  // Coordinates will be set later
-        this.player.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;  // 明示的に設定
+        this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;  // 明示的に設定
         this.codexSystem = new CodexSystem();
         this.renderer = new Renderer(this);
         this.inputHandler = new InputHandler(this);
@@ -87,13 +87,18 @@ class Game {
         this.isGameOver = false;
         this.floorLevel = 0;  // Changed from 1 to 0
 
-        // Vigorの初期化を一箇所に統一し、検証を追加
-        const defaultVigor = GAME_CONSTANTS.VIGOR.DEFAULT;
-        if (!Number.isFinite(defaultVigor)) {
-            console.error('VIGOR.DEFAULT is not a valid number:', defaultVigor);
-            this.player.vigor = 100; // フォールバック値
+        // Vigorの初期化: セーブデータがあればロード、なければ最大値
+        const savedData = localStorage.getItem('complexRL_saveData');
+        if (savedData) {
+            try {
+                const data = JSON.parse(savedData);
+                this.player.vigor = data.player.vigor;
+            } catch (e) {
+                console.error('Error loading saved vigor:', e);
+                this.player.vigor = GAME_CONSTANTS.VIGOR.MAX; // エラー時は最大値
+            }
         } else {
-            this.player.vigor = defaultVigor;
+            this.player.vigor = GAME_CONSTANTS.VIGOR.MAX; // 新規ゲーム時は最大値
         }
 
         // 危険度をランダムに決定
@@ -357,7 +362,7 @@ class Game {
                 // floor 0では最大値まで回復
                 const currentVigor = Number.isFinite(this.player.vigor) ? 
                     this.player.vigor : 
-                    GAME_CONSTANTS.VIGOR.DEFAULT;
+                    GAME_CONSTANTS.VIGOR.MAX;
 
                 if (currentVigor < GAME_CONSTANTS.VIGOR.MAX) {
                     const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(
@@ -376,33 +381,43 @@ class Game {
                 }
             } else {
                 // 通常フロアでのVigor減少処理
-                this.player.validateVigor();  // 検証メソッドを呼び出し
+                this.player.validateVigor();
+
+                // ここで oldStatus を定義
+                const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
                 
                 const decreaseChance = GAME_CONSTANTS.VIGOR.calculateDecreaseChance(this.turn);
                 const roll = Math.floor(Math.random() * 100);
 
                 if (roll < decreaseChance) {
-                    // 現在の状態を保存
-                    const currentStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
-
                     const healthStatus = GAME_CONSTANTS.HEALTH_STATUS.getStatus(
                         this.player.hp,
                         this.player.maxHp,
                         this.player.stats
                     );
                     const decrease = GAME_CONSTANTS.VIGOR.DECREASE[healthStatus.name.toUpperCase()];
+                    const oldVigor = this.player.vigor; // 現在のVigorを保持
                     this.player.vigor = Math.max(0, this.player.vigor - decrease);
 
                     // 新しい状態を取得
                     const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
 
-                    // 状態が変化した場合はログに表示とフラッシュエフェクト
-                    if (currentStatus.name !== newStatus.name) {
-                        this.logger.add(`Your vigor has decreased to ${newStatus.name.toLowerCase()} level.`, "warning");
-                        this.renderer.flashLogPanel();
-                        // Vigor状態変化時に効果音を再生
-                        this.playSound('vigorDownSound');
+                    // vigorChange を計算
+                    const vigorChange = this.player.vigor - oldVigor;
+
+                    // 状態が変化した場合のみログ表示
+                    if (oldStatus.name !== newStatus.name) {
+                        if (vigorChange < 0) {
+                            this.logger.add(`Your vigor has decreased to ${newStatus.name.toLowerCase()} level.`, "warning");
+                            this.playSound('vigorDownSound');
+                        } else if (vigorChange > 0) {
+                            this.logger.add(`Your vigor has increased to ${newStatus.name.toLowerCase()} level.`, "playerInfo");
+                            this.playSound('vigorUpSound');
+                        }
                     }
+
+                    // Vigorペナルティの処理
+                    this.processVigorPenalty(newStatus);
                 }
             }
         }
@@ -424,11 +439,12 @@ class Game {
         // プレイヤーのnextAttackModifiersをクリア
         this.player.nextAttackModifiers = [];
 
-        // 全てのモンスターの行動処理
-        for (const monster of this.monsters) {
-            if (this.player.hp <= 0) return;
-            monster.act(this);
-        }
+        // モンスターの行動
+        this.monsters.forEach(monster => {
+            if (!monster.hasActedThisTurn) { // 追加: 行動済みでないか確認
+                monster.act(this);
+            }
+        });
 
         // 生存しているモンスターのみを対象とする
         this.monsters = this.monsters.filter(monster => monster.hp > 0);
@@ -560,7 +576,7 @@ class Game {
         let vigorChange = 0;
         const oldVigor = Number.isFinite(this.player.vigor) ? 
             this.player.vigor : 
-            GAME_CONSTANTS.VIGOR.DEFAULT;
+            GAME_CONSTANTS.VIGOR.MAX;
 
         if (roll <= this.player.level) {
             // 失敗：Vigor減少（より安全な計算）
@@ -880,7 +896,7 @@ class Game {
         localStorage.removeItem('complexRL_saveData');
 
         // vigorを安全な値にリセット
-        this.player.vigor = GAME_CONSTANTS.VIGOR.DEFAULT;
+        this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
 
         // Calculate final score.
         const monstersKilled = this.maxTotalMonsters - this.monsters.length;
@@ -1071,8 +1087,8 @@ class Game {
 
         // ホームフロア（floor0）の場合は全タイルを表示
         if (this.floorLevel === 0) {
-            for (let y = 0; y < this.height; y++) {
-                for (let x = 0; x < this.width; x++) {
+            for (let y = 0; y < GAME_CONSTANTS.DIMENSIONS.HEIGHT; y++) {
+                for (let x = 0; x < GAME_CONSTANTS.DIMENSIONS.WIDTH; x++) {
                     visibleTiles.add(`${x},${y}`);
                 }
             }
@@ -1261,9 +1277,7 @@ class Game {
                     skillId: skill.id,
                     remainingCooldown: skill.remainingCooldown
                 })),
-                vigor: Number.isFinite(this.player.vigor) ?
-                    this.player.vigor :
-                    GAME_CONSTANTS.VIGOR.DEFAULT,  // 数値チェックを追加
+                vigor: this.player.vigor,
             },
             gameState: {
                 floorLevel: this.floorLevel,  // フロアレベルも変更チェックに追加
@@ -1330,35 +1344,18 @@ class Game {
             }
 
             // プレイヤーデータの復元
-            this.player.name = data.player.name ?? 'Unknown';
-            this.player.x = data.player.x ?? 0;
-            this.player.y = data.player.y ?? 0;
-            this.player.hp = data.player.hp ?? this.player.maxHp;
-            this.player.maxHp = data.player.maxHp ?? this.player.maxHp;
+            this.player.x = data.player.x;
+            this.player.y = data.player.y;
             this.player.level = data.player.level ?? 1;
             this.player.xp = data.player.xp ?? 0;
             this.player.xpToNextLevel = data.player.xpToNextLevel ?? 100;
             this.player.codexPoints = data.player.codexPoints ?? 0;
             this.player.stats = data.player.stats ?? this.player.stats;
-
-            // Vigorの復元（数値チェック付き）
-            const loadedVigor = data.player.vigor;
-            // Vigorの復元（詳細なチェックとフォールバック）
-            let restoredVigor = GAME_CONSTANTS.VIGOR.DEFAULT; // デフォルト値をフォールバックとして使用
-            if (Number.isFinite(loadedVigor)) {
-                if (loadedVigor >= GAME_CONSTANTS.VIGOR.MIN && loadedVigor <= GAME_CONSTANTS.VIGOR.MAX) {
-                    restoredVigor = loadedVigor; // 有効な範囲内の場合はそのまま使用
-                } else {
-                    console.warn(`Vigor value out of range (${loadedVigor}), resetting to default.`);
-                }
-            } else {
-                console.warn('Vigor was invalid, resetting to default value');
-            }
-            this.player.vigor = restoredVigor;
-
-            // スキルの復元
+            this.player.vigor = (typeof data.player.vigor === 'number' && !isNaN(data.player.vigor)) ? data.player.vigor : GAME_CONSTANTS.VIGOR.MAX;
+            this.player.name = data.player.name ?? ''; // プレイヤー名を復元
+            this.player.validateVigor();
             this.player.skills = new Map();
-            if (data.player.skills?.length > 0) {
+            if (Array.isArray(data.player.skills) && data.player.skills.length > 0) {
                 data.player.skills.forEach(skillData => {
                     if (skillData?.slot && skillData?.skillId) {
                         this.player.skills.set(skillData.slot, {
@@ -1500,6 +1497,147 @@ class Game {
 
     stopSound(audioName) {
         this.soundManager.stopSound(audioName);
+    }
+
+    // 新規: Vigorペナルティの処理メソッド
+    processVigorPenalty(vigorStatus) {
+        // Highの場合は処理をスキップ
+        if (vigorStatus.name === 'High') return;
+
+        // 状態に応じた確率設定
+        let threshold;
+        let severity;
+        
+        console.log('=== Vigor Penalty Roll ===');
+        console.log(`Current Vigor Status: ${vigorStatus.name}`);
+        
+        switch (vigorStatus.name) {
+            case 'Critical':
+                // 1d20で判定、1-3で発動（15%）
+                threshold = Math.floor(Math.random() * 20) + 1;
+                console.log(`Critical Roll: ${threshold}/20 (needs ≤3 to trigger)`);
+                if (threshold <= 3) {
+                    // 1d6で良い効果か悪い効果かを決定
+                    const effectRoll = Math.floor(Math.random() * 6) + 1;
+                    console.log(`Effect Type Roll: ${effectRoll}/6 (1 = positive, others = severe)`);
+                    severity = effectRoll === 1 ? 'positive' : 'severe';
+                }
+                break;
+            
+            case 'Low':
+                // 1d20で判定、1で発動（5%）
+                threshold = Math.floor(Math.random() * 20) + 1;
+                console.log(`Low Roll: ${threshold}/20 (needs 1 to trigger)`);
+                if (threshold === 1) {
+                    // 1d8で良い効果か悪い効果かを決定
+                    const effectRoll = Math.floor(Math.random() * 8) + 1;
+                    console.log(`Effect Type Roll: ${effectRoll}/8 (1 = positive, others = moderate)`);
+                    severity = effectRoll === 1 ? 'positive' : 'moderate';
+                }
+                break;
+            
+            case 'Moderate':
+                // 1d100で判定、1-2で発動（2%）
+                threshold = Math.floor(Math.random() * 100) + 1;
+                console.log(`Moderate Roll: ${threshold}/100 (needs ≤2 to trigger)`);
+                if (threshold <= 2) {
+                    // 1d10で良い効果か悪い効果かを決定
+                    const effectRoll = Math.floor(Math.random() * 10) + 1;
+                    console.log(`Effect Type Roll: ${effectRoll}/10 (1 = positive, others = mild)`);
+                    severity = effectRoll === 1 ? 'positive' : 'mild';
+                }
+                break;
+        }
+
+        // 効果の適用
+        if (severity) {
+            const effect = this.getVigorPenaltyEffect(severity);
+            console.log(`Selected Severity: ${severity}`);
+            console.log(`Selected Effect: ${effect.type}`);
+            this.player.applyVigorEffect(effect);
+        } else {
+            console.log('No effect triggered');
+        }
+        console.log('========================');
+    }
+
+    // 新規: Vigorペナルティ効果の取得
+    getVigorPenaltyEffect(severity) {
+        const effects = {
+            severe: [
+                { type: 'forceDescend', weight: 15 },
+                { type: 'randomTeleport', weight: 25 },
+                { type: 'forgetAllTiles', weight: 35 },
+                { type: 'forcedWait', weight: 25 }
+            ],
+            moderate: [
+                { type: 'forgetSomeTiles', weight: 40 },
+                { type: 'psychedelicEffect', weight: 35 },
+                { type: 'forcedWait', weight: 25 }
+            ],
+            mild: [
+                { type: 'psychedelicEffect', weight: 60 },
+                { type: 'forgetSomeTiles', weight: 40 }
+            ],
+            positive: [
+                { type: 'revealAll', weight: 25 },
+                { type: 'fullRestore', weight: 25 },
+                { type: 'createVoidPortal', weight: 25 },
+                { type: 'levelUp', weight: 25 }
+            ]
+        };
+
+        return this.weightedRandomChoice(effects[severity]);
+    }
+
+    // 新規: 重み付きランダム選択
+    weightedRandomChoice(options) {
+        const totalWeight = options.reduce((sum, opt) => sum + opt.weight, 0);
+        let random = Math.random() * totalWeight;
+        
+        for (const option of options) {
+            random -= option.weight;
+            if (random <= 0) return option;
+        }
+        return options[0];
+    }
+
+    forgetSomeTiles() {
+        const exploredTiles = [];
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                if (this.explored[y][x] && !this.isVisible(x, y)) {
+                    exploredTiles.push({ x, y });
+                }
+            }
+        }
+        // 探索済みタイルの30%をランダムに忘れる
+        const tilesToForget = Math.floor(exploredTiles.length * 0.3);
+        for (let i = 0; i < tilesToForget; i++) {
+            if (exploredTiles.length === 0) break;
+            const index = Math.floor(Math.random() * exploredTiles.length);
+            const tile = exploredTiles.splice(index, 1)[0];
+            this.explored[tile.y][tile.x] = false;
+        }
+        this.playSound('forgetSound');
+    }
+
+    // 新規: ランダムなテレポート処理
+    randomTeleport() {
+        this.renderer.startPortalTransition(() => {
+            let x, y;
+            do {
+                x = Math.floor(Math.random() * this.width);
+                y = Math.floor(Math.random() * this.height);
+            } while (this.map[y][x] === 'wall' || this.getMonsterAt(x, y) ||
+                     (x === this.player.x && y === this.player.y) ||
+                     GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][x]));
+
+            this.player.x = x;
+            this.player.y = y;
+            this.renderer.render();
+        });
+        this.playSound('portalSound'); // テレポートサウンドを再生（任意）
     }
 }
 

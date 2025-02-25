@@ -172,18 +172,27 @@ const SPRITE_COLORS = {
         const g = parseInt(baseColor.slice(3,5), 16);
         const b = parseInt(baseColor.slice(5,7), 16);
         
-        // ステータス変動に基づいて色のブレ幅を調整
-        // 通常の0.1から、statVariationに応じて0.05～0.3の範囲で変動
-        const variationRange = Math.min(0.3, Math.max(0.05, 0.1 + (statVariation * 0.002)));
-        const variation = () => (Math.random() * (variationRange * 2) - variationRange);
-        
-        const clamp = (n) => Math.min(255, Math.max(0, Math.round(n)));
-        
-        const newR = clamp(r * (1 + variation()));
-        const newG = clamp(g * (1 + variation()));
-        const newB = clamp(b * (1 + variation()));
-        
-        return `#${newR.toString(16).padStart(2,'0')}${newG.toString(16).padStart(2,'0')}${newB.toString(16).padStart(2,'0')}`;
+        // グリッチ効果の確率 (例: 10%)
+        const glitchChance = 0.1;
+
+        if (Math.random() < glitchChance) {
+            // グリッチ用の色をランダムに選択
+            const glitchColors = ['rgb(38, 155, 42)', 'rgb(139, 17, 135)', 'rgb(202, 202, 202)', 'rgb(13, 18, 11)']; // より落ち着いたグリッチ色
+            return glitchColors[Math.floor(Math.random() * glitchColors.length)];
+        } else {
+            // ステータス変動に基づいて色のブレ幅を調整
+            // 通常の0.1から、statVariationに応じて0.05～0.3の範囲で変動
+            const variationRange = Math.min(0.5, Math.max(0.05, 0.1 + (statVariation * 0.002)));
+            const variation = () => (Math.random() * (variationRange * 2) - variationRange);
+            
+            const clamp = (n) => Math.min(255, Math.max(0, Math.round(n)));
+            
+            const newR = clamp(r * (1 + variation()));
+            const newG = clamp(g * (1 + variation()));
+            const newB = clamp(b * (1 + variation()));
+            
+            return `#${newR.toString(16).padStart(2,'0')}${newG.toString(16).padStart(2,'0')}${newB.toString(16).padStart(2,'0')}`;
+        }
     },
     
     // 基本色の定義

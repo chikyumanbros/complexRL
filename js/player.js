@@ -26,16 +26,9 @@ class Player {
         this.nextAttackModifiers = [];  // 攻撃修飾効果の初期化
         this.meditation = null;  // メディテーション状態を追加
 
-        // vigorの初期化を確実に行う
-        const defaultVigor = GAME_CONSTANTS.VIGOR.DEFAULT;
-        if (!Number.isFinite(defaultVigor)) {
-            console.error('VIGOR.DEFAULT is not a valid number:', defaultVigor);
-            this.vigor = 100; // フォールバック値
-        } else {
-            this.vigor = defaultVigor;
-        }
-
-        this.validateVigor();  // Vigorの検証を追加
+        // Vigorの初期化: game.loadDataがあればそこから、なければ最大値
+        this.vigor = GAME_CONSTANTS.VIGOR.MAX; // いったん最大値で初期化
+        this.validateVigor();
 
         // 各種パラメータの計算
         this.updateDerivedStats();
@@ -44,6 +37,22 @@ class Player {
         this.autoExploring = false;  // 自動探索フラグを追加
         this.detectedPresences = new Set();  // 既に感知した存在を記録
         this.name = '';  // プレイヤー名を追加
+    }
+
+    validateVigor() {
+        console.log('Validating Vigor:', {
+            currentVigor: this.vigor,
+            maxVigor: GAME_CONSTANTS.VIGOR.MAX,
+        });
+
+        // 値の範囲チェック（0から100の間）
+        if (this.vigor < 0) {
+            console.warn(`Vigor value (${this.vigor}) below 0, setting to 0`);
+            this.vigor = 0;
+        } else if (this.vigor > GAME_CONSTANTS.VIGOR.MAX) {
+            console.warn(`Vigor value (${this.vigor}) above ${GAME_CONSTANTS.VIGOR.MAX}, setting to max`);
+            this.vigor = GAME_CONSTANTS.VIGOR.MAX;
+        }
     }
 
     // ===== Experience and Leveling Methods =====
@@ -922,16 +931,6 @@ class Player {
         return Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
     }
 
-    validateVigor() {
-        if (!Number.isFinite(this.vigor)) {
-            console.warn('Vigor was invalid, resetting to default value');
-            const defaultVigor = GAME_CONSTANTS.VIGOR.DEFAULT;
-            this.vigor = Number.isFinite(defaultVigor) ? defaultVigor : 100;
-        }
-        // 範囲内に収める
-        this.vigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, this.vigor));
-    }
-
     startAutoMoveToLandmark(landmark) {
         this.autoMovingToLandmark = true;
         this.game.logger.add("Moving to landmark...", "playerInfo");
@@ -1030,5 +1029,141 @@ class Player {
         }
 
         return null;
+    }
+
+    applyVigorEffect(effect) {
+        switch (effect.type) {
+            case 'pauseAndShift':
+                this.game.logger.add("Your exhaustion forces you to pause, and the world shifts...", "warning");
+                this.meditation = {
+                    active: true,
+                    duration: 1  // 1ターンだけ
+                };
+                this.game.playSound('waitSound'); // 適切なサウンドに変更
+                break;
+
+            case 'forceDescend':
+                this.game.logger.add("Your exhaustion forces you downward!", "warning");
+                this.game.renderer.startPortalTransition(() => {
+                    this.game.floorLevel++;
+                    this.game.generateNewFloor();
+                    this.game.soundManager.updateBGM();
+                });
+                this.game.playSound('portalSound');
+                break;
+
+            case 'randomTeleport':
+                this.game.logger.add("Your mind wanders, and so does your body...", "warning");
+                this.game.renderer.startShortPortalTransition(() => {
+                    let x, y;
+                    do {
+                        x = Math.floor(Math.random() * this.game.width);
+                        y = Math.floor(Math.random() * this.game.height);
+                    } while (this.game.map[y][x] === 'wall' || this.game.getMonsterAt(x, y) ||
+                             (x === this.x && y === this.y) ||
+                             GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.game.tiles[y][x]));
+
+                    this.x = x;
+                    this.y = y;
+                    this.game.renderer.render();
+                    // サウンドをフェードアウト
+                    this.game.soundManager.fadeOutAndStop('portalSound');
+                });
+                // startShortPortalTransition の外でサウンドを再生
+                this.game.playSound('portalSound');
+                break;
+
+            case 'forgetAllTiles':
+                this.game.logger.add("Your memory fades completely...", "warning");
+                for (let y = 0; y < this.game.height; y++) {
+                    for (let x = 0; x < this.game.width; x++) {
+                        if (!this.game.getVisibleTiles().some(({ x: visibleX, y: visibleY }) => visibleX === x && visibleY === y)) {
+                            this.game.explored[y][x] = false;
+                        }
+                    }
+                }
+                this.game.playSound('forgetSound');
+                break;
+
+            case 'forgetSomeTiles':
+                this.game.logger.add("Your memory becomes hazy...", "warning");
+                const exploredTiles = [];
+                for (let y = 0; y < this.game.height; y++) {
+                    for (let x = 0; x < this.game.width; x++) {
+                        if (this.game.explored[y][x] && !this.game.getVisibleTiles().some(({ x: visibleX, y: visibleY }) => visibleX === x && visibleY === y)) {
+                            exploredTiles.push({ x, y });
+                        }
+                    }
+                }
+                // 探索済みタイルの30%をランダムに忘れる
+                const tilesToForget = Math.floor(exploredTiles.length * 0.3);
+                for (let i = 0; i < tilesToForget; i++) {
+                    if (exploredTiles.length === 0) break;
+                    const index = Math.floor(Math.random() * exploredTiles.length);
+                    const tile = exploredTiles.splice(index, 1)[0];
+                    this.game.explored[tile.y][tile.x] = false;
+                }
+                this.game.playSound('forgetSound');
+                break;
+
+            case 'revealAll':
+                this.game.logger.add("A moment of clarity reveals all!", "important");
+                for (let y = 0; y < this.game.height; y++) {
+                    for (let x = 0; x < this.game.width; x++) {
+                        this.game.explored[y][x] = true;
+                    }
+                }
+                this.game.playSound('revealSound'); // 仮のサウンド名
+                break;
+
+            case 'fullRestore':
+                this.game.logger.add("A surge of energy restores you!", "important");
+                const hpRestored = this.maxHp - this.hp;
+                this.hp = this.maxHp;
+                this.vigor = GAME_CONSTANTS.VIGOR.MAX;
+                if (hpRestored > 0) {
+                    this.game.logger.add(`Restored ${hpRestored} HP!`, "important");
+                }
+                this.game.logger.add("Vigor fully restored!", "important");
+                this.game.playSound('healSound'); // 仮のサウンド名
+                break;
+
+            case 'createVoidPortal':
+                this.game.logger.add("A void portal materializes nearby!", "important");
+                const adjacentSpaces = [
+                    { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 },
+                    { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
+                    { dx: -1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 1, dy: 1 }
+                ];
+
+                // 隣接する空きマスをシャッフル
+                const shuffledSpaces = adjacentSpaces
+                    .filter(({ dx, dy }) => {
+                        const newX = this.x + dx;
+                        const newY = this.y + dy;
+                        return this.game.isValidPosition(newX, newY) &&
+                            this.game.map[newY][newX] === 'floor' &&
+                            !this.game.isOccupied(newX, newY);
+                    })
+                    .sort(() => Math.random() - 0.5);
+
+                // 最初の空きマスにポータルを作成
+                if (shuffledSpaces.length > 0) {
+                    const { dx, dy } = shuffledSpaces[0];
+                    const portalX = this.x + dx;
+                    const portalY = this.y + dy;
+                    this.game.tiles[portalY][portalX] = GAME_CONSTANTS.PORTAL.VOID.CHAR;
+                    this.game.playSound('portalCreateSound'); // 仮のサウンド名
+                }
+                break;
+
+            case 'levelUp':
+                this.game.logger.add("A mysterious force empowers you!", "important");
+                this.levelUp();
+                break;
+        }
+
+        // 効果適用後に画面を更新
+        this.game.renderer.render();
     }
 } 

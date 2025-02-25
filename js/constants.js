@@ -602,7 +602,6 @@ const GAME_CONSTANTS = {
 
     VIGOR: {
         MAX: 100,
-        DEFAULT: 100,
         
         // 基本となる閾値（%）
         THRESHOLDS: {
@@ -615,9 +614,9 @@ const GAME_CONSTANTS = {
         // 状態による減少値
         DECREASE: {
             HEALTHY: 1,
-            WOUNDED: 3,
-            BADLY_WOUNDED: 5,
-            NEAR_DEATH: 10
+            WOUNDED: 1,
+            BADLY_WOUNDED: 1,
+            NEAR_DEATH: 1
         },
 
         // ターン経過による減少確率の計算
@@ -629,19 +628,19 @@ const GAME_CONSTANTS = {
                     baseChance = 1;  // 安全: 1%
                     break;
                 case 'NORMAL':
-                    baseChance = 3;  // 通常: 3%
+                    baseChance = 2;  // 通常: 3%
                     break;
                 case 'DANGEROUS':
-                    baseChance = 6;  // 危険: 6%
+                    baseChance = 3;  // 危険: 6%
                     break;
                 case 'DEADLY':
-                    baseChance = 9; // 致命的: 9%
+                    baseChance = 5; // 致命的: 9%
                     break;
                 default:
-                    baseChance = 3;  // デフォルト値
+                    baseChance = 2;  // デフォルト値
             }
 
-            const turnModifier = Math.floor(turnsInFloor / 20);  // 20ターンごとに確率上昇
+            const turnModifier = Math.floor(turnsInFloor / 50);  // 20ターンごとに確率上昇
 
             // 最大確率も危険度によって変動
             const maxChance = {

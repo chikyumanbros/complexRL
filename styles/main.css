@@ -25,6 +25,7 @@ body {
     display: flex;
     min-height: 100vh;
     overflow: hidden;
+    margin: 5px;
 }
 
 .container {
@@ -33,12 +34,12 @@ body {
     flex-direction: column;
     gap: 5px;
     width: 1780px;
-    height: 990px;
+    height: 1000px;
     transform-origin: left top;
 }
 
 /* スケーリング用のメディアクエリ */
-@media (max-width: 1780px), (max-height: 980px) {
+@media (max-width: 1780px), (max-height: 1000px) {
     .container {
         transform: scale(var(--scale-ratio));
     }
@@ -230,7 +231,7 @@ body {
 
 h3 {
     color: #6cf;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid #233023;
     padding-bottom: 5px;
     margin-top: 0px;
     margin-bottom: 10px;
@@ -309,7 +310,7 @@ h3 {
     flex-grow: 1;
     height: 12px;
     background: #222;
-    border: 1px solid #444;
+    border: 1px solid #233023;
 }
 
 .bar {
@@ -635,7 +636,7 @@ body.help-mode #codex-panel {
     margin-bottom: 8px;
     padding: 4px;
     background-color: var(--panel-bg);
-    border: 1px solid var(--border-color);
+    border: 1px solid #233023;
 }
 
 .enemy-symbol {
@@ -828,7 +829,7 @@ body::before {
 
 /* 基本情報セクション */
 .basic-info {
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid #233023;
     padding-bottom: 5px;
 }
 
@@ -837,7 +838,7 @@ body::before {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid #233023;
     padding-bottom: 5px;
 }
 
@@ -846,7 +847,7 @@ body::before {
     display: grid;
     grid-template-columns: auto 1fr auto;  /* 3列グリッド: XP CODEX Points */
     gap: 10px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid #233023;
     padding-bottom: 6px;
     align-items: center;
 }
@@ -869,7 +870,7 @@ body::before {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 5px 10px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid #233023;
     padding-bottom: 5px;
 }
 
@@ -878,7 +879,7 @@ body::before {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 5px 15px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid #233023;
     padding-bottom: 5px;
 }
 
