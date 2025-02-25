@@ -17,7 +17,7 @@
 
 body {
     position: relative;
-    background: #444;
+    background: #090d09;  /* 背景色を追加 */
     color: #fff;
     margin: 5;
     font-family: 'IBM VGA 8x16', monospace;
@@ -52,16 +52,16 @@ body {
 #game {
     white-space: pre;
     padding: 10px;
-    background: #000;
     color: #cfcfcf;
     font-size: 15px;
     font-family: 'IBM EGA 9x8', monospace;
     height: 580px;  /* 高さを固定 */
     justify-content: center;
+    border: 1px solid #233023;
+    background: #0b0f0b;  /* 背景色を追加 */
 }
 
 #status-panel {
-    background: black;
     padding: 10px;
     width: 270px;
     height: 580px;  /* gameと同じ高さに固定 */
@@ -69,16 +69,19 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    border: 1px solid #233023;
+    background: #0b0f0b;  /* 背景色を追加 */
 }
 
 #skills-panel {
-    background: black;
     padding: 10px;
     width: calc(100vw - 1320px);
     min-width: 480px;
     max-width: 800px;
     height: 580px;  /* gameと同じ高さに固定 */
     color: rgb(207, 207, 207);
+    border: 1px solid #233023;
+    background: #0b0f0b;  /* 背景色を追加 */
 }
 
 .bottom-panels {
@@ -90,11 +93,12 @@ body {
 
 #log-panel {
     flex: 1;
-    background: black;
     padding: 10px;
     display: flex;
     flex-direction: column;
     min-width: 975px;  /* 最小幅を調整 */
+    border: 1px solid #233023;
+    background: #0b0f0b;  /* 背景色を追加 */
 }
 
 #message-log {
@@ -177,10 +181,11 @@ body {
 
 #codex-panel {
     flex: 1;
-    background: black;
     padding: 10px;
     display: flex;
     flex-direction: column;
+    border: 1px solid #233023;
+    background: #0b0f0b;  /* 背景色を追加 */
 }
 
 #available-skills {
@@ -246,7 +251,6 @@ h3 {
 .title {
     text-align: center;
     padding: 10px;
-    background: black;
 }
 
 .title h1 {
@@ -351,13 +355,13 @@ h3 {
 }
 
 @keyframes damage-flash {
-    0% { background-color: rgba(231, 77, 60, 0.5); }
-    100% { background-color: black; }
+    0% { background-color: rgba(231, 76, 60, 0.3); }
+    50% { background-color: rgba(231, 76, 60, 0.1); }
+    100% { background-color: transparent; }
 }
 
 .damage-flash {
-    animation: damage-flash 0.2s ease-out;
-    animation-fill-mode: forwards;
+    animation: damage-flash 0.3s ease-out;
 }
 
 @keyframes door-kill {
@@ -563,17 +567,18 @@ h3 {
 
 /* codexモード: codexパネルは下端に固定し、上方向に拡大する */
 body.codex-mode #codex-panel,
-body.help-mode #codex-panel {  /* help-modeを追加 */
+body.help-mode #codex-panel {
     position: absolute;
     bottom: 10px;
     left: 10px;
     right: 10px;
-    height: 60%;  /* 必要に応じて調整可能 */
+    height: 60%;
     padding: 10px;
     overflow-y: auto;
     z-index: 1000;
-    background: black;
-    transform-origin: bottom;  /* 下側を起点にスケール */
+    background: #0b0f0b;  /* 他のコンテナと同じ背景色に変更 */
+    border: 1px solid #233023;  /* 他のコンテナと同じボーダーを追加 */
+    transform-origin: bottom;
     animation: codexExpandUp 0.3s ease-out forwards;
 }
 
@@ -722,7 +727,7 @@ body::before {
     background: repeating-linear-gradient(
         0deg,
         rgba(20, 20, 20, 0.05) 0px,
-        rgba(20, 20, 20, 0.3) 1px,
+        rgba(15, 20, 15, 0.5) 0.5px,
         transparent 2px,
         transparent 2px
     );
@@ -775,11 +780,12 @@ body::before {
 @keyframes log-panel-flash {
     0% { background-color: rgba(255, 255, 255, 0.1); }
     50% { background-color: rgba(255, 255, 255, 0.2); }
-    100% { background-color: black; }
+    100% { background-color: transparent; }  /* 透明に変更 */
 }
 
 .log-panel-flash {
     animation: log-panel-flash 0.2s ease-out;
+    /* background-color の明示的な設定を削除 */
 }
 
 /* クリティカルヒットのポップアップテキスト */

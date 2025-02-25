@@ -328,11 +328,14 @@ class InputHandler {
             // キャラクター作成完了
             this.mode = 'game';
             this.game.player.updateDerivedStats();
+            // HPを最大値に設定
+            this.game.player.hp = this.game.player.maxHp;
             this.game.logger.add("Character creation complete!", "important");
             
             // ゲームの初期化処理を追加
             this.game.generateNewFloor();  // generateFloor から generateNewFloor に修正
             this.game.mode = GAME_CONSTANTS.MODES.GAME;  // ゲームモードに設定
+            this.game.processTurn();  // 最初のターンを処理
             this.game.renderer.render();  // 画面を更新
             return;
         }
@@ -344,8 +347,10 @@ class InputHandler {
             this.showCurrentStats();
             
             // ステータスパネルを更新
-            this.game.player.updateDerivedStats();  // 派生ステータスを更新
-            this.game.renderer.renderStatus();      // ステータスパネルを更新
+            this.game.player.updateDerivedStats();
+            // HPを最大値に設定
+            this.game.player.hp = this.game.player.maxHp;
+            this.game.renderer.renderStatus();
         }
     }
 

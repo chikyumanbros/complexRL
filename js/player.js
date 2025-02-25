@@ -189,21 +189,18 @@ class Player {
             // ポータルチェックを追加
             if (this.game.floorLevel === 0 && 
                 this.game.tiles[this.y][this.x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
-                // ポータルの処理を直接ここで行う
                 this.game.logger.add("Enter the portal? [y/n]", "important");
                 this.game.setInputMode('confirm', {
                     callback: (confirmed) => {
                         if (confirmed) {
                             this.game.logger.add("You step into the portal...", "important");
-                            // ポータル通過アニメーションを開始
                             this.game.renderer.startPortalTransition(() => {
                                 this.game.floorLevel++;
                                 this.game.generateNewFloor();
+                                this.game.soundManager.updateBGM();  // BGMを更新
                             });
-                            // ポータル効果音を再生
                             this.game.playSound('portalSound');
-                        } else {
-                            this.game.logger.add("You decide not to enter the portal.", "info");
+                            this.game.processTurn();  // ターンを消費
                         }
                         this.game.setInputMode('normal');
                     },
@@ -214,16 +211,15 @@ class Player {
                     }
                 });
             } else if (this.game.tiles[this.y][this.x] === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
-                // VOIDポータルの処理
                 this.game.logger.add("Enter the VOID portal? [y/n]", "important");
                 this.game.setInputMode('confirm', {
                     callback: (confirmed) => {
                         if (confirmed) {
                             this.game.logger.add("You step into the VOID portal...", "important");
-                            // ポータル通過アニメーションを開始
                             this.game.renderer.startPortalTransition(() => {
                                 this.game.floorLevel = 0;  // ホームフロアに戻る
                                 this.game.generateNewFloor();
+                                this.game.soundManager.updateBGM();  // BGMを更新
                                 
                                 // プレイヤーをホームフロアのポータルの1マス下に配置
                                 for (let y = 0; y < this.game.height; y++) {
@@ -236,17 +232,14 @@ class Player {
                                     }
                                 }
                             });
-                            // ポータル効果音を再生
                             this.game.playSound('portalSound');
-                        } else {
-                            this.game.logger.add("You decide not to enter the VOID portal.", "info");
+                            this.game.processTurn();  // ターンを消費
                         }
                         this.game.setInputMode('normal');
                     },
-                    // '>'キーで'y'、'escape'キーで'n'を選択可能にする
                     additionalKeys: {
-                        '>': true,   // '>'キーでtrue（y）
-                        'escape': false // 'escape'キーでfalse（n）
+                        '>': true,
+                        'escape': false
                     }
                 });
             }
@@ -537,34 +530,13 @@ class Player {
 
     // ===== Floor Navigation and Surroundings Methods =====
     descendStairs() {
-        // ポータルの処理を追加
-        if (this.game.floorLevel === 0 && 
-            this.game.tiles[this.y][this.x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
-            this.game.logger.add("Enter the portal? [y/n]", "important");
-            this.game.setInputMode('confirm', {
-                callback: (confirmed) => {
-                    if (confirmed) {
-                        this.game.logger.add("You step into the portal...", "important");
-                        // ポータル通過アニメーションを開始
-                        this.game.renderer.startPortalTransition(() => {
-                            this.game.floorLevel++;
-                            this.game.generateNewFloor();
-                        });
-                    } else {
-                        this.game.logger.add("You decide not to enter the portal.", "info");
-                    }
-                    this.game.setInputMode('normal');
-                }
-            });
-            return true;
-        }
-        
-        // 通常の階段の処理
         if (this.game.tiles[this.y][this.x] === GAME_CONSTANTS.STAIRS.CHAR) {
             this.game.floorLevel++;
             this.game.logger.add(`You descend to floor ${this.game.floorLevel}...`, "important");
             this.game.generateNewFloor();
+            this.game.soundManager.updateBGM();  // BGMを更新
             this.game.playSound('descendStairsSound');
+            this.game.processTurn();  // ターンを消費
             return true;
         }
         return false;

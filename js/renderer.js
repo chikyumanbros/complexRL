@@ -246,26 +246,23 @@ class Renderer {
                 let classes = [];
                 let backgroundColor = '';
                 let opacity = 1.0;
-                let lightColor = '';
 
                 // ランドマークターゲットモードの場合、探索済みなら描画
                 if (this.game.inputHandler.landmarkTargetMode && isExplored) {
                     content = this.game.tiles[y][x];
-                    style = `color: ${isHighlighted ? 'lime' : 'black'}; opacity: ${isHighlighted ? 1 : 0.6}`; // 強調表示
-                    backgroundColor = isHighlighted ? 'rgba(0, 255, 0, 0.4)' : 'black'; // 背景色
-                    if (GAME_CONSTANTS.TILES.WALL.includes(content)) {
-                        style = `color: darkgray; opacity: 0.7`; // 壁は暗い灰色
-                        backgroundColor = 'black';
+                    backgroundColor = isHighlighted ? 'rgba(0, 255, 0, 0.6)' : 'var(--dark-background)'; // 背景色
+                    if (GAME_CONSTANTS.TILES.WALL.includes(content) || GAME_CONSTANTS.TILES.FLOOR.includes(content) ||
+                        GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(content) || GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(content)) {
+                        style = `color:rgba(0, 255, 0, 0.35);`; // 壁はコンソールっぽい緑
+                        backgroundColor = 'var(--dark-background)';
                     }
+                    
                     if (content === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
                         content === GAME_CONSTANTS.TILES.DOOR.OPEN ||
                         content === GAME_CONSTANTS.STAIRS.CHAR ||
                         content === GAME_CONSTANTS.PORTAL.GATE.CHAR ||
                         content === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
-                        style = `color: white; opacity: 0.8`; // ランドマークは白
-                    }
-                    if (isHighlighted) {
-                        //backgroundColor = `linear-gradient(transparent, rgba(255, 255, 255, 1))`;
+                        style = `color: #00ff00; opacity: 0.5`; // ランドマークはコンソールっぽい緑
                     }
                 } else if (isVisible) {
                     // タイルごとに部屋を判定する
@@ -734,7 +731,7 @@ class Renderer {
             // アニメーション終了後にクラスを削除
             statusPanel.addEventListener('animationend', function () {
                 statusPanel.classList.remove('damage-flash');
-                statusPanel.style.backgroundColor = 'black'; // 背景色を黒に戻す
+                // 背景色を設定する行を削除
             }, { once: true }); // イベントリスナーを一度だけ実行
         }
     }
@@ -1409,25 +1406,19 @@ class Renderer {
 
     // ログパネルをフラッシュさせるメソッド
     flashLogPanel() {
-        const logPanel = document.getElementById('log-panel');
-        if (!logPanel) {
-            //console.error('Log panel element not found');
-            return;
+        const logPanel = document.getElementById('status-panel');
+        if (logPanel) {
+            // クラスを追加する前に既存のアニメーションを削除
+            logPanel.classList.remove('log-panel-flash');
+            // 強制的なリフロー（再描画）を発生させる
+            void logPanel.offsetWidth;
+            // 新しいアニメーションを開始
+            logPanel.classList.add('log-panel-flash');
+            // アニメーション終了時にクラスを削除
+            setTimeout(() => {
+                logPanel.classList.remove('log-panel-flash');
+            }, 200); // アニメーションの長さと同じ200ms
         }
-
-        //console.log('Flashing log panel...');
-        //console.log('Current classes:', logPanel.classList.toString());
-
-        // 既存のアニメーションをリセット
-        logPanel.classList.remove('log-panel-flash');
-
-        // 強制的にリフロー
-        void logPanel.offsetWidth;
-
-        // アニメーションを再適用
-        logPanel.classList.add('log-panel-flash');
-
-        //console.log('Classes after flash:', logPanel.classList.toString());
     }
 
     // 新しいメソッドを追加
@@ -1562,5 +1553,15 @@ class Renderer {
 
         // アニメーションを開始
         animate();
+    }
+
+    showDamageFlash() {
+        const gameElement = document.getElementById('game');
+        if (gameElement) {
+            gameElement.classList.add('damage-flash');
+            setTimeout(() => {
+                gameElement.classList.remove('damage-flash');
+            }, 200);
+        }
     }
 }
