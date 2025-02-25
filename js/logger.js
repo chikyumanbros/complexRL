@@ -72,6 +72,24 @@ class Logger {
                 "The metallic scent of battle lingers in the air.",
                 "Fresh marks of violence paint a grim scene.",
                 "The aftermath of recent combat hangs heavy in the air."
+            ],
+            portal: [
+                "A shimmering portal pulses with arcane energy nearby.",
+                "The air crackles around a mysterious gateway.",
+                "A portal's soft hum resonates through the area.",
+                "Magical energies swirl around a nearby portal."
+            ],
+            voidportal: [
+                "A dark portal emanates an unsettling void energy.",
+                "Shadows writhe around a sinister void gateway.",
+                "An ominous void portal tears at the fabric of reality.",
+                "The darkness deepens around a threatening void portal."
+            ],
+            nexus: [
+                "You stand in the Nexus, a sanctuary between worlds.",
+                "The Nexus hums with ancient protective magic.",
+                "Safe haven surrounds you in the mystical Nexus.",
+                "The tranquil energy of the Nexus embraces you."
             ]
         };
         this.messageColors = {
@@ -95,7 +113,10 @@ class Logger {
                 monster: '#deb887', // Burlywood
                 player: '#b8860b',  // Dark Goldenrod
                 tile: '#708090'     // Slate Gray
-            }
+            },
+            portal: '#4169E1',    // Royal Blue
+            voidportal: '#483D8B', // Dark Slate Blue
+            nexus: '#9370DB',     // Medium Purple
         };
 
         // lookInfoElementの初期化を変更
@@ -190,6 +211,16 @@ class Logger {
                 combatDesc = this.getRandomDescription('meleeKill');
             }
 
+            // Add portal description if present
+            let portalDesc = '';
+            if (room && room.hasPortal) {
+                portalDesc = this.getRandomDescription('portal');
+            } else if (room && room.hasVoidPortal) {
+                portalDesc = this.getRandomDescription('voidportal');
+            } else if (room && room.isNexus) {
+                portalDesc = this.getRandomDescription('nexus');
+            }
+
             // Select monster presence description and its color (for both room and corridor)
             let monsterDesc = '';
             if (monsterCount > 3) {
@@ -206,9 +237,10 @@ class Logger {
                 monsterColor = this.messageColors.monsters.none;
             }
 
-            // Append line breaks (<br>) after each description
+            // Combine all descriptions with appropriate colors
             roomInfo = `<span style="color: ${brightnessColor}">${roomInfo}</span><br>` +
                        (combatDesc ? `<span style="color: ${this.messageColors.monsters.many}">${combatDesc}</span><br>` : '') +
+                       (portalDesc ? `<span style="color: ${this.messageColors[room.hasVoidPortal ? 'voidportal' : room.hasPortal ? 'portal' : 'nexus']}">${portalDesc}</span><br>` : '') +
                        `<span style="color: ${monsterColor}">${monsterDesc}</span>`;
 
             this.roomInfo = roomInfo;

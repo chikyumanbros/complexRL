@@ -501,6 +501,12 @@ class Game {
         this.renderer.render();
         this.saveGame();
 
+        // lookInfoの更新を追加
+        if (this.inputHandler.examineTarget) {
+            const target = this.inputHandler.examineTarget;
+            this.logger.updateLookInfo(target.x, target.y);
+        }
+
         if (this.floorLevel === 0) {
             this.updateHomeFloor();
         }
@@ -728,8 +734,6 @@ class Game {
 
     spawnInitialMonsters() {
         const dangerData = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
-
-        // Increase base count while incorporating the danger modifier
         const baseCount = Math.floor(5 + this.floorLevel * 1.5);
         const monsterCount = Math.max(3, baseCount + dangerData.levelModifier);
 
@@ -864,6 +868,11 @@ class Game {
         //console.log('Monsters per room:', Array.from(monstersPerRoom.entries()).map(([room, count]) => 
         //    `Room at (${room.x},${room.y}): ${count} monsters`
         //));
+
+        // モンスター生成後に知覚チェックを実行
+        if (this.monsters.length > 0) {
+            this.player.checkPerception(this);
+        }
     }
 
     gameOver() {
@@ -959,7 +968,15 @@ class Game {
         this.renderer.render();
         this.inputHandler.bindKeys();
 
-        // フロア生成時にはBGMを更新しない（ポータルアニメーション終了後に更新される）
+        // 描画とログの更新
+        this.renderer.render();
+        this.logger.renderLookPanel();  // Display look panel
+        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);  // Update floor info in Logger
+        this.updateRoomInfo();  // Update surrounding room information
+        this.updateExplored();  // Update explored information
+
+        // フロア生成後に描画が完了してからセーブを実行
+        requestAnimationFrame(() => this.saveGame());
     }
 
     setInputMode(mode, options = {}) {
@@ -971,6 +988,13 @@ class Game {
         const visibleTiles = this.getVisibleTiles();
         visibleTiles.forEach(({ x, y }) => {
             this.explored[y][x] = true;
+
+            // examineTargetが存在し、その座標が可視範囲内なら情報を更新
+            if (this.inputHandler.examineTarget && 
+                this.inputHandler.examineTarget.x === x && 
+                this.inputHandler.examineTarget.y === y) {
+                this.logger.updateLookInfo(x, y);
+            }
         });
     }
 
@@ -1114,10 +1138,30 @@ class Game {
             py < room.y + room.height
         );
 
-        // Set the range for counting monsters.
+        // ポータルとvoidポータルの検出を追加
+        let hasPortal = false;
+        let hasVoidPortal = false;
+        let isNexus = this.floorLevel === 0;  // レベル0（ネクサス）かどうか
+
+        // プレイヤーの周囲2マス以内のポータルをチェック
+        for (let dy = -2; dy <= 2; dy++) {
+            for (let dx = -2; dx <= 2; dx++) {
+                const checkX = px + dx;
+                const checkY = py + dy;
+                
+                if (this.isValidPosition(checkX, checkY)) {
+                    if (this.tiles[checkY][checkX] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+                        hasPortal = true;
+                    } else if (this.tiles[checkY][checkX] === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
+                        hasVoidPortal = true;
+                    }
+                }
+            }
+        }
+
+        // モンスターのカウント（既存のコード）
         let monsterCount;
         if (currentRoom) {
-            // In a room, count monsters throughout the room.
             monsterCount = this.monsters.filter(monster =>
                 monster.x >= currentRoom.x &&
                 monster.x < currentRoom.x + currentRoom.width &&
@@ -1125,14 +1169,25 @@ class Game {
                 monster.y < currentRoom.y + currentRoom.height
             ).length;
         } else {
-            // 廊下でのモンスターカウント（チェビシェフ距離からユークリッド距離に変更）
             monsterCount = this.monsters.filter(monster => {
                 const distance = GAME_CONSTANTS.DISTANCE.calculate(monster.x, monster.y, px, py);
-                return distance <= 2.5;  // 円形の範囲で確認
+                return distance <= 2.5;
             }).length;
         }
 
-        this.logger.updateRoomInfo(currentRoom, monsterCount);
+        // 部屋情報にポータルの存在を追加
+        const roomInfo = currentRoom ? {
+            ...currentRoom,
+            hasPortal,
+            hasVoidPortal,
+            isNexus
+        } : {
+            hasPortal,
+            hasVoidPortal,
+            isNexus
+        };
+
+        this.logger.updateRoomInfo(roomInfo, monsterCount);
     }
 
     // Get the room in which the player is currently located.
@@ -1178,18 +1233,16 @@ class Game {
         const currentState = {
             playerPos: `${this.player.x},${this.player.y}`,
             playerHp: this.player.hp,
-            playerVigor: this.player.vigor,  // Vigorの状態も追加
+            playerVigor: this.player.vigor,
             monstersState: this.monsters.map(m => `${m.x},${m.y},${m.hp}`).join('|'),
             turn: this.turn,
             floorLevel: this.floorLevel
         };
 
-    // 状態が変化していない場合はスキップ（ただしフロアレベルが変化した場合は必ずセーブ）
-    if (this._lastSaveState &&
-        JSON.stringify(currentState) === JSON.stringify(this._lastSaveState) &&
-        this._lastSaveState.floorLevel === this.floorLevel) {
-        return;
-    }
+        // フロアレベルが変化した場合は必ずセーブする
+        if (this._lastSaveState?.floorLevel !== this.floorLevel) {
+            this._lastSaveState = null;  // フロア変更時は前回のセーブ状態を無効化
+        }
 
         const saveData = {
             player: {

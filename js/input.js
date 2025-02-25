@@ -290,6 +290,7 @@ class InputHandler {
 
         if (key === 'Enter' && this.nameBuffer.trim().length > 0) {
             this.game.player.name = this.nameBuffer.trim();
+            this.game.renderer.renderStatus();
             this.mode = 'characterCreation';  // 名前入力後はキャラクター作成モードへ
             this.game.logger.clearTitle();
             this.game.logger.add(`Welcome, ${this.game.player.name}! Let's create your character.`, "important");
