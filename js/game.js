@@ -898,6 +898,9 @@ class Game {
     }
 
     generateNewFloor() {
+        // BGMの更新処理を削除（ポータルサウンドを途切れさせないため）
+        // this.soundManager.updateBGM();
+
         // Determine danger level by random roll.
         const dangerRoll = Math.random() * 100;
         if (dangerRoll < 5) {  // 5%に減少
@@ -941,11 +944,8 @@ class Game {
         // モンスターの生成
         this.spawnInitialMonsters();
 
-        // BGMを更新
-        this.soundManager.updateBGM();
-
-         // ポータル効果音をフェードアウト
-        this.soundManager.fadeOutBGM.call({ homeBGM: this.soundManager.portalSound }); // コンテキストを修正
+        // ポータル効果音のフェードアウト処理を削除
+        this.soundManager.fadeOutBGM.call({ homeBGM: this.soundManager.portalSound });
 
         // Initialize and display information
         const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
@@ -959,8 +959,7 @@ class Game {
         this.renderer.render();
         this.inputHandler.bindKeys();
 
-        // フロアが変わる時にBGMの再生状態を更新
-        this.soundManager.updateBGM();
+        // フロア生成時にはBGMを更新しない（ポータルアニメーション終了後に更新される）
     }
 
     setInputMode(mode, options = {}) {

@@ -197,10 +197,10 @@ class Player {
                             this.game.renderer.startPortalTransition(() => {
                                 this.game.floorLevel++;
                                 this.game.generateNewFloor();
-                                this.game.soundManager.updateBGM();  // BGMを更新
+                                this.game.soundManager.updateBGM();  // ポータルアニメーション完了後にBGMを更新
                             });
                             this.game.playSound('portalSound');
-                            this.game.processTurn();  // ターンを消費
+                            this.game.processTurn();
                         }
                         this.game.setInputMode('normal');
                     },
