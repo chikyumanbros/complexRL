@@ -606,10 +606,7 @@ body.help-mode #codex-panel {
 }
 
 #nearby-enemies {
-    max-height: 1000px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: #444 #222;
+    white-space: pre-wrap;
 }
 
 #nearby-enemies::-webkit-scrollbar {
@@ -627,16 +624,6 @@ body.help-mode #codex-panel {
 
 #nearby-enemies::-webkit-scrollbar-thumb:hover {
     background: #555;
-}
-
-.enemy-entry {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
-    padding: 4px;
-    background-color: var(--panel-bg);
-    border: 1px solid #233023;
 }
 
 .enemy-symbol {
@@ -999,7 +986,8 @@ body::before {
         opacity: 1;
     }
     50%, 95% {
-        opacity: 0.3;
+        opacity: 0.5;
+        color: #bd000025;
     }
     100% {
         opacity: 1;
@@ -1007,7 +995,7 @@ body::before {
 }
 
 .fleeing-monster {
-    animation: fleeing-monster 0.5s infinite;
+    animation: fleeing-monster 0.6s infinite;
     position: relative;
 }
 
@@ -1044,4 +1032,37 @@ body::before {
     0%, 100% { text-shadow: 0 0 12px #e1bee7, 0 0 24px #e1bee7, 0 0 30px #e1bee7; }
     0%, 100% { text-shadow: 0 0 12px #e1bee7, 0 0 24px #e1bee7, 0 0 30px #e1bee7; } /* 影を調整、色をより白っぽい紫に変更 */
     50% { text-shadow: 0 0 18px #e1bee7, 0 0 36px #e1bee7, 0 0 42px #e1bee7; } /* 影を調整、色をより白っぽい紫に変更 */
+}
+
+/* 敵情報 */
+.enemy-info {
+    border-top: 1px solid #233023;
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.nearby-enemies-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* 各エントリ間の間隔 */
+}
+
+.enemy-entry {
+    display: flex;
+    flex-direction: column; /* HPバーを縦に配置 */
+    gap: 2px; /* 情報とHPバーの間隔 */
+}
+
+.enemy-info-line {
+    /* 敵の名前や状態表示 */
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.enemy-hp-bar {
+    /* HPバー */
+    margin-left: 2.3em;
 }

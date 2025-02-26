@@ -406,7 +406,7 @@ class Renderer {
 
                 // 命中判定と回避判定に成功し、実際にダメージが発生した場合のみエフェクトを表示
                 if (isAttackTarget && this.game.lastAttackResult &&
-                    this.game.lastAttackResult.damage > 0) {
+                    this.game.lastAttackResult.damage > 0 && this.game.lastAttackResult.hit) {
                     classes.push('damage');
                 }
 
@@ -659,13 +659,12 @@ class Renderer {
             const hpBars = Math.ceil((monster.hp / monster.maxHp) * 20);
             const hpText = '|'.repeat(hpBars).padEnd(20, ' ');
 
-            return `<div class="enemy-entry">
-                <span style="color: ${monsterColor}">
-                    <span style="color: ${directionColor}; display: inline-block; width: 2em">${direction}</span>[${monsterSymbol}] </span>
-                <span style="color: ${monsterColor}">${monster.name}</span> ${sleepStatus}${fleeingStatus} <br>
-                HP: ${monster.hp}/${monster.maxHp} <span class="${healthClass}">${hpText}</span>
-            </div>`;
-        }).join('');
+            // 元のHTML構造に可能な限り近づける
+            return `<span style="color: ${monsterColor}">` +
+                `<span style="color: ${directionColor}; display: inline-block; width: 2em">${direction}</span>[${monsterSymbol}] </span>` +
+                `<span style="color: ${monsterColor}">${monster.name}</span> ${sleepStatus}${fleeingStatus} <br>` +
+                `HP: ${monster.hp}/${monster.maxHp} <span class="${healthClass}">${hpText}</span>`;
+        }).join('<br>'); // 各モンスター情報を<br>で区切る
 
         return `<div id="nearby-enemies">${monsterList}</div>`;
     }
@@ -692,9 +691,8 @@ class Renderer {
         if (this.game.lastAttackLocation) {
             this.game.lastAttackLocation = null;
             this.game.lastAttackHit = false;  // フラグをリセット
-            this.render();
         }
-
+        this.render();
         // Clean up skill usage effect
         const playerChar = document.querySelector('#game-container [data-player="true"]');
         if (playerChar) {
@@ -706,11 +704,9 @@ class Renderer {
         const statusPanel = document.getElementById('status-panel');
         if (statusPanel) {
             statusPanel.classList.add('damage-flash');
-            // アニメーション終了後にクラスを削除
-            statusPanel.addEventListener('animationend', function () {
+            statusPanel.addEventListener('animationend', () => {
                 statusPanel.classList.remove('damage-flash');
-                // 背景色を設定する行を削除
-            }, { once: true }); // イベントリスナーを一度だけ実行
+            });
         }
     }
 

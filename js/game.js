@@ -380,9 +380,6 @@ class Game {
                     }
                 }
             } else {
-                // 通常フロアでのVigor減少処理
-                this.player.validateVigor();
-
                 // ここで oldStatus を定義
                 const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
                 
@@ -398,6 +395,9 @@ class Game {
                     const decrease = GAME_CONSTANTS.VIGOR.DECREASE[healthStatus.name.toUpperCase()];
                     const oldVigor = this.player.vigor; // 現在のVigorを保持
                     this.player.vigor = Math.max(0, this.player.vigor - decrease);
+
+                    // Vigorの値が変更された後にvalidateVigorを呼び出す
+                    this.player.validateVigor();
 
                     // 新しい状態を取得
                     const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
@@ -593,6 +593,9 @@ class Game {
         const newVigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, oldVigor + vigorChange));
         this.player.vigor = newVigor;
 
+        // Vigorの値が変更された後にvalidateVigorを呼び出す
+        this.player.validateVigor();
+
         // 状態変化の確認と通知
         const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(oldVigor, this.player.stats);
         const newStatus = GAME_CONSTANTS.VIGOR.getStatus(newVigor, this.player.stats);
@@ -676,6 +679,9 @@ class Game {
             const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
             this.player.vigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, this.player.vigor + vigorChange));
             const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+
+            // Vigorの値が変更された後にvalidateVigorを呼び出す
+            this.player.validateVigor();
 
             // 状態が変化した場合のみログ表示
             if (oldStatus.name !== newStatus.name) {
@@ -1522,10 +1528,10 @@ class Game {
         // 状態に応じた確率設定
         let threshold;
         let severity;
-        
+
         console.log('=== Vigor Penalty Roll ===');
         console.log(`Current Vigor Status: ${vigorStatus.name}`);
-        
+
         switch (vigorStatus.name) {
             case 'Critical':
                 // 1d20で判定、1-3で発動（15%）
@@ -1538,7 +1544,7 @@ class Game {
                     severity = effectRoll === 1 ? 'positive' : 'severe';
                 }
                 break;
-            
+
             case 'Low':
                 // 1d20で判定、1で発動（5%）
                 threshold = Math.floor(Math.random() * 20) + 1;
@@ -1550,7 +1556,7 @@ class Game {
                     severity = effectRoll === 1 ? 'positive' : 'moderate';
                 }
                 break;
-            
+
             case 'Moderate':
                 // 1d100で判定、1-2で発動（2%）
                 threshold = Math.floor(Math.random() * 100) + 1;
@@ -1566,55 +1572,16 @@ class Game {
 
         // 効果の適用
         if (severity) {
-            const effect = this.getVigorPenaltyEffect(severity);
+            // グローバルオブジェクトから VigorEffects を参照
+            const effect = VigorEffects.getVigorPenaltyEffect(severity);
             console.log(`Selected Severity: ${severity}`);
             console.log(`Selected Effect: ${effect.type}`);
-            this.player.applyVigorEffect(effect);
+            const vigorEffects = new VigorEffects(this);
+            vigorEffects.applyVigorEffect(effect);
         } else {
             console.log('No effect triggered');
         }
         console.log('========================');
-    }
-
-    // 新規: Vigorペナルティ効果の取得
-    getVigorPenaltyEffect(severity) {
-        const effects = {
-            severe: [
-                { type: 'forceDescend', weight: 15 },
-                { type: 'randomTeleport', weight: 25 },
-                { type: 'forgetAllTiles', weight: 35 },
-                { type: 'forcedWait', weight: 25 }
-            ],
-            moderate: [
-                { type: 'forgetSomeTiles', weight: 40 },
-                { type: 'psychedelicEffect', weight: 35 },
-                { type: 'forcedWait', weight: 25 }
-            ],
-            mild: [
-                { type: 'psychedelicEffect', weight: 60 },
-                { type: 'forgetSomeTiles', weight: 40 }
-            ],
-            positive: [
-                { type: 'revealAll', weight: 25 },
-                { type: 'fullRestore', weight: 25 },
-                { type: 'createVoidPortal', weight: 25 },
-                { type: 'levelUp', weight: 25 }
-            ]
-        };
-
-        return this.weightedRandomChoice(effects[severity]);
-    }
-
-    // 新規: 重み付きランダム選択
-    weightedRandomChoice(options) {
-        const totalWeight = options.reduce((sum, opt) => sum + opt.weight, 0);
-        let random = Math.random() * totalWeight;
-        
-        for (const option of options) {
-            random -= option.weight;
-            if (random <= 0) return option;
-        }
-        return options[0];
     }
 
     forgetSomeTiles() {
