@@ -6,7 +6,7 @@ class Player {
         this.game = game;
         this.char = '@';
         this.level = 1;
-        this.codexPoints = 0;  // codexポイントのみを使用
+        this.codexPoints = 200;  // codexポイントのみを使用
         this.xp = 0;                  // 経験値の初期化
         this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
         this.stats = { ...GAME_CONSTANTS.STATS.DEFAULT_VALUES };
@@ -43,7 +43,19 @@ class Player {
         console.log('Validating Vigor:', {
             currentVigor: this.vigor,
             maxVigor: GAME_CONSTANTS.VIGOR.MAX,
+            isFinite: Number.isFinite(this.vigor),
+            type: typeof this.vigor
         });
+
+        // 値が未定義またはNaNの場合
+        if (this.vigor === undefined || this.vigor === null || Number.isNaN(this.vigor)) {
+            console.warn(`Invalid vigor value (${this.vigor}), setting to max`);
+            this.vigor = GAME_CONSTANTS.VIGOR.MAX;
+            return;
+        }
+
+        // 数値に変換
+        this.vigor = Number(this.vigor);
 
         // 値の範囲チェック（0から100の間）
         if (this.vigor < 0) {
@@ -144,6 +156,7 @@ class Player {
                 if (!isNaN(vigorRecovery) && vigorRecovery > 0) {
                     const oldVigor = this.vigor;
                     this.vigor = Math.min(GAME_CONSTANTS.VIGOR.MAX, this.vigor + vigorRecovery);
+                    this.validateVigor();  // Add validation after changing vigor
                     const vigorGained = this.vigor - oldVigor;
                     if (vigorGained > 0) {
                         this.game.logger.add(`Vigor restored by ${vigorGained} points!`, "playerInfo");

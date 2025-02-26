@@ -132,6 +132,7 @@ class VigorEffects {
                 const hpRestored = this.game.player.maxHp - this.game.player.hp;
                 this.game.player.hp = this.game.player.maxHp;
                 this.game.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
+                this.game.player.validateVigor();
                 if (hpRestored > 0) {
                     this.game.logger.add(`Restored ${hpRestored} HP!`, "important");
                 }

@@ -164,8 +164,8 @@ class CodexSystem {
         if (player.skills.size === 0) {
             display += 'NO SKILLS\n';
         } else {
-            player.skills.forEach((skillId, slot) => {
-                const skill = this.findSkillById(skillId);
+            player.skills.forEach((skillData, slot) => {
+                const skill = this.findSkillById(skillData.id);  // skillDataからidを取得
                 if (skill) {
                     // スキルが属するカテゴリーを見つける
                     let categoryColor;
@@ -273,7 +273,7 @@ function createCodexMenu() {
         
         // ---- List Skills that are not yet learned ----
         category.skills
-            .filter(skill => !Array.from(game.player.skills.values()).includes(skill.id))
+            .filter(skill => !Array.from(game.player.skills.values()).some(skillData => skillData.id === skill.id))
             .forEach(skill => {
                 const menuItem = document.createElement('div');
                 const canAfford = game.player.codexPoints >= skill.cost;

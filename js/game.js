@@ -361,7 +361,7 @@ class Game {
             if (this.floorLevel === 0) {
                 // floor 0では最大値まで回復
                 const currentVigor = Number.isFinite(this.player.vigor) ? 
-                    this.player.vigor : 
+                    Number(this.player.vigor) : 
                     GAME_CONSTANTS.VIGOR.MAX;
 
                 if (currentVigor < GAME_CONSTANTS.VIGOR.MAX) {
@@ -369,7 +369,12 @@ class Game {
                         currentVigor,
                         this.player.stats
                     );
+                    
+                    // 値を設定する前にバリデーション
+                    this.player.validateVigor();
                     this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
+                    this.player.validateVigor();
+
                     const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
 
                     // 状態が変化した場合のみログ表示
@@ -398,6 +403,7 @@ class Game {
                     const decrease = GAME_CONSTANTS.VIGOR.DECREASE[healthStatus.name.toUpperCase()];
                     const oldVigor = this.player.vigor; // 現在のVigorを保持
                     this.player.vigor = Math.max(0, this.player.vigor - decrease);
+                    this.player.validateVigor();  // Add validation after changing vigor
 
                     // 新しい状態を取得
                     const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
@@ -592,6 +598,7 @@ class Game {
         // Vigor値の更新（より安全な実装）
         const newVigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, oldVigor + vigorChange));
         this.player.vigor = newVigor;
+        this.player.validateVigor();  // Add validation after changing vigor
 
         // 状態変化の確認と通知
         const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(oldVigor, this.player.stats);
@@ -675,6 +682,7 @@ class Game {
         if (vigorChange !== 0) {
             const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
             this.player.vigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, this.player.vigor + vigorChange));
+            this.player.validateVigor();  // Add validation after changing vigor
             const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
 
             // 状態が変化した場合のみログ表示
@@ -1459,6 +1467,7 @@ class Game {
         // Vigorを全回復
         if (this.player.vigor < GAME_CONSTANTS.VIGOR.MAX) {
             this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
+            this.player.validateVigor();  // Add validation after setting vigor
         }
 
         // スキルのクールダウンをリセット
