@@ -1278,6 +1278,12 @@ class Game {
                     remainingCooldown: skill.remainingCooldown
                 })),
                 vigor: this.player.vigor,
+                // 派生ステータスも保存
+                attackPower: this.player.attackPower,
+                defense: this.player.defense,
+                accuracy: this.player.accuracy,
+                evasion: this.player.evasion,
+                perception: this.player.perception
             },
             gameState: {
                 floorLevel: this.floorLevel,  // フロアレベルも変更チェックに追加
@@ -1346,6 +1352,8 @@ class Game {
             // プレイヤーデータの復元
             this.player.x = data.player.x;
             this.player.y = data.player.y;
+            this.player.hp = data.player.hp;
+            this.player.maxHp = data.player.maxHp;
             this.player.level = data.player.level ?? 1;
             this.player.xp = data.player.xp ?? 0;
             this.player.xpToNextLevel = data.player.xpToNextLevel ?? 100;
@@ -1366,8 +1374,12 @@ class Game {
                 });
             }
 
-            // 派生ステータスを再計算
-            this.player.updateDerivedStats();
+            // 派生ステータスの復元
+            if (data.player.attackPower) this.player.attackPower = data.player.attackPower;
+            if (data.player.defense) this.player.defense = data.player.defense;
+            if (data.player.accuracy) this.player.accuracy = data.player.accuracy;
+            if (data.player.evasion) this.player.evasion = data.player.evasion;
+            if (data.player.perception) this.player.perception = data.player.perception;
 
             // マップデータの復元
             this.map = data.mapData.map ?? this.map;
@@ -1396,6 +1408,9 @@ class Game {
 
             this.renderer.render();
             this.logger.add("Previous save data loaded", "important");
+
+            // ステータスパネルの更新
+            this.renderer.renderStatus();
 
             // BGMの更新処理を最後に実行し、強制的に再生を試みる
             this.soundManager.userInteracted = true;  // ユーザーインタラクションフラグを強制的に有効化

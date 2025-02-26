@@ -1,5 +1,5 @@
 const GAME_CONSTANTS = {
-    // TILES Section: Terrain tiles and doors
+    // タイル関連
     TILES: {
         FLOOR: ['.', '^', '~', '¨', '：', '∙'],
         WALL: ['#', '█', '▓', '▒', '░'],
@@ -13,13 +13,10 @@ const GAME_CONSTANTS = {
             CLOSED: '+'
         },
         OBSTACLE: {
-            BLOCKING: ['Ж', 'Ш', '=', '◘', '◙'],      // 視線を遮る障害物（柱や大きな岩）
-            TRANSPARENT: ['¤', '†', '‡', '¶', '≡', '£', '┼', '◊', '♠'],   // 視線を通す障害物（家具や装飾品）
+            BLOCKING: ['Ж', 'Ш', '=', '◘', '◙'],      // 視線を遮る障害物
+            TRANSPARENT: ['¤', '†', '‡', '¶', '≡', '£', '┼', '◊', '♠'],   // 視線を通す障害物
         },
-        // 宇宙空間用のタイルを追加
         SPACE: [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',' ',' ',' ',' ',' ', '░', '·', '°' , '*', '◊', '○', '●', '☼', '÷', 'ø', 'פ'],
-        
-        // 宇宙の色パレット
         SPACE_COLORS: [
             '#1a237e',  // 深い青
             '#311b92',  // 深い紫
@@ -41,13 +38,13 @@ const GAME_CONSTANTS = {
         ],
     },
 
-    // STAIRS Section: Stairs properties
+    // 階段関連
     STAIRS: {
         CHAR: '>',
         COLOR: '#FFFF00',
     },
 
-    // PORTALセクションを追加
+    // ポータル関連
     PORTAL: {
         GATE: {
             CHAR: '∩',
@@ -73,25 +70,24 @@ const GAME_CONSTANTS = {
         }   
     },
 
-    // COLORS Section: Color definitions for various elements
+    // 色関連
     COLORS: {
         FLOOR: '#333',
+        WALL: '#556',  // デフォルトの壁の色（後方互換性のため）
         WALL_VARIATIONS: [
-            '#556',  // Basic blue-gray
-            '#755',  // Red-gray
-            '#565',  // Green-gray
-            '#577',  // Blue-green-gray
-            '#655',  // Yellow-gray
-            '#757',  // Purple-gray
-            '#557',  // Light bluish-gray
-            '#765',  // Orangish-gray
-            '#575',  // Emerald-tinted gray
-            '#776',  // Golden-tinted gray
+            '#556',  // 基本の青灰色
+            '#755',  // 赤灰色
+            '#565',  // 緑灰色
+            '#577',  // 青緑灰色
+            '#655',  // 黄灰色
+            '#757',  // 紫灰色
+            '#557',  // 明るい青灰色
+            '#765',  // オレンジ灰色
+            '#575',  // エメラルド色の灰色
+            '#776',  // 金色の灰色
         ],
-        WALL: '#556',  // Default wall color (kept for backward compatibility)
         DOOR: '#8B4513',
         HEAL: '#2ed573',
-
         MONSTER: {
             get RAT() { return SPRITE_COLORS.getMostUsedColor(MONSTER_SPRITES.RAT); },
             get BAT() { return SPRITE_COLORS.getMostUsedColor(MONSTER_SPRITES.BAT); },
@@ -104,6 +100,7 @@ const GAME_CONSTANTS = {
             get TROLL() { return SPRITE_COLORS.getMostUsedColor(MONSTER_SPRITES.TROLL); }
         },
         OBSTACLE: {
+            BLOCKING: '#664433',     // 後方互換性のため
             BLOCKING_VARIATIONS: [
                 '#664433',  // 基本の茶色
                 '#553322',  // 暗い茶色
@@ -118,6 +115,7 @@ const GAME_CONSTANTS = {
                 '#FFD700',  // 黄金色
                 '#C71585',  // 銅色
             ],
+            TRANSPARENT: '#8B4513',  // 後方互換性のため
             TRANSPARENT_VARIATIONS: [
                 '#8B4513',  // 基本の木製色
                 '#A0522D',  // サドルブラウン
@@ -130,8 +128,6 @@ const GAME_CONSTANTS = {
                 '#FFA07A',  // 朱色
                 '#FF6347',  // 朱色の濃い版
             ],
-            BLOCKING: '#664433',     // 後方互換性のため維持
-            TRANSPARENT: '#8B4513',  // 後方互換性のため維持
         },
         SPEED: {
             1: { color: '#e74c3c', name: 'Very Slow' },
@@ -155,7 +151,7 @@ const GAME_CONSTANTS = {
         }
     },
 
-    // MODES Section: Game mode identifiers
+    // モード関連
     MODES: {
         GAME: 'game',
         CODEX: 'codex',
@@ -164,13 +160,13 @@ const GAME_CONSTANTS = {
         TITLE: 'title'
     },
 
-    // DIMENSIONS Section: Game board dimensions
+    // ディメンション関連
     DIMENSIONS: {
         WIDTH: 65,
         HEIGHT: 35
     },
 
-    // ROOM Section: Room generation parameters
+    // 部屋生成関連
     ROOM: {
         MIN_SIZE: 5,
         MAX_SIZE: 15,
@@ -178,11 +174,10 @@ const GAME_CONSTANTS = {
         MAX_COUNT: 15,
         PADDING: 2,
         SAFE_RADIUS: 3,
-        // 部屋の明るさの定義を追加
         BRIGHTNESS: {
-            DIM: 2,      // 暗い部屋（視界2マス）
-            MODERATE: 4,  // 中程度の明るさ（視界4マス）
-            BRIGHT: 6,    // 明るい部屋（視界6マス）
+            DIM: 2,      // 暗い部屋
+            MODERATE: 4,  // 中程度の明るさ
+            BRIGHT: 6,    // 明るい部屋
             PROBABILITIES: {
                 DIM: 0.2,      // 20%の確率
                 MODERATE: 0.4,  // 40%の確率
@@ -190,15 +185,15 @@ const GAME_CONSTANTS = {
             }
         },
         OBSTACLES: {
-            CHANCE: 0.7,           // 部屋に障害物を配置する確率
-            MIN_COUNT: 2,          // 最小障害物数（ランダムパターンの場合のみ使用）
-            MAX_COUNT: 8,          // 最大障害物数（ランダムパターンの場合のみ使用）
+            CHANCE: 0.7,           // 障害物配置確率
+            MIN_COUNT: 2,          // 最小障害物数
+            MAX_COUNT: 8,          // 最大障害物数
             TRANSPARENT_RATIO: 0.5, // 視線を通す障害物の割合
             MIN_ROOM_SIZE: 7       // パターン配置に必要な最小部屋サイズ
         }
     },
 
-    // DANGER_LEVELS Section: Danger level configurations
+    // 危険度レベル関連
     DANGER_LEVELS: {
         SAFE: {
             name: 'Serene',
@@ -226,7 +221,7 @@ const GAME_CONSTANTS = {
         }
     },
 
-    // CONTROLS Section: Key bindings for game controls
+    // コントロール関連
     CONTROLS: {
         MOVEMENT: {
             title: 'MOVEMENT',
@@ -259,7 +254,6 @@ const GAME_CONSTANTS = {
                 { key: 'ctrl+s', desc: 'Show monster sprite preview' }
             ]
         },
-        // ランドマークターゲットモードの説明を追記
         LANDMARK: {
             title: 'LANDMARK TARGET',
             keys: [
@@ -271,9 +265,8 @@ const GAME_CONSTANTS = {
         }
     },
 
-    // 新規: ステータス定義を追加
+    // ステータス関連
     STATS: {
-        // ステータスの種類
         TYPES: {
             STR: 'str',
             DEX: 'dex',
@@ -281,8 +274,6 @@ const GAME_CONSTANTS = {
             INT: 'int',
             WIS: 'wis'
         },
-
-        // ステータスの表示名
         NAMES: {
             str: 'Strength',
             dex: 'Dexterity',
@@ -290,8 +281,6 @@ const GAME_CONSTANTS = {
             int: 'Intelligence',
             wis: 'Wisdom'
         },
-
-        // 初期値（プレイヤー用）
         DEFAULT_VALUES: {
             str: 6,
             dex: 6,
@@ -299,8 +288,6 @@ const GAME_CONSTANTS = {
             int: 6,
             wis: 6
         },
-
-        // ステータスの説明
         DESCRIPTIONS: {
             str: 'Increases physical attack damage and slightly affects max HP.',
             dex: 'Affects accuracy, evasion, and slightly influences attack speed.',
@@ -308,18 +295,12 @@ const GAME_CONSTANTS = {
             int: 'Increases critical hit chance and resistance to status effects.',
             wis: 'Improves perception, affects meditation, and slightly increases max vigor.'
         },
-
-        // ステータスの最小値と最大値
         MIN_VALUE: 1,
         MAX_VALUE: 10,
-
-        // ステータス変動の範囲（モンスター生成時用）
         VARIATION: {
             MIN_PERCENT: -10,  // -10%
             MAX_PERCENT: 10    // +10%
         },
-
-        // ステータス補正の限界値
         MODIFIER_LIMITS: {
             MAX_HP: 100,
             ATTACK: 100,
@@ -332,7 +313,7 @@ const GAME_CONSTANTS = {
         }
     },
 
-    // FORMULAS Section: Calculations for character stats and actions
+    // 計算式関連
     FORMULAS: {
         MAX_HP: (stats, level) => {
             const baseHP = stats.con * 2 + Math.floor(stats.str / 4);
@@ -342,75 +323,46 @@ const GAME_CONSTANTS = {
             return Math.floor(baseHP * sizeModifier * levelBonus);
         },
         ATTACK: (stats) => {
-            // 基本攻撃力：STRが主要、DEXが高すぎるとペナルティ、SIZEが影響
             const size = GAME_CONSTANTS.FORMULAS.SIZE(stats);
             const sizeModifier = 0.8 + (size.value * 0.1);  // Tiny: 0.9x, Small: 1.0x, Medium: 1.1x, Large: 1.2x, Huge: 1.3x
             const base = Math.max(1, Math.floor((stats.str * 0.7 - stats.dex / 4) * sizeModifier));
-
-            // ダイス数：DEXに基づくが、徐々に上昇が緩やかに
             const diceCount = Math.max(1, Math.floor(Math.sqrt(stats.dex) / 2));
-
-            // ダイス面：STRに基づき、徐々に上昇が緩やかに
             const diceSides = Math.max(2, Math.floor(Math.sqrt(stats.str) * 2));
-
             return { base, diceCount, diceSides };
         },
         DEFENSE: (stats) => {
-            // 基本防御：CONが主要、INTが高いとペナルティ、SIZEが影響
             const size = GAME_CONSTANTS.FORMULAS.SIZE(stats);
             const sizeModifier = 0.8 + (size.value * 0.1);  // Tiny: 0.9x, Small: 1.0x, Medium: 1.1x, Large: 1.2x, Huge: 1.3x
             const base = Math.max(1, Math.floor((stats.con * 0.5 - stats.int / 5) * sizeModifier));
-
-            // 防御ダイス数：CONに基づくが、緩やかに
             const diceCount = Math.max(1, Math.floor(Math.sqrt(stats.con) / 3));
-
-            // 防御ダイス面：CONに基づき、徐々に上昇が緩やかに
             const diceSides = Math.max(2, Math.floor(Math.sqrt(stats.con) * 1.5));
-
             return { base, diceCount, diceSides };
         },
         ACCURACY: (stats) => {
-            // SPEEDとSIZEの影響を計算
             const speed = GAME_CONSTANTS.FORMULAS.SPEED(stats);
             const size = GAME_CONSTANTS.FORMULAS.SIZE(stats);
             const speedMod = (speed.value - 3) * 5;  // Normal(3)を基準に ±5%
             const sizeMod = (3 - size.value) * 3;    // Medium(3)を基準に ±3%
-
-            // 基本命中率50%、DEXとWISで上昇、CONで減少
             const acc = 50 + Math.floor(stats.dex * 0.8) + Math.floor(stats.wis * 0.4)
                 - Math.floor(stats.con / 4) + speedMod + sizeMod;
-
             return Math.min(85, Math.max(20, acc));
         },
         EVASION: (stats) => {
-            // SPEEDとSIZEの影響を計算
             const speed = GAME_CONSTANTS.FORMULAS.SPEED(stats);
             const size = GAME_CONSTANTS.FORMULAS.SIZE(stats);
             const speedMod = (speed.value - 3) * 4;  // Normal(3)を基準に ±4%
             const sizeMod = (3 - size.value) * 3;    // Medium(3)を基準に ±3%
-
-            // 基本回避率8%、DEXとWISで上昇、CONとSTRで減少
             const eva = 8 + Math.floor(stats.dex * 0.6) + Math.floor(stats.wis * 0.3)
                 - Math.floor(stats.con / 5) - Math.floor(stats.str / 5)
                 + speedMod + sizeMod;
-
             return Math.min(60, Math.max(5, eva));
         },
         PERCEPTION: (stats) => {
-            // 基本知覚：WISとDEXの平均
             const base = Math.floor((stats.wis + stats.dex) / 2);
-
-            // SPEEDとSIZEの影響を計算
             const speed = GAME_CONSTANTS.FORMULAS.SPEED(stats);
             const size = GAME_CONSTANTS.FORMULAS.SIZE(stats);
-
-            // 速度修正：Normal(3)を基準に ±1
             const speedMod = (speed.value - 3);
-
-            // サイズ修正：Medium(3)を基準に ±1
-            // 小さいほど知覚が高く、大きいほど低い
             const sizeMod = (3 - size.value);
-
             return Math.max(3, base + speedMod + sizeMod);
         },
         rollDamage: (attack, defense) => {
@@ -418,12 +370,10 @@ const GAME_CONSTANTS = {
             for (let i = 0; i < attack.diceCount; i++) {
                 damage += Math.floor(Math.random() * attack.diceSides) + 1;
             }
-
             let def = defense.base;
             for (let i = 0; i < defense.diceCount; i++) {
                 def += Math.floor(Math.random() * defense.diceSides) + 1;
             }
-
             return Math.max(1, damage - def);
         },
         HEALING_DICE: (stats) => ({
@@ -431,15 +381,12 @@ const GAME_CONSTANTS = {
             sides: Math.max(2, Math.floor(Math.sqrt(stats.con)))
         }),
         HEAL_MODIFIER: (stats) => {
-            // 回復修正：CONがプラス、STRがマイナスに影響
             return Math.max(1, Math.floor(stats.con / 4) - Math.floor(stats.str / 6));
         },
         SLEEP_CHANCE: (stats) => {
-            // 睡眠耐性：INTが主要
             return Math.min(50, Math.max(0, 45 - Math.floor(stats.int * 2.5)));
         },
         SPEED: (stats) => {
-            // 全てのステータスが同じ場合は、その値に基づいて判定
             if (stats.str === stats.dex && stats.dex === stats.con && 
                 stats.con === stats.int && stats.int === stats.wis) {
                 const value = stats.dex; // どのステータスでも同じ値なので、dexを使用
@@ -450,7 +397,6 @@ const GAME_CONSTANTS = {
                 return { value: 5, name: "Very Fast" };
             }
 
-            // 通常の計算（DEXと(STR+CON)/2で判定）
             const baseSpeed = stats.dex - ((stats.str + stats.con) / 2);
             
             if (baseSpeed <= -4) return { value: 1, name: "Very Slow" };
@@ -460,7 +406,6 @@ const GAME_CONSTANTS = {
             return { value: 5, name: "Very Fast" };
         },
         SIZE: (stats) => {
-            // 全てのステータスが同じ場合は、その値に基づいて判定
             if (stats.str === stats.dex && stats.dex === stats.con && 
                 stats.con === stats.int && stats.int === stats.wis) {
                 const value = stats.con;
@@ -471,7 +416,6 @@ const GAME_CONSTANTS = {
                 return { value: 5, name: "Huge" };
             }
 
-            // 通常の計算（CONとSTRに基づく）
             const baseSize = (stats.con * 0.7 + stats.str * 0.3);
             
             if (baseSize <= 7) return { value: 1, name: "Tiny" };
@@ -480,33 +424,24 @@ const GAME_CONSTANTS = {
             if (baseSize <= 18) return { value: 4, name: "Large" };
             return { value: 5, name: "Huge" };
         },
-        // 自然回復の処理を追加
         NATURAL_HEALING: {
-            // 回復判定の基本成功率とステータス補正を計算（基本確率を10%に下げ、CONの影響も抑制）
             getSuccessChance: (stats) => {
                 return 10 + Math.floor(stats.con / 6);  // 基本確率10%、CONは6ごとに+1%
             },
-
-            // 回復量を計算（ダイスロールと修正値を含む）
             calculateHeal: (healingDice, healModifier) => {
                 let healAmount = 0;
                 const rolls = [];
-
                 for (let i = 0; i < healingDice.count; i++) {
                     const roll = Math.floor(Math.random() * healingDice.sides) + 1;
                     rolls.push(roll);
                     healAmount += roll;
                 }
-
                 healAmount = Math.max(0, healAmount + healModifier);
-
                 return {
                     amount: healAmount,
                     rolls: rolls
                 };
             },
-
-            // 実際の回復処理（HP上限を考慮）
             applyHeal: (entity, healAmount) => {
                 const oldHp = entity.hp;
                 entity.hp = Math.min(entity.maxHp, entity.hp + healAmount);
@@ -515,30 +450,23 @@ const GAME_CONSTANTS = {
         },
         CRITICAL_RANGE: (stats) => {
             const baseRange = 3;
-            const dexBonus = Math.floor((stats.dex - 10) * 0.15);  // DEXが10以上で+0.15（約7ポイントで+1）
-            const intBonus = Math.floor((stats.int - 10) * 0.1);   // INTが10以上で+0.1（10ポイントで+1）
-            
+            const dexBonus = Math.floor((stats.dex - 10) * 0.15);  // DEXが10以上で+0.15
+            const intBonus = Math.floor((stats.int - 10) * 0.1);   // INTが10以上で+0.1
             return Math.min(5, Math.max(1, baseRange + dexBonus + intBonus));
         }
     },
 
-    // 体力状態の判定システム
+    // 体力状態関連
     HEALTH_STATUS: {
-        // 基本となる閾値（%）
         THRESHOLDS: {
             HEALTHY: 75,
             WOUNDED: 50,
             BADLY_WOUNDED: 25,
             NEAR_DEATH: 10
         },
-
-        // ステータスによる閾値の修正計算
         calculateThresholds: function (stats) {
-            // 体力と知恵が高いほど、より低いHP%でも良好な状態を維持できる
-            const conModifier = (stats.con - 10) * 0.5;  // 体力による修正（±0.5%ずつ）
-            const wisModifier = (stats.wis - 10) * 0.3;  // 知恵による修正（±0.3%ずつ）
-
-            // 閾値に修正を「加算」しているため、高いステータスはより低いHP%まで状態を維持
+            const conModifier = (stats.con - 10) * 0.5;  // 体力による修正
+            const wisModifier = (stats.wis - 10) * 0.3;  // 知恵による修正
             return {
                 HEALTHY: Math.min(90, Math.max(60, this.THRESHOLDS.HEALTHY - conModifier - wisModifier)),
                 WOUNDED: Math.min(65, Math.max(35, this.THRESHOLDS.WOUNDED - conModifier - wisModifier)),
@@ -546,10 +474,7 @@ const GAME_CONSTANTS = {
                 NEAR_DEATH: Math.min(15, Math.max(5, this.THRESHOLDS.NEAR_DEATH - conModifier - wisModifier))
             };
         },
-
-        // 体力状態の判定
         getStatus: function (currentHp, maxHp, stats) {
-            // 死亡判定を最初に行う
             if (currentHp <= 0) return {
                 name: "Dead",
                 color: "#4a4a4a"  // 暗いグレー
@@ -558,32 +483,31 @@ const GAME_CONSTANTS = {
             const percentage = (currentHp / maxHp) * 100;
             const thresholds = this.calculateThresholds(stats);
 
-            // HPが1の場合は必ずNear Death状態とする
             if (currentHp === 1) return {
                 name: "Near Death",
                 color: "#8e44ad"  // 紫色
             };
 
-            // 閾値の判定を修正（小さい方から判定）
             if (percentage <= thresholds.NEAR_DEATH) return {
                 name: "Near Death",
-                color: "#8e44ad"  // 紫色
+                color: "#8e44ad"
             };
             if (percentage <= thresholds.BADLY_WOUNDED) return {
                 name: "Badly Wounded",
-                color: "#e74c3c"  // 赤色
+                color: "#e74c3c"
             };
             if (percentage <= thresholds.WOUNDED) return {
                 name: "Wounded",
-                color: "#f1c40f"  // 黄色
+                color: "#f1c40f"
             };
             return {
                 name: "Healthy",
-                color: "#2ecc71"  // 緑色
+                color: "#2ecc71"
             };
         }
     },
 
+    // 距離関連
     DISTANCE: {
         calculate: (x1, y1, x2, y2) => {
             const dx = x2 - x1;
@@ -592,6 +516,7 @@ const GAME_CONSTANTS = {
         }
     },
 
+    // スキル距離関連
     SKILL_DISTANCE: {
         calculate: (x1, y1, x2, y2) => {
             const dx = Math.abs(x2 - x1);
@@ -600,28 +525,22 @@ const GAME_CONSTANTS = {
         }
     },
 
-    VIGOR: {
+     // Vigor関連
+     VIGOR: {
         MAX: 100,
-        
-        // 基本となる閾値（%）
         THRESHOLDS: {
             HIGH: 75,     // 健全
             MODERATE: 50, // 疲労
             LOW: 25,      // 消耗
             CRITICAL: 10  // 限界
         },
-
-        // 状態による減少値
         DECREASE: {
             HEALTHY: 1,
             WOUNDED: 1,
             BADLY_WOUNDED: 1,
             NEAR_DEATH: 1
         },
-
-        // ターン経過による減少確率の計算
         calculateDecreaseChance: (turnsInFloor, dangerLevel) => {
-            // 基本確率をフロアの危険度によって変更
             let baseChance;
             switch (dangerLevel) {
                 case 'SAFE':
@@ -639,26 +558,18 @@ const GAME_CONSTANTS = {
                 default:
                     baseChance = 2;  // デフォルト値
             }
-
             const turnModifier = Math.floor(turnsInFloor / 50);  // 20ターンごとに確率上昇
-
-            // 最大確率も危険度によって変動
             const maxChance = {
                 SAFE: 15,      // 安全: 最大15%
-                NORMAL: 25,    // 通常: 最大25%（変更なし）
+                NORMAL: 25,    // 通常: 最大25%
                 DANGEROUS: 35, // 危険: 最大35%
                 DEADLY: 45     // 致命的: 最大45%
             }[dangerLevel] || 25;
-
             return Math.min(maxChance, baseChance + turnModifier);
         },
-
-        // 閾値の計算（STRとINTの影響を受ける）
         calculateThresholds: function(stats) {
-            // STRとINTが高いほど、より低い%でも良好な状態を維持できる
-            const strModifier = (stats.str - 10) * 0.5;  // 力による修正（±0.5%ずつ）
-            const intModifier = (stats.int - 10) * 0.5;  // 知力による修正（±0.5%ずつ）
-            
+            const strModifier = (stats.str - 10) * 0.5;  // 力による修正
+            const intModifier = (stats.int - 10) * 0.5;  // 知力による修正
             return {
                 HIGH: Math.floor(Math.min(90, Math.max(60, this.THRESHOLDS.HIGH - strModifier - intModifier))),
                 MODERATE: Math.floor(Math.min(65, Math.max(35, this.THRESHOLDS.MODERATE - strModifier - intModifier))),
@@ -666,8 +577,6 @@ const GAME_CONSTANTS = {
                 CRITICAL: Math.floor(Math.min(15, Math.max(5, this.THRESHOLDS.CRITICAL - strModifier - intModifier)))
             };
         },
-
-        // Vigorの状態判定
         getStatus: function(currentVigor, stats) {
             if (currentVigor <= 0) return {
                 name: "Exhausted",
