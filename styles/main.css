@@ -986,8 +986,8 @@ body::before {
         opacity: 1;
     }
     50%, 95% {
-        opacity: 0.5;
-        color: #bd000025;
+        opacity: 0.8;
+        color: #e3dd2951;
     }
     100% {
         opacity: 1;
@@ -995,7 +995,7 @@ body::before {
 }
 
 .fleeing-monster {
-    animation: fleeing-monster 0.6s infinite;
+    animation: fleeing-monster 0.5s infinite;
     position: relative;
 }
 

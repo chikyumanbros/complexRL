@@ -18,6 +18,8 @@ class Renderer {
         // ウィンドウリサイズ時のスケーリング処理を追加
         this.setupScaling();
         window.addEventListener('resize', () => this.setupScaling());
+
+        this.monsterAnimations = new Map(); // アニメーション状態を追跡
     }
 
     setupScaling() {
@@ -1119,27 +1121,26 @@ class Renderer {
                 </div>`;
     }
 
-    drawMonsterSprite(canvas, monsterType, monsterId = null) {
+    drawMonsterSprite(canvas, monster, turnCount) {
         const ctx = canvas.getContext('2d');
-        const sprite = MONSTER_SPRITES[monsterType];
-        if (!sprite) return;
+        
+        // 現在のターンに応じたフレームを取得
+        const currentFrame = monster.getCurrentFrame(turnCount);
+        if (!currentFrame) return;
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        const spriteWidth = sprite[0].length;
-        const spriteHeight = sprite.length;
+        const spriteWidth = currentFrame[0].length;
+        const spriteHeight = currentFrame.length;
         const pixelSize = 8;
 
         canvas.width = spriteWidth * pixelSize;
         canvas.height = spriteHeight * pixelSize;
 
-        const cacheKey = monsterId ? `${monsterType}_${monsterId}` : monsterType;
+        // キャッシュキーにターン情報を含める
+        const cacheKey = `${monster.type}_${monster.id}_${Math.floor(turnCount / 2)}`;
 
         if (!this.spriteColorCache.has(cacheKey)) {
             const colorMap = new Map();
-            sprite.forEach((row, y) => {
+            currentFrame.forEach((row, y) => {
                 [...row].forEach((pixel, x) => {
                     const key = `${x},${y}`;
                     const baseColor = SPRITE_COLORS[pixel];
@@ -1150,17 +1151,14 @@ class Renderer {
         }
 
         const colorMap = this.spriteColorCache.get(cacheKey);
-        sprite.forEach((row, y) => {
+        currentFrame.forEach((row, y) => {
             [...row].forEach((pixel, x) => {
-                const color = colorMap.get(`${x},${y}`);
-                if (color) {
-                    ctx.fillStyle = color;
-                    ctx.fillRect(
-                        x * pixelSize,
-                        y * pixelSize,
-                        pixelSize,
-                        pixelSize
-                    );
+                if (pixel !== ' ') {
+                    const color = colorMap.get(`${x},${y}`);
+                    if (color) {
+                        ctx.fillStyle = color;
+                        ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+                    }
                 }
             });
         });
@@ -1205,19 +1203,19 @@ class Renderer {
     }
 
     previewMonsterSprite(monsterType, containerId, pixelSize = 8) {
-        const sprite = MONSTER_SPRITES[monsterType];  // GAME_CONSTANTSから直接参照に変更
-        if (!sprite) {
-            //console.error(`Sprite not found for monster type: ${monsterType}`);
+        const spriteData = MONSTER_SPRITES[monsterType];
+        if (!spriteData || !spriteData.frames || !spriteData.frames[0]) {
             return;
         }
 
+        // 最初のフレームを使用
+        const sprite = spriteData.frames[0];
         const spriteWidth = sprite[0].length;
         const spriteHeight = sprite.length;
 
         // コンテナ要素を取得
         const container = document.getElementById(containerId);
         if (!container) {
-            //console.error(`Container element not found with ID: ${containerId}`);
             return;
         }
         container.style.display = 'block';
@@ -1237,7 +1235,7 @@ class Renderer {
         // スプライトの描画
         sprite.forEach((row, y) => {
             [...row].forEach((pixel, x) => {
-                const color = SPRITE_COLORS[pixel];  // GAME_CONSTANTSから直接参照に変更
+                const color = SPRITE_COLORS[pixel];
                 if (color) {
                     ctx.fillStyle = color;
                     ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
@@ -1326,7 +1324,7 @@ class Renderer {
             canvas.style.display = 'block';
 
             spriteDiv.appendChild(canvas);
-            this.drawMonsterSprite(canvas, monster.type, monster.id);
+            this.drawMonsterSprite(canvas, monster, this.game.turn);
 
             container.appendChild(infoDiv);
             container.appendChild(spriteDiv);
@@ -1477,7 +1475,7 @@ class Renderer {
             "''' .MM@^_7^ '(MMD''' 7MMN,'''dMMN  ''dMM]''''''JM#''(WM[' (MM%'' '' '' MM%''.T$'' ,MMM,'.d#^'' '' '",
             "''  MMF' '' '.MMF'  '' .MMM_ 'MMMM]' .MMM]'  ' ',M# ' JMF''.MM>' '' ' '.MM: ' '' ''' TMNJM''' ' '' ' ",
             "'''MM)' ''' (MM]''' '''dMM''.Mt(MN..MDWM]''' ' -M#.gMMB'''-M#' '' ''' .MMNMMM_ ' ' ''JMMN '' '' '''",
-            "'  MM]''  ...MMN,' ' ' dMF' ,M}.MMNM3'JM# '' ''(MN ''' 'JM#'' '' ,'',MM ' ?'' ' ' (M@WMN.'' ' ' ' ",
+            "'  MM]''  ...MMN,' ' ' dMF' ,M}.MMNM3'JM# '' ''(MN ''''JM#'' '' ,'',MM ' ?'' ' ' (M@WMN.'' ' ' ' ",
             "'dMM,..JM^',MMMa,''.JMF''(M' ,MM'''-MM_' '.JMN'  '''''JMN....&MF '.MM/' ..,'''.M#^''TMM,'' '''  ",
             "''' WMMMM@''''.'WMMMMM9'.JgNMMJ, T^ gNMMMMNp,MMMMMMM'' 'jMMMMMMMMMD'(NMMMMMMMF dMMMMb '.+MMMMMN.'''",
         ];

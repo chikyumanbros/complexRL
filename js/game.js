@@ -380,6 +380,9 @@ class Game {
                     }
                 }
             } else {
+                // 通常フロアでのVigor減少処理
+                this.player.validateVigor();
+
                 // ここで oldStatus を定義
                 const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
                 
@@ -395,9 +398,6 @@ class Game {
                     const decrease = GAME_CONSTANTS.VIGOR.DECREASE[healthStatus.name.toUpperCase()];
                     const oldVigor = this.player.vigor; // 現在のVigorを保持
                     this.player.vigor = Math.max(0, this.player.vigor - decrease);
-
-                    // Vigorの値が変更された後にvalidateVigorを呼び出す
-                    this.player.validateVigor();
 
                     // 新しい状態を取得
                     const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
@@ -593,9 +593,6 @@ class Game {
         const newVigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, oldVigor + vigorChange));
         this.player.vigor = newVigor;
 
-        // Vigorの値が変更された後にvalidateVigorを呼び出す
-        this.player.validateVigor();
-
         // 状態変化の確認と通知
         const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(oldVigor, this.player.stats);
         const newStatus = GAME_CONSTANTS.VIGOR.getStatus(newVigor, this.player.stats);
@@ -679,9 +676,6 @@ class Game {
             const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
             this.player.vigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, this.player.vigor + vigorChange));
             const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
-
-            // Vigorの値が変更された後にvalidateVigorを呼び出す
-            this.player.validateVigor();
 
             // 状態が変化した場合のみログ表示
             if (oldStatus.name !== newStatus.name) {

@@ -70,29 +70,17 @@ class Monster {
         this.fleeThreshold = Math.min(0.8, Math.max(0.1, baseThreshold + wisModifier + strModifier));
         this.hasStartedFleeing = false;
         
-        // モンスター生成時に個体固有の色情報を生成
-        this.spriteColors = {};
-        const sprite = MONSTER_SPRITES[type];
-        if (sprite) {
-            // ステータス変動の総量を計算
-            let totalVariation = 0;
-            for (const [stat, value] of Object.entries(template.stats)) {
-                const minPercent = GAME_CONSTANTS.STATS.VARIATION.MIN_PERCENT;
-                const maxPercent = GAME_CONSTANTS.STATS.VARIATION.MAX_PERCENT;
-                const baseVariation = value * (maxPercent - minPercent) / 100;
-                const actualVariation = Math.abs(this.stats[stat] - value);
-                totalVariation += actualVariation;
-            }
-
-            // スプライトで使用される各文字に対して固有の色を生成
-            for (let row of sprite) {
-                for (let char of row) {
-                    if (char !== ' ' && !this.spriteColors[char]) {
-                        const baseColor = SPRITE_COLORS[char];
-                        this.spriteColors[char] = SPRITE_COLORS.getRandomizedColor(baseColor, totalVariation);
-                    }
-                }
-            }
+        // スプライトの設定を更新
+        const spriteData = MONSTER_SPRITES[this.type];
+        if (spriteData && spriteData.frames && spriteData.frames.length > 0) {
+            this.spriteData = spriteData;  // スプライトデータ全体を保持
+            this.sprite = spriteData.frames[0];  // 初期フレームを使用
+            this.color = SPRITE_COLORS.getMostUsedColor(spriteData);
+        } else {
+            console.warn(`No sprite data found for monster type: ${this.type}`);
+            this.spriteData = null;
+            this.sprite = null;
+            this.color = '#ffffff';
         }
 
         // デバッグ用のHP検証
@@ -651,5 +639,11 @@ class Monster {
 
     getHealthStatus(currentHp, maxHp) {
         return GAME_CONSTANTS.HEALTH_STATUS.getStatus(currentHp, maxHp, this.stats);
+    }
+
+    // 現在のフレームを取得するメソッドを追加
+    getCurrentFrame(turnCount) {
+        if (!this.spriteData) return null;
+        return getMonsterFrame(this, turnCount);
     }
 } 

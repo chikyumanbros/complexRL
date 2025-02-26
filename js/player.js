@@ -28,6 +28,7 @@ class Player {
 
         // Vigorの初期化: game.loadDataがあればそこから、なければ最大値
         this.vigor = GAME_CONSTANTS.VIGOR.MAX; // いったん最大値で初期化
+        this.validateVigor();
 
         // 各種パラメータの計算
         this.updateDerivedStats();
