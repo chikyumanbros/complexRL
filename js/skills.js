@@ -263,7 +263,7 @@ const SKILLS = {
 
                     player.meditation = {
                         active: true,
-                        initialDelay: true,
+                        soundStarted: false,
                         healPerTurn: Math.floor(player.stats.wis / 3),
                         turnsRemaining: Math.floor(player.stats.wis / 2),
                         totalHealed: 0

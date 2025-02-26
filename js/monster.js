@@ -533,11 +533,11 @@ class Monster {
 
         // MONSTERSを直接参照するように変更
         const availableTypes = Object.entries(MONSTERS)
-            .filter(([_, data]) => data.level <= effectiveLevel + 2)
+            .filter(([_, data]) => data.level <= effectiveLevel + 1)  // +2から+1に変更
             .map(([type, _]) => type);
 
         const weightedTypes = availableTypes.map(type => {
-            const levelDiff = Math.abs(MONSTERS[type].level - effectiveLevel);  // GAME_CONSTANTS.MONSTERSから変更
+            const levelDiff = Math.abs(MONSTERS[type].level - effectiveLevel);
             const weight = Math.max(0, 10 - levelDiff * 2);
             return { type, weight };
         });

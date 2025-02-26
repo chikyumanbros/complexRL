@@ -4,27 +4,34 @@ class VigorEffects {
     }
 
     static getVigorPenaltyEffect(severity) {
+        if (severity === GAME_CONSTANTS.VIGOR.getStatus(GAME_CONSTANTS.VIGOR.MAX).name) {
+            return null;
+        }
         const effects = {
-            severe: [
-                { type: 'forceDescend', weight: 15 },
+            [GAME_CONSTANTS.VIGOR.THRESHOLDS.MODERATE]: [
+                { type: 'forgetSomeTiles', weight: 50 },
+                { type: 'forcedWait', weight: 50 }
+            ],
+            [GAME_CONSTANTS.VIGOR.THRESHOLDS.LOW]: [
+                { type: 'forgetSomeTiles', weight: 30 },
+                { type: 'randomTeleport', weight: 30 },
+                { type: 'forcedWait', weight: 25 },
+                { type: 'pauseAndShift', weight: 15 }
+            ],
+            [GAME_CONSTANTS.VIGOR.THRESHOLDS.CRITICAL]: [
+                { type: 'forgetAllTiles', weight: 30 },
                 { type: 'randomTeleport', weight: 25 },
-                { type: 'forgetAllTiles', weight: 35 },
-                { type: 'forcedWait', weight: 25 }
+                { type: 'forceDescend', weight: 20 },
+                { type: 'pauseAndShift', weight: 15 },
+                { type: 'forcedWait', weight: 10 }
             ],
-            moderate: [
-                { type: 'forgetSomeTiles', weight: 40 },
-                { type: 'psychedelicEffect', weight: 35 },
-                { type: 'forcedWait', weight: 25 }
-            ],
-            mild: [
-                { type: 'psychedelicEffect', weight: 60 },
-                { type: 'forgetSomeTiles', weight: 40 }
-            ],
-            positive: [
-                { type: 'revealAll', weight: 25 },
-                { type: 'fullRestore', weight: 25 },
-                { type: 'createVoidPortal', weight: 25 },
-                { type: 'levelUp', weight: 25 }
+            [GAME_CONSTANTS.VIGOR.getStatus(0).name]: [
+                { type: 'forceDescend', weight: 25 },
+                { type: 'forgetAllTiles', weight: 20 },
+                { type: 'randomTeleport', weight: 20 },
+                { type: 'pauseAndShift', weight: 15 },
+                { type: 'forcedWait', weight: 10 },
+                { type: 'forgetSomeTiles', weight: 10 }
             ]
         };
 
@@ -43,6 +50,9 @@ class VigorEffects {
     }
 
     applyVigorEffect(effect) {
+        if (!effect) {
+            return;
+        }
         switch (effect.type) {
             case 'pauseAndShift':
                 this.game.logger.add("Your exhaustion forces you to pause, and the world shifts...", "warning");
@@ -51,6 +61,7 @@ class VigorEffects {
                     duration: 1  // 1ターンだけ
                 };
                 this.game.playSound('waitSound'); // 適切なサウンドに変更
+                this.game.playSound('meditationSound', true); // meditationSoundをループ再生
                 break;
 
             case 'forceDescend':
@@ -93,7 +104,7 @@ class VigorEffects {
                         }
                     }
                 }
-                this.game.playSound('forgetSound');
+                this.game.playSound('vigorDownSound');
                 break;
 
             case 'forgetSomeTiles':
@@ -114,7 +125,7 @@ class VigorEffects {
                     const tile = exploredTiles.splice(index, 1)[0];
                     this.game.explored[tile.y][tile.x] = false;
                 }
-                this.game.playSound('forgetSound');
+                this.game.playSound('vigorDownSound');
                 break;
 
             case 'revealAll':
@@ -124,7 +135,7 @@ class VigorEffects {
                         this.game.explored[y][x] = true;
                     }
                 }
-                this.game.playSound('revealSound'); // 仮のサウンド名
+                this.game.playSound('vigorUpSound');
                 break;
 
             case 'fullRestore':
@@ -137,41 +148,13 @@ class VigorEffects {
                     this.game.logger.add(`Restored ${hpRestored} HP!`, "important");
                 }
                 this.game.logger.add("Vigor fully restored!", "important");
-                this.game.playSound('healSound'); // 仮のサウンド名
-                break;
-
-            case 'createVoidPortal':
-                this.game.logger.add("A void portal materializes nearby!", "important");
-                const adjacentSpaces = [
-                    { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 },
-                    { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
-                    { dx: -1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 1, dy: 1 }
-                ];
-
-                // 隣接する空きマスをシャッフル
-                const shuffledSpaces = adjacentSpaces
-                    .filter(({ dx, dy }) => {
-                        const newX = this.game.player.x + dx;
-                        const newY = this.game.player.y + dy;
-                        return this.game.isValidPosition(newX, newY) &&
-                            this.game.map[newY][newX] === 'floor' &&
-                            !this.game.isOccupied(newX, newY);
-                    })
-                    .sort(() => Math.random() - 0.5);
-
-                // 最初の空きマスにポータルを作成
-                if (shuffledSpaces.length > 0) {
-                    const { dx, dy } = shuffledSpaces[0];
-                    const portalX = this.game.player.x + dx;
-                    const portalY = this.game.player.y + dy;
-                    this.game.tiles[portalY][portalX] = GAME_CONSTANTS.PORTAL.VOID.CHAR;
-                    this.game.playSound('portalCreateSound'); // 仮のサウンド名
-                }
+                this.game.playSound('meditationSound', true); // meditationSoundをループ再生
                 break;
 
             case 'levelUp':
                 this.game.logger.add("A mysterious force empowers you!", "important");
                 this.game.player.levelUp();
+                this.game.playSound('levelUpSound');
                 break;
         }
         this.game.renderer.render();

@@ -650,12 +650,10 @@ class Game {
     processMeditation() {
         if (!this.player.meditation || !this.player.meditation.active) return;
 
-        // 初回ディレイをスキップ
-        if (this.player.meditation.initialDelay) {
-            this.player.meditation.initialDelay = false;
-            // 瞑想開始時にループ再生を開始
+        // 瞑想開始時にループ再生を開始（初回のみ）
+        if (!this.player.meditation.soundStarted) {
             this.soundManager.playSound('meditationSound', { loop: true });
-            return;
+            this.player.meditation.soundStarted = true;
         }
 
         // 1ターンごとの回復処理
@@ -665,9 +663,9 @@ class Game {
         const actualHeal = Math.min(healAmount, this.player.maxHp - this.player.hp);
         this.player.hp += actualHeal;
         this.player.meditation.totalHealed += actualHeal;
-        // HP回復のログを追加
+        // HP回復のログを追加（colorをhealに変更）
         if (actualHeal > 0) {
-            this.logger.add(`Meditation heals you for ${actualHeal} HP.`, "positive");
+            this.logger.add(`Meditation heals you for ${actualHeal} HP.`, "heal");
         }
 
         // Vigor変動処理
@@ -1542,6 +1540,30 @@ class Game {
         console.log(`Current Vigor Status: ${vigorStatus.name}`);
 
         switch (vigorStatus.name) {
+            case 'Exhausted': // Exhausted状態の処理を追加
+            // 1d10で判定、1-3で発動（30%） - 中確率でペナルティ発動
+            threshold = Math.floor(Math.random() * 10) + 1;
+            console.log(`Exhausted Roll: ${threshold}/10 (needs ≤3 to trigger)`);
+            if (threshold <= 3) {
+                severity = GAME_CONSTANTS.VIGOR.getStatus(0).name; // severityを 'Exhausted' に設定
+                
+                // 知力値に基づいたダメージを計算
+                const wisRoll = Math.floor(Math.random() * this.player.stats.wis) + 1;
+                const exhaustionDamage = wisRoll;
+                
+                // プレイヤーにダメージを与える
+                this.player.hp = Math.max(0, this.player.hp - exhaustionDamage);
+                
+                // ダメージのログを表示
+                this.logger.add(`You take ${exhaustionDamage} damage from exhaustion!`, "warning");
+                
+                // 死亡判定
+                if (this.player.hp <= 0) {
+                    this.logger.add("You succumb to exhaustion...", "important");
+                    this.gameOver();
+                }
+            }
+            break;
             case 'Critical':
                 // 1d20で判定、1-3で発動（15%）
                 threshold = Math.floor(Math.random() * 20) + 1;
@@ -1550,7 +1572,7 @@ class Game {
                     // 1d6で良い効果か悪い効果かを決定
                     const effectRoll = Math.floor(Math.random() * 6) + 1;
                     console.log(`Effect Type Roll: ${effectRoll}/6 (1 = positive, others = severe)`);
-                    severity = effectRoll === 1 ? 'positive' : 'severe';
+                    severity = effectRoll === 1 ? 'positive' : GAME_CONSTANTS.VIGOR.THRESHOLDS.LOW; // 'severe' を 'LOW' に修正
                 }
                 break;
 
@@ -1562,7 +1584,7 @@ class Game {
                     // 1d8で良い効果か悪い効果かを決定
                     const effectRoll = Math.floor(Math.random() * 8) + 1;
                     console.log(`Effect Type Roll: ${effectRoll}/8 (1 = positive, others = moderate)`);
-                    severity = effectRoll === 1 ? 'positive' : 'moderate';
+                    severity = effectRoll === 1 ? 'positive' : GAME_CONSTANTS.VIGOR.THRESHOLDS.MODERATE; // 'moderate' を 'MODERATE' に修正
                 }
                 break;
 
@@ -1573,8 +1595,8 @@ class Game {
                 if (threshold <= 2) {
                     // 1d10で良い効果か悪い効果かを決定
                     const effectRoll = Math.floor(Math.random() * 10) + 1;
-                    console.log(`Effect Type Roll: ${effectRoll}/10 (1 = positive, others = mild)`);
-                    severity = effectRoll === 1 ? 'positive' : 'mild';
+                    console.log(`Effect Type Roll: ${effectRoll}/10 (1 = positive, others = critical)`); // 'mild' を 'critical' に修正
+                    severity = effectRoll === 1 ? 'positive' : GAME_CONSTANTS.VIGOR.THRESHOLDS.CRITICAL; // 'mild' を 'CRITICAL' に修正
                 }
                 break;
         }
