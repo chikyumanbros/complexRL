@@ -653,6 +653,8 @@ class Game {
         // 初回ディレイをスキップ
         if (this.player.meditation.initialDelay) {
             this.player.meditation.initialDelay = false;
+            // 瞑想開始時にループ再生を開始
+            this.soundManager.playSound('meditationSound', { loop: true });
             return;
         }
 
@@ -663,6 +665,10 @@ class Game {
         const actualHeal = Math.min(healAmount, this.player.maxHp - this.player.hp);
         this.player.hp += actualHeal;
         this.player.meditation.totalHealed += actualHeal;
+        // HP回復のログを追加
+        if (actualHeal > 0) {
+            this.logger.add(`Meditation heals you for ${actualHeal} HP.`, "positive");
+        }
 
         // Vigor変動処理
         const maxRoll = Math.max(1, this.player.level + this.player.stats.wis);  // 最小値を1に
@@ -722,7 +728,7 @@ class Game {
             this.player.meditation = null;
 
             // 瞑想終了時に効果音を停止
-            this.stopSound('meditationSound');
+            this.soundManager.stopSound('meditationSound');
         }
 
         // サイケデリックエフェクトのターンカウンターを更新

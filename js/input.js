@@ -146,17 +146,39 @@ class InputHandler {
                                 return;
                             }
 
-                            const monsters = Object.keys(MONSTERS).map((type, index) => ({
-                                type,
-                                containerId: `sprite-preview-container${index === 0 ? '' : index + 1}`
-                            }));
-                            
-                            monsters.forEach(({ type, containerId }) => {
-                                const container = document.getElementById(containerId);
-                                if (!container) {
-                                    console.warn(`Container ${containerId} not found`);
-                                    return;
-                                }
+                            // スプライトプレビューの内容をクリア
+                            spritePreview.innerHTML = '';
+
+                            // フレックスコンテナを作成
+                            const flexContainer = document.createElement('div');
+                            flexContainer.style.display = 'flex';
+                            flexContainer.style.flexWrap = 'wrap';
+                            flexContainer.style.gap = '20px';
+                            flexContainer.style.padding = '20px';
+                            spritePreview.appendChild(flexContainer);
+
+                            // モンスタータイプごとにコンテナを生成
+                            const monsters = Object.keys(MONSTERS);
+                            monsters.forEach((type, index) => {
+                                const containerId = `sprite-preview-container${index === 0 ? '' : index + 1}`;
+                                const container = document.createElement('div');
+                                container.id = containerId;
+                                container.style.padding = '10px';
+                                container.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                                container.style.border = '1px solid #333';
+                                container.style.borderRadius = '5px';
+                                container.style.minWidth = '200px';
+                                container.style.flex = '0 0 auto';
+                                
+                                // タイトルを追加
+                                const title = document.createElement('div');
+                                title.style.color = '#fff';
+                                title.style.marginBottom = '10px';
+                                title.style.fontFamily = 'monospace';
+                                title.textContent = `Monster Type: ${type}`;
+                                container.appendChild(title);
+
+                                flexContainer.appendChild(container);
 
                                 try {
                                     // スプライトの描画

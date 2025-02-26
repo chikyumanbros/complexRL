@@ -619,6 +619,40 @@ class Renderer {
                 ${nearbyEnemiesHTML}
             </div>
         `;
+        // Update skill list display (only slots 1-9)
+        const skillsElement = document.getElementById('skills');
+        if (skillsElement) {
+            const skillsDisplay = player.skills.size > 0
+                ? Array.from(player.skills.entries())
+                    .filter(([slot]) => /^[1-9]$/.test(slot))
+                    .map(([slot, skillData]) => {
+                        const skill = this.game.codexSystem.findSkillById(skillData.id);
+                        const cooldownText = skillData.remainingCooldown > 0
+                            ? ` (CD: ${skillData.remainingCooldown})`
+                            : '';
+                        const effectText = skill.getEffectText(player);
+
+                        // スキルが属するカテゴリーを見つける
+                        let categoryColor;
+                        for (let cat in this.game.codexSystem.categories) {
+                            if (this.game.codexSystem.categories[cat].skills.some(s => s.id === skill.id)) {
+                                categoryColor = GAME_CONSTANTS.COLORS.CODEX_CATEGORY[cat];
+                                break;
+                            }
+                        }
+
+                        // スロット番号の使用可否判定
+                        const isAvailable = skillData.remainingCooldown === 0 &&
+                            (skill.id !== 'meditation' || player.hp < player.maxHp || player.vigor < GAME_CONSTANTS.VIGOR.MAX);
+                        const slotClass = isAvailable ? 'skill-slot available' : 'skill-slot';
+
+                        return `[<span class="${slotClass}">${slot}</span>] ` +
+                            `<span style="color: ${categoryColor}">${skill.name[0]}</span>${skill.name.slice(1)} ${effectText}${cooldownText}`;
+                    })
+                    .join('<br>')
+                : 'NO SKILLS';
+            skillsElement.innerHTML = skillsDisplay;
+        }
     }
 
     getNearbyEnemiesHTML() {
@@ -1124,23 +1158,23 @@ class Renderer {
     drawMonsterSprite(canvas, monster, turnCount) {
         const ctx = canvas.getContext('2d');
         
-        // 現在のターンに応じたフレームを取得
-        const currentFrame = monster.getCurrentFrame(turnCount);
-        if (!currentFrame) return;
+        // スプライトデータを取得
+        const sprite = MONSTER_SPRITES[monster.type];
+        if (!sprite) return;
 
-        const spriteWidth = currentFrame[0].length;
-        const spriteHeight = currentFrame.length;
+        const spriteWidth = sprite[0].length;
+        const spriteHeight = sprite.length;
         const pixelSize = 8;
 
         canvas.width = spriteWidth * pixelSize;
         canvas.height = spriteHeight * pixelSize;
 
-        // キャッシュキーにターン情報を含める
-        const cacheKey = `${monster.type}_${monster.id}_${Math.floor(turnCount / 2)}`;
+        // キャッシュキーを単純化
+        const cacheKey = `${monster.type}_${monster.id}`;
 
         if (!this.spriteColorCache.has(cacheKey)) {
             const colorMap = new Map();
-            currentFrame.forEach((row, y) => {
+            sprite.forEach((row, y) => {
                 [...row].forEach((pixel, x) => {
                     const key = `${x},${y}`;
                     const baseColor = SPRITE_COLORS[pixel];
@@ -1151,7 +1185,7 @@ class Renderer {
         }
 
         const colorMap = this.spriteColorCache.get(cacheKey);
-        currentFrame.forEach((row, y) => {
+        sprite.forEach((row, y) => {
             [...row].forEach((pixel, x) => {
                 if (pixel !== ' ') {
                     const color = colorMap.get(`${x},${y}`);
@@ -1181,12 +1215,12 @@ class Renderer {
         }
 
         // 線状グリッチ効果
-        if (Math.random() < 0.2) { // 20%の確率で線状グリッチ
-            const glitchHeight = Math.floor(Math.random() * 2) + 1; // グリッチの高さ（1〜3ピクセル）
-            const glitchY = Math.floor(Math.random() * (spriteHeight - glitchHeight + 1)); // グリッチのY座標
-            const glitchX = Math.floor(Math.random() * spriteWidth); // グリッチのX座標
-            const glitchLength = Math.floor(Math.random() * (spriteWidth - glitchX + 1)); //グリッチの長さ
-            const glitchColor = SPRITE_COLORS.getRandomizedColor("#FFF"); // グリッチの色
+        if (Math.random() < 0.2) {
+            const glitchHeight = Math.floor(Math.random() * 2) + 1;
+            const glitchY = Math.floor(Math.random() * (spriteHeight - glitchHeight + 1));
+            const glitchX = Math.floor(Math.random() * spriteWidth);
+            const glitchLength = Math.floor(Math.random() * (spriteWidth - glitchX + 1));
+            const glitchColor = SPRITE_COLORS.getRandomizedColor("#FFF");
 
             for (let i = 0; i < glitchLength; i++){
                 for(let j = 0; j < glitchHeight; j++){
@@ -1203,15 +1237,10 @@ class Renderer {
     }
 
     previewMonsterSprite(monsterType, containerId, pixelSize = 8) {
-        const spriteData = MONSTER_SPRITES[monsterType];
-        if (!spriteData || !spriteData.frames || !spriteData.frames[0]) {
+        const sprite = MONSTER_SPRITES[monsterType];
+        if (!sprite) {
             return;
         }
-
-        // 最初のフレームを使用
-        const sprite = spriteData.frames[0];
-        const spriteWidth = sprite[0].length;
-        const spriteHeight = sprite.length;
 
         // コンテナ要素を取得
         const container = document.getElementById(containerId);
@@ -1228,6 +1257,8 @@ class Renderer {
 
         // canvas要素を作成
         const canvas = document.createElement('canvas');
+        const spriteWidth = sprite[0].length;
+        const spriteHeight = sprite.length;
         canvas.width = spriteWidth * pixelSize;
         canvas.height = spriteHeight * pixelSize;
         const ctx = canvas.getContext('2d');
