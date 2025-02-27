@@ -251,7 +251,9 @@ const GAME_CONSTANTS = {
                 { key: 'z', desc: 'Cast skill (with number)' },
                 { key: 'm', desc: 'Toggle music' },
                 { key: '?', desc: 'Show help menu' },
-                { key: 'ctrl+s', desc: 'Show monster sprite preview' }
+                //{ key: 'ctrl+s', desc: 'Show monster sprite preview' },
+                { key: '[', desc: 'Scroll message log up' },
+                { key: ']', desc: 'Scroll message log down' }
             ]
         },
         LANDMARK: {
