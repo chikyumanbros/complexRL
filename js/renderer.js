@@ -703,7 +703,7 @@ class Renderer {
                     `<div class="hp-numbers">HP: ${monster.hp}/${monster.maxHp}</div>` +
                     `<span class="bar ${healthClass}">${hpText}</span>` +
                 `</div>`;
-        }).join('<br>'); // 各モンスター情報を<br>で区切る
+        }).join(''); // 各モンスター情報を<br>で区切る
 
         return `<div id="nearby-enemies">${monsterList}</div>`;
     }

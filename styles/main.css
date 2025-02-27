@@ -1036,17 +1036,20 @@ body::before {
 
 /* 敵情報 */
 .enemy-info {
-    border-top: 1px solid #233023;
     padding-top: 10px;
     display: flex;
     flex-direction: column;
-    gap: 5px;
+   
+    max-height: 250px; /* 約4体分の高さ */
+    overflow-y: auto;
+    padding-right: 5px; /* スクロールバー用の余白 */
 }
 
 .nearby-enemies-list {
     display: flex;
     flex-direction: column;
-    gap: 8px; /* 各エントリ間の間隔 */
+    gap: 8px;
+    
 }
 
 .enemy-entry {
@@ -1065,4 +1068,22 @@ body::before {
 .enemy-hp-bar {
     /* HPバー */
     margin-left: 2.3em;
+}
+
+/* 敵リストのスクロールバースタイル */
+.enemy-info::-webkit-scrollbar {
+    width: 8px;
+}
+
+.enemy-info::-webkit-scrollbar-track {
+    background: #222;
+}
+
+.enemy-info::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+}
+
+.enemy-info::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
