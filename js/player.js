@@ -1038,8 +1038,4 @@ class Player {
 
         return null;
     }
-
-    applyVigorEffect(effect) {
-        // This method is now empty as the logic has been moved to js/vigor-effects.js
-    }
 } 

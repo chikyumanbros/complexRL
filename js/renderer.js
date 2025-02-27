@@ -408,7 +408,7 @@ class Renderer {
 
                 // 命中判定と回避判定に成功し、実際にダメージが発生した場合のみエフェクトを表示
                 if (isAttackTarget && this.game.lastAttackResult &&
-                    this.game.lastAttackResult.damage > 0 && this.game.lastAttackResult.hit) {
+                    this.game.lastAttackResult.damage > 0) {
                     classes.push('damage');
                 }
 
@@ -1543,9 +1543,7 @@ class Renderer {
         messageLogElement.scrollTop = messageLogElement.scrollHeight;
     }
 
-    startPortalTransition(callback) {
-        const duration = 1000;
-        const steps = 120;
+    animatePortal(duration, steps, callback) {
         let currentStep = 0;
 
         // ポータル遷移開始フラグを設定
@@ -1558,7 +1556,7 @@ class Renderer {
                 // サウンドのフェードアウトを開始
                 this.game.soundManager.fadeOutPortalSound();
                 callback();
-                // 以下を追加して、通常のレンダリングを再開
+                // 通常のレンダリングを再開
                 this.render();
                 return;
             }
@@ -1591,10 +1589,18 @@ class Renderer {
 
             currentStep++;
             this.render();
-            requestAnimationFrame(animate);
+            setTimeout(() => requestAnimationFrame(animate), duration / steps);
         };
 
         animate();
+    }
+
+    startPortalTransition(callback) {
+        this.animatePortal(1000, 120, callback);
+    }
+
+    startShortPortalTransition(callback) {
+        this.animatePortal(100, 5, callback);
     }
 
     showDamageFlash() {
@@ -1605,9 +1611,5 @@ class Renderer {
                 gameElement.classList.remove('damage-flash');
             }, 200);
         }
-    }
-
-    startShortPortalTransition(callback) {
-        this.animatePortal(100, 5, callback);  // 期間とステップ数を調整
     }
 }

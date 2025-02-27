@@ -4,47 +4,67 @@ class VigorEffects {
     }
 
     static getVigorPenaltyEffect(severity) {
-        if (severity === GAME_CONSTANTS.VIGOR.getStatus(GAME_CONSTANTS.VIGOR.MAX).name) {
+        if (severity === 'High' || !severity) {
             return null;
         }
+
         const effects = {
-            [GAME_CONSTANTS.VIGOR.THRESHOLDS.MODERATE]: [
+            'Moderate': [
                 { type: 'forgetSomeTiles', weight: 50 },
                 { type: 'forcedWait', weight: 50 }
             ],
-            [GAME_CONSTANTS.VIGOR.THRESHOLDS.LOW]: [
+            'Low': [
                 { type: 'forgetSomeTiles', weight: 30 },
                 { type: 'randomTeleport', weight: 30 },
                 { type: 'forcedWait', weight: 25 },
                 { type: 'pauseAndShift', weight: 15 }
             ],
-            [GAME_CONSTANTS.VIGOR.THRESHOLDS.CRITICAL]: [
+            'Critical': [
                 { type: 'forgetAllTiles', weight: 30 },
                 { type: 'randomTeleport', weight: 25 },
                 { type: 'forceDescend', weight: 20 },
                 { type: 'pauseAndShift', weight: 15 },
                 { type: 'forcedWait', weight: 10 }
             ],
-            [GAME_CONSTANTS.VIGOR.getStatus(0).name]: [
+            'Exhausted': [
                 { type: 'forceDescend', weight: 25 },
                 { type: 'forgetAllTiles', weight: 20 },
                 { type: 'randomTeleport', weight: 20 },
                 { type: 'pauseAndShift', weight: 15 },
                 { type: 'forcedWait', weight: 10 },
                 { type: 'forgetSomeTiles', weight: 10 }
+            ],
+            'positive': [
+                { type: 'revealAll', weight: 40 },
+                { type: 'fullRestore', weight: 40 },
+                { type: 'levelUp', weight: 20 }
             ]
         };
 
-        return VigorEffects.weightedRandomChoice(effects[severity]);
+        const effectList = effects[severity];
+        if (!effectList) {
+            console.warn(`Unknown vigor severity: ${severity}`);
+            return null;
+        }
+
+        return VigorEffects.weightedRandomChoice(effectList);
     }
 
     static weightedRandomChoice(options) {
-        const totalWeight = options.reduce((sum, opt) => sum + opt.weight, 0);
+        if (!options || !Array.isArray(options) || options.length === 0) {
+            return null;
+        }
+        const totalWeight = options.reduce((sum, opt) => sum + (opt.weight || 0), 0);
+        if (totalWeight <= 0) {
+            return options[0];
+        }
         let random = Math.random() * totalWeight;
 
         for (const option of options) {
-            random -= option.weight;
-            if (random <= 0) return option;
+            random -= (option.weight || 0);
+            if (random <= 0) {
+                return option;
+            }
         }
         return options[0];
     }

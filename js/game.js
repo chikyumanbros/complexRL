@@ -468,7 +468,8 @@ class Game {
         // ターンの最後に自然回復処理を実行
         if (this.player.hp > 0 && !this.player.meditation) {
             // プレイヤーの自然回復処理
-            if (this.player.hp < this.player.maxHp) {
+            const vigorStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+            if (vigorStatus.name !== 'Exhausted' && this.player.hp < this.player.maxHp) {
                 const successChance = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.getSuccessChance(this.player.stats);
                 const roll = Math.random() * 100;
 
@@ -1542,7 +1543,7 @@ class Game {
             threshold = Math.floor(Math.random() * 10) + 1;
             console.log(`Exhausted Roll: ${threshold}/10 (needs ≤3 to trigger)`);
             if (threshold <= 3) {
-                severity = GAME_CONSTANTS.VIGOR.getStatus(0).name; // severityを 'Exhausted' に設定
+                severity = 'Exhausted';  // 直接文字列を使用
                 
                 // 知力値に基づいたダメージを計算
                 const wisRoll = Math.floor(Math.random() * this.player.stats.wis) + 1;
@@ -1572,7 +1573,7 @@ class Game {
                     // 1d6で良い効果か悪い効果かを決定
                     const effectRoll = Math.floor(Math.random() * 6) + 1;
                     console.log(`Effect Type Roll: ${effectRoll}/6 (1 = positive, others = severe)`);
-                    severity = effectRoll === 1 ? 'positive' : GAME_CONSTANTS.VIGOR.THRESHOLDS.LOW; // 'severe' を 'LOW' に修正
+                    severity = effectRoll === 1 ? 'positive' : 'Critical'; // THRESHOLDSを使用せず直接文字列を使用
                 }
                 break;
 
@@ -1584,7 +1585,7 @@ class Game {
                     // 1d8で良い効果か悪い効果かを決定
                     const effectRoll = Math.floor(Math.random() * 8) + 1;
                     console.log(`Effect Type Roll: ${effectRoll}/8 (1 = positive, others = moderate)`);
-                    severity = effectRoll === 1 ? 'positive' : GAME_CONSTANTS.VIGOR.THRESHOLDS.MODERATE; // 'moderate' を 'MODERATE' に修正
+                    severity = effectRoll === 1 ? 'positive' : 'Low';
                 }
                 break;
 
@@ -1595,8 +1596,8 @@ class Game {
                 if (threshold <= 2) {
                     // 1d10で良い効果か悪い効果かを決定
                     const effectRoll = Math.floor(Math.random() * 10) + 1;
-                    console.log(`Effect Type Roll: ${effectRoll}/10 (1 = positive, others = critical)`); // 'mild' を 'critical' に修正
-                    severity = effectRoll === 1 ? 'positive' : GAME_CONSTANTS.VIGOR.THRESHOLDS.CRITICAL; // 'mild' を 'CRITICAL' に修正
+                    console.log(`Effect Type Roll: ${effectRoll}/10 (1 = positive, others = critical)`);
+                    severity = effectRoll === 1 ? 'positive' : 'Moderate';
                 }
                 break;
         }
@@ -1608,7 +1609,7 @@ class Game {
             console.log(`Selected Severity: ${severity}`);
             console.log(`Selected Effect: ${effect.type}`);
             const vigorEffects = new VigorEffects(this);
-            vigorEffects.applyVigorEffect(effect);
+            vigorEffects.applyVigorEffect(effect);  // インスタンスメソッドとして呼び出し
         } else {
             console.log('No effect triggered');
         }
