@@ -1087,3 +1087,16 @@ body::before {
 .enemy-info::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
+
+/* タブキーによるフォーカスを無効化 */
+*:focus {
+    outline: none !important;
+}
+
+*:not([tabindex]):focus {
+    outline: none !important;
+}
+
+[tabindex="-1"] {
+    outline: none !important;
+}

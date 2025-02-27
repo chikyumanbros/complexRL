@@ -72,6 +72,13 @@
     <script src="js/combat-system.js"></script>
     <script>
         const renderer = new Renderer(game);
+
+        // タブキーによるフォーカス移動を禁止
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+            }
+        });
     </script>
 </body>
 </html>
