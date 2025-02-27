@@ -406,10 +406,17 @@ class Renderer {
                     this.game.lastAttackLocation.x === x &&
                     this.game.lastAttackLocation.y === y;
 
-                // 命中判定と回避判定に成功し、実際にダメージが発生した場合のみエフェクトを表示
-                if (isAttackTarget && this.game.lastAttackResult &&
-                    this.game.lastAttackResult.damage > 0) {
-                    classes.push('damage');
+                // takeDamageの結果に基づいてエフェクトを表示
+                if (isAttackTarget && this.game.lastAttackResult) {
+                    if (this.game.lastAttackResult.damage > 0) {
+                        classes.push('damage');
+                    }
+                    if (this.game.lastAttackResult.killed) {
+                        classes.push('killed');
+                    }
+                    if (this.game.lastAttackResult.newlyFled) {
+                        classes.push('fled');
+                    }
                 }
 
                 const classString = classes.length > 0 ? `class="${classes.join(' ')}"` : '';
