@@ -1338,6 +1338,7 @@ class InputHandler {
                 this.startAutoMoveToLandmark();
                 break;
             case 'escape':
+            case 'backspace':  // backspaceでも解除可能に
                 this.endLandmarkTargetMode();
                 break;
         }
