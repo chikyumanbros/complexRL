@@ -11,32 +11,30 @@ class VigorEffects {
         const effects = {
             'Moderate': [
                 { type: 'forgetSomeTiles', weight: 50 },
-                { type: 'forcedWait', weight: 50 }
+                { type: 'pauseAndShift', weight: 50 }
             ],
             'Low': [
                 { type: 'forgetSomeTiles', weight: 30 },
-                { type: 'randomTeleport', weight: 30 },
-                { type: 'forcedWait', weight: 25 },
-                { type: 'pauseAndShift', weight: 15 }
+                { type: 'randomTeleport', weight: 20 },
+                { type: 'pauseAndShift', weight: 30 },
+                { type: 'forgetAllTiles', weight: 20 },
             ],
             'Critical': [
-                { type: 'forgetAllTiles', weight: 30 },
+                { type: 'forgetAllTiles', weight: 25 },
                 { type: 'randomTeleport', weight: 25 },
                 { type: 'forceDescend', weight: 20 },
-                { type: 'pauseAndShift', weight: 15 },
-                { type: 'forcedWait', weight: 10 }
+                { type: 'pauseAndShift', weight: 30 }
             ],
             'Exhausted': [
-                { type: 'forceDescend', weight: 25 },
+                { type: 'forceDescend', weight: 20 },
                 { type: 'forgetAllTiles', weight: 20 },
                 { type: 'randomTeleport', weight: 20 },
-                { type: 'pauseAndShift', weight: 15 },
-                { type: 'forcedWait', weight: 10 },
-                { type: 'forgetSomeTiles', weight: 10 }
+                { type: 'pauseAndShift', weight: 20 },
+                { type: 'forgetSomeTiles', weight: 20 }
             ],
             'positive': [
-                { type: 'revealAll', weight: 40 },
-                { type: 'fullRestore', weight: 40 },
+                { type: 'revealAll', weight: 30 },
+                { type: 'fullRestore', weight: 50 },
                 { type: 'levelUp', weight: 20 }
             ]
         };
