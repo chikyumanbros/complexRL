@@ -795,11 +795,10 @@ class Player {
     }
 
     findDirectionToStairs(stairLocation) {
-        const player = this.game.player;
         const visited = new Set();
         const queue = [{
-            x: player.x,
-            y: player.y,
+            x: this.x,
+            y: this.y,
             firstStep: null
         }];
 
@@ -826,8 +825,10 @@ class Player {
                 const newX = current.x + dir.dx;
                 const newY = current.y + dir.dy;
                 
+                // 探索済みのタイルのみを使用するように変更
                 if (this.game.isValidPosition(newX, newY) && 
-                    this.game.map[newY][newX] === 'floor') {
+                    this.game.map[newY][newX] === 'floor' &&
+                    this.game.explored[newY][newX]) {
                     queue.push({
                         x: newX,
                         y: newY,
@@ -993,7 +994,6 @@ class Player {
     }
 
     findDirectionToLandmark(landmark) {
-        // 既存のfindDirectionToStairs()メソッドと同じロジックを使用
         const visited = new Set();
         const queue = [{
             x: this.x,
@@ -1022,9 +1022,11 @@ class Player {
                 const newX = current.x + dir.dx;
                 const newY = current.y + dir.dy;
                 
+                // 探索済みのタイルのみを使用するように変更
                 if (this.game.isValidPosition(newX, newY) && 
+                    this.game.explored[newY][newX] &&
                     (this.game.map[newY][newX] === 'floor' ||
-                     this.game.tiles[newY][newX] === GAME_CONSTANTS.PORTAL.VOID.CHAR)) { // VOIDポータルを許可
+                     this.game.tiles[newY][newX] === GAME_CONSTANTS.PORTAL.VOID.CHAR)) {
                     queue.push({
                         x: newX,
                         y: newY,
