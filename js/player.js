@@ -223,14 +223,11 @@ class Player {
                             });
                             this.game.soundManager.playPortalSound();  // 新しいメソッドを使用
                             this.game.processTurn();
+                        } else {
+                            this.game.logger.add("You decide not to enter the portal.", "playerInfo");
                         }
                         this.game.setInputMode('normal');
                     },
-                    // '>'キーで'y'、'escape'キーで'n'を選択可能にする
-                    additionalKeys: {
-                        '>': true,   // '>'キーでtrue（y）
-                        'escape': false // 'escape'キーでfalse（n）
-                    }
                 });
             } else if (this.game.tiles[this.y][this.x] === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
                 this.game.logger.add("Enter the VOID portal? [y/n]", "important");
@@ -256,16 +253,13 @@ class Player {
                             });
                             this.game.soundManager.playPortalSound();  // 新しいメソッドを使用
                             this.game.processTurn();  // ターンを消費
+                        } else {
+                            this.game.logger.add("You decide not to enter the VOID portal.", "playerInfo");
                         }
                         this.game.setInputMode('normal');
                     },
-                    additionalKeys: {
-                        '>': true,
-                        'escape': false
-                    }
                 });
             }
-
             return true;
         }
         return false;
