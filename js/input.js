@@ -52,6 +52,12 @@ class InputHandler {
 
         const key = event.key.toLowerCase();
 
+        // メッセージログのスクロール制御
+        if (key === '[' || key === ']') {
+            this.handleLogScroll(key);
+            return;
+        }
+
         // ESCキーの処理を最優先で行う
         if (key === 'escape') {
             if (this.lookMode) {
@@ -1402,5 +1408,26 @@ class InputHandler {
         this.currentLandmarkIndex = 0;
         this.game.renderer.clearHighlight();
         this.game.logger.add("Exited landmark navigation mode.", "info");
+    }
+
+    // メッセージログのスクロール制御
+    handleLogScroll(key) {
+        let targetElement;
+        
+        // ヘルプモード中はヘルプパネルをスクロール
+        if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
+            targetElement = document.getElementById('available-skills');
+        } else {
+            targetElement = document.getElementById('message-log');
+        }
+        
+        if (!targetElement) return;
+
+        const scrollAmount = 50; // 1回のスクロール量（ピクセル）
+        if (key === '[') {
+            targetElement.scrollTop -= scrollAmount; // 上にスクロール
+        } else if (key === ']') {
+            targetElement.scrollTop += scrollAmount; // 下にスクロール
+        }
     }
 }
