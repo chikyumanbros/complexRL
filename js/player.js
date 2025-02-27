@@ -26,9 +26,9 @@ class Player {
         this.nextAttackModifiers = [];  // 攻撃修飾効果の初期化
         this.meditation = null;  // メディテーション状態を追加
 
-        // Vigorの初期化: game.loadDataがあればそこから、なければ最大値
-        this.vigor = GAME_CONSTANTS.VIGOR.MAX; // いったん最大値で初期化
-        this.validateVigor();
+        // Vigorの初期化を条件付きで行う
+        this.vigor = undefined;  // 初期値をundefinedに
+        this.validateVigor();    // validateVigor内で適切な初期値を設定
 
         // 各種パラメータの計算
         this.updateDerivedStats();
@@ -47,9 +47,9 @@ class Player {
             type: typeof this.vigor
         });
 
-        // 値が未定義またはNaNの場合
+        // 値が未定義またはNaNの場合のみ最大値を設定
         if (this.vigor === undefined || this.vigor === null || Number.isNaN(this.vigor)) {
-            console.warn(`Invalid vigor value (${this.vigor}), setting to max`);
+            console.log(`Initializing vigor to max value (${GAME_CONSTANTS.VIGOR.MAX})`);
             this.vigor = GAME_CONSTANTS.VIGOR.MAX;
             return;
         }
@@ -221,7 +221,7 @@ class Player {
                                 this.game.generateNewFloor();
                                 this.game.soundManager.updateBGM();  // ポータルアニメーション完了後にBGMを更新
                             });
-                            this.game.playSound('portalSound');
+                            this.game.soundManager.playPortalSound();  // 新しいメソッドを使用
                             this.game.processTurn();
                         }
                         this.game.setInputMode('normal');
@@ -254,7 +254,7 @@ class Player {
                                     }
                                 }
                             });
-                            this.game.playSound('portalSound');
+                            this.game.soundManager.playPortalSound();  // 新しいメソッドを使用
                             this.game.processTurn();  // ターンを消費
                         }
                         this.game.setInputMode('normal');

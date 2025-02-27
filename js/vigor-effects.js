@@ -71,7 +71,7 @@ class VigorEffects {
                     this.game.generateNewFloor();
                     this.game.soundManager.updateBGM();
                 });
-                this.game.playSound('portalSound');
+                this.game.soundManager.playPortalSound();
                 break;
 
             case 'randomTeleport':
@@ -88,11 +88,9 @@ class VigorEffects {
                     this.game.player.x = x;
                     this.game.player.y = y;
                     this.game.renderer.render();
-                    // サウンドをフェードアウト
-                    this.game.soundManager.fadeOutAndStop('portalSound');
                 });
                 // startShortPortalTransition の外でサウンドを再生
-                this.game.playSound('portalSound');
+                this.game.soundManager.playPortalSound();
                 break;
 
             case 'forgetAllTiles':

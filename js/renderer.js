@@ -699,7 +699,10 @@ class Renderer {
             return `<span style="color: ${monsterColor}">` +
                 `<span style="color: ${directionColor}; display: inline-block; width: 2em">${direction}</span>[${monsterSymbol}] </span>` +
                 `<span style="color: ${monsterColor}">${monster.name}</span> ${sleepStatus}${fleeingStatus} <br>` +
-                `HP: ${monster.hp}/${monster.maxHp} <span class="${healthClass}">${hpText}</span>`;
+                `<div class="hp-bar">` +
+                    `<div class="hp-numbers">HP: ${monster.hp}/${monster.maxHp}</div>` +
+                    `<span class="bar ${healthClass}">${hpText}</span>` +
+                `</div>`;
         }).join('<br>'); // 各モンスター情報を<br>で区切る
 
         return `<div id="nearby-enemies">${monsterList}</div>`;
@@ -1549,6 +1552,8 @@ class Renderer {
             if (currentStep >= steps) {
                 // ポータル遷移終了フラグをリセット
                 this.game.isPortalTransitioning = false;
+                // サウンドのフェードアウトを開始
+                this.game.soundManager.fadeOutPortalSound();
                 callback();
                 // 以下を追加して、通常のレンダリングを再開
                 this.render();
@@ -1583,12 +1588,9 @@ class Renderer {
 
             currentStep++;
             this.render();
-
-            // 次のフレームをスケジュール
-            setTimeout(animate, duration / steps);
+            requestAnimationFrame(animate);
         };
 
-        // アニメーションを開始
         animate();
     }
 

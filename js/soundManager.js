@@ -228,4 +228,48 @@ class SoundManager {
             audio.currentTime = 0; // 停止時にcurrentTimeをリセット
         }
     }
+
+    // portalSound専用のフェードアウトメソッド
+    fadeOutPortalSound(duration = 100) {
+        if (!this.portalSound || this.portalSound.paused) return;
+
+        const startVolume = this.portalSound.volume;
+        const startTime = performance.now();
+
+        const fadeOut = () => {
+            const currentTime = performance.now();
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+
+            if (progress < 1) {
+                this.portalSound.volume = startVolume * (1 - progress);
+                requestAnimationFrame(fadeOut);
+            } else {
+                this.portalSound.pause();
+                this.portalSound.currentTime = 0;
+                this.portalSound.volume = this.seVolume; // 音量を元に戻す
+            }
+        };
+
+        fadeOut();
+    }
+
+    // portalSound専用の再生メソッドを追加
+    playPortalSound() {
+        if (!this.userInteracted) return;
+
+        // 既存のportalSoundが再生中の場合は停止
+        if (!this.portalSound.paused) {
+            this.portalSound.pause();
+            this.portalSound.currentTime = 0;
+        }
+
+        // ポータルサウンドの再生
+        this.portalSound.volume = this.seVolume;
+        this.portalSound.play().catch(error => {
+            if (error.name !== 'NotAllowedError') {
+                console.warn('Portal sound playback failed:', error);
+            }
+        });
+    }
 } 

@@ -935,8 +935,8 @@ class Game {
     }
 
     generateNewFloor() {
-        // BGMの更新処理を削除（ポータルサウンドを途切れさせないため）
-        // this.soundManager.updateBGM();
+        // ポータルサウンドをフェードアウト
+        this.soundManager.fadeOutPortalSound();
 
         // Determine danger level by random roll.
         const dangerRoll = Math.random() * 100;
@@ -980,9 +980,6 @@ class Game {
 
         // モンスターの生成
         this.spawnInitialMonsters();
-
-        // ポータル効果音のフェードアウト処理を削除
-        this.soundManager.fadeOutBGM.call({ homeBGM: this.soundManager.portalSound });
 
         // Initialize and display information
         const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
@@ -1277,8 +1274,8 @@ class Game {
                 name: this.player.name,
                 x: this.player.x,
                 y: this.player.y,
-                hp: this.player.hp,
                 maxHp: this.player.maxHp,
+                hp: this.player.hp,
                 level: this.player.level,
                 xp: this.player.xp,
                 xpToNextLevel: this.player.xpToNextLevel,
@@ -1455,8 +1452,8 @@ class Game {
                 }
             }
         }
-        return false;
-    }
+                return false;
+            }
 
     updateHomeFloor() {
         // ホームフロアでのみ実行
@@ -1650,7 +1647,7 @@ class Game {
             this.player.y = y;
             this.renderer.render();
         });
-        this.playSound('portalSound'); // テレポートサウンドを再生（任意）
+        this.soundManager.playPortalSound(); // playSound から playPortalSound に変更
     }
 }
 
