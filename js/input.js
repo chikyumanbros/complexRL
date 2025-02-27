@@ -438,6 +438,110 @@ class InputHandler {
             return;
         }
 
+        // インタラクションモードの処理
+        if (this.mode === 'interact') {
+            let dx = 0;
+            let dy = 0;
+
+            // '.'キーで現在のマスを指定
+            if (key === '.') {
+                dx = 0;
+                dy = 0;
+            } else {
+                switch (key) {
+                    case 'arrowleft':
+                    case 'h': dx = -1; break;
+                    case 'arrowright':
+                    case 'l': dx = 1; break;
+                    case 'arrowup':
+                    case 'k': dy = -1; break;
+                    case 'arrowdown':
+                    case 'j': dy = 1; break;
+                    case 'y': dx = -1; dy = -1; break;
+                    case 'u': dx = 1; dy = -1; break;
+                    case 'b': dx = -1; dy = 1; break;
+                    case 'n': dx = 1; dy = 1; break;
+                    case 'escape':
+                        this.mode = 'normal';
+                        this.game.logger.add("Interaction cancelled.", "info");
+                        return;
+                    default: return;
+                }
+            }
+
+            const x = this.game.player.x + dx;
+            const y = this.game.player.y + dy;
+
+            // 扉の操作を試みる
+            const door = this.findAdjacentDoors().find(d => d.x === x && d.y === y);
+            if (door) {
+                const operation = door.tile === GAME_CONSTANTS.TILES.DOOR.CLOSED ? 'o' : 'c';
+                this.operateDoor(door, operation);
+                this.game.processTurn();
+                this.game.renderer.render();
+                this.mode = 'normal';
+                return;
+            }
+
+            // ポータルの使用を試みる
+            const tile = this.game.tiles[y][x];
+            if (tile === GAME_CONSTANTS.PORTAL.VOID.CHAR || tile === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+                const isVoid = tile === GAME_CONSTANTS.PORTAL.VOID.CHAR;
+                this.game.logger.add(`Enter the ${isVoid ? 'VOID' : ''} portal? [y/n]`, "important");
+                
+                // 次のフレームでconfirmモードに移行（即時実行を防ぐ）
+                setTimeout(() => {
+                    this.game.setInputMode('confirm', {
+                        callback: (confirmed) => {
+                            if (confirmed) {
+                                this.game.logger.add(`You step into the ${isVoid ? 'VOID' : ''} portal...`, "important");
+                                this.game.renderer.startPortalTransition(() => {
+                                    if (isVoid) {
+                                        this.game.floorLevel = 0;  // ホームフロアに戻る
+                                        this.game.generateNewFloor();
+                                        this.game.soundManager.updateBGM();
+                                        
+                                        // プレイヤーをホームフロアのポータルの1マス下に配置
+                                        for (let y = 0; y < this.game.height; y++) {
+                                            for (let x = 0; x < this.game.width; x++) {
+                                                if (this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+                                                    this.game.player.x = x;
+                                                    this.game.player.y = y + 1;  // ポータルの1マス下
+                                                    return;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        this.game.floorLevel++;
+                                        this.game.generateNewFloor();
+                                        this.game.soundManager.updateBGM();
+                                    }
+                                });
+                                this.game.soundManager.playPortalSound();
+                                this.game.processTurn();
+                            } else {
+                                this.game.logger.add(`You decide not to enter the ${isVoid ? 'VOID' : ''} portal.`, "playerInfo");
+                            }
+                        }
+                    });
+                }, 0);
+
+                this.mode = 'normal';  // インタラクトモードを終了
+                return;
+            }
+
+            this.game.logger.add("Nothing to interact with in that direction.", "warning");
+            this.mode = 'normal';
+            return;
+        }
+
+        // スペースキーでインタラクションモードを開始
+        if (key === ' ') {
+            this.mode = 'interact';
+            this.game.logger.add("Choose direction to interact. (Press direction key)", "info");
+            return;
+        }
+
         // --- Look Mode Processing ---
         if (this.lookMode) {
             this.handleLookMode(key);
