@@ -537,8 +537,98 @@ class InputHandler {
 
         // スペースキーでインタラクションモードを開始
         if (key === ' ') {
-            this.mode = 'interact';
-            this.game.logger.add("Choose direction to interact. (Press direction key)", "info");
+            // インタラクト可能なオブジェクトを探す
+            const player = this.game.player;
+            const interactables = [];
+
+            // 現在のマスをチェック
+            const currentTile = this.game.tiles[player.y][player.x];
+            if (currentTile === GAME_CONSTANTS.PORTAL.VOID.CHAR || 
+                currentTile === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+                interactables.push({ x: player.x, y: player.y, type: 'portal', tile: currentTile });
+            }
+
+            // 隣接マスをチェック
+            const adjacentOffsets = [
+                { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 },
+                { dx: -1, dy: 0 },                      { dx: 1, dy: 0 },
+                { dx: -1, dy: 1 },  { dx: 0, dy: 1 },  { dx: 1, dy: 1 }
+            ];
+
+            // 隣接する扉とポータルをチェック
+            for (let offset of adjacentOffsets) {
+                const x = player.x + offset.dx;
+                const y = player.y + offset.dy;
+
+                if (x < 0 || x >= this.game.width || y < 0 || y >= this.game.height) continue;
+
+                const tile = this.game.tiles[y][x];
+                if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED || 
+                    tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
+                    interactables.push({ x, y, type: 'door', tile });
+                } else if (tile === GAME_CONSTANTS.PORTAL.VOID.CHAR || 
+                         tile === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+                    interactables.push({ x, y, type: 'portal', tile });
+                }
+            }
+
+            // インタラクト可能なオブジェクトが1つだけの場合
+            if (interactables.length === 1) {
+                const target = interactables[0];
+                if (target.type === 'door') {
+                    const operation = target.tile === GAME_CONSTANTS.TILES.DOOR.CLOSED ? 'o' : 'c';
+                    this.operateDoor({ x: target.x, y: target.y, tile: target.tile }, operation);
+                    this.game.processTurn();
+                    this.game.renderer.render();
+                } else if (target.type === 'portal') {
+                    const isVoid = target.tile === GAME_CONSTANTS.PORTAL.VOID.CHAR;
+                    this.game.logger.add(`Enter the ${isVoid ? 'VOID' : ''} portal? [y/n]`, "important");
+                    
+                    setTimeout(() => {
+                        this.game.setInputMode('confirm', {
+                            callback: (confirmed) => {
+                                if (confirmed) {
+                                    this.game.logger.add(`You step into the ${isVoid ? 'VOID' : ''} portal...`, "important");
+                                    this.game.renderer.startPortalTransition(() => {
+                                        if (isVoid) {
+                                            this.game.floorLevel = 0;
+                                            this.game.generateNewFloor();
+                                            this.game.soundManager.updateBGM();
+                                            
+                                            for (let y = 0; y < this.game.height; y++) {
+                                                for (let x = 0; x < this.game.width; x++) {
+                                                    if (this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+                                                        this.game.player.x = x;
+                                                        this.game.player.y = y + 1;
+                                                        return;
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            this.game.floorLevel++;
+                                            this.game.generateNewFloor();
+                                            this.game.soundManager.updateBGM();
+                                        }
+                                    });
+                                    this.game.soundManager.playPortalSound();
+                                    this.game.processTurn();
+                                } else {
+                                    this.game.logger.add(`You decide not to enter the ${isVoid ? 'VOID' : ''} portal.`, "playerInfo");
+                                }
+                            }
+                        });
+                    }, 0);
+                }
+                return;
+            }
+
+            // 複数のインタラクト可能なオブジェクトがある場合は通常のインタラクトモードを開始
+            if (interactables.length > 0) {
+                this.mode = 'interact';
+                this.game.logger.add("Choose direction to interact. (Press direction key)", "info");
+            } else {
+                this.game.logger.add("Nothing to interact with nearby.", "warning");
+            }
             return;
         }
 
