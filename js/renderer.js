@@ -1282,6 +1282,9 @@ class Renderer {
     }
 
     examineTarget(targetX, targetY, lookMode = false) {
+        // ターン毎にlookInfoをクリアするため、game.loggerのメソッドを呼び出す
+        this.game.logger.clearLookInfo();
+
         let monster = this.game.getMonsterAt(targetX, targetY);
         
         const container = document.createElement('div');

@@ -354,6 +354,13 @@ class Logger {
         this.gameOverMessageShown = false;
     }
 
+    clearLookInfo() {
+        this.currentLookInfo = null;
+        if (this.game.mode === GAME_CONSTANTS.MODES.GAME) {
+            this.renderLookPanel();
+        }
+    }
+
     showGameOverMessage(finalScore) {
         // ゲームオーバーメッセージが既に表示されているかチェック
         if (this.gameOverMessageShown) return;

@@ -561,6 +561,9 @@ class Game {
         this.removeMonster(monster);
         this.renderer.showDeathEffect(monster.x, monster.y);
 
+        // lookパネルを更新
+        this.logger.clearLookInfo();
+
         // 新規: モンスターを倒した時の効果音を再生
         this.playSound('killMonsterSound');
 

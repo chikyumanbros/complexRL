@@ -1039,53 +1039,30 @@ body::before {
     padding-top: 10px;
     display: flex;
     flex-direction: column;
-   
-    max-height: 250px; /* 約4体分の高さ */
-    overflow-y: auto;
-    padding-right: 5px; /* スクロールバー用の余白 */
+    height: 250px; /* 固定高さを維持 */
+    overflow: hidden; /* スクロールを無効化し、超過分を非表示に */
 }
 
 .nearby-enemies-list {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    
 }
 
 .enemy-entry {
     display: flex;
-    flex-direction: column; /* HPバーを縦に配置 */
-    gap: 2px; /* 情報とHPバーの間隔 */
+    flex-direction: column;
+    gap: 2px;
 }
 
 .enemy-info-line {
-    /* 敵の名前や状態表示 */
     display: flex;
     align-items: center;
     gap: 5px;
 }
 
 .enemy-hp-bar {
-    /* HPバー */
     margin-left: 2.3em;
-}
-
-/* 敵リストのスクロールバースタイル */
-.enemy-info::-webkit-scrollbar {
-    width: 8px;
-}
-
-.enemy-info::-webkit-scrollbar-track {
-    background: #222;
-}
-
-.enemy-info::-webkit-scrollbar-thumb {
-    background: #444;
-    border-radius: 4px;
-}
-
-.enemy-info::-webkit-scrollbar-thumb:hover {
-    background: #555;
 }
 
 /* タブキーによるフォーカスを無効化 */

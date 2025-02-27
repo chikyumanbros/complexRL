@@ -1421,22 +1421,22 @@ class InputHandler {
 
     // メッセージログのスクロール制御
     handleLogScroll(key) {
-        let targetElement;
-        
-        // ヘルプモード中はヘルプパネルをスクロール
-        if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
-            targetElement = document.getElementById('available-skills');
-        } else {
-            targetElement = document.getElementById('message-log');
-        }
-        
-        if (!targetElement) return;
+        const logPanel = document.getElementById('message-log');
+        const enemyInfo = document.querySelector('.enemy-info');
+        const scrollAmount = 30;
 
-        const scrollAmount = 50; // 1回のスクロール量（ピクセル）
         if (key === '[') {
-            targetElement.scrollTop -= scrollAmount; // 上にスクロール
+            if (document.activeElement === logPanel) {
+                logPanel.scrollTop -= scrollAmount;
+            } else if (enemyInfo) {
+                enemyInfo.scrollTop -= scrollAmount;
+            }
         } else if (key === ']') {
-            targetElement.scrollTop += scrollAmount; // 下にスクロール
+            if (document.activeElement === logPanel) {
+                logPanel.scrollTop += scrollAmount;
+            } else if (enemyInfo) {
+                enemyInfo.scrollTop += scrollAmount;
+            }
         }
     }
 }
