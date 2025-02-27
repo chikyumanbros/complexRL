@@ -608,26 +608,31 @@ class Game {
         const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(oldVigor, this.player.stats);
         const newStatus = GAME_CONSTANTS.VIGOR.getStatus(newVigor, this.player.stats);
 
-        // Vigor変動のログ出力を修正
-        const changeDesc = vigorChange > 0 ? "restores" : "depletes";
-        // Vigor増減の言葉遣いを精神的な意味合いも込めて変更
-        const vigorVerb = vigorChange > 0 ? "is invigorated" : "is drained";
-        this.logger.add(
-            `Combat ${changeDesc} your vigor. Your spirit ${vigorVerb}.`,
-            vigorChange > 0 ? "playerInfo" : "warning"
-        );
+        if (vigorChange !== 0) {
+            // 自動移動を停止
+            this.player.stopAllAutoMovement();
 
-        // 状態が変化した場合は追加のメッセージ（既存のまま）
-        if (oldStatus.name !== newStatus.name) {
+            // Vigor変動のログ出力を修正
+            const changeDesc = vigorChange > 0 ? "restores" : "depletes";
+            // Vigor増減の言葉遣いを精神的な意味合いも込めて変更
+            const vigorVerb = vigorChange > 0 ? "is invigorated" : "is drained";
             this.logger.add(
-                `Your vigor state changed to ${newStatus.name.toLowerCase()}.`,
-                "warning"
+                `Combat ${changeDesc} your vigor. Your spirit ${vigorVerb}.`,
+                vigorChange > 0 ? "playerInfo" : "warning"
             );
-            // Vigor状態変化時に効果音を再生
-            if (vigorChange > 0) {
-                this.playSound('vigorUpSound');
-            } else {
-                this.playSound('vigorDownSound');
+
+            // 状態が変化した場合は追加のメッセージ（既存のまま）
+            if (oldStatus.name !== newStatus.name) {
+                this.logger.add(
+                    `Your vigor state changed to ${newStatus.name.toLowerCase()}.`,
+                    "warning"
+                );
+                // Vigor状態変化時に効果音を再生
+                if (vigorChange > 0) {
+                    this.playSound('vigorUpSound');
+                } else {
+                    this.playSound('vigorDownSound');
+                }
             }
         }
 
@@ -688,6 +693,9 @@ class Game {
 
         // Vigor値の更新と状態変化チェック
         if (vigorChange !== 0) {
+            // 自動移動を停止
+            this.player.stopAllAutoMovement();
+
             const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
             this.player.vigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, this.player.vigor + vigorChange));
             this.player.validateVigor();  // Add validation after changing vigor
@@ -1537,6 +1545,8 @@ class Game {
         console.log('=== Vigor Penalty Roll ===');
         console.log(`Current Vigor Status: ${vigorStatus.name}`);
 
+        // 自動移動を停止を削除
+
         switch (vigorStatus.name) {
             case 'Exhausted': // Exhausted状態の処理を追加
             // 1d10で判定、1-3で発動（30%） - 中確率でペナルティ発動
@@ -1604,54 +1614,24 @@ class Game {
 
         // 効果の適用
         if (severity) {
+            // 効果が発生する場合のみ自動移動を停止
+            this.player.stopAllAutoMovement();
+
             // グローバルオブジェクトから VigorEffects を参照
             const effect = VigorEffects.getVigorPenaltyEffect(severity);
             console.log(`Selected Severity: ${severity}`);
             console.log(`Selected Effect: ${effect.type}`);
             const vigorEffects = new VigorEffects(this);
             vigorEffects.applyVigorEffect(effect);  // インスタンスメソッドとして呼び出し
+            
+            // エフェクトの描画をクリア
+            if (effect.type === 'shortTeleport') {
+                this.renderer.clearEffects();
+            }
         } else {
             console.log('No effect triggered');
         }
         console.log('========================');
-    }
-
-    forgetSomeTiles() {
-        const exploredTiles = [];
-        for (let y = 0; y < this.height; y++) {
-            for (let x = 0; x < this.width; x++) {
-                if (this.explored[y][x] && !this.isVisible(x, y)) {
-                    exploredTiles.push({ x, y });
-                }
-            }
-        }
-        // 探索済みタイルの30%をランダムに忘れる
-        const tilesToForget = Math.floor(exploredTiles.length * 0.3);
-        for (let i = 0; i < tilesToForget; i++) {
-            if (exploredTiles.length === 0) break;
-            const index = Math.floor(Math.random() * exploredTiles.length);
-            const tile = exploredTiles.splice(index, 1)[0];
-            this.explored[tile.y][tile.x] = false;
-        }
-        this.playSound('forgetSound');
-    }
-
-    // 新規: ランダムなテレポート処理
-    randomTeleport() {
-        this.renderer.startPortalTransition(() => {
-            let x, y;
-            do {
-                x = Math.floor(Math.random() * this.width);
-                y = Math.floor(Math.random() * this.height);
-            } while (this.map[y][x] === 'wall' || this.getMonsterAt(x, y) ||
-                     (x === this.player.x && y === this.player.y) ||
-                     GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][x]));
-
-            this.player.x = x;
-            this.player.y = y;
-            this.renderer.render();
-        });
-        this.soundManager.playPortalSound(); // playSound から playPortalSound に変更
     }
 }
 

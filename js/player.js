@@ -1038,4 +1038,17 @@ class Player {
 
         return null;
     }
+
+    // 新規: 全ての自動移動を停止するメソッド
+    stopAllAutoMovement() {
+        if (this.autoExploring) {
+            this.stopAutoExplore();
+        }
+        if (this.autoMovingToStairs) {
+            this.stopAutoMoveToStairs();
+        }
+        if (this.autoMovingToLandmark) {
+            this.stopAutoMoveToLandmark();
+        }
+    }
 } 

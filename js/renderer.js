@@ -1607,7 +1607,7 @@ class Renderer {
     }
 
     startShortPortalTransition(callback) {
-        this.animatePortal(100, 5, callback);
+        this.animatePortal(500, 25, callback);
     }
 
     showDamageFlash() {

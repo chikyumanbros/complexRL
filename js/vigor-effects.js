@@ -8,6 +8,21 @@ class VigorEffects {
             return null;
         }
 
+        // Exhaustedの場合は、ネガティブな効果のみを選択
+        if (severity === 'Exhausted') {
+            const effects = {
+                'Exhausted': [
+                    { type: 'forceDescend', weight: 20 },
+                    { type: 'forgetAllTiles', weight: 20 },
+                    { type: 'randomTeleport', weight: 20 },
+                    { type: 'pauseAndShift', weight: 20 },
+                    { type: 'forgetSomeTiles', weight: 20 }
+                ]
+            };
+
+            return VigorEffects.weightedRandomChoice(effects['Exhausted']);
+        }
+
         const effects = {
             'Moderate': [
                 { type: 'forgetSomeTiles', weight: 50 },
@@ -24,13 +39,6 @@ class VigorEffects {
                 { type: 'randomTeleport', weight: 25 },
                 { type: 'forceDescend', weight: 20 },
                 { type: 'pauseAndShift', weight: 30 }
-            ],
-            'Exhausted': [
-                { type: 'forceDescend', weight: 20 },
-                { type: 'forgetAllTiles', weight: 20 },
-                { type: 'randomTeleport', weight: 20 },
-                { type: 'pauseAndShift', weight: 20 },
-                { type: 'forgetSomeTiles', weight: 20 }
             ],
             'positive': [
                 { type: 'revealAll', weight: 30 },
@@ -71,13 +79,22 @@ class VigorEffects {
         if (!effect) {
             return;
         }
+
+        // エフェクト適用時に入力状態をリセット
+        this.game.inputHandler.resetInput();
+        this.game.player.stopAllAutoMovement();
+
         switch (effect.type) {
             case 'pauseAndShift':
                 this.game.logger.add("Your exhaustion forces you to pause, and the world shifts...", "warning");
                 this.game.player.meditation = {
                     active: true,
-                    duration: 1  // 1ターンだけ
+                    soundStarted: false,
+                    healPerTurn: Math.floor(this.game.player.stats.wis / 3),
+                    turnsRemaining: 1,  // 1ターンだけ
+                    totalHealed: 0
                 };
+                this.game.logger.add("You enter a meditative state.", "warning");
                 this.game.playSound('meditationSound', true); // meditationSoundをループ再生
                 break;
 
@@ -87,6 +104,7 @@ class VigorEffects {
                     this.game.floorLevel++;
                     this.game.generateNewFloor();
                     this.game.soundManager.updateBGM();
+                    this.game.logger.add(`You descend to floor ${this.game.floorLevel}...`, "warning");
                 });
                 this.game.soundManager.playPortalSound();
                 break;
@@ -106,7 +124,6 @@ class VigorEffects {
                     this.game.player.y = y;
                     this.game.renderer.render();
                 });
-                // startShortPortalTransition の外でサウンドを再生
                 this.game.soundManager.playPortalSound();
                 break;
 
