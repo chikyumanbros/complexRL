@@ -74,6 +74,9 @@ class InputHandler {
             }
             // ヘルプモードの解除を追加
             if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
+                if (document.body.classList.contains('codex-mode')) {
+                    document.body.classList.remove('codex-mode');  // Codexモードのクラスを削除
+                }
                 this.game.toggleMode();
                 return;
             }
@@ -275,6 +278,12 @@ class InputHandler {
         if (this.game.mode === GAME_CONSTANTS.MODES.HELP && !document.body.classList.contains('codex-mode')) {
             if (key === 'escape') {
                 this.game.toggleMode();  // 変更: toggleModeを使用
+            } else if (key === 'tab') {
+                event.preventDefault();
+                this.game.toggleMode();  // ヘルプモードを解除
+                this.toggleCodexMode();  // Codexモードを有効化
+                this.game.mode = GAME_CONSTANTS.MODES.CODEX;  // モードをCodexに設定
+                this.game.renderer.renderCodexMenu();  // Codexメニューを表示
             }
             return;
         }
