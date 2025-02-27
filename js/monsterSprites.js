@@ -177,7 +177,7 @@ const SPRITE_COLORS = {
 
         if (Math.random() < glitchChance) {
             // グリッチ用の色をランダムに選択
-            const glitchColors = ['rgb(38, 155, 42)', 'rgb(139, 17, 135)', 'rgb(202, 202, 202)', 'rgb(13, 18, 11)']; // より落ち着いたグリッチ色
+            const glitchColors = ['#00FF00', '#FF00FF', '#00FFFF', '#FF0000']; // サイバーパンク風の色
             return glitchColors[Math.floor(Math.random() * glitchColors.length)];
         } else {
             // ステータス変動に基づいて色のブレ幅を調整
