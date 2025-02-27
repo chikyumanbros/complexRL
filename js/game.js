@@ -907,9 +907,6 @@ class Game {
         // セーブデータを削除
         localStorage.removeItem('complexRL_saveData');
 
-        // vigorを安全な値にリセット
-        this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
-
         // Calculate final score.
         const monstersKilled = this.maxTotalMonsters - this.monsters.length;
         const finalScore = {
