@@ -60,7 +60,6 @@ class VigorEffects {
                     active: true,
                     duration: 1  // 1ターンだけ
                 };
-                this.game.playSound('waitSound'); // 適切なサウンドに変更
                 this.game.playSound('meditationSound', true); // meditationSoundをループ再生
                 break;
 

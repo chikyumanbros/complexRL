@@ -1550,12 +1550,15 @@ class Game {
                 
                 // プレイヤーにダメージを与える
                 this.player.hp = Math.max(0, this.player.hp - exhaustionDamage);
+                this.soundManager.playSound('takeDamageSound');
+                this.renderer.flashStatusPanel();
                 
                 // ダメージのログを表示
                 this.logger.add(`You take ${exhaustionDamage} damage from exhaustion!`, "warning");
                 
                 // 死亡判定
                 if (this.player.hp <= 0) {
+                    this.soundManager.playSound('playerDeathSound');
                     this.logger.add("You succumb to exhaustion...", "important");
                     this.gameOver();
                 }
