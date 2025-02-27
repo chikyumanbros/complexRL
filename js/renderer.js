@@ -1500,7 +1500,7 @@ class Renderer {
 
         // タイトルアートの後に追加するクレジット情報
         const credits = [
-            "v0.1.0 alpha || Ditch the mouse, embrace the VIM!", 
+            "v0.1.0 alpha || Ditch the mouse, embrace the VI!", 
             "Font: IBM EGA 9x8 & IBM VGA 8x16 || Source: The Ultimate Oldschool PC Font Pack by VileR",
             "Licensed under CC BY-SA 4.0",
             "https://int10h.org/oldschool-pc-fonts/",

@@ -533,7 +533,7 @@ class Monster {
 
         // MONSTERSを直接参照するように変更
         const availableTypes = Object.entries(MONSTERS)
-            .filter(([_, data]) => data.level <= effectiveLevel + 1)  // +2から+1に変更
+            .filter(([_, data]) => data.level <= effectiveLevel)  // +1を削除
             .map(([type, _]) => type);
 
         const weightedTypes = availableTypes.map(type => {
