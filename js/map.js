@@ -884,6 +884,23 @@ class MapGenerator {
     }
 
     placeVoidPortal() {
+        // 危険度に基づいて生成確率を決定
+        const spawnChances = {
+            'SAFE': 0.1,      // 安全な場所には10%の確率で出現
+            'NORMAL': 0.3,    // 通常の場所には30%の確率で出現
+            'DANGEROUS': 0.5, // 危険な場所には50%の確率で出現
+            'DEADLY': 0.7     // 致命的な場所には70%の確率で出現
+        };
+
+        // 現在の危険度に基づいて生成判定
+        const currentDanger = this.game?.dangerLevel || 'NORMAL';
+        const spawnChance = spawnChances[currentDanger];
+        
+        // 確率判定に失敗した場合は生成しない
+        if (Math.random() > spawnChance) {
+            return;
+        }
+
         // 最初の部屋以外からランダムに部屋を選択
         const availableRooms = this.rooms.slice(1);
         if (availableRooms.length === 0) return;
