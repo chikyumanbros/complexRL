@@ -820,7 +820,7 @@ class Renderer {
         if (!pos) return;
 
         const centerX = pos.x;
-        const centerY = pos.y - pos.height / 2;
+        const centerY = pos.y;
 
         const particleCount = 50;
         for (let i = 0; i < particleCount; i++) {
@@ -851,7 +851,7 @@ class Renderer {
         if (!pos) return;
 
         const centerX = pos.x;
-        const centerY = pos.y - pos.height / 2;
+        const centerY = pos.y;
         const bottomValue = particleLayer.offsetHeight - centerY;
 
         const pillar = document.createElement('div');
@@ -873,8 +873,8 @@ class Renderer {
         const pos = this.getTilePosition(x, y);
         if (!pos) return;
 
-        const centerX = pos.x - pos.width / 4;
-        const centerY = pos.y - pos.height / 4;
+        const centerX = pos.x;
+        const centerY = pos.y;
 
         const particleCount = 50;
         for (let i = 0; i < particleCount; i++) {
@@ -906,19 +906,19 @@ class Renderer {
         const pos = this.getTilePosition(x, y);
         if (!pos) return;
 
-        const centerX = pos.x + pos.width / 2;
-        const centerY = pos.y + pos.height / 2;
+        const centerX = pos.x;
+        const centerY = pos.y;
 
         // エフェクトの設定
         const config = {
             miss: {
                 color: '#ffff00',
-                size: 15,
+                size: 10,
                 duration: '0.4s'
             },
             evade: {
                 color: '#00FFFF',
-                size: 15,
+                size: 10,
                 duration: '0.4s'
             }
         };
@@ -930,10 +930,10 @@ class Renderer {
         ring.classList.add('miss-ring');
 
         // リングのスタイル設定
-        ring.style.left = (centerX - settings.size) + "px";
-        ring.style.top = (centerY - settings.size) + "px";
-        ring.style.width = settings.size + "px";
-        ring.style.height = settings.size + "px";
+        ring.style.left = centerX + "px";
+        ring.style.top = centerY + "px";
+        ring.style.width = (settings.size * 2) + "px";
+        ring.style.height = (settings.size * 2) + "px";
         ring.style.borderColor = settings.color;
         ring.style.animationDuration = settings.duration;
 
@@ -963,9 +963,9 @@ class Renderer {
             popup.style.color = '#44ff44';  // プレイヤーのクリティカル: 緑色
         }
 
-        // 位置を設定
+        // 位置を設定 - y座標を下に調整
         popup.style.left = pos.x + 'px';
-        popup.style.top = (pos.y - pos.height / 2) + 'px';
+        popup.style.top = (pos.y + pos.height / 8) + 'px';  // タイルの中央に表示するよう調整
 
         particleLayer.appendChild(popup);
 
@@ -1444,10 +1444,10 @@ class Renderer {
         const containerRect = gameContainer ? gameContainer.getBoundingClientRect() : { left: 0, top: 0 };
         const tileRect = tileElement.getBoundingClientRect();
 
-        // スケールを考慮した実際の位置を計算
+        // スケールを考慮した実際の位置を計算（タイルの中央を取得）
         return {
-            x: (tileRect.left - containerRect.left - tileRect.width / 8) / scale,
-            y: (tileRect.top - containerRect.top - tileRect.height / 8) / scale,
+            x: (tileRect.left - containerRect.left + tileRect.width / 8) / scale,
+            y: (tileRect.top - containerRect.top + tileRect.height / 4) / scale,
             width: tileRect.width / scale,
             height: tileRect.height / scale
         };
@@ -1553,6 +1553,10 @@ class Renderer {
     animatePortal(duration, steps, callback) {
         let currentStep = 0;
 
+        // オリジナルのマップ状態をバックアップ
+        const originalTiles = this.game.tiles.map(row => [...row]);
+        const originalColors = this.game.colors.map(row => [...row]);
+
         // ポータル遷移開始フラグを設定
         this.game.isPortalTransitioning = true;
 
@@ -1562,6 +1566,11 @@ class Renderer {
                 this.game.isPortalTransitioning = false;
                 // サウンドのフェードアウトを開始
                 this.game.soundManager.fadeOutPortalSound();
+
+                // マップを元の状態に戻す
+                this.game.tiles = originalTiles.map(row => [...row]);
+                this.game.colors = originalColors.map(row => [...row]);
+
                 callback();
                 // 通常のレンダリングを再開
                 this.render();

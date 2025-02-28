@@ -368,7 +368,7 @@ class InputHandler {
     }
 
     handleNameInput(key, event) {
-        if (key === 'Enter' && this.nameBuffer.trim().length > 0) {
+        if (key === 'enter' && this.nameBuffer.trim().length > 0) {
             this.game.player.name = this.nameBuffer.trim();
             this.game.renderer.renderStatus();
             this.mode = 'characterCreation';  // 名前入力後はキャラクター作成モードへ
@@ -382,7 +382,7 @@ class InputHandler {
             return;
         }
 
-        if (key === 'Backspace') {
+        if (key === 'backspace') {
             this.nameBuffer = this.nameBuffer.slice(0, -1);
         } else if (key.length === 1 && this.nameBuffer.length < 15) {  // 15文字制限
             // 英数字とスペースのみ許可

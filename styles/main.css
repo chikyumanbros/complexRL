@@ -506,7 +506,7 @@ body {
         opacity: 1;
     }
     100% {
-        transform: translate(var(--dx), var(--dy)) scale(0);
+        transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0);
         opacity: 0;
     }
 }
@@ -525,11 +525,11 @@ body {
 
 @keyframes lightPillarGrow {
     0% {
-        transform: translateX(-50%) scaleY(0);
+        transform: translate(-50%, 0) scaleY(0);
         opacity: 1;
     }
     100% {
-        transform: translateX(-50%) scaleY(1);
+        transform: translate(-50%, 0) scaleY(1);
         opacity: 0;
     }
 }
@@ -540,7 +540,7 @@ body {
     height: 80px;
     background: linear-gradient(180deg, rgba(255, 244, 224, 0.648), rgba(76, 255, 40, 0.595));
     transform-origin: bottom;
-    transform: translateX(-50%) scaleY(0);
+    transform: translate(-50%, 0) scaleY(0);
     animation: lightPillarGrow 0.8s ease-out forwards;
     pointer-events: none;
     z-index: 1000;
@@ -666,15 +666,16 @@ body.help-mode #codex-panel {
     pointer-events: none;
     animation: death-particle 0.8s ease-out forwards;
     opacity: 0.6;
+    transform: translate(-50%, -50%);
 }
 
 @keyframes death-particle {
     0% {
-        transform: translate(0, 0) scale(1);
+        transform: translate(-50%, -50%) scale(1);
         opacity: 0.5;
     }
     100% {
-        transform: translate(var(--dx), var(--dy)) scale(0);
+        transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0);
         opacity: 0;
     }
 }
@@ -727,19 +728,20 @@ body::before {
 .miss-ring {
     position: absolute;
     border: 2px solid;
-    border-radius: 40%;
+    border-radius: 50%;
     pointer-events: none;
     animation: missRing 0.4s forwards;
     z-index: 1000;
+    transform: translate(-50%, -50%);
 }
 
 @keyframes missRing {
     0% {
-        transform: scale(0.7);
+        transform: translate(-50%, -50%) scale(0.7);
         opacity: 0.7;
     }
     100% {
-        transform: scale(1.7);
+        transform: translate(-50%, -50%) scale(1.7);
         opacity: 0;
     }
 }
@@ -786,20 +788,21 @@ body::before {
     text-shadow: 0 0 2px #ff4757;
     pointer-events: none;
     z-index: 1000;
+    transform: translate(-50%, -50%);
     animation: crit-popup 0.5s cubic-bezier(0.11, 0, 0.5, 0) forwards;
 }
 
 @keyframes crit-popup {
     0% {
-        transform: translate(-50%, 0);
+        transform: translate(-50%, -50%);
         opacity: 0;
     }
     20% {
-        transform: translate(-50%, -20px);
+        transform: translate(-50%, -60px);
         opacity: 1;
     }
     100% {
-        transform: translate(-50%, -40px);
+        transform: translate(-50%, -80px);
         opacity: 0;
     }
 }
