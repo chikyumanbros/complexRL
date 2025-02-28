@@ -1518,9 +1518,6 @@ class Renderer {
         const messageLogElement = document.getElementById('message-log');
         if (!messageLogElement) return;
 
-        // タイプライターエフェクトを一時的に無効化
-        messageLogElement.classList.add('no-typewriter');
-
         // ログパネルをクリア
         messageLogElement.innerHTML = '';
 
@@ -1545,25 +1542,46 @@ class Renderer {
             " ░ ░          ░ ░         ░                ░  ░   ░  ░ ░    ░  ",
         ];
 
-        // バージョン、タイトルアート、クレジットを表示
+        // 静的コンテンツ（タイトルアートとクレジット）用の別のコンテナを作成
+        const staticContainer = document.createElement('div');
+        staticContainer.style.animation = 'none';
+        staticContainer.style.transition = 'none';
+        staticContainer.className = 'static-content';
+        staticContainer.style.display = 'block';
+        staticContainer.style.visibility = 'visible';
+        staticContainer.style.opacity = '1';
+        messageLogElement.appendChild(staticContainer);
+        
         // タイトルアート用のコンテナを作成
         const titleArtContainer = document.createElement('div');
         titleArtContainer.className = 'title-art-container';
+        titleArtContainer.style.animation = 'none';
+        titleArtContainer.style.transition = 'none';
         titleArtContainer.style.lineHeight = '0.5';
         titleArtContainer.style.letterSpacing = '-0.05em';
         titleArtContainer.style.margin = '0';
         titleArtContainer.style.padding = '0';
-        messageLogElement.appendChild(titleArtContainer);
+        titleArtContainer.style.display = 'block';
+        titleArtContainer.style.visibility = 'visible';
+        titleArtContainer.style.opacity = '1';
+        staticContainer.appendChild(titleArtContainer);
         
         // タイトルアートを表示
         titleArt.forEach(line => {
             const div = document.createElement('div');
             div.textContent = line;
             div.className = 'message title';
+            div.style.animation = 'none';
+            div.style.transition = 'none';
             div.style.whiteSpace = 'pre';
             div.style.lineHeight = '0.8';
             div.style.margin = '0';
             div.style.padding = '0';
+            div.style.display = 'block';
+            div.style.visibility = 'visible';
+            div.style.opacity = '1';
+            div.style.color = '#fffdd0'; // クリーム色で確実に表示
+            div.style.fontSize = '20px';
             titleArtContainer.appendChild(div);
         });
         
@@ -1572,9 +1590,21 @@ class Renderer {
             const div = document.createElement('div');
             div.textContent = line;
             div.className = 'message title';
+            div.style.animation = 'none';
+            div.style.transition = 'none';
             div.style.whiteSpace = 'pre';
-            messageLogElement.appendChild(div);
+            div.style.display = 'block';
+            div.style.visibility = 'visible';
+            div.style.color = '#fffdd0'; // クリーム色で確実に表示
+            div.style.fontSize = '12px';
+            div.style.opacity = '1';
+            staticContainer.appendChild(div);
         });
+
+        // プロンプトメッセージ用の別のコンテナを作成
+        const dynamicContainer = document.createElement('div');
+        dynamicContainer.className = 'dynamic-content';
+        messageLogElement.appendChild(dynamicContainer);
 
         // プロンプトメッセージを追加
         const messages = [
@@ -1583,12 +1613,20 @@ class Renderer {
             { text: '(Press Enter to confirm)', style: 'hint' }
         ];
 
+        // タイプライターエフェクトを一時的に無効化
+        dynamicContainer.classList.add('no-typewriter');
+
         messages.forEach(msg => {
             const div = document.createElement('div');
             div.textContent = msg.text;
             div.className = `message ${msg.style}`;
-            messageLogElement.appendChild(div);
+            dynamicContainer.appendChild(div);
         });
+
+        // タイプライターエフェクトを再有効化
+        setTimeout(() => {
+            dynamicContainer.classList.remove('no-typewriter');
+        }, 10);
 
         // 最新のメッセージが見えるようにスクロール
         messageLogElement.scrollTop = messageLogElement.scrollHeight;

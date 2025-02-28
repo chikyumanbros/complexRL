@@ -809,7 +809,6 @@ body::before {
 
 /* メッセージタイトル */
 .message.title {
-    color: #ffd700;
     font-family: 'IBM VGA 8x16', monospace;
     font-size: 15px;
     line-height: 0;
