@@ -1169,7 +1169,13 @@ class Renderer {
         const ctx = canvas.getContext('2d');
         
         // スプライトデータを取得
-        const sprite = MONSTER_SPRITES[monster.type];
+        const spriteFrames = MONSTER_SPRITES[monster.type];
+        if (!spriteFrames) return;
+
+        // フレーム番号を決定（0, 1, 2 の循環）
+        const frameIndex = Math.floor(turnCount / 1) % 3;
+        const sprite = spriteFrames[frameIndex];
+        
         if (!sprite) return;
 
         const spriteWidth = sprite[0].length;
@@ -1184,7 +1190,8 @@ class Renderer {
 
         if (!this.spriteColorCache.has(cacheKey)) {
             const colorMap = new Map();
-            sprite.forEach((row, y) => {
+            // 全てのフレームに対して同じ色を使用
+            spriteFrames[0].forEach((row, y) => {
                 [...row].forEach((pixel, x) => {
                     const key = `${x},${y}`;
                     const baseColor = SPRITE_COLORS[pixel];
@@ -1198,7 +1205,15 @@ class Renderer {
         sprite.forEach((row, y) => {
             [...row].forEach((pixel, x) => {
                 if (pixel !== ' ') {
-                    const color = colorMap.get(`${x},${y}`);
+                    // 現在のフレームの文字に対応する色を取得
+                    // もし存在しなければ、基本の色を使用
+                    let color = colorMap.get(`${x},${y}`);
+                    if (!color) {
+                        const baseColor = SPRITE_COLORS[pixel];
+                        color = SPRITE_COLORS.getRandomizedColor(baseColor);
+                        colorMap.set(`${x},${y}`, color);
+                    }
+                    
                     if (color) {
                         ctx.fillStyle = color;
                         ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
@@ -1247,10 +1262,14 @@ class Renderer {
     }
 
     previewMonsterSprite(monsterType, containerId, pixelSize = 8) {
-        const sprite = MONSTER_SPRITES[monsterType];
-        if (!sprite) {
+        const spriteFrames = MONSTER_SPRITES[monsterType];
+        if (!spriteFrames) {
             return;
         }
+
+        // モンスタータイプごとに最初のフレームを使用
+        const sprite = spriteFrames[0];
+        if (!sprite) return;
 
         // コンテナ要素を取得
         const container = document.getElementById(containerId);
@@ -1515,20 +1534,45 @@ class Renderer {
 
         // バージョン表記とタイトルアートを表示
         const titleArt = [
-            "''''.JMMMMM:' .MMMMMMMNa.' .TMMM|'''  dMMM#^ T''MMMMMMN,'dMMMMMM> ''.MMMMMMMMN WMMMMMM@^(WMMMM$' '' ",
-            "''' .MM@^_7^ '(MMD''' 7MMN,'''dMMN  ''dMM]''''''JM#''(WM[' (MM%'' '' '' MM%''.T$'' ,MMM,'.d#^'' '' '",
-            "''  MMF' '' '.MMF'  '' .MMM_ 'MMMM]' .MMM]'  ' ',M# ' JMF''.MM>' '' ' '.MM: ' '' ''' TMNJM''' ' '' ' ",
-            "'''MM)' ''' (MM]''' '''dMM''.Mt(MN..MDWM]''' ' -M#.gMMB'''-M#' '' ''' .MMNMMM_ ' ' ''JMMN '' '' '''",
-            "'  MM]''  ...MMN,' ' ' dMF' ,M}.MMNM3'JM# '' ''(MN ''''JM#'' '' ,'',MM ' ?'' ' ' (M@WMN.'' ' ' ' ",
-            "'dMM,..JM^',MMMa,''.JMF''(M' ,MM'''-MM_' '.JMN'  '''''JMN....&MF '.MM/' ..,'''.M#^''TMM,'' '''  ",
-            "''' WMMMM@''''.'WMMMMM9'.JgNMMJ, T^ gNMMMMNp,MMMMMMM'' 'jMMMMMMMMMD'(NMMMMMMMF dMMMMb '.+MMMMMN.'''",
+            "  ▄████▄   ▒█████   ███▄ ▄███▓ ██▓███   ██▓    ▓█████ ▒██   ██▒",
+            " ▒██▀ ▀█  ▒██▒  ██▒▓██▒▀█▀ ██▒▓██░  ██▒▓██▒    ▓█   ▀ ▒▒ █ █ ▒░",
+            " ▒▓█    ▄ ▒██░  ██▒▓██    ▓██░▓██░ ██▓▒▒██░    ▒███   ░░  █   ░",
+            " ▒▓▓▄ ▄██▒▒██   ██░▒██    ▒██ ▒██▄█▓▒ ▒▒██░    ▒▓█  ▄  ░ █ █ ▒ ",
+            " ▒ ▓███▀ ░░ ████▓▒░▒██▒   ░██▒▒██▒ ░  ░░██████▒░▒████▒▒██▒ ▒██▒",
+            " ░ ░▒ ▒  ░░ ▒░▒░▒░ ░ ▒░   ░  ░▒▓▒░ ░  ░░ ▒░▓  ░░░ ▒░ ░▒▒ ░ ░▓ ░",
+            "   ░  ▒     ░ ▒ ▒░ ░  ░      ░░▒ ░     ░ ░ ▒  ░ ░ ░  ░░░   ░▒ ░",
+            " ░        ░ ░ ░ ▒  ░      ░   ░░         ░ ░      ░    ░    ░  ",
+            " ░ ░          ░ ░         ░                ░  ░   ░  ░ ░    ░  ",
         ];
 
         // バージョン、タイトルアート、クレジットを表示
-        [...titleArt, '', ...credits].forEach(line => {
+        // タイトルアート用のコンテナを作成
+        const titleArtContainer = document.createElement('div');
+        titleArtContainer.className = 'title-art-container';
+        titleArtContainer.style.lineHeight = '0.5';
+        titleArtContainer.style.letterSpacing = '-0.05em';
+        titleArtContainer.style.margin = '0';
+        titleArtContainer.style.padding = '0';
+        messageLogElement.appendChild(titleArtContainer);
+        
+        // タイトルアートを表示
+        titleArt.forEach(line => {
             const div = document.createElement('div');
             div.textContent = line;
             div.className = 'message title';
+            div.style.whiteSpace = 'pre';
+            div.style.lineHeight = '0.8';
+            div.style.margin = '0';
+            div.style.padding = '0';
+            titleArtContainer.appendChild(div);
+        });
+        
+        // 空行とクレジットを表示
+        ['', ...credits].forEach(line => {
+            const div = document.createElement('div');
+            div.textContent = line;
+            div.className = 'message title';
+            div.style.whiteSpace = 'pre';
             messageLogElement.appendChild(div);
         });
 
