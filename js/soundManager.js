@@ -55,6 +55,9 @@ class SoundManager {
         this.setSeVolume(this.seVolume); // 初期ボリュームを設定
 
         this.userInteracted = false; // ユーザー操作検知用フラグ
+
+        // フェードアウト処理中フラグ
+        this.isPortalFadingOut = false;
     }
 
     // BGMの更新
@@ -211,27 +214,31 @@ class SoundManager {
         // ループ設定
         audio.loop = loop;
 
+        // 再生を安全に行う関数
+        const safePlay = () => {
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.warn('Sound playback failed:', error);
+                });
+            }
+        };
+
         // 現在再生中の場合は一度停止してから再生
         if (!audio.paused) {
             audio.pause();
             audio.currentTime = 0;
             
-            // 少し遅延を入れてから再生
+            // 少し遅延を入れてから再生 (タイミング問題を防ぐために遅延を増やす)
             setTimeout(() => {
-                audio.play().catch(error => {
-                    if (error.name !== 'NotAllowedError') {
-                        console.warn('Sound playback failed:', error);
-                    }
-                });
-            }, 50);
+                safePlay();
+            }, 100);
         } else {
-            // 停止している場合は直接再生
+            // 停止している場合は直接再生するが、わずかな遅延を入れる
             audio.currentTime = 0;
-            audio.play().catch(error => {
-                if (error.name !== 'NotAllowedError') {
-                    console.warn('Sound playback failed:', error);
-                }
-            });
+            setTimeout(() => {
+                safePlay();
+            }, 10);
         }
     }
 
@@ -247,6 +254,9 @@ class SoundManager {
     // portalSound専用のフェードアウトメソッド
     fadeOutPortalSound(duration = 100) {
         if (!this.portalSound || this.portalSound.paused) return;
+        
+        // フェードアウト処理中フラグを設定
+        this.isPortalFadingOut = true;
 
         const startVolume = this.portalSound.volume;
         const startTime = performance.now();
@@ -263,6 +273,8 @@ class SoundManager {
                 this.portalSound.pause();
                 this.portalSound.currentTime = 0;
                 this.portalSound.volume = this.seVolume; // 音量を元に戻す
+                // フェードアウト完了後にフラグをリセット
+                this.isPortalFadingOut = false;
             }
         };
 
@@ -272,29 +284,39 @@ class SoundManager {
     // portalSound専用の再生メソッドを追加
     playPortalSound() {
         if (!this.userInteracted) return;
+        
+        // フェードアウト処理中の場合は再生を遅延させる
+        if (this.isPortalFadingOut) {
+            setTimeout(() => this.playPortalSound(), 300);
+            return;
+        }
 
-        // 既存のportalSoundが再生中の場合は停止
+        // 既存のportalSoundが再生中の場合は停止し、完全に終了するのを待つ
         if (!this.portalSound.paused) {
             this.portalSound.pause();
             this.portalSound.currentTime = 0;
             
-            // 少し遅延を入れてからポータルサウンドを再生
+            // 完全に停止するのを確実にするため、より長い遅延を設ける
             setTimeout(() => {
                 this.portalSound.volume = this.seVolume;
-                this.portalSound.play().catch(error => {
-                    if (error.name !== 'NotAllowedError') {
+                const playPromise = this.portalSound.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
                         console.warn('Portal sound playback failed:', error);
-                    }
-                });
-            }, 50); // 50ミリ秒の遅延
-        } else {
-            // 停止していない場合はそのまま再生
-            this.portalSound.volume = this.seVolume;
-            this.portalSound.play().catch(error => {
-                if (error.name !== 'NotAllowedError') {
-                    console.warn('Portal sound playback failed:', error);
+                    });
                 }
-            });
+            }, 200); // 遅延を200msに増やす
+        } else {
+            // 停止している場合も少し遅延を入れて安全に再生
+            setTimeout(() => {
+                this.portalSound.volume = this.seVolume;
+                const playPromise = this.portalSound.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.warn('Portal sound playback failed:', error);
+                    });
+                }
+            }, 50);
         }
     }
 } 

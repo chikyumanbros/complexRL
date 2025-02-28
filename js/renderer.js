@@ -1447,7 +1447,7 @@ class Renderer {
         // スケールを考慮した実際の位置を計算（タイルの中央を取得）
         return {
             x: (tileRect.left - containerRect.left + tileRect.width / 8) / scale,
-            y: (tileRect.top - containerRect.top + tileRect.height / 4) / scale,
+            y: (tileRect.top - containerRect.top + tileRect.height / 9) / scale,
             width: tileRect.width / scale,
             height: tileRect.height / scale
         };

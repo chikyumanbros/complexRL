@@ -1,15 +1,20 @@
 class Game {
     constructor() {
-        this.width = GAME_CONSTANTS.DIMENSIONS.WIDTH;
-        this.height = GAME_CONSTANTS.DIMENSIONS.HEIGHT;
-        this.map = [];
-        this.tiles = [];
-        this.colors = [];
-        this.player = new Player(0, 0, this);  // Coordinates will be set later
+        // Display setup
+        this.width = 65;
+        this.height = 35;
+        this.renderer = new Renderer(this);
+        this.soundManager = new SoundManager(this);
+        this.inputHandler = new InputHandler(this);
+        this.vigorEffects = new VigorEffects(this);
+
+        // デバッグユーティリティの初期化
+        this.debugUtils = new DebugUtils(this);
+
+        // Game state
+        this.player = new Player(0, 0, this);
         this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;  // 明示的に設定
         this.codexSystem = new CodexSystem();
-        this.renderer = new Renderer(this);
-        this.inputHandler = new InputHandler(this);
         this.logger = new Logger(this);
         this.mode = GAME_CONSTANTS.MODES.GAME;
         this.turn = 0;
@@ -27,9 +32,6 @@ class Game {
 
         // 死亡したモンスターの処理キューを追加
         this.pendingMonsterDeaths = [];
-
-        // サウンド管理を初期化
-        this.soundManager = new SoundManager(this);
 
         this.init();
 
@@ -1620,9 +1622,14 @@ class Game {
         if (severity) {
 
             // グローバルオブジェクトから VigorEffects を参照
-            const effect = VigorEffects.getVigorPenaltyEffect(severity);
+            const effect = VigorEffects.getVigorPenaltyEffect(severity, vigorStatus.name);
+            if (!effect) {
+                console.log(`No effect applied for severity: ${severity}, vigorStatus: ${vigorStatus.name}`);
+                return;
+            }
             console.log(`Selected Severity: ${severity}`);
-            console.log(`Selected Effect: ${effect.type}`);
+            console.log(`Selected Effect Type: ${effect.type}`);
+            console.log(`Effect Details:`, effect);
             const vigorEffects = new VigorEffects(this);
             vigorEffects.applyVigorEffect(effect);  // インスタンスメソッドとして呼び出し
             

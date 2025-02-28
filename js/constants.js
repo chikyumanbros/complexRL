@@ -534,13 +534,14 @@ const GAME_CONSTANTS = {
             HIGH: 75,     // 健全
             MODERATE: 50, // 疲労
             LOW: 25,      // 消耗
-            CRITICAL: 10  // 限界
+            CRITICAL: 10,  // 限界
+            EXHAUSTED: 0   // 枯渇
         },
         DECREASE: {
             HEALTHY: 1,
-            WOUNDED: 1,
-            BADLY_WOUNDED: 1,
-            NEAR_DEATH: 1
+            WOUNDED: 2,
+            BADLY_WOUNDED: 3,
+            NEAR_DEATH: 4
         },
         calculateDecreaseChance: (turnsInFloor, dangerLevel) => {
             let baseChance;
@@ -576,19 +577,20 @@ const GAME_CONSTANTS = {
                 HIGH: Math.floor(Math.min(90, Math.max(60, this.THRESHOLDS.HIGH - strModifier - intModifier))),
                 MODERATE: Math.floor(Math.min(65, Math.max(35, this.THRESHOLDS.MODERATE - strModifier - intModifier))),
                 LOW: Math.floor(Math.min(40, Math.max(15, this.THRESHOLDS.LOW - strModifier - intModifier))),
-                CRITICAL: Math.floor(Math.min(15, Math.max(5, this.THRESHOLDS.CRITICAL - strModifier - intModifier)))
+                CRITICAL: Math.floor(Math.min(15, Math.max(5, this.THRESHOLDS.CRITICAL - strModifier - intModifier))),
+                EXHAUSTED: Math.floor(Math.min(0, Math.max(0, this.THRESHOLDS.EXHAUSTED - strModifier - intModifier)))
             };
         },
         getStatus: function(currentVigor, stats) {
-            if (currentVigor <= 0) return {
-                name: "Exhausted",
-                color: "#4a4a4a",  // 暗いグレー
-                ascii: "(x_xל)"
-            };
-
             const percentage = (currentVigor / this.MAX) * 100;
             const thresholds = this.calculateThresholds(stats);
 
+            if (percentage <= thresholds.EXHAUSTED) return {
+                name: "Exhausted",
+                color: "#4a4a4a",
+                ascii: "(x_xל)"
+            };
+            
             if (percentage <= thresholds.CRITICAL) return {
                 name: "Critical",
                 color: "#8e44ad",  // 紫色
