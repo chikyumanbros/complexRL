@@ -105,9 +105,9 @@ class VigorEffects {
                     this.game.generateNewFloor();
                     this.game.soundManager.updateBGM();
                     this.game.logger.add(`You descend to floor ${this.game.floorLevel}...`, "warning");
-                    this.game.processTurn();
                 });
                 this.game.soundManager.playPortalSound();
+                this.game.processTurn();
                 break;
 
             case 'randomTeleport':
@@ -124,9 +124,9 @@ class VigorEffects {
                     this.game.player.x = x;
                     this.game.player.y = y;
                     this.game.renderer.render();
-                    this.game.processTurn();
                 });
                 this.game.soundManager.playPortalSound();
+                this.game.processTurn();
                 break;
 
             case 'forgetAllTiles':
