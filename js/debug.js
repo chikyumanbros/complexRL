@@ -9,6 +9,9 @@ class DebugUtils {
         this.selectedFloorLevel = 1; // 選択中のフロアレベル
         this.selectedDangerLevel = 'NORMAL'; // 選択中の危険度
         
+        // ゲームのレンダリング後に自動的にデバッグパネルを更新するためのフック
+        this.setupAutoUpdate();
+        
         // デバッグモードのトグル (Ctrl+Shift+D)
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.shiftKey && (e.key === 'd' || e.key === 'D')) {
@@ -71,6 +74,41 @@ class DebugUtils {
                 this.setVigorToStatus(number);
             }
         });
+    }
+    
+    // 自動更新のセットアップ
+    setupAutoUpdate() {
+        // オリジナルのレンダリングメソッドを保存
+        const originalRenderMethod = this.game.renderer.render;
+        
+        // レンダリングメソッドをオーバーライド
+        this.game.renderer.render = () => {
+            // オリジナルのレンダリング処理を実行
+            originalRenderMethod.call(this.game.renderer);
+            
+            // レンダリング後にデバッグパネルを更新
+            if (this.enabled) {
+                this.updateDebugPanel();
+            }
+        };
+        
+        // ターン処理後にも更新するようにフック
+        const originalProcessTurn = this.game.processTurn;
+        if (originalProcessTurn) {
+            this.game.processTurn = () => {
+                originalProcessTurn.call(this.game);
+                if (this.enabled) {
+                    this.updateDebugPanel();
+                }
+            };
+        }
+        
+        // 定期的な更新も設定（バックアップとして）
+        this.autoUpdateInterval = setInterval(() => {
+            if (this.enabled) {
+                this.updateDebugPanel();
+            }
+        }, 1000); // 1秒ごとに更新
     }
     
     // デバッグモードの切り替え
