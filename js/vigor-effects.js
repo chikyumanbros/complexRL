@@ -4,6 +4,21 @@ class VigorEffects {
     }
 
     static getVigorPenaltyEffect(severity) {
+        // severityが数値の場合は、対応する文字列に変換
+        if (typeof severity === 'number') {
+            if (severity >= GAME_CONSTANTS.VIGOR.THRESHOLDS.HIGH) {
+                return null;
+            } else if (severity >= GAME_CONSTANTS.VIGOR.THRESHOLDS.MODERATE) {
+                severity = 'Moderate';
+            } else if (severity >= GAME_CONSTANTS.VIGOR.THRESHOLDS.LOW) {
+                severity = 'Low';
+            } else if (severity >= GAME_CONSTANTS.VIGOR.THRESHOLDS.CRITICAL) {
+                severity = 'Critical';
+            } else {
+                severity = 'Exhausted';
+            }
+        }
+
         if (severity === 'High' || !severity) {
             return null;
         }
@@ -80,10 +95,6 @@ class VigorEffects {
             return;
         }
 
-        // エフェクト適用時に入力状態をリセット
-        this.game.inputHandler.resetInput();
-        this.game.player.stopAllAutoMovement();
-
         switch (effect.type) {
             case 'pauseAndShift':
                 this.game.logger.add("Your exhaustion forces you to pause, and the world shifts...", "warning");
@@ -95,7 +106,7 @@ class VigorEffects {
                     totalHealed: 0
                 };
                 this.game.logger.add("You enter a meditative state.", "warning");
-                this.game.playSound('meditationSound', true); // meditationSoundをループ再生
+                this.game.playSound('meditationSound', true);
                 break;
 
             case 'forceDescend':
@@ -149,7 +160,6 @@ class VigorEffects {
                         }
                     }
                 }
-                // 探索済みタイルの30%をランダムに忘れる
                 const tilesToForget = Math.floor(exploredTiles.length * 0.3);
                 for (let i = 0; i < tilesToForget; i++) {
                     if (exploredTiles.length === 0) break;
@@ -174,13 +184,16 @@ class VigorEffects {
                 this.game.logger.add("A surge of energy restores you!", "important");
                 const hpRestored = this.game.player.maxHp - this.game.player.hp;
                 this.game.player.hp = this.game.player.maxHp;
-                this.game.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
+                const oldVigor = this.game.player.vigor;
+                const vigorChange = GAME_CONSTANTS.VIGOR.MAX - oldVigor;
+                const newVigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, oldVigor + vigorChange));
+                this.game.player.vigor = newVigor;
                 this.game.player.validateVigor();
                 if (hpRestored > 0) {
                     this.game.logger.add(`Restored ${hpRestored} HP!`, "important");
                 }
                 this.game.logger.add("Vigor fully restored!", "important");
-                this.game.playSound('meditationSound', true); // meditationSoundをループ再生
+                this.game.playSound('meditationSound', true);
                 break;
 
             case 'levelUp':

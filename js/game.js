@@ -386,14 +386,13 @@ class Game {
                 }
             } else {
                 // 通常フロアでのVigor減少処理
-                this.player.validateVigor();
+                this.player.validateVigor();  // 初期バリデーション
 
-                // ここで oldStatus を定義
                 const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
-                
                 const decreaseChance = GAME_CONSTANTS.VIGOR.calculateDecreaseChance(this.turn);
                 const roll = Math.floor(Math.random() * 100);
 
+                // Vigor減少処理
                 if (roll < decreaseChance) {
                     const healthStatus = GAME_CONSTANTS.HEALTH_STATUS.getStatus(
                         this.player.hp,
@@ -401,9 +400,9 @@ class Game {
                         this.player.stats
                     );
                     const decrease = GAME_CONSTANTS.VIGOR.DECREASE[healthStatus.name.toUpperCase()];
-                    const oldVigor = this.player.vigor; // 現在のVigorを保持
+                    const oldVigor = this.player.vigor;
                     this.player.vigor = Math.max(0, this.player.vigor - decrease);
-                    this.player.validateVigor();  // Add validation after changing vigor
+                    this.player.validateVigor();  // 値変更後のバリデーション
 
                     // 新しい状態を取得
                     const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
@@ -421,10 +420,14 @@ class Game {
                             this.playSound('vigorUpSound');
                         }
                     }
-
-                    // Vigorペナルティの処理
-                    this.processVigorPenalty(newStatus);
                 }
+            }
+
+            // Vigorペナルティの処理（Vigor減少とは完全に独立）
+            // HPが0より大きく、かつホームフロア以外の場合に毎ターン実行
+            if (this.player.hp > 0 && this.floorLevel !== 0) {
+                const currentStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+                this.processVigorPenalty(currentStatus);
             }
         }
 
@@ -533,6 +536,10 @@ class Game {
         if (this.floorLevel === 0) {
             this.updateHomeFloor();
         }
+
+        // プレイヤーのVigor状態をチェック
+        const vigorStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor);
+        this.processVigorPenalty(vigorStatus);
     }
 
     processMonsterDeath(deathInfo) {

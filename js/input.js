@@ -15,13 +15,15 @@ class InputHandler {
         this.bindKeys();
         this.mode = 'name';  // 初期モードをname入力に設定
         this.lastInputTime = 0;  // 最後の入力時刻を追加
-        this.inputCooldown = 50;  // 入力クールダウン時間（ミリ秒）
+        this.inputCooldown = 60;  // 基本のクールダウン
         this.nameBuffer = '';  // プレイヤー名入力用バッファ
         this.landmarkTargetMode = false;
         this.currentLandmarks = null;
         this.currentLandmarkIndex = 0;
         this.pressedKeys = new Set();  // 押されているキーを追跡
         this.keyRepeatInterval = null;  // キーリピート用のインターバルID
+        this.initialDelay = 250;  // 初期遅延
+        this.repeatDelay = 150;   // リピート間隔を少し長めに
     }
 
     // ----------------------
@@ -32,22 +34,33 @@ class InputHandler {
             const key = event.key.toLowerCase();
             if (!this.pressedKeys.has(key)) {
                 this.pressedKeys.add(key);
-                this.boundHandleInput(event);  // 最初の入力を即座に処理
+                
+                // 最初の入力を処理
+                const currentTime = Date.now();
+                if (currentTime - this.lastInputTime >= this.inputCooldown) {
+                    this.boundHandleInput(event);
+                }
 
                 // キーリピートが開始されていない場合のみ開始
                 if (!this.keyRepeatInterval) {
-                    this.keyRepeatInterval = setInterval(() => {
-                        if (this.pressedKeys.size > 0) {
-                            // 最後に押されたキーのイベントを再生成
-                            const lastKey = Array.from(this.pressedKeys).pop();
-                            const simulatedEvent = new KeyboardEvent('keydown', {
-                                key: lastKey,
-                                ctrlKey: event.ctrlKey,
-                                shiftKey: event.shiftKey
-                            });
-                            this.boundHandleInput(simulatedEvent);
+                    setTimeout(() => {
+                        if (this.pressedKeys.has(key)) {
+                            this.keyRepeatInterval = setInterval(() => {
+                                if (this.pressedKeys.size > 0) {
+                                    const currentTime = Date.now();
+                                    if (currentTime - this.lastInputTime >= this.inputCooldown) {
+                                        const lastKey = Array.from(this.pressedKeys).pop();
+                                        const simulatedEvent = new KeyboardEvent('keydown', {
+                                            key: lastKey,
+                                            ctrlKey: event.ctrlKey,
+                                            shiftKey: event.shiftKey
+                                        });
+                                        this.boundHandleInput(simulatedEvent);
+                                    }
+                                }
+                            }, this.repeatDelay);
                         }
-                    }, this.inputCooldown);
+                    }, this.initialDelay);
                 }
             }
         });
