@@ -200,10 +200,10 @@ class SoundManager {
             console.warn(`Sound "${audioName}" not found.`);
             return;
         }
-          // audioNameがオブジェクトの場合、audioName.nameをaudioに代入する
-          if (typeof audioName === 'object' && audioName !== null && audioName.name) {
+        // audioNameがオブジェクトの場合、audioName.nameをaudioに代入する
+        if (typeof audioName === 'object' && audioName !== null && audioName.name) {
             audio = this[audioName.name];
-          }
+        }
 
         // ボリュームを設定
         audio.volume = this.seVolume;
@@ -211,13 +211,28 @@ class SoundManager {
         // ループ設定
         audio.loop = loop;
 
-        // currentTimeを0に設定して、常に最初から再生
-        audio.currentTime = 0;
-        audio.play().catch(error => {
-            if (error.name !== 'NotAllowedError') {
-                console.warn('Sound playback failed:', error);
-            }
-        });
+        // 現在再生中の場合は一度停止してから再生
+        if (!audio.paused) {
+            audio.pause();
+            audio.currentTime = 0;
+            
+            // 少し遅延を入れてから再生
+            setTimeout(() => {
+                audio.play().catch(error => {
+                    if (error.name !== 'NotAllowedError') {
+                        console.warn('Sound playback failed:', error);
+                    }
+                });
+            }, 50);
+        } else {
+            // 停止している場合は直接再生
+            audio.currentTime = 0;
+            audio.play().catch(error => {
+                if (error.name !== 'NotAllowedError') {
+                    console.warn('Sound playback failed:', error);
+                }
+            });
+        }
     }
 
     // 効果音を停止するメソッド
@@ -262,14 +277,24 @@ class SoundManager {
         if (!this.portalSound.paused) {
             this.portalSound.pause();
             this.portalSound.currentTime = 0;
+            
+            // 少し遅延を入れてからポータルサウンドを再生
+            setTimeout(() => {
+                this.portalSound.volume = this.seVolume;
+                this.portalSound.play().catch(error => {
+                    if (error.name !== 'NotAllowedError') {
+                        console.warn('Portal sound playback failed:', error);
+                    }
+                });
+            }, 50); // 50ミリ秒の遅延
+        } else {
+            // 停止していない場合はそのまま再生
+            this.portalSound.volume = this.seVolume;
+            this.portalSound.play().catch(error => {
+                if (error.name !== 'NotAllowedError') {
+                    console.warn('Portal sound playback failed:', error);
+                }
+            });
         }
-
-        // ポータルサウンドの再生
-        this.portalSound.volume = this.seVolume;
-        this.portalSound.play().catch(error => {
-            if (error.name !== 'NotAllowedError') {
-                console.warn('Portal sound playback failed:', error);
-            }
-        });
     }
 } 

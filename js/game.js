@@ -391,7 +391,11 @@ class Game {
                 // ここで oldStatus を定義
                 const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
                 
-                const decreaseChance = GAME_CONSTANTS.VIGOR.calculateDecreaseChance(this.turn);
+                // 現在の部屋の危険度を取得
+                const currentRoom = this.getCurrentRoom();
+                const dangerLevel = currentRoom ? currentRoom.dangerLevel : 'NORMAL';
+                
+                const decreaseChance = GAME_CONSTANTS.VIGOR.calculateDecreaseChance(this.turn, dangerLevel);
                 const roll = Math.floor(Math.random() * 100);
 
                 if (roll < decreaseChance) {
