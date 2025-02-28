@@ -117,6 +117,11 @@ class InputHandler {
                 this.cancelTargeting();
                 return;
             }
+            // Wikiモードの解除を追加
+            if (this.game.mode === GAME_CONSTANTS.MODES.WIKI) {
+                this.closeWikiMode();
+                return;
+            }
             // ヘルプモードの解除を追加
             if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
                 if (document.body.classList.contains('codex-mode')) {
@@ -475,6 +480,30 @@ class InputHandler {
     // Game Mode Input Handling
     // ----------------------
     handleGameModeInput(key) {
+        // --- Debug ---
+        if (key === '`') {
+            const debug = document.getElementById('debug-panel');
+            if (debug) {
+                debug.style.display = debug.style.display === 'none' ? 'block' : 'none';
+            }
+            return;
+        }
+
+        // Wikiモードを開く（wキー）
+        if (key === 'w') {
+            this.openWikiMode();
+            return;
+        }
+
+        // --- 処理済みかどうかをチェック ---
+        let processed = false;
+        
+        // --- Tab key to toggle codex ---
+        if (key === 'tab') {
+            this.game.toggleMode();
+            processed = true;
+        }
+        
         // confirmモードの場合、Y/Nの入力のみを受け付ける
         if (this.mode === 'confirm') {
             const upperKey = key.toLowerCase();  // 小文字に変換
@@ -1499,5 +1528,98 @@ class InputHandler {
                 codexPanel.scrollTop += scrollAmount;
             }
         }
+    }
+
+    // ----------------------
+    // Utility Methods
+    // ----------------------
+    openWikiMode() {
+        // 既存のゲームモードを保存
+        this.previousMode = this.game.mode;
+        
+        // Wikiモードを設定
+        this.game.mode = GAME_CONSTANTS.MODES.WIKI;
+        
+        // 現在のWikiページの存在を確認
+        const existingWikiWindow = document.getElementById('wiki-frame-container');
+        if (existingWikiWindow) {
+            // 既に開いていれば表示切替
+            existingWikiWindow.style.display = existingWikiWindow.style.display === 'none' ? 'flex' : 'none';
+            return;
+        }
+        
+        // Wikiページを表示するコンテナを作成
+        const wikiFrameContainer = document.createElement('div');
+        wikiFrameContainer.id = 'wiki-frame-container';
+        wikiFrameContainer.style.position = 'fixed';
+        wikiFrameContainer.style.top = '0';
+        wikiFrameContainer.style.left = '0';
+        wikiFrameContainer.style.width = '100%';
+        wikiFrameContainer.style.height = '100%';
+        wikiFrameContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+        wikiFrameContainer.style.zIndex = '1000';
+        wikiFrameContainer.style.display = 'flex';
+        wikiFrameContainer.style.justifyContent = 'center';
+        wikiFrameContainer.style.alignItems = 'center';
+        
+        // Wikiページを表示するiframeを作成
+        const wikiFrame = document.createElement('iframe');
+        wikiFrame.id = 'wiki-frame';
+        wikiFrame.style.width = '80%';
+        wikiFrame.style.height = '80%';
+        wikiFrame.style.border = 'none';
+        wikiFrame.style.backgroundColor = '#fff';
+        wikiFrame.style.borderRadius = '5px';
+        wikiFrame.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.5)';
+        wikiFrame.src = 'wiki.html';
+        
+        // 閉じるボタンを作成
+        const closeButton = document.createElement('div');
+        closeButton.textContent = '閉じる [ESC]';
+        closeButton.style.position = 'absolute';
+        closeButton.style.top = '10px';
+        closeButton.style.right = '10%';
+        closeButton.style.color = '#fff';
+        closeButton.style.padding = '5px 10px';
+        closeButton.style.backgroundColor = '#333';
+        closeButton.style.borderRadius = '5px';
+        closeButton.style.cursor = 'pointer';
+        closeButton.onclick = () => this.closeWikiMode();
+        
+        // コンテナに要素を追加
+        wikiFrameContainer.appendChild(wikiFrame);
+        wikiFrameContainer.appendChild(closeButton);
+        document.body.appendChild(wikiFrameContainer);
+        
+        // キーイベントリスナーを追加（ESCキーで閉じる）
+        this.wikiKeydownListener = (e) => {
+            if (e.key === 'Escape') {
+                this.closeWikiMode();
+            }
+        };
+        document.addEventListener('keydown', this.wikiKeydownListener);
+        
+        // ログメッセージを追加
+        this.game.logger.add('Wiki画面を開きました。[ESC]または[閉じる]をクリックして戻ります。', 'system');
+    }
+    
+    // Wikiモードを閉じるメソッド
+    closeWikiMode() {
+        const wikiContainer = document.getElementById('wiki-frame-container');
+        if (wikiContainer) {
+            wikiContainer.style.display = 'none';
+        }
+        
+        // 前のモードに戻す
+        this.game.mode = this.previousMode || GAME_CONSTANTS.MODES.GAME;
+        
+        // キーイベントリスナーを削除
+        if (this.wikiKeydownListener) {
+            document.removeEventListener('keydown', this.wikiKeydownListener);
+            this.wikiKeydownListener = null;
+        }
+        
+        // ログメッセージを追加
+        this.game.logger.add('Wiki画面を閉じました。', 'system');
     }
 }

@@ -157,7 +157,8 @@ const GAME_CONSTANTS = {
         CODEX: 'codex',
         GAME_OVER: 'game_over',
         HELP: 'help',
-        TITLE: 'title'
+        TITLE: 'title',
+        WIKI: 'wiki'
     },
 
     // ディメンション関連
