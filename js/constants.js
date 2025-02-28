@@ -546,27 +546,27 @@ const GAME_CONSTANTS = {
             let baseChance;
             switch (dangerLevel) {
                 case 'SAFE':
-                    baseChance = 1;  // 安全: 1%
+                    baseChance = 5; 
                     break;
                 case 'NORMAL':
-                    baseChance = 2;  // 通常: 3%
+                    baseChance = 4; 
                     break;
                 case 'DANGEROUS':
-                    baseChance = 3;  // 危険: 6%
+                    baseChance = 3; 
                     break;
                 case 'DEADLY':
-                    baseChance = 5; // 致命的: 9%
+                    baseChance = 2; 
                     break;
                 default:
-                    baseChance = 2;  // デフォルト値
+                    baseChance = 4;  // デフォルト値
             }
-            const turnModifier = Math.floor(turnsInFloor / 50);  // 20ターンごとに確率上昇
+            const turnModifier = Math.floor(turnsInFloor / 50);  // 50ターンごとに確率上昇
             const maxChance = {
-                SAFE: 15,      // 安全: 最大15%
-                NORMAL: 25,    // 通常: 最大25%
-                DANGEROUS: 35, // 危険: 最大35%
-                DEADLY: 45     // 致命的: 最大45%
-            }[dangerLevel] || 25;
+                SAFE: 20,      // 安全: 最大20%
+                NORMAL: 15,    // 通常: 最大15%
+                DANGEROUS: 10, // 危険: 最大10%
+                DEADLY: 5     // 致命的: 最大5%
+            }[dangerLevel] || 15;
             return Math.min(maxChance, baseChance + turnModifier);
         },
         calculateThresholds: function(stats) {
