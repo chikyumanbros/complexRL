@@ -545,7 +545,7 @@ class Game {
         }
 
         // プレイヤーのVigor状態をチェック
-        const vigorStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor);
+        const vigorStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
         this.processVigorPenalty(vigorStatus);
     }
 
