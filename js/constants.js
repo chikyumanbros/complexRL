@@ -539,10 +539,11 @@ const GAME_CONSTANTS = {
             EXHAUSTED: 0   // 枯渇
         },
         DECREASE: {
-            HEALTHY: 1,
-            WOUNDED: 2,
-            BADLY_WOUNDED: 3,
-            NEAR_DEATH: 4
+            // Vigorが低いほど低下が緩やかになるように変更
+            HIGH: 2,        // 健全状態では大きく低下
+            MODERATE: 1,    // 疲労状態では中程度に低下
+            LOW: 1,         // 消耗状態では少し低下
+            CRITICAL: 1     // 限界状態では最小限の低下
         },
         calculateDecreaseChance: (turnsInFloor, dangerLevel) => {
             let baseChance;
@@ -570,6 +571,39 @@ const GAME_CONSTANTS = {
                 DEADLY: 5     // 致命的: 最大5%
             }[dangerLevel] || 15;
             return Math.min(maxChance, baseChance + turnModifier);
+        },
+        // Vigorの現在値に基づいて低下量を計算する新しい関数
+        calculateDecreaseAmount: function(currentVigor, stats, healthStatus) {
+            const percentage = (currentVigor / this.MAX) * 100;
+            const thresholds = this.calculateThresholds(stats);
+            
+            // 基本低下量を計算（Vigorが低いほど低下が緩やかに）
+            let baseDecrease;
+            if (percentage <= thresholds.CRITICAL) baseDecrease = this.DECREASE.CRITICAL;
+            else if (percentage <= thresholds.LOW) baseDecrease = this.DECREASE.LOW;
+            else if (percentage <= thresholds.MODERATE) baseDecrease = this.DECREASE.MODERATE;
+            else baseDecrease = this.DECREASE.HIGH;
+            
+            // 体力状態による修正（体力が低いほど低下が大きく）
+            let healthMultiplier = 1.0;
+            if (healthStatus) {
+                switch (healthStatus.name) {
+                    case "Near Death":
+                        healthMultiplier = 1.5;  // 瀕死状態では1.5倍
+                        break;
+                    case "Badly Wounded":
+                        healthMultiplier = 1.3;  // 重傷状態では1.3倍
+                        break;
+                    case "Wounded":
+                        healthMultiplier = 1.1;  // 負傷状態では1.1倍
+                        break;
+                    default:
+                        healthMultiplier = 1.0;  // 健康状態では修正なし
+                }
+            }
+            
+            // 最終的な低下量を計算（小数点以下切り上げ）
+            return Math.ceil(baseDecrease * healthMultiplier);
         },
         calculateThresholds: function(stats) {
             const strModifier = (stats.str - 10) * 0.5;  // 力による修正

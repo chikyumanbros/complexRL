@@ -401,12 +401,20 @@ class Game {
 
                 // Vigor減少処理
                 if (roll < decreaseChance) {
+                    // 体力状態を取得
                     const healthStatus = GAME_CONSTANTS.HEALTH_STATUS.getStatus(
                         this.player.hp,
                         this.player.maxHp,
                         this.player.stats
                     );
-                    const decrease = GAME_CONSTANTS.VIGOR.DECREASE[healthStatus.name.toUpperCase()];
+                    
+                    // 新しいcalculateDecreaseAmount関数を使用して低下量を計算（体力状態も考慮）
+                    const decrease = GAME_CONSTANTS.VIGOR.calculateDecreaseAmount(
+                        this.player.vigor, 
+                        this.player.stats,
+                        healthStatus
+                    );
+                    
                     const oldVigor = this.player.vigor;
                     this.player.vigor = Math.max(0, this.player.vigor - decrease);
                     this.player.validateVigor();  // 値変更後のバリデーション
@@ -543,10 +551,6 @@ class Game {
         if (this.floorLevel === 0) {
             this.updateHomeFloor();
         }
-
-        // プレイヤーのVigor状態をチェック
-        const vigorStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
-        this.processVigorPenalty(vigorStatus);
     }
 
     processMonsterDeath(deathInfo) {
@@ -674,7 +678,7 @@ class Game {
         if (!this.player.meditation || !this.player.meditation.active) return;
 
         // 瞑想開始時にループ再生を開始（初回のみ）
-        if (!this.player.meditation.soundStarted) {
+        if (!this.player.meditation.soundStarted && !this.player.meditation.skipSound) {
             this.soundManager.playSound('meditationSound', { loop: true });
             this.player.meditation.soundStarted = true;
         }
@@ -749,10 +753,13 @@ class Game {
             }
 
             this.logger.add(endMessage, "playerInfo");
+            
+            // 瞑想終了時に効果音を停止（skipSoundフラグがない場合のみ）
+            if (!this.player.meditation.skipSound && this.player.meditation.soundStarted) {
+                this.soundManager.stopSound('meditationSound');
+            }
+            
             this.player.meditation = null;
-
-            // 瞑想終了時に効果音を停止
-            this.soundManager.stopSound('meditationSound');
         }
 
         // サイケデリックエフェクトのターンカウンターを更新
@@ -1559,52 +1566,51 @@ class Game {
         console.log('=== Vigor Penalty Roll ===');
         console.log(`Current Vigor Status: ${vigorStatus.name}`);
 
-        // 自動移動を停止を削除
-
         switch (vigorStatus.name) {
-            case 'Exhausted': // Exhausted状態の処理を追加
-            // 1d10で判定、1-3で発動（30%） - 中確率でペナルティ発動
-            threshold = Math.floor(Math.random() * 10) + 1;
-            console.log(`Exhausted Roll: ${threshold}/10 (needs ≤3 to trigger)`);
-            if (threshold <= 3) {
-                severity = 'Exhausted';  // 直接文字列を使用
-                
-                // 知力値に基づいたダメージを計算
-                const wisRoll = Math.floor(Math.random() * this.player.stats.wis) + 1;
-                const exhaustionDamage = wisRoll;
-                
-                // プレイヤーにダメージを与える
-                this.player.hp = Math.max(0, this.player.hp - exhaustionDamage);
-                this.soundManager.playSound('takeDamageSound');
-                this.renderer.flashStatusPanel();
-                
-                // ダメージのログを表示
-                this.logger.add(`You take ${exhaustionDamage} damage from exhaustion!`, "warning");
-                
-                // 死亡判定
-                if (this.player.hp <= 0) {
-                    this.soundManager.playSound('playerDeathSound');
-                    this.logger.add("You succumb to exhaustion...", "important");
-                    this.gameOver();
-                }
-            }
-            break;
-            case 'Critical':
-                // 1d20で判定、1-3で発動（15%）
+            case 'Exhausted': 
+                // 1d20で判定、1で発動（5%） - 確率を10%から5%に下げる
                 threshold = Math.floor(Math.random() * 20) + 1;
-                console.log(`Critical Roll: ${threshold}/20 (needs ≤3 to trigger)`);
-                if (threshold <= 3) {
+                console.log(`Exhausted Roll: ${threshold}/20 (needs 1 to trigger)`);
+                if (threshold === 1) {
+                    severity = 'Exhausted';  // 直接文字列を使用
+                    
+                    // 知力値に基づいたダメージを計算
+                    const wisRoll = Math.floor(Math.random() * this.player.stats.wis) + 1;
+                    const exhaustionDamage = wisRoll;
+                    
+                    // プレイヤーにダメージを与える
+                    this.player.hp = Math.max(0, this.player.hp - exhaustionDamage);
+                    this.soundManager.playSound('takeDamageSound');
+                    this.renderer.flashStatusPanel();
+                    
+                    // ダメージのログを表示
+                    this.logger.add(`You take ${exhaustionDamage} damage from exhaustion!`, "warning");
+                    
+                    // 死亡判定
+                    if (this.player.hp <= 0) {
+                        this.soundManager.playSound('playerDeathSound');
+                        this.logger.add("You succumb to exhaustion...", "important");
+                        this.gameOver();
+                        return; // 死亡した場合は処理を終了
+                    }
+                }
+                break;
+            case 'Critical':
+                // 1d50で判定、1で発動（2%） - 確率を5%から2%に下げる
+                threshold = Math.floor(Math.random() * 50) + 1;
+                console.log(`Critical Roll: ${threshold}/50 (needs 1 to trigger)`);
+                if (threshold === 1) {
                     // 1d6で良い効果か悪い効果かを決定
                     const effectRoll = Math.floor(Math.random() * 6) + 1;
                     console.log(`Effect Type Roll: ${effectRoll}/6 (1 = positive, others = severe)`);
-                    severity = effectRoll === 1 ? 'positive' : 'Critical'; // THRESHOLDSを使用せず直接文字列を使用
+                    severity = effectRoll === 1 ? 'positive' : 'Critical'; // 直接文字列を使用
                 }
                 break;
 
             case 'Low':
-                // 1d20で判定、1で発動（5%）
-                threshold = Math.floor(Math.random() * 20) + 1;
-                console.log(`Low Roll: ${threshold}/20 (needs 1 to trigger)`);
+                // 1d50で判定、1で発動（2%） - 確率を5%から2%に下げる
+                threshold = Math.floor(Math.random() * 50) + 1;
+                console.log(`Low Roll: ${threshold}/50 (needs 1 to trigger)`);
                 if (threshold === 1) {
                     // 1d8で良い効果か悪い効果かを決定
                     const effectRoll = Math.floor(Math.random() * 8) + 1;
@@ -1614,10 +1620,10 @@ class Game {
                 break;
 
             case 'Moderate':
-                // 1d100で判定、1-2で発動（2%）
-                threshold = Math.floor(Math.random() * 100) + 1;
-                console.log(`Moderate Roll: ${threshold}/100 (needs ≤2 to trigger)`);
-                if (threshold <= 2) {
+                // 1d200で判定、1で発動（0.5%） - 確率を2%から0.5%に下げる
+                threshold = Math.floor(Math.random() * 200) + 1;
+                console.log(`Moderate Roll: ${threshold}/200 (needs 1 to trigger)`);
+                if (threshold === 1) {
                     // 1d10で良い効果か悪い効果かを決定
                     const effectRoll = Math.floor(Math.random() * 10) + 1;
                     console.log(`Effect Type Roll: ${effectRoll}/10 (1 = positive, others = critical)`);
@@ -1628,7 +1634,6 @@ class Game {
 
         // 効果の適用
         if (severity) {
-
             // グローバルオブジェクトから VigorEffects を参照
             const effect = VigorEffects.getVigorPenaltyEffect(severity, vigorStatus.name);
             if (!effect) {
