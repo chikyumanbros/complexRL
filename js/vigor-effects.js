@@ -81,7 +81,6 @@ class VigorEffects {
         }
 
         // エフェクト適用時に入力状態をリセット
-        this.game.inputHandler.resetInput();
         this.game.player.stopAllAutoMovement();
 
         switch (effect.type) {
