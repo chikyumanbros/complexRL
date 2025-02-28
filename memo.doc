@@ -86,49 +86,7 @@ fleeのアニメーションをリアルタイムに
 statusパネルを横展開に右側をenemies
 下側にskills
 
-    updateCombatEffects(game, monster) {
-        // 攻撃エフェクトの処理
-        if (this.attackEffectTimer) {
-            clearTimeout(this.attackEffectTimer);
-            game.lastAttackLocation = null;
-        }
-        game.lastAttackLocation = { x: monster.x, y: monster.y };
-        game.renderer.render();
-        // 攻撃後にlook情報を更新
-        game.renderer.examineTarget(monster.x, monster.y);
-    }
-
-    // Update skill list display (only slots 1-9)
-        const skillsElement = document.getElementById('skills');
-        if (skillsElement) {
-            const skillsDisplay = player.skills.size > 0
-                ? Array.from(player.skills.entries())
-                    .filter(([slot]) => /^[1-9]$/.test(slot))
-                    .map(([slot, skillData]) => {
-                        const skill = this.game.codexSystem.findSkillById(skillData.id);
-                        const cooldownText = skillData.remainingCooldown > 0
-                            ? ` (CD: ${skillData.remainingCooldown})`
-                            : '';
-                        const effectText = skill.getEffectText(player);
-
-                        // スキルが属するカテゴリーを見つける
-                        let categoryColor;
-                        for (let cat in this.game.codexSystem.categories) {
-                            if (this.game.codexSystem.categories[cat].skills.some(s => s.id === skill.id)) {
-                                categoryColor = GAME_CONSTANTS.COLORS.CODEX_CATEGORY[cat];
-                                break;
-                            }
-                        }
-
-                        // スロット番号の使用可否判定
-                        const isAvailable = skillData.remainingCooldown === 0 &&
-                            (skill.id !== 'meditation' || player.hp < player.maxHp || player.vigor < GAME_CONSTANTS.VIGOR.MAX);
-                        const slotClass = isAvailable ? 'skill-slot available' : 'skill-slot';
-
-                        return `[<span class="${slotClass}">${slot}</span>] ` +
-                            `<span style="color: ${categoryColor}">${skill.name[0]}</span>${skill.name.slice(1)} ${effectText}${cooldownText}`;
-                    })
-                    .join('<br>')
-                : 'NO SKILLS';
-            skillsElement.innerHTML = skillsDisplay;
-        }
+ vigoreffectのバグとり
+ ポータルエフェクトが残る問題
+ HPが回復してない問題
+ pauseAndShiftでターン消費するように

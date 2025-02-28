@@ -15,22 +15,62 @@ class InputHandler {
         this.bindKeys();
         this.mode = 'name';  // 初期モードをname入力に設定
         this.lastInputTime = 0;  // 最後の入力時刻を追加
-        this.inputCooldown = 30;  // 入力クールダウン時間（ミリ秒）
+        this.inputCooldown = 50;  // 入力クールダウン時間（ミリ秒）
         this.nameBuffer = '';  // プレイヤー名入力用バッファ
         this.landmarkTargetMode = false;
         this.currentLandmarks = null;
         this.currentLandmarkIndex = 0;
+        this.pressedKeys = new Set();  // 押されているキーを追跡
+        this.keyRepeatInterval = null;  // キーリピート用のインターバルID
     }
 
     // ----------------------
     // Key Binding Methods
     // ----------------------
     bindKeys() {
-        document.addEventListener('keydown', this.boundHandleInput);
+        document.addEventListener('keydown', (event) => {
+            const key = event.key.toLowerCase();
+            if (!this.pressedKeys.has(key)) {
+                this.pressedKeys.add(key);
+                this.boundHandleInput(event);  // 最初の入力を即座に処理
+
+                // キーリピートが開始されていない場合のみ開始
+                if (!this.keyRepeatInterval) {
+                    this.keyRepeatInterval = setInterval(() => {
+                        if (this.pressedKeys.size > 0) {
+                            // 最後に押されたキーのイベントを再生成
+                            const lastKey = Array.from(this.pressedKeys).pop();
+                            const simulatedEvent = new KeyboardEvent('keydown', {
+                                key: lastKey,
+                                ctrlKey: event.ctrlKey,
+                                shiftKey: event.shiftKey
+                            });
+                            this.boundHandleInput(simulatedEvent);
+                        }
+                    }, this.inputCooldown);
+                }
+            }
+        });
+
+        document.addEventListener('keyup', (event) => {
+            const key = event.key.toLowerCase();
+            this.pressedKeys.delete(key);
+            
+            // キーが全て離された場合、インターバルをクリア
+            if (this.pressedKeys.size === 0 && this.keyRepeatInterval) {
+                clearInterval(this.keyRepeatInterval);
+                this.keyRepeatInterval = null;
+            }
+        });
     }
 
     unbindKeys() {
         document.removeEventListener('keydown', this.boundHandleInput);
+        if (this.keyRepeatInterval) {
+            clearInterval(this.keyRepeatInterval);
+            this.keyRepeatInterval = null;
+        }
+        this.pressedKeys.clear();
     }
 
     // ----------------------
