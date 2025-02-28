@@ -1614,8 +1614,6 @@ class Game {
 
         // 効果の適用
         if (severity) {
-            // 効果が発生する場合のみ自動移動を停止
-            this.player.stopAllAutoMovement();
 
             // グローバルオブジェクトから VigorEffects を参照
             const effect = VigorEffects.getVigorPenaltyEffect(severity);
