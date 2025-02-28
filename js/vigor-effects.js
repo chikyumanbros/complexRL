@@ -95,6 +95,7 @@ class VigorEffects {
                 };
                 this.game.logger.add("You enter a meditative state.", "warning");
                 this.game.playSound('meditationSound', true); // meditationSoundをループ再生
+                this.game.processTurn();
                 break;
 
             case 'forceDescend':
@@ -104,6 +105,7 @@ class VigorEffects {
                     this.game.generateNewFloor();
                     this.game.soundManager.updateBGM();
                     this.game.logger.add(`You descend to floor ${this.game.floorLevel}...`, "warning");
+                    this.game.processTurn();
                 });
                 this.game.soundManager.playPortalSound();
                 break;
@@ -122,6 +124,7 @@ class VigorEffects {
                     this.game.player.x = x;
                     this.game.player.y = y;
                     this.game.renderer.render();
+                    this.game.processTurn();
                 });
                 this.game.soundManager.playPortalSound();
                 break;
@@ -136,6 +139,7 @@ class VigorEffects {
                     }
                 }
                 this.game.playSound('vigorDownSound');
+                this.game.processTurn();
                 break;
 
             case 'forgetSomeTiles':
@@ -157,6 +161,7 @@ class VigorEffects {
                     this.game.explored[tile.y][tile.x] = false;
                 }
                 this.game.playSound('vigorDownSound');
+                this.game.processTurn();
                 break;
 
             case 'revealAll':
@@ -167,6 +172,7 @@ class VigorEffects {
                     }
                 }
                 this.game.playSound('vigorUpSound');
+                this.game.processTurn();
                 break;
 
             case 'fullRestore':
@@ -179,13 +185,15 @@ class VigorEffects {
                     this.game.logger.add(`Restored ${hpRestored} HP!`, "important");
                 }
                 this.game.logger.add("Vigor fully restored!", "important");
-                this.game.playSound('meditationSound', true); // meditationSoundをループ再生
+                this.game.playSound('meditationSound', true);
+                this.game.processTurn();
                 break;
 
             case 'levelUp':
                 this.game.logger.add("A mysterious force empowers you!", "important");
                 this.game.player.levelUp();
                 this.game.playSound('levelUpSound');
+                this.game.processTurn();
                 break;
         }
         this.game.renderer.render();
