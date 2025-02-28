@@ -11,7 +11,9 @@ class InputHandler {
         this.targetX = null;
         this.targetY = null;
         this.lookMode = false;  // ルックモードを追加
-        this.boundHandleInput = this.handleInput.bind(this);  // バインドされたメソッドを保持
+        this.boundHandleKeyDown = this.handleKeyDown.bind(this);  // キーダウンのハンドラ
+        this.boundHandleKeyUp = this.handleKeyUp.bind(this);      // キーアップのハンドラを追加
+        this.pressedKeys = new Set();  // 現在押されているキーを追跡
         this.bindKeys();
         this.mode = 'name';  // 初期モードをname入力に設定
         this.lastInputTime = 0;  // 最後の入力時刻を追加
@@ -26,17 +28,66 @@ class InputHandler {
     // Key Binding Methods
     // ----------------------
     bindKeys() {
-        document.addEventListener('keydown', this.boundHandleInput);
+        document.addEventListener('keydown', this.boundHandleKeyDown);
+        document.addEventListener('keyup', this.boundHandleKeyUp);
     }
 
     unbindKeys() {
-        document.removeEventListener('keydown', this.boundHandleInput);
+        document.removeEventListener('keydown', this.boundHandleKeyDown);
+        document.removeEventListener('keyup', this.boundHandleKeyUp);
+    }
+
+    // キーが離された時の処理
+    handleKeyUp(event) {
+        const key = event.key.toLowerCase();
+        this.pressedKeys.delete(key);
+    }
+
+    // キーが押された時の処理
+    handleKeyDown(event) {
+        const key = event.key.toLowerCase();
+        
+        // すでに押されているキーは無視（キーリピートを防止）
+        if (this.pressedKeys.has(key)) {
+            event.preventDefault();
+            return;
+        }
+        
+        // 新しく押されたキーとして記録
+        this.pressedKeys.add(key);
+        
+        // メッセージログのスクロール制御
+        // どのモードでも常に処理できるようにここで実装
+        if (key === '[' || key === ']') {
+            this.handleLogScroll(key);
+            
+            // ヘルプモードやCodexモードの場合はスクロールのみ許可して他の処理は行わない
+            if (this.game.mode === GAME_CONSTANTS.MODES.HELP || 
+                this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
+                return;
+            }
+        }
+        
+        // 通常の入力処理を行う
+        this.handleInput(key, event);
+    }
+
+    // ----------------------
+    // Utility Methods
+    // ----------------------
+    // 移動キーかどうかを判定するメソッド
+    isMovementKey(key) {
+        const movementKeys = [
+            'arrowup', 'arrowdown', 'arrowleft', 'arrowright',
+            'h', 'j', 'k', 'l', 'y', 'u', 'b', 'n'
+        ];
+        return movementKeys.includes(key);
     }
 
     // ----------------------
     // Main Input Handler Method
     // ----------------------
-    handleInput(event) {
+    handleInput(key, event) {
         // ポータルアニメーション中は入力を無視
         if (this.game.isPortalTransitioning) {
             return;
@@ -45,18 +96,12 @@ class InputHandler {
         // 入力クールダウンのチェック
         const currentTime = Date.now();
         if (currentTime - this.lastInputTime < this.inputCooldown) {
-            event.preventDefault();
+            if (event) event.preventDefault();
             return;
         }
+        
+        // 入力時間を更新
         this.lastInputTime = currentTime;
-
-        const key = event.key.toLowerCase();
-
-        // メッセージログのスクロール制御
-        if (key === '[' || key === ']') {
-            this.handleLogScroll(key);
-            return;
-        }
 
         // ESCキーの処理を最優先で行う
         if (key === 'escape') {
@@ -95,7 +140,7 @@ class InputHandler {
             if (messageLogElement) {
                 messageLogElement.classList.add('no-typewriter');
             }
-            this.handleNameInput(event);
+            this.handleNameInput(key, event);
             return;
         }
 
@@ -279,7 +324,7 @@ class InputHandler {
             if (key === 'escape') {
                 this.game.toggleMode();  // 変更: toggleModeを使用
             } else if (key === 'tab') {
-                event.preventDefault();
+                if (event) event.preventDefault();
                 this.game.toggleMode();  // ヘルプモードを解除
                 this.toggleCodexMode();  // Codexモードを有効化
                 this.game.mode = GAME_CONSTANTS.MODES.CODEX;  // モードをCodexに設定
@@ -290,7 +335,7 @@ class InputHandler {
 
         // --- Tab Key Handling for Codex & Mode Toggle ---
         if (key === 'tab') {
-            event.preventDefault();
+            if (event) event.preventDefault();
             // lookモードが有効な場合は解除
             if (this.lookMode) {
                 this.endLookMode();
@@ -314,17 +359,15 @@ class InputHandler {
         }
 
         // Ctrl+R for resetの部分を修正
-        if (event.key.toLowerCase() === 'r' && event.ctrlKey) {
-            event.preventDefault();
+        if (key === 'r' && event && event.ctrlKey) {
+            if (event) event.preventDefault();
             if (confirm('Are you sure you want to reset the game? All progress will be lost.')) {
                 this.game.reset();
             }
         }
     }
 
-    handleNameInput(event) {
-        const key = event.key;
-
+    handleNameInput(key, event) {
         if (key === 'Enter' && this.nameBuffer.trim().length > 0) {
             this.game.player.name = this.nameBuffer.trim();
             this.game.renderer.renderStatus();
@@ -1423,21 +1466,37 @@ class InputHandler {
     handleLogScroll(key) {
         const logPanel = document.getElementById('message-log');
         const enemyInfo = document.querySelector('.enemy-info');
+        const helpPanel = document.getElementById('available-skills');
+        const codexPanel = document.querySelector('.codex-content');
         const scrollAmount = 30;
 
         if (key === '[') {
+            // 上方向スクロール
             if (logPanel) {
                 logPanel.scrollTop -= scrollAmount;
             }
             if (enemyInfo) {
                 enemyInfo.scrollTop -= scrollAmount;
             }
+            if (helpPanel && this.game.mode === GAME_CONSTANTS.MODES.HELP) {
+                helpPanel.scrollTop -= scrollAmount;
+            }
+            if (codexPanel && this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
+                codexPanel.scrollTop -= scrollAmount;
+            }
         } else if (key === ']') {
+            // 下方向スクロール
             if (logPanel) {
                 logPanel.scrollTop += scrollAmount;
             }
             if (enemyInfo) {
                 enemyInfo.scrollTop += scrollAmount;
+            }
+            if (helpPanel && this.game.mode === GAME_CONSTANTS.MODES.HELP) {
+                helpPanel.scrollTop += scrollAmount;
+            }
+            if (codexPanel && this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
+                codexPanel.scrollTop += scrollAmount;
             }
         }
     }
