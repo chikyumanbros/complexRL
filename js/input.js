@@ -1426,15 +1426,17 @@ class InputHandler {
         const scrollAmount = 30;
 
         if (key === '[') {
-            if (document.activeElement === logPanel) {
+            if (logPanel) {
                 logPanel.scrollTop -= scrollAmount;
-            } else if (enemyInfo) {
+            }
+            if (enemyInfo) {
                 enemyInfo.scrollTop -= scrollAmount;
             }
         } else if (key === ']') {
-            if (document.activeElement === logPanel) {
+            if (logPanel) {
                 logPanel.scrollTop += scrollAmount;
-            } else if (enemyInfo) {
+            }
+            if (enemyInfo) {
                 enemyInfo.scrollTop += scrollAmount;
             }
         }
