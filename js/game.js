@@ -1,15 +1,20 @@
 class Game {
     constructor() {
-        this.width = GAME_CONSTANTS.DIMENSIONS.WIDTH;
-        this.height = GAME_CONSTANTS.DIMENSIONS.HEIGHT;
-        this.map = [];
-        this.tiles = [];
-        this.colors = [];
-        this.player = new Player(0, 0, this);  // Coordinates will be set later
+        // Display setup
+        this.width = 65;
+        this.height = 35;
+        this.renderer = new Renderer(this);
+        this.soundManager = new SoundManager(this);
+        this.inputHandler = new InputHandler(this);
+        this.vigorEffects = new VigorEffects(this);
+
+        // デバッグユーティリティの初期化
+        this.debugUtils = new DebugUtils(this);
+
+        // Game state
+        this.player = new Player(0, 0, this);
         this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;  // 明示的に設定
         this.codexSystem = new CodexSystem();
-        this.renderer = new Renderer(this);
-        this.inputHandler = new InputHandler(this);
         this.logger = new Logger(this);
         this.mode = GAME_CONSTANTS.MODES.GAME;
         this.turn = 0;
@@ -27,9 +32,6 @@ class Game {
 
         // 死亡したモンスターの処理キューを追加
         this.pendingMonsterDeaths = [];
-
-        // サウンド管理を初期化
-        this.soundManager = new SoundManager(this);
 
         this.init();
 
@@ -389,7 +391,12 @@ class Game {
                 this.player.validateVigor();  // 初期バリデーション
 
                 const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
-                const decreaseChance = GAME_CONSTANTS.VIGOR.calculateDecreaseChance(this.turn);
+                
+                // 現在の部屋の危険度を取得
+                const currentRoom = this.getCurrentRoom();
+                const dangerLevel = currentRoom ? currentRoom.dangerLevel : 'NORMAL';
+                
+                const decreaseChance = GAME_CONSTANTS.VIGOR.calculateDecreaseChance(this.turn, dangerLevel);
                 const roll = Math.floor(Math.random() * 100);
 
                 // Vigor減少処理
@@ -1621,13 +1628,16 @@ class Game {
 
         // 効果の適用
         if (severity) {
-            // 効果が発生する場合のみ自動移動を停止
-            this.player.stopAllAutoMovement();
 
             // グローバルオブジェクトから VigorEffects を参照
-            const effect = VigorEffects.getVigorPenaltyEffect(severity);
+            const effect = VigorEffects.getVigorPenaltyEffect(severity, vigorStatus.name);
+            if (!effect) {
+                console.log(`No effect applied for severity: ${severity}, vigorStatus: ${vigorStatus.name}`);
+                return;
+            }
             console.log(`Selected Severity: ${severity}`);
-            console.log(`Selected Effect: ${effect.type}`);
+            console.log(`Selected Effect Type: ${effect.type}`);
+            console.log(`Effect Details:`, effect);
             const vigorEffects = new VigorEffects(this);
             vigorEffects.applyVigorEffect(effect);  // インスタンスメソッドとして呼び出し
             

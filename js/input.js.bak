@@ -11,9 +11,7 @@ class InputHandler {
         this.targetX = null;
         this.targetY = null;
         this.lookMode = false;  // ルックモードを追加
-        this.boundHandleKeyDown = this.handleKeyDown.bind(this);  // キーダウンのハンドラ
-        this.boundHandleKeyUp = this.handleKeyUp.bind(this);      // キーアップのハンドラを追加
-        this.pressedKeys = new Set();  // 現在押されているキーを追跡
+        this.boundHandleInput = this.handleInput.bind(this);  // バインドされたメソッドを保持
         this.bindKeys();
         this.mode = 'name';  // 初期モードをname入力に設定
         this.lastInputTime = 0;  // 最後の入力時刻を追加
@@ -22,58 +20,17 @@ class InputHandler {
         this.landmarkTargetMode = false;
         this.currentLandmarks = null;
         this.currentLandmarkIndex = 0;
-        this.pressedKeys = new Set();  // 押されているキーを追跡
-        this.keyRepeatInterval = null;  // キーリピート用のインターバルID
-        this.initialDelay = 250;  // 初期遅延
-        this.repeatDelay = 150;   // リピート間隔を少し長めに
     }
 
     // ----------------------
     // Key Binding Methods
     // ----------------------
     bindKeys() {
-        document.addEventListener('keydown', this.boundHandleKeyDown);
-        document.addEventListener('keyup', this.boundHandleKeyUp);
+        document.addEventListener('keydown', this.boundHandleInput);
     }
 
     unbindKeys() {
-        document.removeEventListener('keydown', this.boundHandleKeyDown);
-        document.removeEventListener('keyup', this.boundHandleKeyUp);
-    }
-
-    // キーが離された時の処理
-    handleKeyUp(event) {
-        const key = event.key.toLowerCase();
-        this.pressedKeys.delete(key);
-    }
-
-    // キーが押された時の処理
-    handleKeyDown(event) {
-        const key = event.key.toLowerCase();
-        
-        // すでに押されているキーは無視（キーリピートを防止）
-        if (this.pressedKeys.has(key)) {
-            event.preventDefault();
-            return;
-        }
-        
-        // 新しく押されたキーとして記録
-        this.pressedKeys.add(key);
-        
-        // メッセージログのスクロール制御
-        // どのモードでも常に処理できるようにここで実装
-        if (key === '[' || key === ']') {
-            this.handleLogScroll(key);
-            
-            // ヘルプモードやCodexモードの場合はスクロールのみ許可して他の処理は行わない
-            if (this.game.mode === GAME_CONSTANTS.MODES.HELP || 
-                this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
-                return;
-            }
-        }
-        
-        // 通常の入力処理を行う
-        this.handleInput(key, event);
+        document.removeEventListener('keydown', this.boundHandleInput);
     }
 
     // ----------------------
@@ -91,16 +48,28 @@ class InputHandler {
     // ----------------------
     // Main Input Handler Method
     // ----------------------
-    handleInput(key, event) {
+    handleInput(event) {
         // ポータルアニメーション中は入力を無視
         if (this.game.isPortalTransitioning) {
             return;
         }
 
+        const key = event.key.toLowerCase();
+
+        // メッセージログのスクロール制御
+        if (key === '[' || key === ']') {
+            this.handleLogScroll(key);
+            return;  // スクロールキーは他の入力処理には影響させない
+        }
+
         // 入力クールダウンのチェック
         const currentTime = Date.now();
-        if (currentTime - this.lastInputTime < this.inputCooldown) {
-            if (event) event.preventDefault();
+        
+        // 移動キーは短いクールダウン、それ以外は通常クールダウン
+        const applyCooldown = this.isMovementKey(key) ? 50 : this.inputCooldown;
+        
+        if (currentTime - this.lastInputTime < applyCooldown) {
+            event.preventDefault();
             return;
         }
         
@@ -119,11 +88,6 @@ class InputHandler {
             }
             if (this.targetingMode) {
                 this.cancelTargeting();
-                return;
-            }
-            // Wikiモードの解除を追加
-            if (this.game.mode === GAME_CONSTANTS.MODES.WIKI) {
-                this.closeWikiMode();
                 return;
             }
             // ヘルプモードの解除を追加
@@ -149,7 +113,7 @@ class InputHandler {
             if (messageLogElement) {
                 messageLogElement.classList.add('no-typewriter');
             }
-            this.handleNameInput(key, event);
+            this.handleNameInput(event);
             return;
         }
 
@@ -333,7 +297,7 @@ class InputHandler {
             if (key === 'escape') {
                 this.game.toggleMode();  // 変更: toggleModeを使用
             } else if (key === 'tab') {
-                if (event) event.preventDefault();
+                event.preventDefault();
                 this.game.toggleMode();  // ヘルプモードを解除
                 this.toggleCodexMode();  // Codexモードを有効化
                 this.game.mode = GAME_CONSTANTS.MODES.CODEX;  // モードをCodexに設定
@@ -344,7 +308,7 @@ class InputHandler {
 
         // --- Tab Key Handling for Codex & Mode Toggle ---
         if (key === 'tab') {
-            if (event) event.preventDefault();
+            event.preventDefault();
             // lookモードが有効な場合は解除
             if (this.lookMode) {
                 this.endLookMode();
@@ -368,16 +332,18 @@ class InputHandler {
         }
 
         // Ctrl+R for resetの部分を修正
-        if (key === 'r' && event && event.ctrlKey) {
-            if (event) event.preventDefault();
+        if (event.key.toLowerCase() === 'r' && event.ctrlKey) {
+            event.preventDefault();
             if (confirm('Are you sure you want to reset the game? All progress will be lost.')) {
                 this.game.reset();
             }
         }
     }
 
-    handleNameInput(key, event) {
-        if (key === 'enter' && this.nameBuffer.trim().length > 0) {
+    handleNameInput(event) {
+        const key = event.key;
+
+        if (key === 'Enter' && this.nameBuffer.trim().length > 0) {
             this.game.player.name = this.nameBuffer.trim();
             this.game.renderer.renderStatus();
             this.mode = 'characterCreation';  // 名前入力後はキャラクター作成モードへ
@@ -391,7 +357,7 @@ class InputHandler {
             return;
         }
 
-        if (key === 'backspace') {
+        if (key === 'Backspace') {
             this.nameBuffer = this.nameBuffer.slice(0, -1);
         } else if (key.length === 1 && this.nameBuffer.length < 15) {  // 15文字制限
             // 英数字とスペースのみ許可
@@ -484,30 +450,6 @@ class InputHandler {
     // Game Mode Input Handling
     // ----------------------
     handleGameModeInput(key) {
-        // --- Debug ---
-        if (key === '`') {
-            const debug = document.getElementById('debug-panel');
-            if (debug) {
-                debug.style.display = debug.style.display === 'none' ? 'block' : 'none';
-            }
-            return;
-        }
-
-        // Wikiモードを開く（wキー）
-        if (key === 'w') {
-            this.openWikiMode();
-            return;
-        }
-
-        // --- 処理済みかどうかをチェック ---
-        let processed = false;
-        
-        // --- Tab key to toggle codex ---
-        if (key === 'tab') {
-            this.game.toggleMode();
-            processed = true;
-        }
-        
         // confirmモードの場合、Y/Nの入力のみを受け付ける
         if (this.mode === 'confirm') {
             const upperKey = key.toLowerCase();  // 小文字に変換
@@ -607,12 +549,10 @@ class InputHandler {
                                         this.game.generateNewFloor();
                                         this.game.soundManager.updateBGM();
                                     }
-                                });
-                                this.game.soundManager.playPortalSound();
-                                this.game.processTurn();
-                            } else {
-                                this.game.logger.add(`You decide not to enter the ${isVoid ? 'VOID' : ''} portal.`, "playerInfo");
-                            }
+                                }
+                            });
+                            this.game.soundManager.playPortalSound();
+                            this.game.processTurn();
                         }
                     });
                 }, 0);
@@ -1499,131 +1439,22 @@ class InputHandler {
     handleLogScroll(key) {
         const logPanel = document.getElementById('message-log');
         const enemyInfo = document.querySelector('.enemy-info');
-        const helpPanel = document.getElementById('available-skills');
-        const codexPanel = document.querySelector('.codex-content');
         const scrollAmount = 30;
 
         if (key === '[') {
-            // 上方向スクロール
             if (logPanel) {
                 logPanel.scrollTop -= scrollAmount;
             }
             if (enemyInfo) {
                 enemyInfo.scrollTop -= scrollAmount;
             }
-            if (helpPanel && this.game.mode === GAME_CONSTANTS.MODES.HELP) {
-                helpPanel.scrollTop -= scrollAmount;
-            }
-            if (codexPanel && this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
-                codexPanel.scrollTop -= scrollAmount;
-            }
         } else if (key === ']') {
-            // 下方向スクロール
             if (logPanel) {
                 logPanel.scrollTop += scrollAmount;
             }
             if (enemyInfo) {
                 enemyInfo.scrollTop += scrollAmount;
             }
-            if (helpPanel && this.game.mode === GAME_CONSTANTS.MODES.HELP) {
-                helpPanel.scrollTop += scrollAmount;
-            }
-            if (codexPanel && this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
-                codexPanel.scrollTop += scrollAmount;
-            }
         }
-    }
-
-    // ----------------------
-    // Utility Methods
-    // ----------------------
-    openWikiMode() {
-        // 既存のゲームモードを保存
-        this.previousMode = this.game.mode;
-        
-        // Wikiモードを設定
-        this.game.mode = GAME_CONSTANTS.MODES.WIKI;
-        
-        // 現在のWikiページの存在を確認
-        const existingWikiWindow = document.getElementById('wiki-frame-container');
-        if (existingWikiWindow) {
-            // 既に開いていれば表示切替
-            existingWikiWindow.style.display = existingWikiWindow.style.display === 'none' ? 'flex' : 'none';
-            return;
-        }
-        
-        // Wikiページを表示するコンテナを作成
-        const wikiFrameContainer = document.createElement('div');
-        wikiFrameContainer.id = 'wiki-frame-container';
-        wikiFrameContainer.style.position = 'fixed';
-        wikiFrameContainer.style.top = '0';
-        wikiFrameContainer.style.left = '0';
-        wikiFrameContainer.style.width = '100%';
-        wikiFrameContainer.style.height = '100%';
-        wikiFrameContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-        wikiFrameContainer.style.zIndex = '1000';
-        wikiFrameContainer.style.display = 'flex';
-        wikiFrameContainer.style.justifyContent = 'center';
-        wikiFrameContainer.style.alignItems = 'center';
-        
-        // Wikiページを表示するiframeを作成
-        const wikiFrame = document.createElement('iframe');
-        wikiFrame.id = 'wiki-frame';
-        wikiFrame.style.width = '80%';
-        wikiFrame.style.height = '80%';
-        wikiFrame.style.border = 'none';
-        wikiFrame.style.backgroundColor = '#fff';
-        wikiFrame.style.borderRadius = '5px';
-        wikiFrame.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.5)';
-        wikiFrame.src = 'wiki.html';
-        
-        // 閉じるボタンを作成
-        const closeButton = document.createElement('div');
-        closeButton.textContent = '閉じる [ESC]';
-        closeButton.style.position = 'absolute';
-        closeButton.style.top = '10px';
-        closeButton.style.right = '10%';
-        closeButton.style.color = '#fff';
-        closeButton.style.padding = '5px 10px';
-        closeButton.style.backgroundColor = '#333';
-        closeButton.style.borderRadius = '5px';
-        closeButton.style.cursor = 'pointer';
-        closeButton.onclick = () => this.closeWikiMode();
-        
-        // コンテナに要素を追加
-        wikiFrameContainer.appendChild(wikiFrame);
-        wikiFrameContainer.appendChild(closeButton);
-        document.body.appendChild(wikiFrameContainer);
-        
-        // キーイベントリスナーを追加（ESCキーで閉じる）
-        this.wikiKeydownListener = (e) => {
-            if (e.key === 'Escape') {
-                this.closeWikiMode();
-            }
-        };
-        document.addEventListener('keydown', this.wikiKeydownListener);
-        
-        // ログメッセージを追加
-        this.game.logger.add('Wiki画面を開きました。[ESC]または[閉じる]をクリックして戻ります。', 'system');
-    }
-    
-    // Wikiモードを閉じるメソッド
-    closeWikiMode() {
-        const wikiContainer = document.getElementById('wiki-frame-container');
-        if (wikiContainer) {
-            wikiContainer.style.display = 'none';
-        }
-        
-        // 前のモードに戻す
-        this.game.mode = this.previousMode || GAME_CONSTANTS.MODES.GAME;
-        
-        // キーイベントリスナーを削除
-        if (this.wikiKeydownListener) {
-            document.removeEventListener('keydown', this.wikiKeydownListener);
-            this.wikiKeydownListener = null;
-        }
-        
-        // ログメッセージを追加
-        this.game.logger.add('Wiki画面を閉じました。', 'system');
     }
 }

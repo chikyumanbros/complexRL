@@ -157,7 +157,8 @@ const GAME_CONSTANTS = {
         CODEX: 'codex',
         GAME_OVER: 'game_over',
         HELP: 'help',
-        TITLE: 'title'
+        TITLE: 'title',
+        WIKI: 'wiki'
     },
 
     // ディメンション関連
@@ -534,39 +535,40 @@ const GAME_CONSTANTS = {
             HIGH: 75,     // 健全
             MODERATE: 50, // 疲労
             LOW: 25,      // 消耗
-            CRITICAL: 10  // 限界
+            CRITICAL: 10,  // 限界
+            EXHAUSTED: 0   // 枯渇
         },
         DECREASE: {
             HEALTHY: 1,
-            WOUNDED: 1,
-            BADLY_WOUNDED: 1,
-            NEAR_DEATH: 1
+            WOUNDED: 2,
+            BADLY_WOUNDED: 3,
+            NEAR_DEATH: 4
         },
         calculateDecreaseChance: (turnsInFloor, dangerLevel) => {
             let baseChance;
             switch (dangerLevel) {
                 case 'SAFE':
-                    baseChance = 1;  // 安全: 1%
+                    baseChance = 5; 
                     break;
                 case 'NORMAL':
-                    baseChance = 2;  // 通常: 3%
+                    baseChance = 4; 
                     break;
                 case 'DANGEROUS':
-                    baseChance = 3;  // 危険: 6%
+                    baseChance = 3; 
                     break;
                 case 'DEADLY':
-                    baseChance = 5; // 致命的: 9%
+                    baseChance = 2; 
                     break;
                 default:
-                    baseChance = 2;  // デフォルト値
+                    baseChance = 4;  // デフォルト値
             }
-            const turnModifier = Math.floor(turnsInFloor / 50);  // 20ターンごとに確率上昇
+            const turnModifier = Math.floor(turnsInFloor / 50);  // 50ターンごとに確率上昇
             const maxChance = {
-                SAFE: 15,      // 安全: 最大15%
-                NORMAL: 25,    // 通常: 最大25%
-                DANGEROUS: 35, // 危険: 最大35%
-                DEADLY: 45     // 致命的: 最大45%
-            }[dangerLevel] || 25;
+                SAFE: 20,      // 安全: 最大20%
+                NORMAL: 15,    // 通常: 最大15%
+                DANGEROUS: 10, // 危険: 最大10%
+                DEADLY: 5     // 致命的: 最大5%
+            }[dangerLevel] || 15;
             return Math.min(maxChance, baseChance + turnModifier);
         },
         calculateThresholds: function(stats) {
@@ -576,19 +578,20 @@ const GAME_CONSTANTS = {
                 HIGH: Math.floor(Math.min(90, Math.max(60, this.THRESHOLDS.HIGH - strModifier - intModifier))),
                 MODERATE: Math.floor(Math.min(65, Math.max(35, this.THRESHOLDS.MODERATE - strModifier - intModifier))),
                 LOW: Math.floor(Math.min(40, Math.max(15, this.THRESHOLDS.LOW - strModifier - intModifier))),
-                CRITICAL: Math.floor(Math.min(15, Math.max(5, this.THRESHOLDS.CRITICAL - strModifier - intModifier)))
+                CRITICAL: Math.floor(Math.min(15, Math.max(5, this.THRESHOLDS.CRITICAL - strModifier - intModifier))),
+                EXHAUSTED: Math.floor(Math.min(0, Math.max(0, this.THRESHOLDS.EXHAUSTED - strModifier - intModifier)))
             };
         },
         getStatus: function(currentVigor, stats) {
-            if (currentVigor <= 0) return {
-                name: "Exhausted",
-                color: "#4a4a4a",  // 暗いグレー
-                ascii: "(x_xל)"
-            };
-
             const percentage = (currentVigor / this.MAX) * 100;
             const thresholds = this.calculateThresholds(stats);
 
+            if (percentage <= thresholds.EXHAUSTED) return {
+                name: "Exhausted",
+                color: "#4a4a4a",
+                ascii: "(x_xל)"
+            };
+            
             if (percentage <= thresholds.CRITICAL) return {
                 name: "Critical",
                 color: "#8e44ad",  // 紫色

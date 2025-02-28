@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ComplexRL システム Wiki</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        header {
+            background-color: #333;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+        h2 {
+            font-size: 1.8em;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-top: 40px;
+        }
+        h3 {
+            font-size: 1.4em;
+            margin-top: 30px;
+            border-left: 4px solid #333;
+            padding-left: 10px;
+        }
+        nav {
+            background-color: #444;
+            padding: 10px 0;
+        }
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+        nav li {
+            margin: 0 15px;
+        }
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        nav a:hover {
+            text-decoration: underline;
+        }
+        .formula {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-left: 3px solid #333;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .note {
+            background-color: #ffffd9;
+            padding: 10px;
+            border-left: 3px solid #ffcc00;
+            margin: 10px 0;
+        }
+        footer {
+            text-align: center;
+            padding: 20px;
+            background-color: #333;
+            color: #fff;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>ComplexRL システム Wiki</h1>
+    </header>
+    <nav>
+        <ul>
+            <li><a href="#combat">戦闘システム</a></li>
+            <li><a href="#stats">ステータスと派生値</a></li>
+            <li><a href="#skills">スキルシステム</a></li>
+            <li><a href="#vigor">活力システム</a></li>
+            <li><a href="#health">体力状態</a></li>
+            <li><a href="#danger">危険度レベル</a></li>
+            <li><a href="#formulas">計算式</a></li>
+            <li><a href="#dice">ダイスロール</a></li>
+        </ul>
+    </nav>
+    <div class="container">
+        <section id="combat">
+            <h2>戦闘システム</h2>
+            <p>
+                ComplexRLの戦闘システムは、攻撃と防御のダイスロールに基づいたシステムです。
+                基本的なフローは以下の通りです。
+            </p>
+
+            <h3>戦闘の流れ</h3>
+            <ol>
+                <li>イニシアチブ判定（スピード比較）</li>
+                <li>攻撃側の命中判定</li>
+                <li>防御側の回避判定</li>
+                <li>ダメージ計算（攻撃ロール - 防御ロール）</li>
+                <li>効果適用</li>
+            </ol>
+
+            <h3>命中判定</h3>
+            <p>
+                攻撃側の命中率は基本命中率＋修正値で計算されます。
+                命中判定はこの値をもとにランダムロールを行い、成功すると攻撃が命中します。
+            </p>
+            <div class="formula">
+命中判定 = ランダム(1-100) <= 最終命中率
+最終命中率 = 基本命中率 * (1 + 命中修正) * (1 - 周囲ペナルティ)
+            </div>
+
+            <h3>回避判定</h3>
+            <p>
+                防御側の回避率に基づいて回避判定が行われます。
+                クリティカルヒットや機会攻撃の場合は回避判定がスキップされます。
+            </p>
+            <div class="formula">
+回避判定 = ランダム(1-100) <= 回避率
+            </div>
+
+            <h3>ダメージ計算</h3>
+            <p>
+                ダメージは攻撃側の攻撃力と防御側の防御力に基づいて計算されます。
+                攻撃力と防御力は、基本値とダイスロールの合計で算出されます。
+            </p>
+            <div class="formula">
+ダメージ = max(1, 修正済み攻撃力 - 防御力)
+修正済み攻撃力 = (基本攻撃力 + 攻撃ダイスロール合計) * ダメージ乗数
+防御力 = 基本防御力 + 防御ダイスロール合計
+            </div>
+
+            <h3>攻撃修飾子</h3>
+            <p>
+                スキルなどにより攻撃に修飾子が適用される場合があります。
+                修飾子は以下の値を変更します：
+            </p>
+            <ul>
+                <li>命中修正（accuracyMod）：命中率に加算的に影響</li>
+                <li>ダメージ修正（damageMod）：ダメージに乗算的に影響</li>
+                <li>スピード修正（speedTier）：攻撃速度を変更</li>
+            </ul>
+
+            <h3>機会攻撃</h3>
+            <p>
+                敵が逃走を開始し、逃げ場が存在する場合に機会攻撃が発生します。
+                機会攻撃は以下の特性を持ちます：
+            </p>
+            <ul>
+                <li>命中ボーナス：+20%</li>
+                <li>ダメージボーナス：+50%</li>
+                <li>回避判定がスキップされる</li>
+                <li>周囲ペナルティを無視</li>
+            </ul>
+        </section>
+
+        <section id="stats">
+            <h2>ステータスと派生値</h2>
+            
+            <h3>基本ステータス</h3>
+            <table>
+                <tr>
+                    <th>ステータス</th>
+                    <th>略称</th>
+                    <th>説明</th>
+                </tr>
+                <tr>
+                    <td>筋力</td>
+                    <td>STR</td>
+                    <td>物理攻撃力、ダメージ、大きなオブジェクトを動かす能力に影響</td>
+                </tr>
+                <tr>
+                    <td>敏捷性</td>
+                    <td>DEX</td>
+                    <td>命中率、回避率、移動速度、反応速度に影響</td>
+                </tr>
+                <tr>
+                    <td>耐久力</td>
+                    <td>CON</td>
+                    <td>最大HP、防御力、状態異常への抵抗力に影響</td>
+                </tr>
+                <tr>
+                    <td>知性</td>
+                    <td>INT</td>
+                    <td>魔法攻撃力、識別能力、特殊技能に影響</td>
+                </tr>
+                <tr>
+                    <td>知恵</td>
+                    <td>WIS</td>
+                    <td>知覚能力、回避能力、実践的な判断力に影響</td>
+                </tr>
+            </table>
+
+            <h3>派生ステータス</h3>
+            <p>
+                基本ステータスから以下の派生値が計算されます。
+            </p>
+
+            <table>
+                <tr>
+                    <th>派生値</th>
+                    <th>主要影響ステータス</th>
+                    <th>説明</th>
+                </tr>
+                <tr>
+                    <td>最大HP</td>
+                    <td>CON, STR</td>
+                    <td>キャラクターが受けられるダメージの最大値</td>
+                </tr>
+                <tr>
+                    <td>攻撃力</td>
+                    <td>STR, DEX</td>
+                    <td>基本値とダイス構成で表される攻撃能力</td>
+                </tr>
+                <tr>
+                    <td>防御力</td>
+                    <td>CON, INT</td>
+                    <td>基本値とダイス構成で表される防御能力</td>
+                </tr>
+                <tr>
+                    <td>命中率</td>
+                    <td>DEX, WIS</td>
+                    <td>攻撃が命中する確率（%）</td>
+                </tr>
+                <tr>
+                    <td>回避率</td>
+                    <td>DEX, WIS</td>
+                    <td>攻撃を回避する確率（%）</td>
+                </tr>
+                <tr>
+                    <td>知覚力</td>
+                    <td>WIS, DEX</td>
+                    <td>隠された要素を発見する能力</td>
+                </tr>
+                <tr>
+                    <td>スピード</td>
+                    <td>DEX, STR, CON</td>
+                    <td>行動の速さ（Very Slow〜Very Fast）</td>
+                </tr>
+                <tr>
+                    <td>サイズ</td>
+                    <td>CON, STR</td>
+                    <td>キャラクターの大きさ（Tiny〜Huge）</td>
+                </tr>
+            </table>
+            
+            <h3>スピード値</h3>
+            <p>
+                スピード値は1〜5の数値とそれに対応する名称で表されます。
+            </p>
+            <table>
+                <tr>
+                    <th>値</th>
+                    <th>名称</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>Very Slow</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Slow</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Normal</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Fast</td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>Very Fast</td>
+                </tr>
+            </table>
+
+            <h3>サイズ値</h3>
+            <p>
+                サイズ値は1〜5の数値とそれに対応する名称で表されます。
+            </p>
+            <table>
+                <tr>
+                    <th>値</th>
+                    <th>名称</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>Tiny</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Small</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Medium</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Large</td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>Huge</td>
+                </tr>
+            </table>
+        </section>
+
+        <section id="skills">
+            <h2>スキルシステム</h2>
+            <p>
+                スキルは主に戦闘で使用されるアビリティです。
+                多くはフリーアクションとして使用でき、次の攻撃に効果を与えます。
+            </p>
+
+            <h3>戦闘スキル</h3>
+            
+            <h4>Power Strike</h4>
+            <p>
+                力を集中させて強力な一撃を放ちます。命中率を犠牲にする代わりにダメージが増加します。
+            </p>
+            <ul>
+                <li>コスト: 25</li>
+                <li>クールダウン: 8</li>
+                <li>効果: ダメージ +50%（基本）、命中率 -30%（基本）</li>
+                <li>スケーリング: STR/DEXの比率に応じて効果が変動</li>
+                <ul>
+                    <li>ダメージボーナス: 40%〜80%の範囲</li>
+                    <li>命中ペナルティ: 20%〜40%の範囲</li>
+                </ul>
+            </ul>
+            <div class="formula">
+damageBonus = min(0.8, max(0.4, 0.5 * (STR/DEX)))
+accuracyPenalty = -min(0.4, max(0.2, 0.3 * (STR/DEX)))
+            </div>
+
+            <h4>Quick Slash</h4>
+            <p>
+                素早い攻撃で命中率とスピードを一時的に上昇させます。
+            </p>
+            <ul>
+                <li>コスト: 20</li>
+                <li>クールダウン: 12</li>
+                <li>効果: 命中率 +20%、スピード段階を1上昇</li>
+            </ul>
+            
+            <h3>軽業スキル</h3>
+            
+            <h4>Jump</h4>
+            <p>
+                敵を飛び越えることができます。DEXとCONの差によって飛距離が変わります。
+            </p>
+            <ul>
+                <li>コスト: 30</li>
+                <li>クールダウン: 30</li>
+                <li>効果: 特定の距離までジャンプ可能</li>
+                <li>範囲: 3 + ((DEX - CON) / 3)（小数点以下切り捨て）</li>
+            </ul>
+        </section>
+
+        <section id="vigor">
+            <h2>活力（Vigor）システム</h2>
+            <p>
+                活力はキャラクターの疲労度や精神的な体力を表す重要な指標です。
+                活力が低下すると、戦闘や探索に様々な悪影響が及びます。
+            </p>
+
+            <h3>活力の状態</h3>
+            <p>
+                活力は0〜100の範囲で表され、以下の状態に分類されます。
+                これらの閾値はキャラクターの筋力（STR）と知性（INT）の値によって変動します。
+            </p>
+            <table>
+                <tr>
+                    <th>状態</th>
+                    <th>閾値（基本値）</th>
+                    <th>効果</th>
+                    <th>表示</th>
+                </tr>
+                <tr>
+                    <td>健全 (High)</td>
+                    <td>75%以上</td>
+                    <td>通常の状態</td>
+                    <td>∈ϴ‿ϴל（緑色）</td>
+                </tr>
+                <tr>
+                    <td>疲労 (Moderate)</td>
+                    <td>50%〜74%</td>
+                    <td>軽度の疲労、一部の判定にマイナス修正</td>
+                    <td>∈Ō_Ōל（黄色）</td>
+                </tr>
+                <tr>
+                    <td>消耗 (Low)</td>
+                    <td>25%〜49%</td>
+                    <td>中度の疲労、スキル使用制限、判定に大きなマイナス修正</td>
+                    <td>•˛⁔•ל（赤色）</td>
+                </tr>
+                <tr>
+                    <td>限界 (Critical)</td>
+                    <td>10%〜24%</td>
+                    <td>重度の疲労、ほとんどのスキルが使用不可、全判定に大きなマイナス修正</td>
+                    <td>◦˛⁔◦ל（紫色）</td>
+                </tr>
+                <tr>
+                    <td>枯渇 (Exhausted)</td>
+                    <td>0%〜9%</td>
+                    <td>極度の疲労、スキル使用不可、行動に強いペナルティ</td>
+                    <td>(x_xל)（灰色）</td>
+                </tr>
+            </table>
+
+            <h3>活力状態の具体的な効果</h3>
+            <p>
+                各活力状態はキャラクターの能力に影響を与えますが、具体的な効果は今後のアップデートで実装予定です。
+                現在の実装では、活力が低下するとキャラクターの一部の能力が低下します。
+            </p>
+            
+            <p>
+                より詳細な効果や数値は今後のアップデートで追加される予定です。
+            </p>
+
+            <h3>活力状態の累積効果</h3>
+            <p>
+                活力状態とHP状態の組み合わせにより、キャラクターの全体的な状態が決まります。
+                両方が悪化した状態では、生存がより困難になります。
+            </p>
+
+            <h3>活力の減少</h3>
+            <p>
+                活力は以下の状況で減少します：
+            </p>
+            <ul>
+                <li>スキルの使用（スキルのコストに応じて消費）</li>
+                <li>時間経過（フロアごとのターン数に応じて確率で減少）</li>
+                <li>HPの状態に応じた自然減少</li>
+            </ul>
+
+            <div class="formula">
+// 減少チャンス計算
+減少確率 = 基本確率 + 階層滞在ターン / 50
+危険度による基本確率:
+  SAFE: 5%
+  NORMAL: 4%
+  DANGEROUS: 3%
+  DEADLY: 2%
+            </div>
+
+            <h3>活力の回復</h3>
+            <p>
+                活力は以下の方法で回復できます：
+            </p>
+            <ul>
+                <li>休息（安全な場所で待機）</li>
+                <li>食料の消費</li>
+                <li>特定のポーションの使用</li>
+                <li>安全なエリアに移動する（危険度SAFEのエリアでは自然回復）</li>
+            </ul>
+
+            <h3>活力効果（VigorEffects）システム</h3>
+            <p>
+                活力が低下すると、特定の場面で「活力効果」という特殊な効果が発動することがあります。
+                これらの効果はプレイヤーの疲労状態を表現するもので、活力状態によって異なる効果が抽選されます。
+            </p>
+
+            <h4>効果の抽選メカニズム</h4>
+            <p>
+                各活力状態には対応する効果プールがあり、重み付けランダム抽選によって効果が選ばれます。
+                重みが高いほど、その効果が選ばれる確率が高くなります。
+            </p>
+            <table>
+                <tr>
+                    <th>活力状態</th>
+                    <th>発生する効果タイプ</th>
+                    <th>効果の重み</th>
+                </tr>
+                <tr>
+                    <td>Moderate<br>(疲労)</td>
+                    <td>
+                        <ul>
+                            <li>forgetSomeTiles（一部タイルの記憶喪失）</li>
+                            <li>pauseAndShift（一時停止と世界の変化）</li>
+                        </ul>
+                    </td>
+                    <td>
+                        <ul>
+                            <li>50</li>
+                            <li>50</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Low<br>(消耗)</td>
+                    <td>
+                        <ul>
+                            <li>forgetSomeTiles（一部タイルの記憶喪失）</li>
+                            <li>randomTeleport（ランダムテレポート）</li>
+                            <li>pauseAndShift（一時停止と世界の変化）</li>
+                            <li>forgetAllTiles（全タイルの記憶喪失）</li>
+                        </ul>
+                    </td>
+                    <td>
+                        <ul>
+                            <li>30</li>
+                            <li>20</li>
+                            <li>30</li>
+                            <li>20</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Critical<br>(限界)</td>
+                    <td>
+                        <ul>
+                            <li>forgetAllTiles（全タイルの記憶喪失）</li>
+                            <li>randomTeleport（ランダムテレポート）</li>
+                            <li>forceDescend（強制階層降下）</li>
+                            <li>pauseAndShift（一時停止と世界の変化）</li>
+                        </ul>
+                    </td>
+                    <td>
+                        <ul>
+                            <li>25</li>
+                            <li>25</li>
+                            <li>20</li>
+                            <li>30</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Exhausted<br>(枯渇)</td>
+                    <td>
+                        <ul>
+                            <li>forceDescend（強制階層降下）</li>
+                            <li>forgetAllTiles（全タイルの記憶喪失）</li>
+                            <li>randomTeleport（ランダムテレポート）</li>
+                            <li>pauseAndShift（一時停止と世界の変化）</li>
+                            <li>forgetSomeTiles（一部タイルの記憶喪失）</li>
+                        </ul>
+                    </td>
+                    <td>
+                        <ul>
+                            <li>20</li>
+                            <li>20</li>
+                            <li>20</li>
+                            <li>20</li>
+                            <li>20</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Positive<br>(正の効果)</td>
+                    <td>
+                        <ul>
+                            <li>revealAll（全マップ開示）</li>
+                            <li>fullRestore（完全回復）</li>
+                            <li>levelUp（レベルアップ）</li>
+                        </ul>
+                    </td>
+                    <td>
+                        <ul>
+                            <li>30</li>
+                            <li>50</li>
+                            <li>20</li>
+                        </ul>
+                    </td>
+                </tr>
+            </table>
+            
+            <div class="note">
+                注意: 枯渇（Exhausted）状態のプレイヤーには、正の効果（Positive）は発動しません。
+            </div>
+
+            <h4>活力効果の詳細</h4>
+            <p>
+                各活力効果の具体的な内容は以下の通りです：
+            </p>
+            <table>
+                <tr>
+                    <th>効果名</th>
+                    <th>効果の説明</th>
+                    <th>ゲーム内メッセージ</th>
+                    <th>幻覚効果持続</th>
+                </tr>
+                <tr>
+                    <td>pauseAndShift<br>(一時停止と世界の変化)</td>
+                    <td>
+                        <ul>
+                            <li>プレイヤーが一時的に瞑想状態になる</li>
+                            <li>1ターンだけ行動が停止</li>
+                            <li>幻覚効果が発生</li>
+                        </ul>
+                    </td>
+                    <td>「疲労のため一瞬休息し、世界が変化したように感じる…」</td>
+                    <td>7ターン</td>
+                </tr>
+                <tr>
+                    <td>forceDescend<br>(強制階層降下)</td>
+                    <td>
+                        <ul>
+                            <li>強制的に次の階層に降下</li>
+                            <li>ポータル移動エフェクトが発生</li>
+                            <li>プレイヤーの意思に関係なく下階へ移動</li>
+                        </ul>
+                    </td>
+                    <td>「疲労のため強制的に下降させられる！」</td>
+                    <td>12ターン</td>
+                </tr>
+                <tr>
+                    <td>randomTeleport<br>(ランダムテレポート)</td>
+                    <td>
+                        <ul>
+                            <li>現在の階層内のランダムな場所にテレポート</li>
+                            <li>壁や障害物のある場所には移動しない</li>
+                            <li>短いポータル移動エフェクトが発生</li>
+                        </ul>
+                    </td>
+                    <td>「心が彷徨い、体も彷徨う…」</td>
+                    <td>10ターン</td>
+                </tr>
+                <tr>
+                    <td>forgetAllTiles<br>(全タイルの記憶喪失)</td>
+                    <td>
+                        <ul>
+                            <li>現在視界内にないすべてのタイルの探索状態がリセット</li>
+                            <li>ダンジョンのマップ記憶が完全に消える</li>
+                            <li>現在見えているタイルのみが記憶に残る</li>
+                        </ul>
+                    </td>
+                    <td>「記憶が完全に消え去る…」</td>
+                    <td>5ターン</td>
+                </tr>
+                <tr>
+                    <td>forgetSomeTiles<br>(一部タイルの記憶喪失)</td>
+                    <td>
+                        <ul>
+                            <li>探索済みタイルの約30%がランダムに忘れられる</li>
+                            <li>視界内のタイルは影響を受けない</li>
+                            <li>マップの一部が曖昧になる</li>
+                        </ul>
+                    </td>
+                    <td>「記憶が曖昧になる…」</td>
+                    <td>3ターン</td>
+                </tr>
+                <tr>
+                    <td>revealAll<br>(全マップ開示)</td>
+                    <td>
+                        <ul>
+                            <li>階層内のすべてのタイルが一時的に開示される</li>
+                            <li>全ての壁、通路、部屋が見える状態になる</li>
+                            <li>一時的な啓示のような効果</li>
+                        </ul>
+                    </td>
+                    <td>「一瞬の明晰さがすべてを明らかにする！」</td>
+                    <td>10ターン</td>
+                </tr>
+                <tr>
+                    <td>fullRestore<br>(完全回復)</td>
+                    <td>
+                        <ul>
+                            <li>HP が最大値まで回復</li>
+                            <li>活力が最大値まで回復</li>
+                            <li>瞑想音が再生される</li>
+                        </ul>
+                    </td>
+                    <td>「エネルギーの高まりがあなたを回復させる！」</td>
+                    <td>8ターン</td>
+                </tr>
+                <tr>
+                    <td>levelUp<br>(レベルアップ)</td>
+                    <td>
+                        <ul>
+                            <li>プレイヤーが即座にレベルアップ</li>
+                            <li>通常のレベルアップ処理と同じ効果</li>
+                            <li>ステータス向上やスキルポイント獲得の可能性</li>
+                        </ul>
+                    </td>
+                    <td>「神秘的な力があなたを強化する！」</td>
+                    <td>15ターン</td>
+                </tr>
+            </table>
+
+            <h4>幻覚効果</h4>
+            <p>
+                すべての活力効果は一時的な「幻覚効果」を引き起こします。
+                この効果はゲーム画面に視覚的な歪みや色の変化として表示され、
+                プレイヤーの疲労状態を視覚的に表現します。
+                幻覚効果の持続時間は効果の種類によって異なります。
+            </p>
+
+            <h4>効果発動のタイミング</h4>
+            <p>
+                活力効果はゲームの進行中に一定の条件で発動する可能性があります。
+                活力状態が悪化するほど、望ましくない効果が発生する可能性が高まります。
+            </p>
+            
+            <div class="note">
+                戦略的ヒント: 活力が「消耗」や「限界」の状態では、安全な場所で休息するか、
+                活力回復アイテムを使用することをお勧めします。望ましくない活力効果を避けるためです。
+            </div>
+        </section>
+
+        <section id="health">
+            <h2>体力状態システム</h2>
+            <p>
+                HPの残量に応じて、キャラクターの体力状態が変化します。
+                それぞれの体力状態はゲーム内でわかりやすく色分けされ、プレイヤーに現在の状態を視覚的に伝えます。
+            </p>
+
+            <h3>体力状態の種類</h3>
+            <table>
+                <tr>
+                    <th>状態</th>
+                    <th>閾値（基本値）</th>
+                    <th>色</th>
+                </tr>
+                <tr>
+                    <td>健康 (Healthy)</td>
+                    <td>75%以上</td>
+                    <td>緑色</td>
+                </tr>
+                <tr>
+                    <td>負傷 (Wounded)</td>
+                    <td>50%〜74%</td>
+                    <td>黄色</td>
+                </tr>
+                <tr>
+                    <td>重傷 (Badly Wounded)</td>
+                    <td>25%〜49%</td>
+                    <td>赤色</td>
+                </tr>
+                <tr>
+                    <td>瀕死 (Near Death)</td>
+                    <td>10%〜24%</td>
+                    <td>紫色</td>
+                </tr>
+                <tr>
+                    <td>死亡 (Dead)</td>
+                    <td>0HP</td>
+                    <td>灰色</td>
+                </tr>
+            </table>
+
+            <p>
+                これらの閾値はキャラクターの体力（CON）と知恵（WIS）によって変動します。
+                HP状態が悪化すると、活力の自然減少が早まることがあります。
+            </p>
+
+            <h3>自然回復システム</h3>
+            <p>
+                キャラクターはターン経過ごとに一定確率でHPを自然回復します。
+                回復量は体力（CON）に基づいて計算されます。
+            </p>
+
+            <div class="formula">
+// 自然回復の成功確率
+成功確率 = 10 + floor(CON / 6)  // 基本確率10%、CONは6ごとに+1%
+            </div>
+        </section>
+
+        <section id="danger">
+            <h2>危険度レベルシステム</h2>
+            <p>
+                ダンジョンの各エリアには「危険度」が設定されており、
+                モンスターの強さや出現率、落ちているアイテムの質などに影響します。
+            </p>
+
+            <h3>危険度の種類</h3>
+            <table>
+                <tr>
+                    <th>危険度</th>
+                    <th>名称</th>
+                    <th>レベル修正</th>
+                    <th>特徴</th>
+                </tr>
+                <tr>
+                    <td>SAFE</td>
+                    <td>Serene（平穏）</td>
+                    <td>-1</td>
+                    <td>「古い石の香りを運ぶ優しい風。空気が異常に平和で、守られているかのように感じる。」<br>
+                        モンスターが少なく、弱い。活力の自然回復が発生する場合がある。</td>
+                </tr>
+                <tr>
+                    <td>NORMAL</td>
+                    <td>Neutral（通常）</td>
+                    <td>0</td>
+                    <td>「ダンジョン特有のかび臭い香りが空気を満たす。遠くの反響が警戒を怠らないよう思い出させる。」<br>
+                        バランスの取れたモンスターとアイテムの配置。</td>
+                </tr>
+                <tr>
+                    <td>DANGEROUS</td>
+                    <td>Perilous（危険）</td>
+                    <td>+1</td>
+                    <td>「影が悪意に満ちてうごめいているようだ。あらゆる音が危険の調子を帯びている。」<br>
+                        強力なモンスターが出現しやすく、良質なアイテムが見つかる可能性も高い。</td>
+                </tr>
+                <tr>
+                    <td>DEADLY</td>
+                    <td>Fatal（致命的）</td>
+                    <td>+2</td>
+                    <td>「重苦しい暗闇があなたの魂に重くのしかかる。空気自体が致命的なエネルギーで脈動しているようだ。」<br>
+                        非常に強力なモンスターが出現。貴重なアイテムが見つかる可能性が高いが、生存が困難。</td>
+                </tr>
+            </table>
+
+            <h3>危険度の影響</h3>
+            <p>
+                危険度は以下の要素に影響します：
+            </p>
+            <ul>
+                <li>モンスター出現率と強さ</li>
+                <li>ドロップするアイテムの質と量</li>
+                <li>トラップの出現率と危険度</li>
+                <li>活力の減少確率と回復確率</li>
+                <li>自然回復の確率</li>
+            </ul>
+
+            <div class="note">
+                危険度が高いエリアでは、より良い報酬を得られる可能性がありますが、
+                それに伴うリスクも大きくなります。状況に応じて慎重に探索を進めてください。
+            </div>
+        </section>
+
+        <section id="formulas">
+            <h2>計算式</h2>
+            <p>
+                以下にゲーム内の各種パラメータの計算式を示します。
+            </p>
+
+            <h3>最大HP</h3>
+            <div class="formula">
+MAX_HP = floor((CON * 2 + floor(STR / 4)) * sizeModifier * (1 + (level * 0.25)))
+sizeModifier = 0.8 + (size.value * 0.1)  // Tiny: 0.9x, Small: 1.0x, Medium: 1.1x, Large: 1.2x, Huge: 1.3x
+            </div>
+
+            <h3>攻撃力</h3>
+            <div class="formula">
+ATTACK.base = max(1, floor((STR * 0.7 - DEX / 4) * sizeModifier))
+ATTACK.diceCount = max(1, floor(sqrt(DEX) / 2))
+ATTACK.diceSides = max(2, floor(sqrt(STR) * 2))
+sizeModifier = 0.8 + (size.value * 0.1)
+            </div>
+
+            <h3>防御力</h3>
+            <div class="formula">
+DEFENSE.base = max(1, floor((CON * 0.5 - INT / 5) * sizeModifier))
+DEFENSE.diceCount = max(1, floor(sqrt(CON) / 3))
+DEFENSE.diceSides = max(2, floor(sqrt(CON) * 1.5))
+sizeModifier = 0.8 + (size.value * 0.1)
+            </div>
+
+            <h3>命中率</h3>
+            <div class="formula">
+ACCURACY = min(85, max(20, 50 + floor(DEX * 0.8) + floor(WIS * 0.4) - floor(CON / 4) + speedMod + sizeMod))
+speedMod = (speed.value - 3) * 5  // Normal(3)を基準に ±5%
+sizeMod = (3 - size.value) * 3    // Medium(3)を基準に ±3%
+            </div>
+
+            <h3>回避率</h3>
+            <div class="formula">
+EVASION = min(60, max(5, 8 + floor(DEX * 0.6) + floor(WIS * 0.3) - floor(CON / 5) - floor(STR / 5) + speedMod + sizeMod))
+speedMod = (speed.value - 3) * 4  // Normal(3)を基準に ±4%
+sizeMod = (3 - size.value) * 3    // Medium(3)を基準に ±3%
+            </div>
+
+            <h3>知覚力</h3>
+            <div class="formula">
+PERCEPTION = max(3, floor((WIS + DEX) / 2) + speedMod + sizeMod)
+speedMod = (speed.value - 3)
+sizeMod = (3 - size.value)
+            </div>
+
+            <h3>スピード</h3>
+            <div class="formula">
+// 全ステータスが同じ場合
+if (全ステータス同値) {
+    value = DEX
+    if (value <= 6) return { value: 1, name: "Very Slow" }
+    if (value <= 9) return { value: 2, name: "Slow" }
+    if (value <= 13) return { value: 3, name: "Normal" }
+    if (value <= 16) return { value: 4, name: "Fast" }
+    return { value: 5, name: "Very Fast" }
+}
+
+// 通常の計算
+baseSpeed = DEX - ((STR + CON) / 2)
+if (baseSpeed <= -4) return { value: 1, name: "Very Slow" }
+if (baseSpeed <= -2) return { value: 2, name: "Slow" }
+if (baseSpeed <= 2) return { value: 3, name: "Normal" }
+if (baseSpeed <= 4) return { value: 4, name: "Fast" }
+return { value: 5, name: "Very Fast" }
+            </div>
+
+            <h3>サイズ</h3>
+            <div class="formula">
+// 全ステータスが同じ場合
+if (全ステータス同値) {
+    value = CON
+    if (value <= 6) return { value: 1, name: "Tiny" }
+    if (value <= 9) return { value: 2, name: "Small" }
+    if (value <= 13) return { value: 3, name: "Medium" }
+    if (value <= 16) return { value: 4, name: "Large" }
+    return { value: 5, name: "Huge" }
+}
+
+// 通常の計算
+baseSize = (CON * 0.7 + STR * 0.3)
+if (baseSize <= 7) return { value: 1, name: "Tiny" }
+if (baseSize <= 10) return { value: 2, name: "Small" }
+if (baseSize <= 14) return { value: 3, name: "Medium" }
+if (baseSize <= 18) return { value: 4, name: "Large" }
+return { value: 5, name: "Huge" }
+            </div>
+
+            <h3>クリティカル範囲</h3>
+            <div class="formula">
+CRITICAL_RANGE = min(5, max(1, 3 + floor((DEX - 10) * 0.15) + floor((INT - 10) * 0.1)))
+            </div>
+        </section>
+
+        <div class="note" style="margin-top: 40px; text-align: center; padding: 15px;">
+            <strong>ゲーム内でWikiを開く/閉じる方法:</strong><br>
+            <kbd>W</kbd> キーを押すとWikiを開きます。<br>
+            <kbd>ESC</kbd> キーまたは右上の「閉じる」ボタンをクリックするとWikiを閉じます。
+        </div>
+
+        <footer>
+            <p>ComplexRL システム Wiki - 作成日: <%= new Date().toLocaleDateString('ja-JP') %></p>
+        </footer>
+    </div>
+</body>
+</html> 

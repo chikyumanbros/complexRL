@@ -1,24 +1,12 @@
+// グローバルオブジェクトに先に空のオブジェクトを登録
+window.VigorEffects = {};
+
 class VigorEffects {
     constructor(game) {
         this.game = game;
     }
 
-    static getVigorPenaltyEffect(severity) {
-        // severityが数値の場合は、対応する文字列に変換
-        if (typeof severity === 'number') {
-            if (severity >= GAME_CONSTANTS.VIGOR.THRESHOLDS.HIGH) {
-                return null;
-            } else if (severity >= GAME_CONSTANTS.VIGOR.THRESHOLDS.MODERATE) {
-                severity = 'Moderate';
-            } else if (severity >= GAME_CONSTANTS.VIGOR.THRESHOLDS.LOW) {
-                severity = 'Low';
-            } else if (severity >= GAME_CONSTANTS.VIGOR.THRESHOLDS.CRITICAL) {
-                severity = 'Critical';
-            } else {
-                severity = 'Exhausted';
-            }
-        }
-
+    static getVigorPenaltyEffect(severity, playerVigorState = null) {
         if (severity === 'High' || !severity) {
             return null;
         }
@@ -62,6 +50,12 @@ class VigorEffects {
             ]
         };
 
+        // severityが'positive'で、かつプレイヤーがexhausted状態の場合は良い効果を返さない
+        if (severity === 'positive' && playerVigorState === 'Exhausted') {
+            console.log('Player is exhausted. No positive effects will be applied.');
+            return null;
+        }
+
         const effectList = effects[severity];
         if (!effectList) {
             console.warn(`Unknown vigor severity: ${severity}`);
@@ -95,22 +89,45 @@ class VigorEffects {
             return;
         }
 
+        // エフェクト適用時のコンソールログを追加
+        console.log(`Applying vigor effect: ${effect.type}`);
+
+        // エフェクト適用時に入力状態をリセット
+        this.game.player.stopAllAutoMovement();
+
         switch (effect.type) {
             case 'pauseAndShift':
+                console.log('Executing pauseAndShift effect');
                 this.game.logger.add("Your exhaustion forces you to pause, and the world shifts...", "warning");
+                
+                // 幻覚エフェクトを適用
+                this.game.renderer.psychedelicTurn += 7;
+                
+                // 一時的な瞑想状態（音声なし）
                 this.game.player.meditation = {
                     active: true,
                     soundStarted: false,
                     healPerTurn: Math.floor(this.game.player.stats.wis / 3),
                     turnsRemaining: 1,  // 1ターンだけ
-                    totalHealed: 0
+                    totalHealed: 0,
+                    skipSound: true  // 音声をスキップするフラグを追加
                 };
-                this.game.logger.add("You enter a meditative state.", "warning");
-                this.game.playSound('meditationSound', true);
+                
+                this.game.logger.add("You enter a brief meditative state.", "warning");
+                
+                // skipSoundフラグがある場合は音を再生しない条件を追加
+                if (!this.game.player.meditation.skipSound) {
+                    this.game.playSound('meditationSound', true);
+                }
+                
+                this.game.processTurn();
                 break;
 
             case 'forceDescend':
+                console.log('Executing forceDescend effect');
                 this.game.logger.add("Your exhaustion forces you downward!", "warning");
+                // 幻覚エフェクトを適用
+                this.game.renderer.psychedelicTurn += 12;
                 this.game.renderer.startPortalTransition(() => {
                     this.game.floorLevel++;
                     this.game.generateNewFloor();
@@ -118,10 +135,14 @@ class VigorEffects {
                     this.game.logger.add(`You descend to floor ${this.game.floorLevel}...`, "warning");
                 });
                 this.game.soundManager.playPortalSound();
+                this.game.processTurn();
                 break;
 
             case 'randomTeleport':
+                console.log('Executing randomTeleport effect');
                 this.game.logger.add("Your mind wanders, and so does your body...", "warning");
+                // 幻覚エフェクトを適用
+                this.game.renderer.psychedelicTurn += 10;
                 this.game.renderer.startShortPortalTransition(() => {
                     let x, y;
                     do {
@@ -136,10 +157,14 @@ class VigorEffects {
                     this.game.renderer.render();
                 });
                 this.game.soundManager.playPortalSound();
+                this.game.processTurn();
                 break;
 
             case 'forgetAllTiles':
+                console.log('Executing forgetAllTiles effect');
                 this.game.logger.add("Your memory fades completely...", "warning");
+                // 幻覚エフェクトを適用
+                this.game.renderer.psychedelicTurn += 5;
                 for (let y = 0; y < this.game.height; y++) {
                     for (let x = 0; x < this.game.width; x++) {
                         if (!this.game.getVisibleTiles().some(({ x: visibleX, y: visibleY }) => visibleX === x && visibleY === y)) {
@@ -148,10 +173,14 @@ class VigorEffects {
                     }
                 }
                 this.game.playSound('vigorDownSound');
+                this.game.processTurn();
                 break;
 
             case 'forgetSomeTiles':
+                console.log('Executing forgetSomeTiles effect');
                 this.game.logger.add("Your memory becomes hazy...", "warning");
+                // 幻覚エフェクトを適用
+                this.game.renderer.psychedelicTurn += 3;
                 const exploredTiles = [];
                 for (let y = 0; y < this.game.height; y++) {
                     for (let x = 0; x < this.game.width; x++) {
@@ -168,20 +197,28 @@ class VigorEffects {
                     this.game.explored[tile.y][tile.x] = false;
                 }
                 this.game.playSound('vigorDownSound');
+                this.game.processTurn();
                 break;
 
             case 'revealAll':
+                console.log('Executing revealAll effect');
                 this.game.logger.add("A moment of clarity reveals all!", "important");
+                // 幻覚エフェクトを適用
+                this.game.renderer.psychedelicTurn += 10;
                 for (let y = 0; y < this.game.height; y++) {
                     for (let x = 0; x < this.game.width; x++) {
                         this.game.explored[y][x] = true;
                     }
                 }
                 this.game.playSound('vigorUpSound');
+                this.game.processTurn();
                 break;
 
             case 'fullRestore':
+                console.log('Executing fullRestore effect');
                 this.game.logger.add("A surge of energy restores you!", "important");
+                // 幻覚エフェクトを適用
+                this.game.renderer.psychedelicTurn += 8;
                 const hpRestored = this.game.player.maxHp - this.game.player.hp;
                 this.game.player.hp = this.game.player.maxHp;
                 const oldVigor = this.game.player.vigor;
@@ -194,17 +231,22 @@ class VigorEffects {
                 }
                 this.game.logger.add("Vigor fully restored!", "important");
                 this.game.playSound('meditationSound', true);
+                this.game.processTurn();
                 break;
 
             case 'levelUp':
+                console.log('Executing levelUp effect');
                 this.game.logger.add("A mysterious force empowers you!", "important");
+                // 幻覚エフェクトを適用
+                this.game.renderer.psychedelicTurn += 15;
                 this.game.player.levelUp();
                 this.game.playSound('levelUpSound');
+                this.game.processTurn();
                 break;
         }
         this.game.renderer.render();
     }
 }
 
-// グローバルオブジェクトに登録
+// グローバルオブジェクトにクラスを登録
 window.VigorEffects = VigorEffects; 
