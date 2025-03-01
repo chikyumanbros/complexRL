@@ -256,6 +256,9 @@ class VigorEffects {
                 }
                 this.game.playSound('vigorDownSound');
                 this.game.processTurn();
+                if (this.game.renderer && this.game.renderer.effects) {
+                    this.game.renderer.effects.refreshAfterVigorEffect();
+                }
                 break;
 
             case 'forgetSomeTiles':
@@ -279,6 +282,9 @@ class VigorEffects {
                 }
                 this.game.playSound('vigorDownSound');
                 this.game.processTurn();
+                if (this.game.renderer && this.game.renderer.effects) {
+                    this.game.renderer.effects.refreshAfterVigorEffect();
+                }
                 break;
 
             case 'revealAll':

@@ -66,6 +66,7 @@
     <script src="js/codex.js"></script>
     <script src="js/input.js"></script>
     <script src="js/logger.js"></script>
+    <script src="js/rendererEffects.js"></script>
     <script src="js/renderer.js"></script>
     <script src="js/soundManager.js"></script>
     <script src="js/vigor-effects.js"></script>
@@ -73,12 +74,19 @@
     <script src="js/game.js"></script>
     <script src="js/combat-system.js"></script>
     <script>
-        const renderer = new Renderer(game);
-
         // タブキーによるフォーカス移動を禁止
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Tab') {
                 e.preventDefault();
+            }
+        });
+
+        // gameオブジェクトが存在するのを確認してからrendererを作成
+        window.addEventListener('load', function() {
+            if (typeof window.game !== 'undefined') {
+                window.renderer = new Renderer(window.game);
+            } else {
+                console.error('Game object not found');
             }
         });
     </script>
