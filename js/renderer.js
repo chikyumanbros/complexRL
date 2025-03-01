@@ -16,6 +16,16 @@ class Renderer {
         this.isScreenFrozen = false;
         this.freezeOverlay = null;
 
+        // マップレンダリングのためのキャッシュを追加
+        this.lastFloorLevel = null;   // 前回描画時のフロアレベル
+        this.tileStateCache = {};     // タイル状態のキャッシュ
+        this.exploredStateHash = '';  // 探索状態のハッシュ値（変更検出用）
+        
+        // レンダリング処理を最適化するためのフラグ
+        this.pendingRender = false;   // レンダリングがスケジュールされているか
+        this.fastRenderMode = false;  // 高速レンダリングモードかどうか
+        this.forceFullRender = false; // 完全な再描画を強制するフラグ
+
         // 初期の揺らぎ値を生成
         this.updateFlickerValues();
 
@@ -209,36 +219,271 @@ class Renderer {
             this.movementEffects = new Set();
         }
 
-        this.renderMap();
-        this.renderStatus();
+        // 既にレンダリングがスケジュールされている場合は重複しない
+        if (this.pendingRender) return;
+        
+        // レンダリングをブラウザの描画サイクルに同期させる
+        this.pendingRender = true;
+        requestAnimationFrame(() => {
+            // exploredStateのハッシュをチェック（タイル忘却などの検出用）
+            const currentHash = this.calculateExploredHash();
+            if (currentHash !== this.exploredStateHash) {
+                console.log('探索状態の変更を検出しました。完全再描画を実行します。');
+                this.forceFullRender = true;
+                this.exploredStateHash = currentHash;
+            }
+            
+            this.renderMap();
+            this.renderStatus();
 
-        // Apply meditation effect
-        if (this.game.player.meditation && this.game.player.meditation.active) {
-            this.showMeditationEffect(this.game.player.x, this.game.player.y);
+            // Apply meditation effect
+            if (this.game.player.meditation && this.game.player.meditation.active) {
+                this.showMeditationEffect(this.game.player.x, this.game.player.y);
+            }
+
+            // Apply movement effects
+            this.movementEffects.forEach(effect => {
+                const tile = document.querySelector(`#game span[data-x="${effect.x}"][data-y="${effect.y}"]`);
+                if (tile) {
+                    tile.classList.add('movement-trail');
+                }
+            });
+            
+            // レンダリング完了フラグをリセット
+            this.pendingRender = false;
+            this.fastRenderMode = false;
+            this.forceFullRender = false;
+        });
+    }
+
+    // 高速レンダリングメソッド - 移動やシンプルな更新用
+    renderFast() {
+        // 既にレンダリングがスケジュールされている場合は高速モードに設定して重複しない
+        if (this.pendingRender) {
+            this.fastRenderMode = true;
+            return;
         }
+        
+        // forceFullRenderフラグが立っている場合は通常のrenderを呼び出す
+        if (this.forceFullRender) {
+            this.render();
+            return;
+        }
+        
+        this.fastRenderMode = true;
+        this.pendingRender = true;
+        
+        // 高優先度でレンダリングをスケジュール
+        requestAnimationFrame(() => {
+            // 現在のフロアレベルが変わっていないか確認
+            if (this.lastFloorLevel !== this.game.floorLevel) {
+                console.log('フロアレベルの変更を検出しました。通常描画に切り替えます。');
+                this.forceFullRender = true;
+                this.renderMap();
+            } else {
+                this.renderMapFast();
+            }
+            
+            this.renderStatus();
+            
+            // レンダリング完了フラグをリセット
+            this.pendingRender = false;
+            this.fastRenderMode = false;
+            this.forceFullRender = false;
+        });
+    }
 
-        // Apply movement effects
-        this.movementEffects.forEach(effect => {
-            const tile = document.querySelector(`#game span[data-x="${effect.x}"][data-y="${effect.y}"]`);
-            if (tile) {
-                tile.classList.add('movement-trail');
+    // 高速レンダリング用マップ描画 - プレイヤーとその周辺のみ更新
+    renderMapFast() {
+        const container = document.getElementById('game');
+        if (!container) return;
+        
+        // プレイヤーとその周辺のタイルのみを更新
+        const px = this.game.player.x;
+        const py = this.game.player.y;
+        const updateRadius = 20; // プレイヤーの周囲20マスを更新
+        
+        // 更新範囲内のタイルとそのキーを収集
+        const tilesToUpdate = [];
+        for (let y = Math.max(0, py - updateRadius); y <= Math.min(this.game.height - 1, py + updateRadius); y++) {
+            for (let x = Math.max(0, px - updateRadius); x <= Math.min(this.game.width - 1, px + updateRadius); x++) {
+                tilesToUpdate.push({x, y, key: `${x},${y}`});
+            }
+        }
+        
+        // 可視タイルを取得（更新範囲内のみ）
+        const visibleTiles = new Set(
+            this.game.getVisibleTiles()
+                .filter(tile => Math.abs(tile.x - px) <= updateRadius && Math.abs(tile.y - py) <= updateRadius)
+                .map(({x, y}) => `${x},${y}`)
+        );
+        
+        // 既存の要素を取得
+        const existingTiles = {};
+        tilesToUpdate.forEach(({key}) => {
+            const element = container.querySelector(`span[data-x="${key.split(',')[0]}"][data-y="${key.split(',')[1]}"]`);
+            if (element) {
+                existingTiles[key] = element;
             }
         });
+        
+        // 高速更新用のタイル状態を構築
+        const tileState = {};
+        const updatesToDo = [];
+        
+        // 重要なタイルのみ状態を構築
+        tilesToUpdate.forEach(({x, y, key}) => {
+            const isVisible = visibleTiles.has(key);
+            const isExplored = this.game.explored[y] && this.game.explored[y][x];
+            if (!isVisible && !isExplored) return;
+            
+            const isHighlighted = this.highlightedTile &&
+                this.highlightedTile.x === x &&
+                this.highlightedTile.y === y;
+                
+            // タイル状態を計算（完全版のrenderMapと同じロジック）
+            // 簡略化のため、プレイヤーとモンスターのタイルのみを詳細に計算
+            let content = '';
+            let style = '';
+            let classes = [];
+            let backgroundColor = '';
+            let opacity = 1.0;
+            
+            const isPlayerTile = (x === px && y === py);
+            const monster = this.game.getMonsterAt(x, y);
+            
+            if (isVisible) {
+                content = this.game.tiles[y][x];
+                style = `color: ${this.game.colors[y][x]}`;
+                
+                if (isPlayerTile) {
+                    content = this.game.player.char;
+                    const healthStatus = this.game.player.getHealthStatus(this.game.player.hp, this.game.player.maxHp);
+                    style = `color: ${healthStatus.color}; opacity: 1;`;
+                    
+                    // プレイヤーがポータル上にいる場合、特別なクラスを追加
+                    if (this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+                        classes.push('player-on-portal');
+                    } else if (this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
+                        classes.push('player-on-void');
+                    }
+                } else if (monster) {
+                    // モンスタータイル
+                    let displayChar = monster.char;
+                    style = `color: ${GAME_CONSTANTS.COLORS.MONSTER[monster.type]}; opacity: 1;`;
+                    
+                    if (monster.hasStartedFleeing) {
+                        classes.push('fleeing-monster');
+                        style += `; --char: '${monster.char}'`;
+                    }
+                    
+                    if (monster.isSleeping) {
+                        style += '; animation: sleeping-monster 1s infinite';
+                    }
+                    content = displayChar;
+                }
+                
+                // 必要なスタイルと位置情報を追加
+                style += `; grid-row: ${y + 1}; grid-column: ${x + 1};`;
+                
+                // キャッシュと比較して変更があるか確認
+                const existingTile = existingTiles[key];
+                const previousState = this.tileStateCache[key];
+                
+                // キャッシュに現在の状態を保存
+                tileState[key] = {
+                    content,
+                    style,
+                    classes,
+                    isVisible: true
+                };
+                
+                // 前回の状態と比較して変更があれば更新リストに追加
+                if (existingTile) {
+                    if (!previousState || 
+                        previousState.content !== content || 
+                        previousState.classes.join(' ') !== classes.join(' ')) {
+                        updatesToDo.push({
+                            element: existingTile,
+                            content,
+                            classes,
+                            style
+                        });
+                    }
+                }
+            } else if (isExplored) {
+                // 探索済みだが現在見えていないタイル
+                content = this.game.tiles[y][x];
+                opacity = 0.3;
+                style = `color: ${this.game.colors[y][x]}; opacity: ${opacity}; grid-row: ${y + 1}; grid-column: ${x + 1};`;
+                
+                // キャッシュに現在の状態を保存
+                tileState[key] = {
+                    content,
+                    style,
+                    classes,
+                    isVisible: true
+                };
+                
+                // キャッシュと比較
+                const existingTile = existingTiles[key];
+                const previousState = this.tileStateCache[key];
+                
+                if (existingTile) {
+                    // 探索済みタイルも更新
+                    if (!previousState || previousState.content !== content) {
+                        updatesToDo.push({
+                            element: existingTile,
+                            content,
+                            classes,
+                            style
+                        });
+                    }
+                }
+            }
+        });
+        
+        // 更新が必要なタイルだけをバッチ処理で更新
+        if (updatesToDo.length > 0) {
+            // DOMの更新を一度に行う
+            updatesToDo.forEach(update => {
+                update.element.textContent = update.content;
+                update.element.className = update.classes.join(' ');
+                // スタイルは変更がある場合のみ更新（コストが高い）
+                if (update.style !== update.element.getAttribute('style')) {
+                    update.element.setAttribute('style', update.style);
+                }
+            });
+        }
+        
+        // キャッシュを部分的に更新
+        Object.assign(this.tileStateCache, tileState);
     }
 
     renderMap() {
         const container = document.getElementById('game');
         container.style.position = 'relative';
         
+        // 高速モードが有効な場合は簡易更新のみ（forceFullRenderが立っている場合を除く）
+        if (this.fastRenderMode && !this.forceFullRender) {
+            this.renderMapFast();
+            return;
+        }
+        
         // デバッグ用にゲームの高さを出力
         console.log('Game height:', this.game.height, 'CONSTANTS height:', GAME_CONSTANTS.DIMENSIONS.HEIGHT);
-    
+        
+        // フロア変更の検出
+        const floorChanged = this.lastFloorLevel !== this.game.floorLevel || this.forceFullRender;
+        this.lastFloorLevel = this.game.floorLevel;
+        
         // マップ表示のためのCSSを設定
         container.style.display = 'grid';
         container.style.gridTemplateRows = `repeat(${GAME_CONSTANTS.DIMENSIONS.HEIGHT}, 1fr)`;
         container.style.gridTemplateColumns = `repeat(${GAME_CONSTANTS.DIMENSIONS.WIDTH}, 1fr)`;
         container.style.gap = '0';
         
+        // 可視タイルを取得（キャッシュ化の候補）
         const visibleTiles = new Set(
             this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
         );
@@ -247,7 +492,43 @@ class Renderer {
         const py = this.game.player.y;
         const currentRoom = this.game.getCurrentRoom();
 
-        let display = '';
+        // 既存の要素を再利用するための処理
+        const existingTiles = {};
+        const existingElements = container.querySelectorAll('span');
+        
+        // フロア変更時は強制的に全タイルを削除
+        if (floorChanged) {
+            console.log(`フロアが変更されました: ${this.lastFloorLevel} または強制リフレッシュ。タイルを全て再構築します`);
+            while (container.firstChild) {
+                container.removeChild(container.firstChild);
+            }
+            // タイル状態のキャッシュをクリア
+            this.tileStateCache = {};
+            // 探索状態のハッシュを更新
+            this.exploredStateHash = this.calculateExploredHash();
+        } else {
+            // 既存の要素をマップに登録
+            existingElements.forEach(element => {
+                const x = parseInt(element.dataset.x);
+                const y = parseInt(element.dataset.y);
+                existingTiles[`${x},${y}`] = element;
+            });
+        }
+        
+        // 現在の表示状態をキャッシュ
+        const tileState = {};
+        const isFirstRender = existingElements.length === 0 || floorChanged;
+        
+        // DOM操作を一括で行うためのコンテナ
+        const fragment = document.createDocumentFragment();
+        
+        // レンダリングが必要なタイルの追跡
+        let hasChanges = isFirstRender;
+        
+        // バッチ更新のための配列
+        const updatesToApply = [];
+        
+        // タイルの状態を構築
         for (let y = 0; y < GAME_CONSTANTS.DIMENSIONS.HEIGHT; y++) {
             for (let x = 0; x < GAME_CONSTANTS.DIMENSIONS.WIDTH; x++) {
                 const isVisible = visibleTiles.has(`${x},${y}`);
@@ -256,11 +537,15 @@ class Renderer {
                     this.highlightedTile.x === x &&
                     this.highlightedTile.y === y;
 
+                // 表示するタイルのみ処理する（最適化）
+                if (!isVisible && !isExplored) continue;
+
                 let content = '';
                 let style = '';
                 let classes = [];
                 let backgroundColor = '';
                 let opacity = 1.0;
+                let tileKey = `${x},${y}`;
 
                 // ランドマークターゲットモードの場合、探索済みなら描画
                 if (this.game.inputHandler.landmarkTargetMode && isExplored) {
@@ -401,7 +686,6 @@ class Renderer {
                     style = `color: ${this.game.colors[y][x]}; opacity: ${opacity}`;
                 }
 
-                const dataAttrs = `data-x="${x}" data-y="${y}"`;
                 style += `; opacity: ${opacity}`;
                 if (backgroundColor) {
                     style += `; background: ${backgroundColor}`;
@@ -435,12 +719,106 @@ class Renderer {
                     }
                 }
 
-                const classString = classes.length > 0 ? `class="${classes.join(' ')}"` : '';
-                display += `<span ${dataAttrs} ${classString} style="${style}">${content}</span>`;
+                // タイルの状態をキャッシュする
+                tileState[tileKey] = {
+                    content,
+                    style,
+                    classes,
+                    isVisible: isVisible || isExplored
+                };
+                
+                // 変更があるかチェック（最初のレンダリング時やフロア変更時はスキップ）
+                const existingTile = existingTiles[tileKey];
+                const previousState = this.tileStateCache[tileKey];
+                
+                if (!isFirstRender && existingTile && previousState) {
+                    // 前回のレンダリング状態と比較して変更を検出
+                    const contentChanged = previousState.content !== content;
+                    const classChanged = previousState.classes.join(' ') !== classes.join(' ');
+                    const styleChanged = previousState.style !== style;
+                    
+                    if (contentChanged || classChanged || styleChanged) {
+                        hasChanges = true;
+                        
+                        // 更新すべきタイルを記録
+                        updatesToApply.push({
+                            element: existingTile,
+                            content,
+                            classes,
+                            style
+                        });
+                    }
+                }
             }
-            // 改行を削除（グリッドレイアウトを使用するため）
         }
-        container.innerHTML = display;
+
+        // タイル状態をキャッシュに保存（次回のレンダリング比較用）
+        this.tileStateCache = tileState;
+
+        // 変更がなければ早期リターン（最初のレンダリング時やフロア変更時は必ず実行）
+        if (!isFirstRender && !hasChanges) {
+            return;
+        }
+        
+        // 変更があった場合のみDOMを更新
+        
+        // 方法1: 既存の要素を更新し、新しい要素を追加（最も効率的）
+        if (!isFirstRender) {
+            // バッチ更新 - 既存の要素を更新
+            if (updatesToApply.length > 0) {
+                // アップデートを一度に適用（DOM操作を最小化）
+                updatesToApply.forEach(update => {
+                    update.element.textContent = update.content;
+                    update.element.className = update.classes.join(' ');
+                    update.element.setAttribute('style', update.style);
+                });
+            }
+            
+            // 新しい要素の作成
+            for (let y = 0; y < GAME_CONSTANTS.DIMENSIONS.HEIGHT; y++) {
+                for (let x = 0; x < GAME_CONSTANTS.DIMENSIONS.WIDTH; x++) {
+                    const tileKey = `${x},${y}`;
+                    const state = tileState[tileKey];
+                    
+                    // 表示するタイルのみ処理
+                    if (!state || !state.isVisible) continue;
+                    
+                    // 既存のタイルがなく、新規作成が必要なもののみ処理
+                    if (!existingTiles[tileKey]) {
+                        // 新しい要素を作成
+                        const tile = document.createElement('span');
+                        tile.dataset.x = x;
+                        tile.dataset.y = y;
+                        tile.textContent = state.content;
+                        tile.className = state.classes.join(' ');
+                        tile.setAttribute('style', state.style);
+                        fragment.appendChild(tile);
+                    }
+                }
+            }
+            
+            // 新しい要素のみを追加
+            if (fragment.childNodes.length > 0) {
+                container.appendChild(fragment);
+            }
+        } else {
+            // 初回レンダリング時やフロア変更時は一括でHTML生成（より高速）
+            let display = '';
+            for (let y = 0; y < GAME_CONSTANTS.DIMENSIONS.HEIGHT; y++) {
+                for (let x = 0; x < GAME_CONSTANTS.DIMENSIONS.WIDTH; x++) {
+                    const tileKey = `${x},${y}`;
+                    const state = tileState[tileKey];
+                    
+                    // 表示するタイルのみ処理
+                    if (!state || !state.isVisible) continue;
+                    
+                    const dataAttrs = `data-x="${x}" data-y="${y}"`;
+                    const classString = state.classes.length > 0 ? `class="${state.classes.join(' ')}"` : '';
+                    display += `<span ${dataAttrs} ${classString} style="${state.style}">${state.content}</span>`;
+                }
+            }
+            container.innerHTML = display;
+        }
     }
 
     getCurrentRoom(x, y) {
@@ -2380,5 +2758,42 @@ class Renderer {
         if (this.isScreenFrozen) {
             setTimeout(() => this._drawGlitchEffect(), Math.floor(Math.random() * 150) + 150);
         }
+    }
+
+    // exploredStateの変更を検出するためのハッシュを計算
+    calculateExploredHash() {
+        if (!this.game.explored) return '';
+        
+        // サンプリングでハッシュを作成（すべてのタイルを計算すると重い）
+        let hash = '';
+        const sampleSize = 20; // サンプリング数を適切に設定
+        
+        for (let i = 0; i < sampleSize; i++) {
+            const y = Math.floor(Math.random() * this.game.height);
+            const x = Math.floor(Math.random() * this.game.width);
+            if (this.game.explored[y] && typeof this.game.explored[y][x] === 'boolean') {
+                hash += this.game.explored[y][x] ? '1' : '0';
+            }
+        }
+        
+        // フロアレベルもハッシュに含める
+        hash += `-${this.game.floorLevel}`;
+        
+        return hash;
+    }
+
+    // 完全な再描画を強制する（VigorEffectsなど特殊効果後に呼び出す）
+    forceRefresh() {
+        console.log('強制的に完全再描画を実行します');
+        this.forceFullRender = true;
+        this.tileStateCache = {}; // キャッシュをクリア
+        this.exploredStateHash = this.calculateExploredHash(); // 新しいハッシュを計算
+        this.render(); // 再描画を実行
+    }
+
+    // VigorEffectsのforgetTilesなどの後に呼び出すためのメソッドを追加
+    refreshAfterVigorEffect() {
+        // 強制的に完全再描画フラグを立てる
+        this.forceRefresh();
     }
 }
