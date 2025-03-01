@@ -139,12 +139,43 @@ class VigorEffects {
                 this.game.renderer.psychedelicTurn += 10;
                 this.game.renderer.startShortPortalTransition(() => {
                     let x, y;
-                    do {
-                        x = Math.floor(Math.random() * this.game.width);
-                        y = Math.floor(Math.random() * this.game.height);
-                    } while (this.game.map[y][x] === 'wall' || this.game.getMonsterAt(x, y) ||
-                        (x === this.game.player.x && y === this.game.player.y) ||
-                        GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.game.tiles[y][x]));
+                    let validFloorTiles = [];
+                    
+                    // 有効なfloorタイルをすべて収集
+                    for (let ty = 0; ty < this.game.height; ty++) {
+                        for (let tx = 0; tx < this.game.width; tx++) {
+                            // 以下の条件を満たすタイルのみを有効とする:
+                            // 1. floorタイル
+                            // 2. モンスターがいない
+                            // 3. プレイヤーの現在位置ではない
+                            // 4. ブロッキング障害物がない
+                            // 5. 透過障害物もない
+                            if (this.game.map[ty][tx] === 'floor' && 
+                                !this.game.getMonsterAt(tx, ty) &&
+                                !(tx === this.game.player.x && ty === this.game.player.y) &&
+                                !GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.game.tiles[ty][tx]) &&
+                                !GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.game.tiles[ty][tx]) &&
+                                this.game.tiles[ty][tx] !== GAME_CONSTANTS.STAIRS.CHAR &&
+                                this.game.tiles[ty][tx] !== GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+                                validFloorTiles.push({x: tx, y: ty});
+                            }
+                        }
+                    }
+                    
+                    // 有効なタイルが見つかった場合はランダムに選択
+                    if (validFloorTiles.length > 0) {
+                        const randomTile = validFloorTiles[Math.floor(Math.random() * validFloorTiles.length)];
+                        x = randomTile.x;
+                        y = randomTile.y;
+                    } else {
+                        // フォールバック: 元の方法で試行（これは起こりにくいはず）
+                        do {
+                            x = Math.floor(Math.random() * this.game.width);
+                            y = Math.floor(Math.random() * this.game.height);
+                        } while (this.game.map[y][x] !== 'floor' || this.game.getMonsterAt(x, y) ||
+                            (x === this.game.player.x && y === this.game.player.y) ||
+                            GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.game.tiles[y][x]));
+                    }
 
                     this.game.player.x = x;
                     this.game.player.y = y;
