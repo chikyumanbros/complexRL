@@ -1,8 +1,8 @@
 class Game {
     constructor() {
         // Display setup
-        this.width = 65;
-        this.height = 35;
+        this.width = GAME_CONSTANTS.DIMENSIONS.WIDTH;
+        this.height = GAME_CONSTANTS.DIMENSIONS.HEIGHT;
         this.renderer = new Renderer(this);
         this.soundManager = new SoundManager(this);
         this.inputHandler = new InputHandler(this);
@@ -44,8 +44,8 @@ class Game {
 
     initializeExplored() {
         const explored = [];
-        for (let y = 0; y < this.height; y++) {
-            explored[y] = new Array(this.width).fill(false);
+        for (let y = 0; y < GAME_CONSTANTS.DIMENSIONS.HEIGHT; y++) {
+            explored[y] = new Array(GAME_CONSTANTS.DIMENSIONS.WIDTH).fill(false);
         }
         return explored;
     }
@@ -988,8 +988,8 @@ class Game {
 
         // Pass the game instance when generating a new floor.
         const mapGenerator = new MapGenerator(
-            this.width,
-            this.height,
+            GAME_CONSTANTS.DIMENSIONS.WIDTH,
+            GAME_CONSTANTS.DIMENSIONS.HEIGHT,
             this.floorLevel,
             this
         );
@@ -999,6 +999,10 @@ class Game {
         this.tiles = mapData.tiles;
         this.colors = mapData.colors;
         this.rooms = mapData.rooms;
+
+        // 高さと幅を定数から再設定して一貫性を保つ
+        this.width = GAME_CONSTANTS.DIMENSIONS.WIDTH;
+        this.height = GAME_CONSTANTS.DIMENSIONS.HEIGHT;
 
         this.monsters = [];
         this.totalMonstersSpawned = 0;
@@ -1141,8 +1145,8 @@ class Game {
         const currentRoom = this.getCurrentRoom();
         const CORRIDOR_VISIBILITY = 2; // 部屋に属さない床（通路）の視界範囲
 
-        for (let y = 0; y < this.height; y++) {
-            for (let x = 0; x < this.width; x++) {
+        for (let y = 0; y < GAME_CONSTANTS.DIMENSIONS.HEIGHT; y++) {
+            for (let x = 0; x < GAME_CONSTANTS.DIMENSIONS.WIDTH; x++) {
                 const dx = x - this.player.x;
                 const dy = y - this.player.y;
                 const distance = GAME_CONSTANTS.DISTANCE.calculate(x, y, this.player.x, this.player.y);

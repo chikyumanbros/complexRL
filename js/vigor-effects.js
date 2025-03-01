@@ -251,8 +251,8 @@ class VigorEffects {
                 // 瞑想エフェクトを表示
                 this.game.renderer.showMeditationEffect(this.game.player.x, this.game.player.y);
                 
-                for (let y = 0; y < this.game.height; y++) {
-                    for (let x = 0; x < this.game.width; x++) {
+                for (let y = 0; y < GAME_CONSTANTS.DIMENSIONS.HEIGHT; y++) {
+                    for (let x = 0; x < GAME_CONSTANTS.DIMENSIONS.WIDTH; x++) {
                         this.game.explored[y][x] = true;
                     }
                 }

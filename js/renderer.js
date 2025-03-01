@@ -225,7 +225,16 @@ class Renderer {
     renderMap() {
         const container = document.getElementById('game');
         container.style.position = 'relative';
-
+        
+        // デバッグ用にゲームの高さを出力
+        console.log('Game height:', this.game.height, 'CONSTANTS height:', GAME_CONSTANTS.DIMENSIONS.HEIGHT);
+    
+        // マップ表示のためのCSSを設定
+        container.style.display = 'grid';
+        container.style.gridTemplateRows = `repeat(${GAME_CONSTANTS.DIMENSIONS.HEIGHT}, 1fr)`;
+        container.style.gridTemplateColumns = `repeat(${GAME_CONSTANTS.DIMENSIONS.WIDTH}, 1fr)`;
+        container.style.gap = '0';
+        
         const visibleTiles = new Set(
             this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
         );
@@ -235,8 +244,8 @@ class Renderer {
         const currentRoom = this.game.getCurrentRoom();
 
         let display = '';
-        for (let y = 0; y < this.game.height; y++) {
-            for (let x = 0; x < this.game.width; x++) {
+        for (let y = 0; y < GAME_CONSTANTS.DIMENSIONS.HEIGHT; y++) {
+            for (let x = 0; x < GAME_CONSTANTS.DIMENSIONS.WIDTH; x++) {
                 const isVisible = visibleTiles.has(`${x},${y}`);
                 const isExplored = this.game.explored[y][x];
                 const isHighlighted = this.highlightedTile &&
@@ -394,6 +403,9 @@ class Renderer {
                     style += `; background: ${backgroundColor}`;
                 }
 
+                // グリッド位置を指定
+                style += `; grid-row: ${y + 1}; grid-column: ${x + 1};`;
+
                 const isDoorKillTarget = this.game.lastDoorKillLocation &&
                     this.game.lastDoorKillLocation.x === x &&
                     this.game.lastDoorKillLocation.y === y;
@@ -422,7 +434,7 @@ class Renderer {
                 const classString = classes.length > 0 ? `class="${classes.join(' ')}"` : '';
                 display += `<span ${dataAttrs} ${classString} style="${style}">${content}</span>`;
             }
-            display += '\n';
+            // 改行を削除（グリッドレイアウトを使用するため）
         }
         container.innerHTML = display;
     }
