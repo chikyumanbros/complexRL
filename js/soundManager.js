@@ -195,7 +195,7 @@ class SoundManager {
         // ユーザーが操作したか確認
         if (!this.userInteracted) return;
 
-        //console.log("playSound called with audioName:", audioName); // 追加: audioNameを確認
+        console.log("playSound called with audioName:", audioName, "loop:", loop); // ログを追加
 
         // moveSounds の場合は this[audioName] ではなく this.moveSounds[audioName] を使う
         let audio = this.moveSounds[audioName] || this[audioName];
@@ -212,7 +212,11 @@ class SoundManager {
         audio.volume = this.seVolume;
 
         // ループ設定
-        audio.loop = loop;
+        if (typeof loop === 'object' && loop !== null && loop.loop !== undefined) {
+            audio.loop = loop.loop;
+        } else {
+            audio.loop = !!loop; // 確実にブール値に変換
+        }
 
         // 再生を安全に行う関数
         const safePlay = () => {
@@ -244,10 +248,28 @@ class SoundManager {
 
     // 効果音を停止するメソッド
     stopSound(audioName) {
+        console.log(`Stopping sound: ${audioName}`); // ログを追加
         const audio = this[audioName];
         if (audio) {
+            // ループを無効化
+            audio.loop = false;
+            
+            // 一時停止
             audio.pause();
-            audio.currentTime = 0; // 停止時にcurrentTimeをリセット
+            
+            // 再生位置をリセット
+            audio.currentTime = 0;
+            
+            // 念のため、少し遅延を入れてから再度停止を試みる
+            setTimeout(() => {
+                if (!audio.paused) {
+                    console.log(`Retrying to stop sound: ${audioName}`);
+                    audio.pause();
+                    audio.currentTime = 0;
+                }
+            }, 100);
+        } else {
+            console.warn(`Sound "${audioName}" not found for stopping.`);
         }
     }
 

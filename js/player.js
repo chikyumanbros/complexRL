@@ -188,9 +188,14 @@ class Player {
     move(dx, dy, map) {
         // 移動時にメディテーションを解除
         if (this.meditation && this.meditation.active) {
-            this.game.logger.add(`Meditation cancelled. (Total healed: ${this.meditation.totalHealed})`, "playerInfo");
-            this.game.stopSound('meditationSound');
-            this.meditation = null;
+            // cannotCancelByInputフラグがある場合はキャンセルしない
+            if (!this.meditation.cannotCancelByInput) {
+                this.game.logger.add(`Meditation cancelled. (Total healed: ${this.meditation.totalHealed})`, "playerInfo");
+                this.game.stopSound('meditationSound');
+                this.meditation = null;
+            } else {
+                console.log('Meditation cannot be cancelled by movement due to vigor effect');
+            }
         }
 
         const newX = this.x + dx;

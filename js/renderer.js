@@ -1737,7 +1737,7 @@ class Renderer {
             this.freezeOverlay = document.createElement('div');
             this.freezeOverlay.className = 'freeze-overlay';
             this.freezeOverlay.style.position = 'fixed';
-            this.freezeOverlay.style.top = '0';
+            this.freezeOverlay.style.fontFamily = 'IBM EGA 9x8';
             this.freezeOverlay.style.left = '0';
             this.freezeOverlay.style.width = '100%';
             this.freezeOverlay.style.height = '100%';

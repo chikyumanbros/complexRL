@@ -631,7 +631,6 @@ class Monster {
 
         // 逃げ場がない場合は、プレイヤーに背を向けて戦う
         this.hasStartedFleeing = false;
-        game.logger.add(`${this.name} is cornered and turns to fight!`, "monsterInfo");
         return false;
     }
 

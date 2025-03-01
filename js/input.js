@@ -926,8 +926,14 @@ class InputHandler {
 
         // --- Cancel Meditation if Moving ---
         if ((dx !== 0 || dy !== 0) && player.meditation && player.meditation.active) {
-            this.game.logger.add(`Meditation cancelled. (Total healed: ${player.meditation.totalHealed})`, "playerInfo");
-            player.meditation = null;
+            // cannotCancelByInputフラグがある場合はキャンセルしない
+            if (!player.meditation.cannotCancelByInput) {
+                this.game.logger.add(`Meditation cancelled. (Total healed: ${player.meditation.totalHealed})`, "playerInfo");
+                this.game.soundManager.stopSound('meditationSound');
+                player.meditation = null;
+            } else {
+                console.log('Meditation cannot be cancelled by input due to vigor effect');
+            }
         }
 
         const newX = player.x + dx;
