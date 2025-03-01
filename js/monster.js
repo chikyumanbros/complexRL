@@ -131,10 +131,10 @@ class Monster {
 
         // HPの上限チェック
         if (this.hp > this.maxHp) {
-            console.warn(`Monster HP exceeded maxHP after damage: ${this.name}`, {
-                hp: this.hp,
-                maxHp: this.maxHp
-            });
+            //console.warn(`Monster HP exceeded maxHP after damage: ${this.name}`, {
+            //    hp: this.hp,
+            //    maxHp: this.maxHp
+            //});
             this.hp = this.maxHp;
         }
 

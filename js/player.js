@@ -40,16 +40,16 @@ class Player {
     }
 
     validateVigor() {
-        console.log('Validating Vigor:', {
-            currentVigor: this.vigor,
-            maxVigor: GAME_CONSTANTS.VIGOR.MAX,
-            isFinite: Number.isFinite(this.vigor),
-            type: typeof this.vigor
-        });
+        //console.log('Validating Vigor:', {
+        //    currentVigor: this.vigor,
+        //    maxVigor: GAME_CONSTANTS.VIGOR.MAX,
+        //    isFinite: Number.isFinite(this.vigor),
+        //    type: typeof this.vigor
+        //});
 
         // 値が未定義またはNaNの場合のみ最大値を設定
         if (this.vigor === undefined || this.vigor === null || Number.isNaN(this.vigor)) {
-            console.log(`Initializing vigor to max value (${GAME_CONSTANTS.VIGOR.MAX})`);
+            //console.log(`Initializing vigor to max value (${GAME_CONSTANTS.VIGOR.MAX})`);
             this.vigor = GAME_CONSTANTS.VIGOR.MAX;
             return;
         }
@@ -59,10 +59,10 @@ class Player {
 
         // 値の範囲チェック（0から100の間）
         if (this.vigor < 0) {
-            console.warn(`Vigor value (${this.vigor}) below 0, setting to 0`);
+            //console.warn(`Vigor value (${this.vigor}) below 0, setting to 0`);
             this.vigor = 0;
         } else if (this.vigor > GAME_CONSTANTS.VIGOR.MAX) {
-            console.warn(`Vigor value (${this.vigor}) above ${GAME_CONSTANTS.VIGOR.MAX}, setting to max`);
+            //console.warn(`Vigor value (${this.vigor}) above ${GAME_CONSTANTS.VIGOR.MAX}, setting to max`);
             this.vigor = GAME_CONSTANTS.VIGOR.MAX;
         }
     }
@@ -194,7 +194,7 @@ class Player {
                 this.game.stopSound('meditationSound');
                 this.meditation = null;
             } else {
-                console.log('Meditation cannot be cancelled by movement due to vigor effect');
+                //console.log('Meditation cannot be cancelled by movement due to vigor effect');
             }
         }
 

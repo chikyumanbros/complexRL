@@ -865,7 +865,7 @@ class Game {
                     monster = Monster.spawnRandomMonster(x, y, this.floorLevel, this.dangerLevel, this);
                     this.monsters.push(monster);
                     this.totalMonstersSpawned++;
-                    console.log(`Spawned ${monster.name} (Level ${monster.level}) at (${x}, ${y})`);
+                    //console.log(`Spawned ${monster.name} (Level ${monster.level}) at (${x}, ${y})`);
 
                     // Handle pack spawning.
                     const template = MONSTERS[monster.type];
@@ -1573,14 +1573,14 @@ class Game {
         let threshold;
         let severity;
 
-        console.log('=== Vigor Penalty Roll ===');
-        console.log(`Current Vigor Status: ${vigorStatus.name}`);
+        //console.log('=== Vigor Penalty Roll ===');
+        //console.log(`Current Vigor Status: ${vigorStatus.name}`);
 
         switch (vigorStatus.name) {
             case 'Exhausted': 
                 // 1d20で判定、1で発動（5%） - 確率を10%から5%に下げる
                 threshold = Math.floor(Math.random() * 20) + 1;
-                console.log(`Exhausted Roll: ${threshold}/20 (needs 1 to trigger)`);
+                //console.log(`Exhausted Roll: ${threshold}/20 (needs 1 to trigger)`);
                 if (threshold === 1) {
                     severity = 'Exhausted';  // 直接文字列を使用
                     
@@ -1608,11 +1608,11 @@ class Game {
             case 'Critical':
                 // 1d50で判定、1で発動（2%） - 確率を5%から2%に下げる
                 threshold = Math.floor(Math.random() * 50) + 1;
-                console.log(`Critical Roll: ${threshold}/50 (needs 1 to trigger)`);
+                //console.log(`Critical Roll: ${threshold}/50 (needs 1 to trigger)`);
                 if (threshold === 1) {
                     // 1d6で良い効果か悪い効果かを決定
                     const effectRoll = Math.floor(Math.random() * 6) + 1;
-                    console.log(`Effect Type Roll: ${effectRoll}/6 (1 = positive, others = severe)`);
+                    //console.log(`Effect Type Roll: ${effectRoll}/6 (1 = positive, others = severe)`);
                     severity = effectRoll === 1 ? 'positive' : 'Critical'; // 直接文字列を使用
                 }
                 break;
@@ -1620,11 +1620,11 @@ class Game {
             case 'Low':
                 // 1d50で判定、1で発動（2%） - 確率を5%から2%に下げる
                 threshold = Math.floor(Math.random() * 50) + 1;
-                console.log(`Low Roll: ${threshold}/50 (needs 1 to trigger)`);
+                //console.log(`Low Roll: ${threshold}/50 (needs 1 to trigger)`);
                 if (threshold === 1) {
                     // 1d8で良い効果か悪い効果かを決定
                     const effectRoll = Math.floor(Math.random() * 8) + 1;
-                    console.log(`Effect Type Roll: ${effectRoll}/8 (1 = positive, others = moderate)`);
+                    //console.log(`Effect Type Roll: ${effectRoll}/8 (1 = positive, others = moderate)`);
                     severity = effectRoll === 1 ? 'positive' : 'Low';
                 }
                 break;
@@ -1632,11 +1632,11 @@ class Game {
             case 'Moderate':
                 // 1d200で判定、1で発動（0.5%） - 確率を2%から0.5%に下げる
                 threshold = Math.floor(Math.random() * 200) + 1;
-                console.log(`Moderate Roll: ${threshold}/200 (needs 1 to trigger)`);
+                //console.log(`Moderate Roll: ${threshold}/200 (needs 1 to trigger)`);
                 if (threshold === 1) {
                     // 1d10で良い効果か悪い効果かを決定
                     const effectRoll = Math.floor(Math.random() * 10) + 1;
-                    console.log(`Effect Type Roll: ${effectRoll}/10 (1 = positive, others = critical)`);
+                    //console.log(`Effect Type Roll: ${effectRoll}/10 (1 = positive, others = critical)`);
                     severity = effectRoll === 1 ? 'positive' : 'Moderate';
                 }
                 break;
@@ -1647,12 +1647,12 @@ class Game {
             // グローバルオブジェクトから VigorEffects を参照
             const effect = VigorEffects.getVigorPenaltyEffect(severity, vigorStatus.name);
             if (!effect) {
-                console.log(`No effect applied for severity: ${severity}, vigorStatus: ${vigorStatus.name}`);
+                //console.log(`No effect applied for severity: ${severity}, vigorStatus: ${vigorStatus.name}`);
                 return;
             }
-            console.log(`Selected Severity: ${severity}`);
-            console.log(`Selected Effect Type: ${effect.type}`);
-            console.log(`Effect Details:`, effect);
+            //console.log(`Selected Severity: ${severity}`);
+            //console.log(`Selected Effect Type: ${effect.type}`);
+            //console.log(`Effect Details:`, effect);
             const vigorEffects = new VigorEffects(this);
             vigorEffects.applyVigorEffect(effect);  // インスタンスメソッドとして呼び出し
             
@@ -1661,9 +1661,9 @@ class Game {
                 this.renderer.clearEffects();
             }
         } else {
-            console.log('No effect triggered');
+            //console.log('No effect triggered');
         }
-        console.log('========================');
+        //console.log('========================');
     }
 }
 

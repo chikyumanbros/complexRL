@@ -137,7 +137,7 @@ class Renderer {
             // exploredStateのハッシュをチェック（タイル忘却などの検出用）
             const currentHash = this.effects.calculateExploredHash();
             if (currentHash !== this.exploredStateHash) {
-                console.log('探索状態の変更を検出しました。完全再描画を実行します。');
+                console.log('Detected change in explored state. Performing full redraw.');
                 this.forceFullRender = true;
                 this.exploredStateHash = currentHash;
             }
@@ -186,7 +186,7 @@ class Renderer {
         requestAnimationFrame(() => {
             // 現在のフロアレベルが変わっていないか確認
             if (this.lastFloorLevel !== this.game.floorLevel) {
-                console.log('フロアレベルの変更を検出しました。通常描画に切り替えます。');
+                console.log('Detected floor level change. Switching to normal rendering.');
                 this.forceFullRender = true;
                 this.renderMap();
             } else {
@@ -380,7 +380,7 @@ class Renderer {
         }
         
         // デバッグ用にゲームの高さを出力
-        console.log('Game height:', this.game.height, 'CONSTANTS height:', GAME_CONSTANTS.DIMENSIONS.HEIGHT);
+        //console.log('Game height:', this.game.height, 'CONSTANTS height:', GAME_CONSTANTS.DIMENSIONS.HEIGHT);
         
         // フロア変更の検出
         const floorChanged = this.lastFloorLevel !== this.game.floorLevel || this.forceFullRender;
@@ -407,7 +407,7 @@ class Renderer {
         
         // フロア変更時は強制的に全タイルを削除
         if (floorChanged) {
-            console.log(`フロアが変更されました: ${this.lastFloorLevel} または強制リフレッシュ。タイルを全て再構築します`);
+            console.log(`Floor changed: ${this.lastFloorLevel} or forced refresh. Rebuilding all tiles...`);
             while (container.firstChild) {
                 container.removeChild(container.firstChild);
             }
@@ -1829,7 +1829,7 @@ class Renderer {
 
     // 完全な再描画を強制する（VigorEffectsなど特殊効果後に呼び出す）
     forceRefresh() {
-        console.log('強制的に完全再描画を実行します');
+        console.log('Forcing full redraw...');
         this.forceFullRender = true;
         this.tileStateCache = {}; // キャッシュをクリア
         this.exploredStateHash = this.effects.calculateExploredHash(); // 新しいハッシュを計算

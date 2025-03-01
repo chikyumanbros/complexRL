@@ -150,7 +150,7 @@ class RendererEffects {
      * 画面をフリーズさせる関数
      */
     freezeScreen() {
-        console.log('Freezing screen for vigor effect');
+        //console.log('Freezing screen for vigor effect');
         this.isScreenFrozen = true;
         
         // フリーズオーバーレイを作成または再利用
@@ -217,7 +217,7 @@ class RendererEffects {
      * フリーズを解除する関数
      */
     unfreezeScreen() {
-        console.log('Unfreezing screen');
+        //console.log('Unfreezing screen');
         this.isScreenFrozen = false;
         
         // グリッチキャンバスをクリア
@@ -264,7 +264,7 @@ class RendererEffects {
             // 瞑想状態がキャンセルされた場合に音を停止
             if (this.renderer.game.player.meditation.soundStarted) {
                 this.renderer.game.stopSound('meditationSound');
-                console.log('Stopping meditation sound due to vigor effect cancellation');
+                //console.log('Stopping meditation sound due to vigor effect cancellation');
             }
         }
     }
@@ -408,7 +408,7 @@ class RendererEffects {
      * 完全な再描画を強制する（VigorEffectsなど特殊効果後に呼び出す）
      */
     forceRefresh() {
-        console.log('RendererEffects: 強制再描画を要求します');
+        //console.log('RendererEffects: 強制再描画を要求します');
         this.renderer.forceRefresh();
     }
 
@@ -417,7 +417,7 @@ class RendererEffects {
      */
     refreshAfterVigorEffect() {
         // forceRefreshを呼び出さずに、直接必要な処理を行う
-        console.log('RendererEffects: VigorEffect後の再描画を実行します');
+        //console.log('RendererEffects: VigorEffect後の再描画を実行します');
         // タイル状態のキャッシュをクリア
         this.renderer.tileStateCache = {};
         // 探索状態のハッシュを更新
