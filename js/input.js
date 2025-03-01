@@ -26,6 +26,14 @@ class InputHandler {
         this.keyRepeatInterval = null;  // キーリピート用のインターバルID
         this.initialDelay = 250;  // 初期遅延
         this.repeatDelay = 150;   // リピート間隔を少し長めに
+        // スキルスロットの並べ替え用変数を追加
+        this.skillSlotSwapMode = false;
+        this.firstSlot = null;
+        // Ctrlキーの状態を保存する変数
+        this.ctrlPressed = false;
+        // 直接キーコンビネーションを検出するための変数を追加
+        this.pendingCtrlCombo = false;
+        this.lastCtrlKeyTime = 0;
     }
 
     // ----------------------
@@ -46,12 +54,63 @@ class InputHandler {
         // 名前入力モードの場合は大文字小文字を区別するため、keyを変換しない
         const key = this.mode === 'name' ? event.key : event.key.toLowerCase();
         this.pressedKeys.delete(key);
+        
+        // Ctrlキーの検出を改善（MacとWindows両方で動作するように）
+        // 注意: Ctrlキーを離した直後は、数字キーを処理する前にフラグがリセットされることがあるため、
+        // 少し遅延してリセットする
+        if (key === 'control' || key === 'ctrl' || event.keyCode === 17) {
+            console.log('Control key released (will reset after delay)');
+            // 少し遅延してリセット（数字キーの入力を受け付ける時間を確保）
+            setTimeout(() => {
+                this.ctrlPressed = false;
+                this.pendingCtrlCombo = false; // キーコンビネーション状態もリセット
+                console.log('Control key state reset after delay');
+            }, 200); // 200ミリ秒の遅延を追加
+        }
     }
 
     // キーが押された時の処理
     handleKeyDown(event) {
+        // デバッグログを追加（MetaキーはMacのCommandキー）
+        console.log('Key pressed:', event.key, 'Ctrl:', event.ctrlKey, 'Meta:', event.metaKey, 'Key code:', event.keyCode);
+        console.log('Current ctrlPressed state:', this.ctrlPressed);
+        
+        // Ctrlキーの状態を保存（Ctrl, Control, またはevent.ctrlKeyがtrueの場合）
+        // MacではControlキー、WindowsではCtrlキーを検出
+        if (event.ctrlKey || event.key === 'Control' || event.key === 'Ctrl' || event.keyCode === 17) {
+            this.ctrlPressed = true;
+            this.pendingCtrlCombo = true;
+            this.lastCtrlKeyTime = Date.now();
+            console.log('Control key state set to true');
+        }
+        
         // 名前入力モードの場合は大文字小文字を区別するため、keyを変換しない
         const key = this.mode === 'name' ? event.key : event.key.toLowerCase();
+        
+        // Ctrl+数字キーの直接検出
+        // Ctrlキーを押しながら数字キーを押した場合を検出
+        if (event.ctrlKey && /^[1-9]$/.test(key)) {
+            console.log('Direct Ctrl+Number detection:', key);
+            
+            // スキルスロット並べ替えモードに入る
+            this.startSkillSlotSwap(key);
+            
+            // イベントをデフォルト動作をキャンセル（ブラウザのショートカットを防止）
+            event.preventDefault();
+            return;
+        }
+        
+        // Alt+数字キーの直接検出（代替として）
+        if (event.altKey && /^[1-9]$/.test(key)) {
+            console.log('Direct Alt+Number detection:', key);
+            
+            // スキルスロット並べ替えモードに入る
+            this.startSkillSlotSwap(key);
+            
+            // イベントをデフォルト動作をキャンセル
+            event.preventDefault();
+            return;
+        }
         
         // すでに押されているキーは無視（キーリピートを防止）
         if (this.pressedKeys.has(key)) {
@@ -70,6 +129,19 @@ class InputHandler {
             // ヘルプモードやCodexモードの場合はスクロールのみ許可して他の処理は行わない
             if (this.game.mode === GAME_CONSTANTS.MODES.HELP || 
                 this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
+                return;
+            }
+        }
+        
+        // 数字キーが押されたときにctrlPressedの状態をログ出力
+        if (/^[1-9]$/.test(key)) {
+            console.log(`Number key ${key} pressed with ctrlPressed:`, this.ctrlPressed, 'event.ctrlKey:', event.ctrlKey);
+            
+            // ctrlPressedがtrueで、最近Ctrlキーが押された場合（200ms以内）
+            if (this.pendingCtrlCombo && (Date.now() - this.lastCtrlKeyTime < 200)) {
+                console.log('Detected Ctrl+Number combo through tracking:', key);
+                this.startSkillSlotSwap(key);
+                this.pendingCtrlCombo = false; // 一度使ったらリセット
                 return;
             }
         }
@@ -116,6 +188,8 @@ class InputHandler {
         // 入力時間を更新
         this.lastInputTime = currentTime;
 
+        console.log('Processing input:', key, 'Ctrl key state:', this.ctrlPressed);
+
         // ESCキーの処理を最優先で行う
         if (key === 'escape') {
             if (this.lookMode) {
@@ -128,6 +202,11 @@ class InputHandler {
             }
             if (this.targetingMode) {
                 this.cancelTargeting();
+                return;
+            }
+            // スキルスロット並べ替えモードの解除を追加
+            if (this.skillSlotSwapMode) {
+                this.cancelSkillSlotSwap();
                 return;
             }
             // Wikiモードの解除を追加
@@ -545,6 +624,12 @@ class InputHandler {
             return;
         }
 
+        // スキルスロット並べ替えモードの処理
+        if (this.skillSlotSwapMode) {
+            this.handleSkillSlotSwapMode(key);
+            return;
+        }
+
         // インタラクションモードの処理
         if (this.mode === 'interact') {
             let dx = 0;
@@ -888,6 +973,25 @@ class InputHandler {
 
         // --- Skill Usage via Number Keys ---
         if (/^[1-9]$/.test(key)) {
+            // デバッグ: 修飾キーの状態を詳細に確認
+            console.log('Number key pressed:', key, 
+                'Ctrl state tracking:', this.ctrlPressed, 
+                'Direct event.ctrlKey:', event ? event.ctrlKey : 'event is null',
+                'Alt key:', event ? event.altKey : 'event is null',
+                'Meta key:', event ? event.metaKey : 'event is null');
+            
+            // Ctrlキーまたはevent.ctrlKeyが有効か確認（より頑健に）
+            // MacではmetaKeyがCommandキーを表すため、それも確認
+            const isModifierPressed = 
+                this.ctrlPressed || 
+                (event && (event.ctrlKey || event.altKey));
+            
+            if (isModifierPressed) {
+                console.log('Modifier+Number detected! Starting skill swap for slot:', key);
+                this.startSkillSlotSwap(key);
+                return;
+            }
+
             const skillData = player.skills.get(key);
             if (!skillData) {
                 this.game.logger.add("No skill assigned to this slot!", "warning");
@@ -1666,5 +1770,106 @@ class InputHandler {
         
         // Add log message
         this.game.logger.add('Wiki screen closed.', 'system');
+    }
+
+    // スキルスロット並べ替えモードを開始するメソッド
+    startSkillSlotSwap(slotKey) {
+        console.log('Starting skill slot swap for slot:', slotKey);
+        const player = this.game.player;
+        
+        // スロットが存在するか確認
+        console.log('Player skills:', [...player.skills.entries()]);
+        
+        // スロットが空の場合、並べ替えを開始しない
+        if (!player.skills.has(slotKey)) {
+            console.log('No skill found in slot:', slotKey);
+            this.game.logger.add("No skill in slot " + slotKey + " to swap!", "warning");
+            return;
+        }
+        
+        this.skillSlotSwapMode = true;
+        this.firstSlot = slotKey;
+        const skillData = player.skills.get(slotKey);
+        console.log('Selected skill data:', skillData);
+        
+        const skill = this.game.codexSystem.findSkillById(skillData.id);
+        console.log('Found skill:', skill);
+        
+        this.game.logger.add(`Select another skill slot to swap with ${skill.name} (Slot ${slotKey})`, "info");
+    }
+    
+    // スキルスロット並べ替えモードの処理メソッド
+    handleSkillSlotSwapMode(key) {
+        console.log('Handling skill slot swap, key pressed:', key);
+        
+        // 数字キーのみ処理
+        if (!/^[1-9]$/.test(key)) {
+            console.log('Not a number key, cancelling swap');
+            this.cancelSkillSlotSwap();
+            return;
+        }
+        
+        const player = this.game.player;
+        const secondSlot = key;
+        
+        console.log('First slot:', this.firstSlot, 'Second slot:', secondSlot);
+        
+        // 同じスロットを選択した場合はキャンセル
+        if (this.firstSlot === secondSlot) {
+            console.log('Same slot selected, cancelling swap');
+            this.cancelSkillSlotSwap();
+            return;
+        }
+        
+        // スロット間でスキルを交換
+        const firstSkill = player.skills.get(this.firstSlot);
+        const secondSkill = player.skills.get(secondSlot);
+        
+        console.log('First skill:', firstSkill, 'Second skill:', secondSkill);
+        
+        // 2つ目のスロットが空の場合
+        if (!secondSkill) {
+            console.log('Moving skill to empty slot');
+            // 1つ目のスロットから2つ目のスロットに移動
+            player.skills.set(secondSlot, firstSkill);
+            player.skills.delete(this.firstSlot);
+            
+            const skillName = this.game.codexSystem.findSkillById(firstSkill.id).name;
+            this.game.logger.add(`Moved ${skillName} from slot ${this.firstSlot} to slot ${secondSlot}`, "playerInfo");
+        } else {
+            console.log('Swapping skills between slots');
+            // 両方のスロットにスキルがある場合は交換
+            player.skills.set(this.firstSlot, secondSkill);
+            player.skills.set(secondSlot, firstSkill);
+            
+            const firstSkillName = this.game.codexSystem.findSkillById(firstSkill.id).name;
+            const secondSkillName = this.game.codexSystem.findSkillById(secondSkill.id).name;
+            this.game.logger.add(`Swapped ${firstSkillName} and ${secondSkillName}`, "playerInfo");
+        }
+        
+        // スキルスロット並べ替えモードを終了
+        this.skillSlotSwapMode = false;
+        this.firstSlot = null;
+        
+        console.log('Skill swap completed, updating skill panel');
+        
+        // スキルパネルを更新（renderAvailableSkillsではなくrenderStatusを使用）
+        this.game.renderer.renderStatus();
+        
+        // 変更を画面に反映するためにrenderも呼び出す
+        this.game.renderer.render();
+    }
+    
+    // スキルスロット並べ替えをキャンセルするメソッド
+    cancelSkillSlotSwap() {
+        console.log('Cancelling skill slot swap');
+        this.skillSlotSwapMode = false;
+        this.firstSlot = null;
+        this.game.logger.add("Skill swap cancelled", "info");
+    }
+    
+    // Shiftキーが押されているかをチェックするメソッド
+    isShiftPressed(event) {
+        return event && event.shiftKey;
     }
 }

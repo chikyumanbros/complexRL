@@ -257,6 +257,13 @@ const GAME_CONSTANTS = {
                 { key: ']', desc: 'Scroll message log down' }
             ]
         },
+        RESTING: {
+            title: 'RESTING',
+            keys: [
+                { key: '^', desc: 'Rest for 10 turns' },
+                { key: '~', desc: 'Rest until fully healed' }
+            ]
+        },
         LANDMARK: {
             title: 'LANDMARK TARGET',
             keys: [

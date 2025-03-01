@@ -1221,6 +1221,28 @@ class Renderer {
                 leftColumn += `</div>\n`;
             });
         });
+        
+        // 休息コマンドの説明を追加
+        leftColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● RESTING</div>\n`;
+        leftColumn += `<div style="margin-left: 8px;">`;
+        leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[^]</span>`;
+        leftColumn += `<span style="color: #ecf0f1;">Rest for 10 turns</span>`;
+        leftColumn += `</div>\n`;
+        leftColumn += `<div style="margin-left: 8px;">`;
+        leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[~]</span>`;
+        leftColumn += `<span style="color: #ecf0f1;">Rest until fully healed</span>`;
+        leftColumn += `</div>\n`;
+        
+        // スキルスロット並べ替え機能の説明を追加
+        leftColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● SKILL MANAGEMENT</div>\n`;
+        leftColumn += `<div style="margin-left: 8px;">`;
+        leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[1-9]</span>`;
+        leftColumn += `<span style="color: #ecf0f1;">Use skill in slot</span>`;
+        leftColumn += `</div>\n`;
+        leftColumn += `<div style="margin-left: 8px;">`;
+        leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[Ctrl/Alt+1-9]</span>`;
+        leftColumn += `<span style="color: #ecf0f1;">Rearrange skills between slots</span>`;
+        leftColumn += `</div>\n`;
 
         // 右列：ステータスと戦闘システム
         rightColumn += `<div style="color: #ffd700; font-size: 15px; margin-bottom: 8px;">■ STATUS SYSTEM</div>\n`;
