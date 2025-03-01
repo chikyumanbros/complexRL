@@ -20,7 +20,7 @@ class Game {
         this.turn = 0;
         this.monsters = [];
         this.totalMonstersSpawned = 0;
-        this.maxTotalMonsters = 100;
+        this.maxTotalMonsters = 50;
         this.rooms = [];  // Stores room information
         this.isGameOver = false;
         this.floorLevel = 0;  // Changed from 1 to 0 for starting at home floor
@@ -86,7 +86,7 @@ class Game {
         this.turn = 0;
         this.monsters = [];
         this.totalMonstersSpawned = 0;
-        this.maxTotalMonsters = 30;
+        this.maxTotalMonsters = 50;
         this.rooms = [];
         this.isGameOver = false;
         this.floorLevel = 0;  // Changed from 1 to 0

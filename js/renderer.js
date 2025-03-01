@@ -1722,8 +1722,7 @@ class Renderer {
         titleArtContainer.style.animation = 'none';
         titleArtContainer.style.transition = 'none';
         titleArtContainer.style.lineHeight = '0.5';
-        titleArtContainer.style.letterSpacing = '-0.05em';
-        titleArtContainer.style.margin = '0';
+        titleArtContainer.style.margin = '5px';
         titleArtContainer.style.padding = '0';
         titleArtContainer.style.display = 'block';
         titleArtContainer.style.visibility = 'visible';

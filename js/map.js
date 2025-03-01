@@ -1,7 +1,7 @@
 class MapGenerator {
     constructor(width, height, floorLevel = 1, game) {
-        this.width = width;
-        this.height = height;
+        this.width = GAME_CONSTANTS.DIMENSIONS.WIDTH;   
+        this.height = GAME_CONSTANTS.DIMENSIONS.HEIGHT;
         this.floorLevel = floorLevel;
         this.game = game;
         this.map = null;

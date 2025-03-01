@@ -17,15 +17,12 @@ class InputHandler {
         this.bindKeys();
         this.mode = 'name';  // 初期モードをname入力に設定
         this.lastInputTime = 0;  // 最後の入力時刻を追加
-        this.inputCooldown = 80;  // 入力クールダウン時間（ミリ秒）
+        this.inputCooldown = 0;  // 入力クールダウン時間（ミリ秒）
         this.nameBuffer = '';  // プレイヤー名入力用バッファ
         this.landmarkTargetMode = false;
         this.currentLandmarks = null;
         this.currentLandmarkIndex = 0;
         this.pressedKeys = new Set();  // 押されているキーを追跡
-        this.keyRepeatInterval = null;  // キーリピート用のインターバルID
-        this.initialDelay = 250;  // 初期遅延
-        this.repeatDelay = 150;   // リピート間隔を少し長めに
         // スキルスロットの並べ替え用変数を追加
         this.skillSlotSwapMode = false;
         this.firstSlot = null;
