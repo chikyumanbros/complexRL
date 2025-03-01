@@ -174,6 +174,7 @@ class VigorEffects {
                         }
                     }, 2000); // 2秒後に確実に停止
                 }, 100); // サウンド再生前に100ms遅延
+                this.game.processTurn();
                 break;
 
             case 'forceDescend':
@@ -186,6 +187,7 @@ class VigorEffects {
                     this.game.logger.add(`You descend to floor ${this.game.floorLevel}...`, "warning");
                 });
                 this.game.soundManager.playPortalSound();
+                this.game.processTurn();
                 break;
 
             case 'randomTeleport':
@@ -238,6 +240,7 @@ class VigorEffects {
                     this.game.renderer.render();
                 });
                 this.game.soundManager.playPortalSound();
+                this.game.processTurn();
                 break;
 
             case 'forgetAllTiles':
@@ -252,6 +255,7 @@ class VigorEffects {
                     }
                 }
                 this.game.playSound('vigorDownSound');
+                this.game.processTurn();
                 break;
 
             case 'forgetSomeTiles':
@@ -274,6 +278,7 @@ class VigorEffects {
                     this.game.explored[tile.y][tile.x] = false;
                 }
                 this.game.playSound('vigorDownSound');
+                this.game.processTurn();
                 break;
 
             case 'revealAll':
@@ -333,6 +338,7 @@ class VigorEffects {
                     }
                 }
                 this.game.playSound('vigorUpSound');
+                this.game.processTurn();
                 break;
 
             case 'fullRestore':
@@ -351,6 +357,7 @@ class VigorEffects {
                 }
                 this.game.logger.add("Vigor fully restored!", "important");
                 this.game.playSound('levelUpSound', true);
+                this.game.processTurn();
                 break;
 
             case 'levelUp':
@@ -358,6 +365,7 @@ class VigorEffects {
                 this.game.logger.add("A mysterious force empowers you!", "important");
                 this.game.player.levelUp();
                 this.game.playSound('levelUpSound');
+                this.game.processTurn();
                 break;
         }
         this.game.renderer.render();
