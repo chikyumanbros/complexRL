@@ -113,7 +113,7 @@
             <li><a href="#health">Health Status</a></li>
             <li><a href="#danger">Danger Levels</a></li>
             <li><a href="#formulas">Formulas</a></li>
-            <li><a href="#dice">Dice Rolls</a></li>
+            <li><a href="#controls">Controls</a></li>
         </ul>
     </nav>
     <div class="container">
@@ -375,6 +375,64 @@ accuracyPenalty = -min(0.4, max(0.2, 0.3 * (STR/DEX)))
                 <li>Cost: 20</li>
                 <li>Cooldown: 12</li>
                 <li>Effect: Accuracy +20%, Speed tier increased by 1</li>
+            </ul>
+
+            <h3>Acrobatics Skills</h3>
+            
+            <h4>Jump</h4>
+            <p>
+                Jump over enemies and obstacles to quickly traverse the dungeon.
+            </p>
+            <ul>
+                <li>Cost: 30</li>
+                <li>Cooldown: 30</li>
+                <li>Effect: Move instantly to target location</li>
+                <li>Range: Based on DEX/CON ratio (Base: 3, +1 per 3 DEX over CON)</li>
+                <li>Targeting: Requires target selection</li>
+                <li>Limitations:</li>
+                <ul>
+                    <li>Cannot jump onto monsters</li>
+                    <li>Cannot jump through closed doors</li>
+                    <li>Cannot jump through walls or into obstacles</li>
+                    <li>Cannot jump to unseen locations</li>
+                </ul>
+            </ul>
+
+            <h3>Defense Skills</h3>
+            
+            <h4>Shield Block</h4>
+            <p>
+                A defensive stance that boosts damage reduction.
+            </p>
+            <ul>
+                <li>Cost: 20</li>
+                <li>Effect: Defense +20%</li>
+                <li>Free Action: Yes</li>
+            </ul>
+
+            <h4>Armor Master</h4>
+            <p>
+                Improved defense from all sources.
+            </p>
+            <ul>
+                <li>Cost: 35</li>
+                <li>Effect: Defense +35%</li>
+                <li>Free Action: Yes</li>
+            </ul>
+
+            <h3>Mind Skills</h3>
+            
+            <h4>Meditation</h4>
+            <p>
+                Enter a meditative state to recover HP and Vigor. Moving or taking damage cancels the effect.
+            </p>
+            <ul>
+                <li>Cost: 30</li>
+                <li>Cooldown: 100</li>
+                <li>HP Recovery: WIS/3 per turn</li>
+                <li>Vigor Recovery: d(Level+WIS) at the end of meditation</li>
+                <li>Duration: WIS/2 turns</li>
+                <li>Cancellation: Moving or taking damage ends meditation</li>
             </ul>
         </section>
 
@@ -928,6 +986,152 @@ return { value: 5, name: "Huge" }
             <div class="formula">
 CRITICAL_RANGE = min(5, max(1, 3 + floor((DEX - 10) * 0.15) + floor((INT - 10) * 0.1)))
             </div>
+        </section>
+
+        <section id="controls">
+            <h2>Controls</h2>
+            <p>
+                This section covers the various controls and commands available in ComplexRL.
+            </p>
+
+            <h3>Movement</h3>
+            <table>
+                <tr>
+                    <th>Key</th>
+                    <th>Action</th>
+                </tr>
+                <tr>
+                    <td>h / Left Arrow</td>
+                    <td>Move left</td>
+                </tr>
+                <tr>
+                    <td>j / Down Arrow</td>
+                    <td>Move down</td>
+                </tr>
+                <tr>
+                    <td>k / Up Arrow</td>
+                    <td>Move up</td>
+                </tr>
+                <tr>
+                    <td>l / Right Arrow</td>
+                    <td>Move right</td>
+                </tr>
+                <tr>
+                    <td>y</td>
+                    <td>Move diagonally up-left</td>
+                </tr>
+                <tr>
+                    <td>u</td>
+                    <td>Move diagonally up-right</td>
+                </tr>
+                <tr>
+                    <td>b</td>
+                    <td>Move diagonally down-left</td>
+                </tr>
+                <tr>
+                    <td>n</td>
+                    <td>Move diagonally down-right</td>
+                </tr>
+                <tr>
+                    <td>.</td>
+                    <td>Wait a turn</td>
+                </tr>
+            </table>
+
+            <h3>Interaction</h3>
+            <table>
+                <tr>
+                    <th>Key</th>
+                    <th>Action</th>
+                </tr>
+                <tr>
+                    <td>Space</td>
+                    <td>Interact with objects (doors, portals)</td>
+                </tr>
+                <tr>
+                    <td>o</td>
+                    <td>Open a door</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Close a door</td>
+                </tr>
+                <tr>
+                    <td>></td>
+                    <td>Use stairs down</td>
+                </tr>
+                <tr>
+                    <td>[</td>
+                    <td>Scroll message log up</td>
+                </tr>
+                <tr>
+                    <td>]</td>
+                    <td>Scroll message log down</td>
+                </tr>
+            </table>
+
+            <h3>Skills & Special Actions</h3>
+            <table>
+                <tr>
+                    <th>Key</th>
+                    <th>Action</th>
+                </tr>
+                <tr>
+                    <td>1-9</td>
+                    <td>Use skill in corresponding slot</td>
+                </tr>
+                <tr>
+                    <td>Ctrl/Alt + 1-9</td>
+                    <td>Rearrange skills between slots</td>
+                </tr>
+                <tr>
+                    <td>^</td>
+                    <td>Rest for 10 turns</td>
+                </tr>
+                <tr>
+                    <td>~</td>
+                    <td>Rest until fully healed</td>
+                </tr>
+                <tr>
+                    <td>Tab</td>
+                    <td>Toggle Codex mode</td>
+                </tr>
+                <tr>
+                    <td>;</td>
+                    <td>Enter Look mode</td>
+                </tr>
+                <tr>
+                    <td>Backspace</td>
+                    <td>Enter landmark navigation mode</td>
+                </tr>
+                <tr>
+                    <td>z</td>
+                    <td>Start auto-explore</td>
+                </tr>
+                <tr>
+                    <td>w</td>
+                    <td>Open this Wiki</td>
+                </tr>
+                <tr>
+                    <td>?</td>
+                    <td>Open help screen</td>
+                </tr>
+                <tr>
+                    <td>Esc</td>
+                    <td>Cancel current mode/action</td>
+                </tr>
+            </table>
+
+            <h3>Landmark Navigation</h3>
+            <p>
+                Landmark navigation allows you to quickly move to discovered points of interest:
+            </p>
+            <ol>
+                <li>Press <kbd>Backspace</kbd> to enter landmark target mode</li>
+                <li>Use <kbd>h</kbd> and <kbd>l</kbd> to cycle through available landmarks</li>
+                <li>Press <kbd>Enter</kbd> to start auto-moving to the selected landmark</li>
+                <li>Press <kbd>Esc</kbd> to cancel landmark target mode</li>
+            </ol>
         </section>
 
         <div class="note" style="margin-top: 40px; text-align: center; padding: 15px;">

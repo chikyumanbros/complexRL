@@ -1683,7 +1683,11 @@ class Renderer {
 
         // タイトルアートの後に追加するクレジット情報
         const credits = [
-            "v0.1.0 alpha || Ditch the mouse, embrace the VI!", 
+            "",
+            "",
+            "v0.1.0 alpha ©︎chikyuman-bros.",
+            "",
+            "",
             "Font: IBM EGA 9x8 & IBM VGA 8x16 || Source: The Ultimate Oldschool PC Font Pack by VileR",
             "Licensed under CC BY-SA 4.0",
             "https://int10h.org/oldschool-pc-fonts/",
@@ -1748,7 +1752,17 @@ class Renderer {
         // 空行とクレジットを表示
         ['', ...credits].forEach(line => {
             const div = document.createElement('div');
-            div.textContent = line;
+            
+            // URLを含む行の場合はアンカータグにする
+            if (line.includes('http')) {
+                div.innerHTML = line.replace(
+                    /(https?:\/\/[^\s]+)/g, 
+                    '<a href="$1" target="_blank" style="color: #66ccff; text-decoration: underline;">$1</a>'
+                );
+            } else {
+                div.textContent = line;
+            }
+            
             div.className = 'message title';
             div.style.animation = 'none';
             div.style.transition = 'none';
@@ -1756,8 +1770,11 @@ class Renderer {
             div.style.display = 'block';
             div.style.visibility = 'visible';
             div.style.color = '#fffdd0'; // クリーム色で確実に表示
-            div.style.fontSize = '12px';
-            div.style.opacity = '1';
+            div.style.fontSize = '15px';
+            div.style.opacity = '0.8';
+            div.style.lineHeight = '0.8'; // 行間をさらに詰める
+            div.style.margin = '5px'; // マージンを0に
+            div.style.padding = '0.5px'; // パディングを0に
             staticContainer.appendChild(div);
         });
 
