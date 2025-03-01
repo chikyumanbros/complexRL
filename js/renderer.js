@@ -12,6 +12,10 @@ class Renderer {
         // 幻覚エフェクト用の変数
         this.psychedelicTurn = 0;  // サイケデリックエフェクトのターンカウンター
 
+        // 画面フリーズエフェクト用の変数
+        this.isScreenFrozen = false;
+        this.freezeOverlay = null;
+
         // 初期の揺らぎ値を生成
         this.updateFlickerValues();
 
@@ -1720,6 +1724,172 @@ class Renderer {
             setTimeout(() => {
                 gameElement.classList.remove('damage-flash');
             }, 200);
+        }
+    }
+
+    // 画面をフリーズさせる関数
+    freezeScreen() {
+        console.log('Freezing screen for vigor effect');
+        this.isScreenFrozen = true;
+        
+        // フリーズオーバーレイを作成または再利用
+        if (!this.freezeOverlay) {
+            this.freezeOverlay = document.createElement('div');
+            this.freezeOverlay.className = 'freeze-overlay';
+            this.freezeOverlay.style.position = 'fixed';
+            this.freezeOverlay.style.top = '0';
+            this.freezeOverlay.style.left = '0';
+            this.freezeOverlay.style.width = '100%';
+            this.freezeOverlay.style.height = '100%';
+            this.freezeOverlay.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+            this.freezeOverlay.style.pointerEvents = 'none';
+            this.freezeOverlay.style.zIndex = '9999';
+            document.body.appendChild(this.freezeOverlay);
+            
+            // グリッチキャンバスを作成
+            this.glitchCanvas = document.createElement('canvas');
+            this.glitchCanvas.style.position = 'fixed';
+            this.glitchCanvas.style.top = '0';
+            this.glitchCanvas.style.left = '0';
+            this.glitchCanvas.style.width = '100%';
+            this.glitchCanvas.style.height = '100%';
+            this.glitchCanvas.style.pointerEvents = 'none';
+            this.glitchCanvas.style.zIndex = '10000';
+            document.body.appendChild(this.glitchCanvas);
+        }
+        
+        // 既存のオーバーレイとキャンバスを表示状態に設定
+        this.freezeOverlay.style.display = 'block';
+        this.freezeOverlay.style.opacity = '1';
+        this.glitchCanvas.style.display = 'block';
+        
+        // キャンバスサイズを更新（ウィンドウサイズが変わっている可能性があるため）
+        this.glitchCanvas.width = window.innerWidth;
+        this.glitchCanvas.height = window.innerHeight;
+        
+        // グリッチエフェクトを描画
+        this._drawGlitchEffect();
+        
+        // 画面を少し揺らす効果を追加
+        document.body.classList.remove('screen-shake'); // 一度クラスを削除して再適用
+        void document.body.offsetWidth; // リフロー強制
+        document.body.classList.add('screen-shake');
+        
+        // 効果音を再生（オプション）
+        if (this.game.playSound) {
+            this.game.playSound('vigorEffectSound');
+        }
+    }
+    
+    // フリーズを解除する関数
+    unfreezeScreen() {
+        console.log('Unfreezing screen');
+        this.isScreenFrozen = false;
+        
+        // グリッチキャンバスをクリア
+        if (this.glitchCanvas) {
+            const ctx = this.glitchCanvas.getContext('2d');
+            ctx.clearRect(0, 0, this.glitchCanvas.width, this.glitchCanvas.height);
+            this.glitchCanvas.style.display = 'none';
+        }
+        
+        // オーバーレイを非表示
+        if (this.freezeOverlay) {
+            this.freezeOverlay.style.opacity = '0';
+            this.freezeOverlay.style.display = 'none';
+        }
+        
+        // 揺れ効果を解除
+        document.body.classList.remove('screen-shake');
+        
+        // vigor effectsによる瞑想がキャンセルされた場合、音を停止
+        if (this.game.player.meditation && this.game.player.meditation.vigorEffectMeditation) {
+            // 瞑想状態がキャンセルされた場合に音を停止
+            if (this.game.player.meditation.soundStarted) {
+                this.game.stopSound('meditationSound');
+                console.log('Stopping meditation sound due to vigor effect cancellation');
+            }
+        }
+    }
+    
+    // グリッチエフェクトを描画する関数
+    _drawGlitchEffect() {
+        if (!this.glitchCanvas) return;
+        
+        const ctx = this.glitchCanvas.getContext('2d');
+        const width = this.glitchCanvas.width;
+        const height = this.glitchCanvas.height;
+        
+        // キャンバスをクリア
+        ctx.clearRect(0, 0, width, height);
+        
+        // 水平グリッチライン
+        const horizontalGlitchCount = Math.floor(Math.random() * 10) + 5;
+        for (let i = 0; i < horizontalGlitchCount; i++) {
+            const y = Math.floor(Math.random() * height);
+            const glitchHeight = Math.floor(Math.random() * 10) + 2;
+            const glitchWidth = Math.floor(Math.random() * width) + width / 2;
+            const startX = Math.floor(Math.random() * (width - glitchWidth));
+            
+            // ランダムな色（白、青、赤のグリッチ）
+            const colors = ['rgba(255,255,255,0.8)', 'rgba(0,255,255,0.5)', 'rgba(255,0,0,0.5)'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            ctx.fillStyle = color;
+            ctx.fillRect(startX, y, glitchWidth, glitchHeight);
+        }
+        
+        // 垂直グリッチライン
+        const verticalGlitchCount = Math.floor(Math.random() * 5) + 2;
+        for (let i = 0; i < verticalGlitchCount; i++) {
+            const x = Math.floor(Math.random() * width);
+            const glitchWidth = Math.floor(Math.random() * 5) + 1;
+            const glitchHeight = Math.floor(Math.random() * height) + height / 2;
+            const startY = Math.floor(Math.random() * (height - glitchHeight));
+            
+            const colors = ['rgba(255,255,255,0.5)', 'rgba(0,255,255,0.3)', 'rgba(255,0,0,0.3)'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            ctx.fillStyle = color;
+            ctx.fillRect(x, startY, glitchWidth, glitchHeight);
+        }
+        
+        // ピクセルノイズ
+        const noiseCount = Math.floor(Math.random() * 200) + 100;
+        for (let i = 0; i < noiseCount; i++) {
+            const x = Math.floor(Math.random() * width);
+            const y = Math.floor(Math.random() * height);
+            const size = Math.floor(Math.random() * 4) + 1;
+            
+            const colors = ['rgba(255,255,255,0.8)', 'rgba(0,255,255,0.7)', 'rgba(255,0,0,0.7)'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, size, size);
+        }
+        
+        // テキストのグリッチ効果（ランダムな文字）
+        const textCount = Math.floor(Math.random() * 5) + 2;
+        for (let i = 0; i < textCount; i++) {
+            const x = Math.floor(Math.random() * width);
+            const y = Math.floor(Math.random() * height);
+            const fontSize = Math.floor(Math.random() * 20) + 10;
+            
+            const chars = '01010101ERRORERROR!@#$%^&*()';
+            let text = '';
+            const textLength = Math.floor(Math.random() * 10) + 5;
+            for (let j = 0; j < textLength; j++) {
+                text += chars[Math.floor(Math.random() * chars.length)];
+            }
+            
+            ctx.font = `${fontSize}px monospace`;
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            ctx.fillText(text, x, y);
+        }
+        
+        // アニメーションを継続
+        if (this.isScreenFrozen) {
+            setTimeout(() => this._drawGlitchEffect(), 100);
         }
     }
 }

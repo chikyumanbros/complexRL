@@ -95,6 +95,34 @@ class VigorEffects {
         // エフェクト適用時に入力状態をリセット
         this.game.player.stopAllAutoMovement();
 
+        // 入力を無効化するフラグを設定
+        this.game.inputDisabled = true;
+        
+        // エフェクト発動前に1秒のフリーズを追加
+        this.game.logger.add("A strange sensation washes over you...", "warning");
+        
+        // 画面をフリーズさせる視覚効果を追加（オプション）
+        if (this.game.renderer.freezeScreen) {
+            this.game.renderer.freezeScreen();
+        }
+        
+        // 1秒後にエフェクトを実際に適用
+        setTimeout(() => {
+            // 入力を再度有効化
+            this.game.inputDisabled = false;
+            
+            // フリーズ効果を解除（オプション）
+            if (this.game.renderer.unfreezeScreen) {
+                this.game.renderer.unfreezeScreen();
+            }
+            
+            // 実際のエフェクト処理を実行
+            this._executeVigorEffect(effect);
+        }, 1000);
+    }
+    
+    // 実際のエフェクト処理を別メソッドに分離
+    _executeVigorEffect(effect) {
         switch (effect.type) {
             case 'pauseAndShift':
                 console.log('Executing pauseAndShift effect');

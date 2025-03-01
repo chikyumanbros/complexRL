@@ -29,6 +29,7 @@ class Game {
         this.lastAttackLocation = null;  // Added property to track last attack location
         this.hasDisplayedPresenceWarning = false;  // Added hasDisplayedPresenceWarning property
         this.lastHomeFloorUpdate = 0;  // ホームフロアの最終更新ターン
+        this.inputDisabled = false;  // vigor effectsによる入力無効化フラグ
 
         // 死亡したモンスターの処理キューを追加
         this.pendingMonsterDeaths = [];
@@ -759,6 +760,11 @@ class Game {
                 this.soundManager.stopSound('meditationSound');
             }
             
+            // vigorエフェクトによる瞑想の場合は特別なメッセージを表示
+            if (this.player.meditation.vigorEffectMeditation) {
+                this.logger.add("The strange sensation passes.", "playerInfo");
+            }
+
             this.player.meditation = null;
         }
 

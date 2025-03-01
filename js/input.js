@@ -97,6 +97,13 @@ class InputHandler {
             return;
         }
 
+        // vigor effectsによる入力無効化をチェック
+        if (this.game.inputDisabled) {
+            console.log('Input disabled due to vigor effect');
+            event.preventDefault();
+            return;
+        }
+
         // 入力クールダウンのチェック
         const currentTime = Date.now();
         if (currentTime - this.lastInputTime < this.inputCooldown) {
