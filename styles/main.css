@@ -105,6 +105,7 @@ body {
     display: flex;
     flex-direction: column;
     min-width: 975px;
+    max-width: 1055px;
     border: 1px solid #233023;
     background: #0b0f0b;
 }
