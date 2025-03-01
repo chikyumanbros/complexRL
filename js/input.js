@@ -1590,9 +1590,9 @@ class InputHandler {
         wikiFrame.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.5)';
         wikiFrame.src = 'wiki.html';
         
-        // 閉じるボタンを作成
+        // Create close button
         const closeButton = document.createElement('div');
-        closeButton.textContent = '閉じる [ESC]';
+        closeButton.textContent = 'Close [ESC]';
         closeButton.style.position = 'absolute';
         closeButton.style.top = '10px';
         closeButton.style.right = '10%';
@@ -1603,12 +1603,12 @@ class InputHandler {
         closeButton.style.cursor = 'pointer';
         closeButton.onclick = () => this.closeWikiMode();
         
-        // コンテナに要素を追加
+        // Add elements to container
         wikiFrameContainer.appendChild(wikiFrame);
         wikiFrameContainer.appendChild(closeButton);
         document.body.appendChild(wikiFrameContainer);
         
-        // キーイベントリスナーを追加（ESCキーで閉じる）
+        // Add key event listener (ESC key to close)
         this.wikiKeydownListener = (e) => {
             if (e.key === 'Escape') {
                 this.closeWikiMode();
@@ -1616,27 +1616,27 @@ class InputHandler {
         };
         document.addEventListener('keydown', this.wikiKeydownListener);
         
-        // ログメッセージを追加
-        this.game.logger.add('Wiki画面を開きました。[ESC]または[閉じる]をクリックして戻ります。', 'system');
+        // Add log message
+        this.game.logger.add('Wiki screen opened. Press [ESC] or click [Close] to return.', 'system');
     }
     
-    // Wikiモードを閉じるメソッド
+    // Method to close wiki mode
     closeWikiMode() {
         const wikiContainer = document.getElementById('wiki-frame-container');
         if (wikiContainer) {
             wikiContainer.style.display = 'none';
         }
         
-        // 前のモードに戻す
+        // Restore previous mode
         this.game.mode = this.previousMode || GAME_CONSTANTS.MODES.GAME;
         
-        // キーイベントリスナーを削除
+        // Remove key event listener
         if (this.wikiKeydownListener) {
             document.removeEventListener('keydown', this.wikiKeydownListener);
             this.wikiKeydownListener = null;
         }
         
-        // ログメッセージを追加
-        this.game.logger.add('Wiki画面を閉じました。', 'system');
+        // Add log message
+        this.game.logger.add('Wiki screen closed.', 'system');
     }
 }

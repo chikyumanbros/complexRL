@@ -15,11 +15,11 @@ class VigorEffects {
         if (severity === 'Exhausted') {
             const effects = {
                 'Exhausted': [
-                    { type: 'forceDescend', weight: 20 },
-                    { type: 'forgetAllTiles', weight: 20 },
-                    { type: 'randomTeleport', weight: 20 },
-                    { type: 'pauseAndShift', weight: 20 },
-                    { type: 'forgetSomeTiles', weight: 20 }
+                    { type: 'forceDescend', weight: 10 },
+                    { type: 'forgetAllTiles', weight: 15 },
+                    { type: 'randomTeleport', weight: 10 },
+                    { type: 'pauseAndShift', weight: 35},
+                    { type: 'forgetSomeTiles', weight: 30 }
                 ]
             };
 
@@ -32,21 +32,22 @@ class VigorEffects {
                 { type: 'pauseAndShift', weight: 50 }
             ],
             'Low': [
-                { type: 'forgetSomeTiles', weight: 30 },
-                { type: 'randomTeleport', weight: 20 },
-                { type: 'pauseAndShift', weight: 30 },
-                { type: 'forgetAllTiles', weight: 20 },
+                { type: 'forgetSomeTiles', weight: 40 },
+                { type: 'randomTeleport', weight: 10 },
+                { type: 'pauseAndShift', weight: 40 },
+                { type: 'forgetAllTiles', weight: 10 },
             ],
             'Critical': [
-                { type: 'forgetAllTiles', weight: 25 },
-                { type: 'randomTeleport', weight: 25 },
-                { type: 'forceDescend', weight: 20 },
-                { type: 'pauseAndShift', weight: 30 }
+                { type: 'forgetAllTiles', weight: 15 },
+                { type: 'forgetSomeTiles', weight: 35 },
+                { type: 'randomTeleport', weight: 10 },
+                { type: 'forceDescend', weight: 5},
+                { type: 'pauseAndShift', weight: 35}
             ],
             'positive': [
-                { type: 'revealAll', weight: 5 },
-                { type: 'fullRestore', weight: 3 },
-                { type: 'levelUp', weight: 2 }
+                { type: 'revealAll', weight: 2 },
+                { type: 'fullRestore', weight: 2 },
+                { type: 'levelUp', weight: 1 }
             ]
         };
 
