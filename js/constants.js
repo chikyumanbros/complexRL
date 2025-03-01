@@ -528,8 +528,8 @@ const GAME_CONSTANTS = {
         }
     },
 
-     // Vigor関連
-     VIGOR: {
+    // Vigor関連
+    VIGOR: {
         MAX: 100,
         THRESHOLDS: {
             HIGH: 75,     // 健全
@@ -549,27 +549,27 @@ const GAME_CONSTANTS = {
             let baseChance;
             switch (dangerLevel) {
                 case 'SAFE':
-                    baseChance = 5; 
-                    break;
-                case 'NORMAL':
-                    baseChance = 4; 
-                    break;
-                case 'DANGEROUS':
-                    baseChance = 3; 
-                    break;
-                case 'DEADLY':
                     baseChance = 2; 
                     break;
+                case 'NORMAL':
+                    baseChance = 3; 
+                    break;
+                case 'DANGEROUS':
+                    baseChance = 4; 
+                    break;
+                case 'DEADLY':
+                    baseChance = 5; 
+                    break;
                 default:
-                    baseChance = 4;  // デフォルト値
+                    baseChance = 3;  // デフォルト値
             }
             const turnModifier = Math.floor(turnsInFloor / 50);  // 50ターンごとに確率上昇
             const maxChance = {
-                SAFE: 20,      // 安全: 最大20%
-                NORMAL: 15,    // 通常: 最大15%
+                SAFE: 5,      // 安全: 最大5%
+                NORMAL: 7,    // 通常: 最大7%
                 DANGEROUS: 10, // 危険: 最大10%
-                DEADLY: 5     // 致命的: 最大5%
-            }[dangerLevel] || 15;
+                DEADLY: 15     // 致命的: 最大15%
+            }[dangerLevel] || 7;
             return Math.min(maxChance, baseChance + turnModifier);
         },
         // Vigorの現在値に基づいて低下量を計算する新しい関数
