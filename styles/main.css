@@ -705,6 +705,443 @@ body.help-mode #codex-panel {
     padding: 10px;
 }
 
+/* スクリーンシェイクアニメーション */
+@keyframes screen-shake {
+    0% { transform: translate(0, 0); }
+    10% { transform: translate(-1px, 1px); }
+    20% { transform: translate(1px, -1px); }
+    30% { transform: translate(-1px, 0); }
+    40% { transform: translate(1px, 1px); }
+    50% { transform: translate(0, -1px); }
+    60% { transform: translate(-1px, 1px); }
+    70% { transform: translate(1px, 0); }
+    80% { transform: translate(0, 1px); }
+    90% { transform: translate(-1px, -1px); }
+    100% { transform: translate(0, 0); }
+}
+
+.screen-shake {
+    animation: screen-shake 0.3s ease-in-out;
+    animation-iteration-count: 1;
+}
+
+/* グリッチオーバーレイ */
+.freeze-overlay {
+    background-image: 
+        repeating-linear-gradient(
+            0deg,
+            rgba(0, 255, 0, 0.04) 0px,
+            rgba(0, 255, 0, 0.025) 1px,
+            transparent 2px,
+            transparent 4px
+        ),
+        repeating-linear-gradient(
+            90deg,
+            rgba(0, 255, 0, 0.03) 0px,
+            rgba(0, 255, 0, 0.02) 1px,
+            transparent 3px,
+            transparent 6px
+        ),
+        repeating-linear-gradient(
+            45deg,
+            rgba(117, 0, 156, 0.025) 0px,  /* 暗い紫 */
+            rgba(117, 0, 156, 0.01) 1px,
+            transparent 3px,
+            transparent 9px
+        ),
+        repeating-linear-gradient(
+            -45deg,
+            rgba(160, 220, 50, 0.02) 0px,  /* 毒々しい黄緑 */
+            rgba(160, 220, 50, 0.01) 2px,
+            transparent 4px,
+            transparent 10px
+        ),
+        linear-gradient(
+            135deg,
+            rgba(0, 124, 120, 0.01) 0%,
+            rgba(0, 255, 0, 0.025) 50%,    /* 放射性緑 */
+            rgba(117, 0, 156, 0.01) 100%   /* 暗い紫 */
+        );
+    box-shadow: 
+        inset 0 0 80px rgba(0, 255, 0, 0.15),
+        inset 0 0 30px rgba(117, 0, 156, 0.05),
+        inset 0 0 15px rgba(226, 17, 0, 0.05);  /* 血のような赤 */
+    transition: opacity 0.2s ease;
+    position: relative;
+}
+
+/* グリッチオーバーレイに不規則な線を追加（より角張った線に） */
+.freeze-overlay::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        /* 垂直線パターン - 角張り強調 */
+        linear-gradient(90deg, 
+            transparent calc(95% - 1px), 
+            rgba(0, 255, 0, 0.15) 95%, 
+            rgba(0, 255, 0, 0.15) 96%, 
+            transparent 96%
+        ),
+        /* 水平線パターン - 角張り強調 */
+        linear-gradient(180deg, 
+            transparent calc(97% - 1px), 
+            rgba(0, 255, 0, 0.15) 97%, 
+            rgba(0, 255, 0, 0.15) 98%, 
+            transparent 98%
+        ),
+        /* 紫のラインを追加 */
+        linear-gradient(90deg, 
+            transparent calc(85% - 1px), 
+            rgba(117, 0, 156, 0.1) 85%, 
+            rgba(117, 0, 156, 0.1) 85.5%, 
+            transparent 85.5%
+        ),
+        /* 黄緑のラインを追加 */
+        linear-gradient(0deg, 
+            transparent calc(75% - 1px), 
+            rgba(160, 220, 50, 0.08) 75%, 
+            rgba(160, 220, 50, 0.08) 75.5%, 
+            transparent 75.5%
+        ),
+        /* 血の赤 - 非常に控えめに */
+        linear-gradient(45deg, 
+            transparent 45%, 
+            rgba(226, 17, 0, 0.05) 45%, 
+            rgba(226, 17, 0, 0.05) 45.5%, 
+            transparent 45.5%
+        );
+    background-size: 
+        calc(100% / 20) 100%,
+        100% calc(100% / 15),
+        calc(100% / 10) 100%,
+        100% calc(100% / 8),
+        200% 200%;
+    background-position: 
+        calc(var(--random-offset, 0) * 1%) 0,
+        0 calc(var(--random-offset-2, 0) * 1%),
+        calc(var(--random-offset-3, 0) * 1%) 0,
+        0 calc(var(--random-offset-4, 0) * 1%),
+        calc(var(--random-offset-5, 0) * 2%) calc(var(--random-offset-6, 0) * 2%);
+    animation: glitch-lines 1.5s infinite steps(8);
+    pointer-events: none;
+}
+
+/* グリッチラインのアニメーション - より角張った動きに */
+@keyframes glitch-lines {
+    0%, 100% {
+        --random-offset: 0;
+        --random-offset-2: 0;
+        --random-offset-3: 0;
+        --random-offset-4: 0;
+        --random-offset-5: 0;
+        --random-offset-6: 0;
+        opacity: 0.4;
+    }
+    13% {
+        --random-offset: 2;
+        --random-offset-2: -1;
+        --random-offset-3: 1;
+        --random-offset-4: -2;
+        --random-offset-5: 3;
+        --random-offset-6: -1;
+        opacity: 0.5;
+    }
+    25% {
+        --random-offset: -1;
+        --random-offset-2: 3;
+        --random-offset-3: -2;
+        --random-offset-4: 1;
+        --random-offset-5: -2;
+        --random-offset-6: 2;
+        opacity: 0.3;
+    }
+    38% {
+        --random-offset: 3;
+        --random-offset-2: -2;
+        --random-offset-3: 2;
+        --random-offset-4: -1;
+        --random-offset-5: 1;
+        --random-offset-6: -3;
+        opacity: 0.4;
+    }
+    50% {
+        --random-offset: -2;
+        --random-offset-2: 1;
+        --random-offset-3: -3;
+        --random-offset-4: 2;
+        --random-offset-5: -1;
+        --random-offset-6: 3;
+        opacity: 0.5;
+    }
+    63% {
+        --random-offset: 1;
+        --random-offset-2: -3;
+        --random-offset-3: 2;
+        --random-offset-4: -2;
+        --random-offset-5: 1;
+        --random-offset-6: -2;
+        opacity: 0.4;
+    }
+    75% {
+        --random-offset: -3;
+        --random-offset-2: 2;
+        --random-offset-3: -1;
+        --random-offset-4: 3;
+        --random-offset-5: -2;
+        --random-offset-6: 1;
+        opacity: 0.3;
+    }
+    88% {
+        --random-offset: 2;
+        --random-offset-2: -1;
+        --random-offset-3: 3;
+        --random-offset-4: -2;
+        --random-offset-5: 2;
+        --random-offset-6: -1;
+        opacity: 0.4;
+    }
+}
+
+/* 角張ったエッジ効果を追加 */
+.freeze-overlay::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        /* 角張った四角形パターン - より強調した緑色 */
+        linear-gradient(90deg, transparent 97%, rgba(0, 255, 0, 0.15) 97%, rgba(0, 255, 0, 0.15) 100%),
+        linear-gradient(180deg, transparent 97%, rgba(0, 255, 0, 0.15) 97%, rgba(0, 255, 0, 0.15) 100%),
+        /* 黄緑のアクセント - 控えめに */
+        linear-gradient(90deg, rgba(160, 220, 50, 0.03) 0%, rgba(160, 220, 50, 0.03) 1%, transparent 1%, transparent 99%, rgba(160, 220, 50, 0.03) 99%, rgba(160, 220, 50, 0.03) 100%),
+        linear-gradient(180deg, rgba(160, 220, 50, 0.03) 0%, rgba(160, 220, 50, 0.03) 1%, transparent 1%, transparent 99%, rgba(160, 220, 50, 0.03) 99%, rgba(160, 220, 50, 0.03) 100%);
+    background-size: 80px 100%, 100% 80px, 100% 100%, 100% 100%;
+    background-position: 
+        calc(var(--random-corner-x, 0) * 1.2%) calc(var(--random-corner-y, 0) * 1.2%),
+        calc(var(--random-corner-x, 0) * 1.4%) calc(var(--random-corner-y, 0) * 1.4%),
+        0 0,
+        0 0;
+    background-repeat: repeat;
+    opacity: 0.25;
+    mix-blend-mode: screen;
+    pointer-events: none;
+    animation: corner-glitch 1.8s infinite steps(6);
+}
+
+/* 角だけ動くアニメーション - より不規則に */
+@keyframes corner-glitch {
+    0%, 100% {
+        --random-corner-x: 0;
+        --random-corner-y: 0;
+    }
+    16% {
+        --random-corner-x: 10;
+        --random-corner-y: -5;
+    }
+    33% {
+        --random-corner-x: -5;
+        --random-corner-y: 8;
+    }
+    50% {
+        --random-corner-x: 8;
+        --random-corner-y: 12;
+    }
+    66% {
+        --random-corner-x: -8;
+        --random-corner-y: -12;
+    }
+    83% {
+        --random-corner-x: 6;
+        --random-corner-y: -8;
+    }
+}
+
+/* 文字化けエフェクト用アニメーション（新規追加） */
+@keyframes text-glitch {
+    0%, 100% {
+        transform: translate(0, 0);
+        opacity: 1;
+    }
+    25% {
+        transform: translate(2px, -1px);
+        opacity: 0.9;
+    }
+    50% {
+        transform: translate(-1px, 1px);
+        opacity: 0.8;
+    }
+    75% {
+        transform: translate(1px, -1px);
+        opacity: 0.9;
+    }
+}
+
+.glitch-text {
+    position: relative;
+    display: inline-block;
+    animation: text-glitch 0.3s infinite steps(2);
+}
+
+.glitch-text::before {
+    content: attr(data-text);
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: rgba(0, 255, 0, 0.8);
+    overflow: hidden;
+    clip: rect(0, 900px, 0, 0);
+    animation: noise-before 3s infinite linear alternate-reverse;
+}
+
+.glitch-text::after {
+    content: attr(data-text);
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: rgba(117, 0, 156, 0.8);
+    overflow: hidden;
+    clip: rect(0, 900px, 0, 0);
+    animation: noise-after 2s infinite linear alternate-reverse;
+}
+
+@keyframes noise-before {
+    0% {
+        clip: rect(31px, 9999px, 13px, 0);
+    }
+    5% {
+        clip: rect(87px, 9999px, 33px, 0);
+    }
+    10% {
+        clip: rect(37px, 9999px, 7px, 0);
+    }
+    15% {
+        clip: rect(64px, 9999px, 78px, 0);
+    }
+    20% {
+        clip: rect(15px, 9999px, 59px, 0);
+    }
+    25% {
+        clip: rect(89px, 9999px, 46px, 0);
+    }
+    30% {
+        clip: rect(28px, 9999px, 93px, 0);
+    }
+    35% {
+        clip: rect(53px, 9999px, 25px, 0);
+    }
+    40% {
+        clip: rect(17px, 9999px, 72px, 0);
+    }
+    45% {
+        clip: rect(81px, 9999px, 38px, 0);
+    }
+    50% {
+        clip: rect(47px, 9999px, 6px, 0);
+    }
+    55% {
+        clip: rect(34px, 9999px, 84px, 0);
+    }
+    60% {
+        clip: rect(68px, 9999px, 27px, 0);
+    }
+    65% {
+        clip: rect(14px, 9999px, 55px, 0);
+    }
+    70% {
+        clip: rect(94px, 9999px, 11px, 0);
+    }
+    75% {
+        clip: rect(41px, 9999px, 73px, 0);
+    }
+    80% {
+        clip: rect(23px, 9999px, 52px, 0);
+    }
+    85% {
+        clip: rect(76px, 9999px, 19px, 0);
+    }
+    90% {
+        clip: rect(36px, 9999px, 96px, 0);
+    }
+    95% {
+        clip: rect(62px, 9999px, 4px, 0);
+    }
+    100% {
+        clip: rect(92px, 9999px, 43px, 0);
+    }
+}
+
+@keyframes noise-after {
+    0% {
+        clip: rect(59px, 9999px, 22px, 0);
+    }
+    5% {
+        clip: rect(47px, 9999px, 83px, 0);
+    }
+    10% {
+        clip: rect(8px, 9999px, 39px, 0);
+    }
+    15% {
+        clip: rect(76px, 9999px, 16px, 0);
+    }
+    20% {
+        clip: rect(35px, 9999px, 91px, 0);
+    }
+    25% {
+        clip: rect(61px, 9999px, 24px, 0);
+    }
+    30% {
+        clip: rect(13px, 9999px, 72px, 0);
+    }
+    35% {
+        clip: rect(97px, 9999px, 31px, 0);
+    }
+    40% {
+        clip: rect(42px, 9999px, 88px, 0);
+    }
+    45% {
+        clip: rect(19px, 9999px, 56px, 0);
+    }
+    50% {
+        clip: rect(85px, 9999px, 29px, 0);
+    }
+    55% {
+        clip: rect(37px, 9999px, 67px, 0);
+    }
+    60% {
+        clip: rect(51px, 9999px, 10px, 0);
+    }
+    65% {
+        clip: rect(23px, 9999px, 74px, 0);
+    }
+    70% {
+        clip: rect(63px, 9999px, 44px, 0);
+    }
+    75% {
+        clip: rect(15px, 9999px, 93px, 0);
+    }
+    80% {
+        clip: rect(80px, 9999px, 26px, 0);
+    }
+    85% {
+        clip: rect(32px, 9999px, 79px, 0);
+    }
+    90% {
+        clip: rect(70px, 9999px, 9px, 0);
+    }
+    95% {
+        clip: rect(21px, 9999px, 58px, 0);
+    }
+    100% {
+        clip: rect(49px, 9999px, 86px, 0);
+    }
+}
+
 /* スキャンラインエフェクト */
 body::before {
     content: "";
@@ -721,7 +1158,7 @@ body::before {
         transparent 2px
     );
     pointer-events: none;
-    z-index: 10000;
+    z-index: 10001;
 }
 
 /* ミス時のリングエフェクト */

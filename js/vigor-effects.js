@@ -280,9 +280,56 @@ class VigorEffects {
                 console.log('Executing revealAll effect');
                 this.game.logger.add("A moment of clarity reveals all!", "important");
                 
+                // マップ全体を探索済みにする
                 for (let y = 0; y < GAME_CONSTANTS.DIMENSIONS.HEIGHT; y++) {
                     for (let x = 0; x < GAME_CONSTANTS.DIMENSIONS.WIDTH; x++) {
                         this.game.explored[y][x] = true;
+                        
+                        // 壁の外のタイルをスペースタイルに変更
+                        // 「壁」がマップの境界を形成していると仮定
+                        if (this.game.map[y][x] === 'wall' || this.game.map[y][x] === 'space') {
+                            // 部屋の外側かどうかを判定
+                            // 隣接する8マスをチェックし、全て壁または境界外ならそのタイルは外側とみなす
+                            let isOuterWall = true;
+                            const directions = [
+                                [-1, -1], [0, -1], [1, -1],
+                                [-1, 0],           [1, 0],
+                                [-1, 1],  [0, 1],  [1, 1]
+                            ];
+                            
+                            for (const [dx, dy] of directions) {
+                                const nx = x + dx;
+                                const ny = y + dy;
+                                
+                                // マップ範囲内で、かつ床タイルまたはドアが隣接していれば、外壁ではない
+                                if (nx >= 0 && nx < GAME_CONSTANTS.DIMENSIONS.WIDTH && 
+                                    ny >= 0 && ny < GAME_CONSTANTS.DIMENSIONS.HEIGHT &&
+                                    (this.game.map[ny][nx] === 'floor' || 
+                                     this.game.tiles[ny][nx] === GAME_CONSTANTS.TILES.DOOR.OPEN ||
+                                     this.game.tiles[ny][nx] === GAME_CONSTANTS.TILES.DOOR.CLOSED)) {
+                                    isOuterWall = false;
+                                    break;
+                                }
+                            }
+                            
+                            // 外側の壁なら宇宙空間タイルに変更
+                            if (isOuterWall) {
+                                // スペースタイルからランダムに選択
+                                const spaceChar = GAME_CONSTANTS.TILES.SPACE[
+                                    Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE.length)
+                                ];
+                                
+                                // スペースカラーからランダムに選択
+                                const spaceColor = GAME_CONSTANTS.TILES.SPACE_COLORS[
+                                    Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE_COLORS.length)
+                                ];
+                                
+                                // タイルとマップ情報を更新
+                                this.game.tiles[y][x] = spaceChar;
+                                this.game.colors[y][x] = spaceColor;
+                                this.game.map[y][x] = 'space';
+                            }
+                        }
                     }
                 }
                 this.game.playSound('vigorUpSound');

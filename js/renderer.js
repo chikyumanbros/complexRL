@@ -1737,11 +1737,10 @@ class Renderer {
             this.freezeOverlay = document.createElement('div');
             this.freezeOverlay.className = 'freeze-overlay';
             this.freezeOverlay.style.position = 'fixed';
-            this.freezeOverlay.style.fontFamily = 'IBM EGA 9x8';
             this.freezeOverlay.style.left = '0';
             this.freezeOverlay.style.width = '100%';
             this.freezeOverlay.style.height = '100%';
-            this.freezeOverlay.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+            this.freezeOverlay.style.backgroundColor = 'rgba(11, 15, 11, 0.1)'; // ゲームの背景色に合わせた色
             this.freezeOverlay.style.pointerEvents = 'none';
             this.freezeOverlay.style.zIndex = '9999';
             document.body.appendChild(this.freezeOverlay);
@@ -1755,6 +1754,7 @@ class Renderer {
             this.glitchCanvas.style.height = '100%';
             this.glitchCanvas.style.pointerEvents = 'none';
             this.glitchCanvas.style.zIndex = '10000';
+            this.glitchCanvas.style.mixBlendMode = 'screen'; // ブレンドモードを追加
             document.body.appendChild(this.glitchCanvas);
         }
         
@@ -1770,10 +1770,21 @@ class Renderer {
         // グリッチエフェクトを描画
         this._drawGlitchEffect();
         
-        // 画面を少し揺らす効果を追加
+        // 画面を少し揺らす効果を追加（揺れを抑える）
         document.body.classList.remove('screen-shake'); // 一度クラスを削除して再適用
         void document.body.offsetWidth; // リフロー強制
-        document.body.classList.add('screen-shake');
+        
+        // CSSアニメーションではなく、軽微な変形を適用
+        const gameContainer = document.getElementById('game-container');
+        if (gameContainer) {
+            gameContainer.style.transition = 'transform 0.1s ease-in-out';
+            gameContainer.style.transform = `translate(${Math.random() * 4 - 2}px, ${Math.random() * 4 - 2}px)`;
+            
+            // 短時間で元に戻す
+            setTimeout(() => {
+                gameContainer.style.transform = '';
+            }, 150);
+        }
         
         // 効果音を再生（オプション）
         if (this.game.playSound) {
@@ -1790,17 +1801,40 @@ class Renderer {
         if (this.glitchCanvas) {
             const ctx = this.glitchCanvas.getContext('2d');
             ctx.clearRect(0, 0, this.glitchCanvas.width, this.glitchCanvas.height);
-            this.glitchCanvas.style.display = 'none';
+            
+            // フェードアウト効果を追加
+            this.glitchCanvas.style.transition = 'opacity 0.3s ease-out';
+            this.glitchCanvas.style.opacity = '0';
+            
+            // 完全に非表示にする前に少し待つ
+            setTimeout(() => {
+                this.glitchCanvas.style.display = 'none';
+                this.glitchCanvas.style.opacity = '1'; // 次回のために戻しておく
+                this.glitchCanvas.style.transition = '';
+            }, 300);
         }
         
         // オーバーレイを非表示
         if (this.freezeOverlay) {
+            this.freezeOverlay.style.transition = 'opacity 0.3s ease-out';
             this.freezeOverlay.style.opacity = '0';
-            this.freezeOverlay.style.display = 'none';
+            
+            // 完全に非表示にする前に少し待つ
+            setTimeout(() => {
+                this.freezeOverlay.style.display = 'none';
+                this.freezeOverlay.style.opacity = '1'; // 次回のために戻しておく
+                this.freezeOverlay.style.transition = '';
+            }, 300);
         }
         
         // 揺れ効果を解除
         document.body.classList.remove('screen-shake');
+        
+        // ゲームコンテナの変形をリセット
+        const gameContainer = document.getElementById('game-container');
+        if (gameContainer) {
+            gameContainer.style.transform = '';
+        }
         
         // vigor effectsによる瞑想がキャンセルされた場合、音を停止
         if (this.game.player.meditation && this.game.player.meditation.vigorEffectMeditation) {
@@ -1823,73 +1857,528 @@ class Renderer {
         // キャンバスをクリア
         ctx.clearRect(0, 0, width, height);
         
-        // 水平グリッチライン
-        const horizontalGlitchCount = Math.floor(Math.random() * 10) + 5;
+        // 水平グリッチライン（より角張った形状に）
+        const horizontalGlitchCount = Math.floor(Math.random() * 6) + 3;
         for (let i = 0; i < horizontalGlitchCount; i++) {
             const y = Math.floor(Math.random() * height);
-            const glitchHeight = Math.floor(Math.random() * 10) + 2;
-            const glitchWidth = Math.floor(Math.random() * width) + width / 2;
-            const startX = Math.floor(Math.random() * (width - glitchWidth));
+            const glitchHeight = Math.floor(Math.random() * 5) + 1;
             
-            // ランダムな色（白、青、赤のグリッチ）
-            const colors = ['rgba(255,255,255,0.8)', 'rgba(0,255,255,0.5)', 'rgba(255,0,0,0.5)'];
-            const color = colors[Math.floor(Math.random() * colors.length)];
-            
-            ctx.fillStyle = color;
-            ctx.fillRect(startX, y, glitchWidth, glitchHeight);
+            // 線を分断して不規則にする
+            const segmentCount = Math.floor(Math.random() * 4) + 2;
+            for (let j = 0; j < segmentCount; j++) {
+                const segmentWidth = Math.floor(Math.random() * (width / 3)) + 20;
+                const startX = Math.floor(Math.random() * (width - segmentWidth));
+                
+                // より毒々しい色のパレットに変更
+                const colors = [
+                    'rgba(0, 255, 0, 0.25)',      // 放射性緑
+                    'rgba(117, 0, 156, 0.3)',     // 暗い紫
+                    'rgba(160, 220, 50, 0.2)',    // 毒々しい黄緑
+                    'rgba(0, 124, 120, 0.2)',     // 暗いシアン
+                    'rgba(75, 0, 130, 0.25)',     // インディゴ
+                    'rgba(216, 0, 115, 0.2)',     // 不気味なマゼンタ
+                    'rgba(226, 17, 0, 0.2)',      // 血のような赤
+                    'rgba(124, 80, 1, 0.2)',      // 汚れたブラウン
+                    'rgba(10, 200, 180, 0.2)'     // 毒々しいターコイズ
+                ];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                ctx.fillStyle = color;
+                
+                // 角張ったエフェクト（直角だけでなく、ギザギザも追加）
+                if (Math.random() < 0.5) {
+                    // 直角パターン - そのまま維持
+                    const subSegments = Math.floor(Math.random() * 3) + 2;
+                    const subSegmentWidth = segmentWidth / subSegments;
+                    
+                    for (let k = 0; k < subSegments; k++) {
+                        const subX = startX + (k * subSegmentWidth);
+                        const subWidth = subSegmentWidth;
+                        const offset = (k % 2 === 0) ? 0 : Math.floor(Math.random() * 10) - 5;
+                        
+                        // 直角型のグリッチ
+                        ctx.fillRect(subX, y + offset, subWidth, glitchHeight);
+                        
+                        // 時々垂直方向の小さなブロックを追加 - 長さのばらつきを大きく
+                        if (Math.random() < 0.4) {
+                            const blockHeight = Math.floor(Math.random() * 25) + 5;
+                            const blockWidth = Math.max(1, Math.floor(Math.random() * 3));
+                            ctx.fillRect(
+                                subX + Math.floor(subWidth / 2), 
+                                y + offset - blockHeight, 
+                                blockWidth, 
+                                blockHeight
+                            );
+                        }
+                    }
+                } else if (Math.random() < 0.7) {
+                    // 基本の矩形
+                    ctx.fillRect(startX, y, segmentWidth, glitchHeight);
+                    
+                    // 時々近くにブロックノイズを追加 - ノイズを増加
+                    if (Math.random() < 0.6) {
+                        const blockSize = Math.floor(Math.random() * 6) + 1;
+                        const blockCount = Math.floor(Math.random() * 8) + 3;
+                        
+                        for (let n = 0; n < blockCount; n++) {
+                            const blockX = startX + Math.floor(Math.random() * segmentWidth);
+                            const blockY = y + (Math.random() < 0.5 ? -blockSize - 2 : glitchHeight + 2);
+                            ctx.fillRect(blockX, blockY, blockSize, blockSize);
+                        }
+                    }
+                } else {
+                    // ギザギザパターン（より不気味なノイズ）
+                    ctx.beginPath();
+                    const zigHeight = Math.max(1, Math.floor(Math.random() * 8));
+                    const zigCount = Math.floor(segmentWidth / Math.max(2, Math.floor(Math.random() * 6)));
+                    ctx.moveTo(startX, y);
+                    
+                    for (let k = 0; k < zigCount; k++) {
+                        const zigX = startX + (k + 1) * (segmentWidth / zigCount);
+                        // より鋭角的に
+                        const zigY = y + ((k % 2) ? zigHeight : -zigHeight);
+                        ctx.lineTo(zigX, zigY);
+                    }
+                    
+                    ctx.lineTo(startX + segmentWidth, y);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
         }
         
-        // 垂直グリッチライン
+        // 垂直グリッチライン（より角張った形状に）
         const verticalGlitchCount = Math.floor(Math.random() * 5) + 2;
         for (let i = 0; i < verticalGlitchCount; i++) {
             const x = Math.floor(Math.random() * width);
-            const glitchWidth = Math.floor(Math.random() * 5) + 1;
-            const glitchHeight = Math.floor(Math.random() * height) + height / 2;
-            const startY = Math.floor(Math.random() * (height - glitchHeight));
+            const glitchWidth = Math.floor(Math.random() * 3) + 1;
             
-            const colors = ['rgba(255,255,255,0.5)', 'rgba(0,255,255,0.3)', 'rgba(255,0,0,0.3)'];
-            const color = colors[Math.floor(Math.random() * colors.length)];
-            
-            ctx.fillStyle = color;
-            ctx.fillRect(x, startY, glitchWidth, glitchHeight);
+            // 線を分断して不規則にする
+            const segmentCount = Math.floor(Math.random() * 3) + 2;
+            for (let j = 0; j < segmentCount; j++) {
+                const segmentHeight = Math.floor(Math.random() * (height / 3)) + 20;
+                const startY = Math.floor(Math.random() * (height - segmentHeight));
+                
+                // より毒々しい色のパレットに変更
+                const colors = [
+                    'rgba(0, 255, 0, 0.2)',       // 放射性緑
+                    'rgba(117, 0, 156, 0.25)',    // 暗い紫
+                    'rgba(160, 220, 50, 0.15)',   // 毒々しい黄緑
+                    'rgba(0, 124, 120, 0.15)',    // 暗いシアン
+                    'rgba(75, 0, 130, 0.2)',      // インディゴ
+                    'rgba(216, 0, 115, 0.15)',    // 不気味なマゼンタ
+                    'rgba(226, 17, 0, 0.15)',     // 血のような赤
+                    'rgba(124, 80, 1, 0.15)',     // 汚れたブラウン
+                    'rgba(10, 200, 180, 0.15)'    // 毒々しいターコイズ
+                ];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                ctx.fillStyle = color;
+                
+                // 角張った効果を強調 - そのまま維持
+                if (Math.random() < 0.5) {
+                    // 段階的な矩形
+                    const steps = Math.floor(Math.random() * 3) + 2;
+                    const stepHeight = segmentHeight / steps;
+                    
+                    for (let k = 0; k < steps; k++) {
+                        const stepY = startY + (k * stepHeight);
+                        const xOffset = (k % 2 === 0) ? 
+                            Math.floor(Math.random() * 8) : 
+                            -Math.floor(Math.random() * 8);
+                        
+                        ctx.fillRect(x + xOffset, stepY, glitchWidth + Math.abs(xOffset/2), stepHeight);
+                    }
+                } else {
+                    // ずれた線を描画
+                    const offsetX = Math.floor(Math.random() * 10) - 5;
+                    ctx.fillRect(x + offsetX, startY, glitchWidth, segmentHeight);
+                    
+                    // たまに水平方向のノイズを追加 - 確率増加
+                    if (Math.random() < 0.5) {
+                        const horizontalWidth = Math.floor(Math.random() * 20) + 5;
+                        const horizontalHeight = Math.max(1, Math.floor(Math.random() * 3));
+                        ctx.fillRect(
+                            x + offsetX + glitchWidth, 
+                            startY + Math.floor(segmentHeight / 2), 
+                            horizontalWidth, 
+                            horizontalHeight
+                        );
+                    }
+                }
+            }
         }
         
-        // ピクセルノイズ
-        const noiseCount = Math.floor(Math.random() * 200) + 100;
-        for (let i = 0; i < noiseCount; i++) {
-            const x = Math.floor(Math.random() * width);
-            const y = Math.floor(Math.random() * height);
-            const size = Math.floor(Math.random() * 4) + 1;
+        // 明滅するノイズブロック（新しく追加）
+        const flickerCount = Math.floor(Math.random() * 3) + 1;
+        for (let i = 0; i < flickerCount; i++) {
+            // 画面の端に配置することが多い
+            const isEdgeX = Math.random() < 0.6;
+            const isEdgeY = Math.random() < 0.6;
             
-            const colors = ['rgba(255,255,255,0.8)', 'rgba(0,255,255,0.7)', 'rgba(255,0,0,0.7)'];
-            const color = colors[Math.floor(Math.random() * colors.length)];
+            const blockWidth = Math.floor(Math.random() * 80) + 20;
+            const blockHeight = Math.floor(Math.random() * 20) + 10;
             
-            ctx.fillStyle = color;
-            ctx.fillRect(x, y, size, size);
+            const blockX = isEdgeX ? 
+                (Math.random() < 0.5 ? 0 : width - blockWidth) :
+                Math.floor(Math.random() * (width - blockWidth));
+                
+            const blockY = isEdgeY ? 
+                (Math.random() < 0.5 ? 0 : height - blockHeight) :
+                Math.floor(Math.random() * (height - blockHeight));
+            
+            // 明滅効果（透明度を変える）
+            const opacity = Math.random() * 0.2 + 0.1;
+            
+            // 毒々しい半透明色
+            ctx.fillStyle = `rgba(0, 255, 0, ${opacity})`;
+            ctx.fillRect(blockX, blockY, blockWidth, blockHeight);
+            
+            // ブロック内のノイズパターン
+            const noiseCount = Math.floor(Math.random() * 20) + 10;
+            for (let j = 0; j < noiseCount; j++) {
+                const noiseX = blockX + Math.floor(Math.random() * blockWidth);
+                const noiseY = blockY + Math.floor(Math.random() * blockHeight);
+                const noiseSize = Math.max(1, Math.floor(Math.random() * 3));
+                
+                // 暗めのノイズポイント
+                ctx.fillStyle = `rgba(0, 0, 0, ${opacity * 2})`;
+                ctx.fillRect(noiseX, noiseY, noiseSize, noiseSize);
+            }
         }
         
-        // テキストのグリッチ効果（ランダムな文字）
-        const textCount = Math.floor(Math.random() * 5) + 2;
+        // ピクセルノイズ（クラスター化 + 角張り強調）
+        const noiseClusters = Math.floor(Math.random() * 4) + 2;
+        for (let c = 0; c < noiseClusters; c++) {
+            const clusterX = Math.floor(Math.random() * width);
+            const clusterY = Math.floor(Math.random() * height);
+            const clusterRadius = Math.floor(Math.random() * 50) + 20;
+            const noiseCount = Math.floor(Math.random() * 30) + 10;
+            
+            // ノイズタイプ（角張った形状を多めに）
+            const noiseType = Math.random();
+            
+            for (let i = 0; i < noiseCount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * clusterRadius;
+                const x = clusterX + Math.cos(angle) * distance;
+                const y = clusterY + Math.sin(angle) * distance;
+                
+                // より毒々しい色のパレットに変更
+                const colors = [
+                    'rgba(0, 255, 0, 0.3)',       // 放射性緑
+                    'rgba(117, 0, 156, 0.35)',    // 暗い紫
+                    'rgba(160, 220, 50, 0.25)',   // 毒々しい黄緑
+                    'rgba(0, 124, 120, 0.25)',    // 暗いシアン
+                    'rgba(75, 0, 130, 0.3)',      // インディゴ
+                    'rgba(216, 0, 115, 0.25)',    // 不気味なマゼンタ
+                    'rgba(226, 17, 0, 0.3)',      // 血のような赤
+                    'rgba(124, 80, 1, 0.25)',     // 汚れたブラウン
+                    'rgba(10, 200, 180, 0.25)'    // 毒々しいターコイズ
+                ];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                ctx.fillStyle = color;
+                
+                if (noiseType < 0.6) {
+                    // 角張った四角形のノイズ
+                    const size = Math.floor(Math.random() * 4) + 1;
+                    ctx.fillRect(x, y, size, size);
+                    
+                    // 時々十字型のノイズを追加
+                    if (Math.random() < 0.2) {
+                        ctx.fillRect(x - size, y, size * 3, 1);
+                        ctx.fillRect(x, y - size, 1, size * 3);
+                    }
+                } else if (noiseType < 0.8) {
+                    // L字型のノイズ
+                    const size = Math.floor(Math.random() * 3) + 2;
+                    ctx.fillRect(x, y, size, 1);
+                    ctx.fillRect(x, y, 1, size);
+                } else {
+                    // H字型ノイズ（新しく追加）
+                    const size = Math.floor(Math.random() * 3) + 2;
+                    ctx.fillRect(x, y, 1, size);
+                    ctx.fillRect(x, y + Math.floor(size/2), size, 1);
+                    ctx.fillRect(x + size - 1, y, 1, size);
+                }
+            }
+        }
+        
+        // テキストのグリッチ効果（より不気味なスタイルに）
+        const textCount = Math.floor(Math.random() * 3) + 2;
+        
+        // 提供された文字セットから選択
+        const chars = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~⌂¡¢£¤¥¦§¨©ª«¬-®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ∂∆∈∏∑−∕∙√∞∟∩∫≈≠≡≤≥⊙⌀⌂⌐⌠⌡─│┌┐└┘├┤┬┴┼═║╒╓╔╕╖╗╘╙╚╛╜╝╞╟╠╡╢╣╤╥╦╧╨╩╪╫╬▀▁▄█▌▐░▒▓■□▪▫▬▲►▼◄◊○●◘◙◦";
+        
+        // グリッチらしいテキストパターン
+        const glitchTexts = [
+            "ERROR", "SYSTEM FAILURE", "BUFFER OVERFLOW", "SEGFAULT", "MEMORY LEAK",
+            "STACK TRACE", "NULL POINTER", "EXCEPTION", "FATAL ERROR", "CORE DUMP",
+            "SYNTAX ERROR", "RUNTIME ERROR", "DIVIDE BY ZERO", "OVERFLOW", "UNDERFLOW",
+            "DEADLOCK", "TIMEOUT", "CONNECTION LOST", "DATA CORRUPT", "CHECKSUM FAIL"
+        ];
+        
+        // 原始仏教用語（英語）
+        const buddhistTerms = [
+            "DUKKHA", "ANATTA", "ANICCA", "SAMSARA", "NIRVANA", 
+            "DHARMA", "KARMA", "SUNYATA", "TANHA", "BODHI",
+            "METTA", "SAMADHI", "SILA", "PANNA", "JHANA",
+            "VIPASSANA", "UPEKKHA", "MUDITA", "KARUNA", "SKANDHA",
+            "PRATITYASAMUTPADA", "BODHICITTA", "TATHATA", "SATORI", "KENSHO"
+        ];
+        
+        // 組み合わせたテキストパターン
+        const combinedTexts = [...glitchTexts, ...buddhistTerms];
+        
         for (let i = 0; i < textCount; i++) {
             const x = Math.floor(Math.random() * width);
             const y = Math.floor(Math.random() * height);
-            const fontSize = Math.floor(Math.random() * 20) + 10;
+            const fontSize = Math.floor(Math.random() * 14) + 8;
             
-            const chars = '01010101ERRORERROR!@#$%^&*()';
             let text = '';
-            const textLength = Math.floor(Math.random() * 10) + 5;
-            for (let j = 0; j < textLength; j++) {
-                text += chars[Math.floor(Math.random() * chars.length)];
+            const textType = Math.random();
+            
+            if (textType < 0.4) {
+                // 原始仏教用語を使用
+                text = buddhistTerms[Math.floor(Math.random() * buddhistTerms.length)];
+                
+                // ランダムに一部の文字を特殊文字に置き換え - 確率増加
+                const textArray = text.split('');
+                const replaceCount = Math.floor(text.length * 0.4);
+                
+                for (let j = 0; j < replaceCount; j++) {
+                    const pos = Math.floor(Math.random() * text.length);
+                    textArray[pos] = chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                
+                text = textArray.join('');
+            } else if (textType < 0.7) {
+                // グリッチテキストを使用
+                text = glitchTexts[Math.floor(Math.random() * glitchTexts.length)];
+                
+                // ランダムに一部の文字を特殊文字に置き換え - 確率増加
+                const textArray = text.split('');
+                const replaceCount = Math.floor(text.length * 0.4);
+                
+                for (let j = 0; j < replaceCount; j++) {
+                    const pos = Math.floor(Math.random() * text.length);
+                    textArray[pos] = chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                
+                text = textArray.join('');
+            } else if (textType < 0.85) {
+                // 仏教用語とエラーメッセージを組み合わせる
+                const buddhistTerm = buddhistTerms[Math.floor(Math.random() * buddhistTerms.length)];
+                const errorTerm = glitchTexts[Math.floor(Math.random() * glitchTexts.length)];
+                
+                // 組み合わせ方をランダムに選択
+                if (Math.random() < 0.5) {
+                    text = `${buddhistTerm}_${errorTerm}`;
+                } else {
+                    text = `${errorTerm}_${buddhistTerm}`;
+                }
+                
+                // ランダムに一部の文字を特殊文字に置き換え
+                const textArray = text.split('');
+                const replaceCount = Math.floor(text.length * 0.3);
+                
+                for (let j = 0; j < replaceCount; j++) {
+                    const pos = Math.floor(Math.random() * text.length);
+                    textArray[pos] = chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                
+                text = textArray.join('');
+            } else {
+                // 完全にランダムな文字列
+                const textLength = Math.floor(Math.random() * 8) + 3;
+                for (let j = 0; j < textLength; j++) {
+                    text += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
             }
             
-            ctx.font = `${fontSize}px monospace`;
-            ctx.fillStyle = 'rgba(255,255,255,0.7)';
-            ctx.fillText(text, x, y);
+            ctx.font = `${fontSize}px 'IBM EGA 9x8', monospace`;
+            
+            // より毒々しい色のパレットに変更
+            const textColors = [
+                'rgba(0, 255, 0, 0.8)',       // 放射性緑
+                'rgba(117, 0, 156, 0.7)',     // 暗い紫
+                'rgba(160, 220, 50, 0.6)',    // 毒々しい黄緑
+                'rgba(0, 124, 120, 0.7)',     // 暗いシアン
+                'rgba(75, 0, 130, 0.7)',      // インディゴ
+                'rgba(216, 0, 115, 0.7)',     // 不気味なマゼンタ
+                'rgba(226, 17, 0, 0.7)',      // 血のような赤
+                'rgba(124, 80, 1, 0.6)',      // 汚れたブラウン
+                'rgba(10, 200, 180, 0.6)'     // 毒々しいターコイズ
+            ];
+            ctx.fillStyle = textColors[Math.floor(Math.random() * textColors.length)];
+            
+            // テキストエフェクト（角張った形状）
+            if (Math.random() < 0.4) {
+                // 角張った枠で囲むか、シャドウをつける
+                if (Math.random() < 0.5) {
+                    // 枠線を追加 - より強調
+                    const boxPadding = 2;
+                    const textWidth = ctx.measureText(text).width;
+                    ctx.strokeStyle = ctx.fillStyle;
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(
+                        x - boxPadding, 
+                        y - fontSize + boxPadding, 
+                        textWidth + (boxPadding * 2), 
+                        fontSize + (boxPadding * 2)
+                    );
+                    ctx.fillText(text, x, y);
+                } else {
+                    // シャドウエフェクト - より不気味に
+                    const shadowColor = textColors[Math.floor(Math.random() * textColors.length)];
+                    const shadowX = Math.random() < 0.5 ? 2 : -2;
+                    const shadowY = Math.random() < 0.5 ? 2 : -2;
+                    
+                    ctx.fillStyle = shadowColor;
+                    ctx.fillText(text, x + shadowX, y + shadowY);
+                    
+                    ctx.fillStyle = textColors[Math.floor(Math.random() * textColors.length)];
+                    ctx.fillText(text, x, y);
+                }
+            } else if (Math.random() < 0.6) {
+                // 文字化けエフェクト（新しく追加）
+                for (let j = 0; j < text.length; j++) {
+                    const charX = x + ctx.measureText(text.substring(0, j)).width;
+                    const offsetY = Math.random() < 0.3 ? (Math.random() * 6) - 3 : 0;
+                    
+                    // ランダムに文字の大きさを変える
+                    const sizeVariation = 1 + (Math.random() * 0.4 - 0.2);
+                    ctx.font = `${Math.floor(fontSize * sizeVariation)}px 'IBM EGA 9x8', monospace`;
+                    
+                    ctx.fillText(text[j], charX, y + offsetY);
+                }
+            } else {
+                // 通常のテキスト
+                ctx.fillText(text, x, y);
+            }
         }
         
-        // アニメーションを継続
+        // 断片的なブロックグリッチ（より複雑に、角張った形状で）
+        const blockCount = Math.floor(Math.random() * 3) + 1;
+        for (let i = 0; i < blockCount; i++) {
+            const blockWidth = Math.floor(Math.random() * 150) + 30;
+            const blockHeight = Math.floor(Math.random() * 30) + 5;
+            const x = Math.floor(Math.random() * (width - blockWidth));
+            const y = Math.floor(Math.random() * (height - blockHeight));
+            
+            // ソース位置をランダムにずらす
+            const sourceX = Math.floor(Math.random() * (width - blockWidth));
+            const sourceY = Math.floor(Math.random() * (height - blockHeight));
+            
+            // 画面の一部を別の場所にコピー
+            try {
+                const imageData = ctx.getImageData(sourceX, sourceY, blockWidth, blockHeight);
+                
+                // ピクセルデータを加工 - 確率増加
+                if (Math.random() < 0.8) {
+                    const data = imageData.data;
+                    
+                    // 矩形領域内での角張った加工効果
+                    const effectType = Math.random();
+                    
+                    if (effectType < 0.33) {
+                        // 縞模様効果 - ノイズ多め
+                        const stripeWidth = Math.floor(Math.random() * 4) + 1;
+                        for (let j = 0; j < data.length; j += 4) {
+                            const pixelIndex = j / 4;
+                            const x = pixelIndex % blockWidth;
+                            
+                            if (x % (stripeWidth * 2) < stripeWidth) {
+                                // RGBのいずれかを強調または抑制
+                                const channel = Math.floor(Math.random() * 3);
+                                data[j + channel] = Math.min(255, data[j + channel] * 3);
+                            }
+                        }
+                    } else if (effectType < 0.66) {
+                        // ブロックノイズ効果 - より鮮やか
+                        const blockSize = Math.floor(Math.random() * 8) + 1;
+                        const blockStartX = Math.floor(Math.random() * (blockWidth - blockSize));
+                        const blockStartY = Math.floor(Math.random() * (blockHeight - blockSize));
+                        
+                        for (let y = blockStartY; y < blockStartY + blockSize && y < blockHeight; y++) {
+                            for (let x = blockStartX; x < blockStartX + blockSize && x < blockWidth; x++) {
+                                const index = (y * blockWidth + x) * 4;
+                                if (index + 3 < data.length) {
+                                    // 毒々しい緑色の要素を多く含む色に置き換え
+                                    data[index] = Math.random() < 0.2 ? 255 : 0;       // R
+                                    data[index + 1] = Math.random() < 0.7 ? 255 : 0;   // G - 緑色を多め
+                                    data[index + 2] = Math.random() < 0.3 ? 255 : 0;   // B
+                                }
+                            }
+                        }
+                    } else {
+                        // チャンネルシフト効果（より不気味に）
+                        const shiftAmount = Math.floor(Math.random() * 10) + 5;
+                        const shiftChannel = Math.floor(Math.random() * 3); // R, G, Bのいずれかをシフト
+                        
+                        for (let y = 0; y < blockHeight; y++) {
+                            for (let x = 0; x < blockWidth - shiftAmount; x++) {
+                                const sourceIndex = (y * blockWidth + x) * 4;
+                                const targetIndex = (y * blockWidth + x + shiftAmount) * 4;
+                                
+                                if (targetIndex + 2 < data.length && sourceIndex + 2 < data.length) {
+                                    // 指定チャンネルをシフト
+                                    data[targetIndex + shiftChannel] = data[sourceIndex + shiftChannel];
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                ctx.putImageData(imageData, x, y);
+                
+                // ブロックの上に薄い色をオーバーレイ（毒々しい色に）
+                const overlayColors = [
+                    'rgba(0, 255, 0, 0.1)',       // 放射性緑
+                    'rgba(117, 0, 156, 0.1)',     // 暗い紫
+                    'rgba(160, 220, 50, 0.07)',   // 毒々しい黄緑
+                    'rgba(0, 124, 120, 0.08)',    // 暗いシアン
+                    'rgba(75, 0, 130, 0.1)',      // インディゴ
+                    'rgba(216, 0, 115, 0.07)',    // 不気味なマゼンタ
+                    'rgba(226, 17, 0, 0.09)',     // 血のような赤
+                    'rgba(124, 80, 1, 0.06)',     // 汚れたブラウン
+                    'rgba(10, 200, 180, 0.07)'    // 毒々しいターコイズ
+                ];
+                ctx.fillStyle = overlayColors[Math.floor(Math.random() * overlayColors.length)];
+                ctx.fillRect(x, y, blockWidth, blockHeight);
+                
+                // 角張った枠線を追加 - より強調
+                if (Math.random() < 0.7) {
+                    ctx.strokeStyle = `rgba(0, 255, 0, ${Math.random() * 0.3 + 0.2})`;  // 毒々しい緑
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(x, y, blockWidth, blockHeight);
+                    
+                    // コーナーマークを追加（確率増加）
+                    if (Math.random() < 0.7) {
+                        const cornerSize = Math.floor(Math.random() * 5) + 3;
+                        // 左上
+                        ctx.fillRect(x, y, cornerSize, 1);
+                        ctx.fillRect(x, y, 1, cornerSize);
+                        // 右上
+                        ctx.fillRect(x + blockWidth - cornerSize, y, cornerSize, 1);
+                        ctx.fillRect(x + blockWidth - 1, y, 1, cornerSize);
+                        // 左下
+                        ctx.fillRect(x, y + blockHeight - 1, cornerSize, 1);
+                        ctx.fillRect(x, y + blockHeight - cornerSize, 1, cornerSize);
+                        // 右下
+                        ctx.fillRect(x + blockWidth - cornerSize, y + blockHeight - 1, cornerSize, 1);
+                        ctx.fillRect(x + blockWidth - 1, y + blockHeight - cornerSize, 1, cornerSize);
+                    }
+                }
+            } catch (e) {
+                // クロスオリジンエラーなどを防止
+                console.log("グリッチブロック描画エラー:", e);
+            }
+        }
+        
+        // アニメーションを継続（ちらつきを多めに）
         if (this.isScreenFrozen) {
-            setTimeout(() => this._drawGlitchEffect(), 100);
+            setTimeout(() => this._drawGlitchEffect(), Math.floor(Math.random() * 150) + 150);
         }
     }
 }
