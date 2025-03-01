@@ -1729,6 +1729,13 @@ class Game {
             return;
         }
         
+        // vigorがexhausted状態の場合は休憩できない
+        const vigorStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+        if (vigorStatus.name === 'Exhausted') {
+            this.logger.add("You are too exhausted to rest", "warning");
+            return;
+        }
+        
         // 休憩状態を初期化
         this.player.resting = {
             active: true,
