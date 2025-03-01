@@ -150,6 +150,11 @@ class Renderer {
                 this.showMeditationEffect(this.game.player.x, this.game.player.y);
             }
 
+            // Apply next attack modifier effect if needed
+            if (this.game.player.nextAttackModifiers && this.game.player.nextAttackModifiers.length > 0) {
+                this.showNextAttackModifierEffect(this.game.player.x, this.game.player.y);
+            }
+
             // Apply movement effects
             this.movementEffects.forEach(effect => {
                 const tile = document.querySelector(`#game span[data-x="${effect.x}"][data-y="${effect.y}"]`);
@@ -194,6 +199,16 @@ class Renderer {
             }
             
             this.renderStatus();
+            
+            // Apply meditation effect
+            if (this.game.player.meditation && this.game.player.meditation.active) {
+                this.showMeditationEffect(this.game.player.x, this.game.player.y);
+            }
+
+            // Apply next attack modifier effect if needed
+            if (this.game.player.nextAttackModifiers && this.game.player.nextAttackModifiers.length > 0) {
+                this.showNextAttackModifierEffect(this.game.player.x, this.game.player.y);
+            }
             
             // レンダリング完了フラグをリセット
             this.pendingRender = false;
@@ -1056,10 +1071,21 @@ class Renderer {
     // New method for next attack modifier effect
     showNextAttackModifierEffect(x, y) {
         const playerChar = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
-        //console.log('Player char element:', playerChar); // Debug log
+        console.log('Player char element for next attack modifier:', playerChar); // デバッグログを追加
         if (playerChar) {
             playerChar.classList.add('next-attack-modifier');
-            //console.log('Added next-attack-modifier class'); // Debug log
+            console.log('Added next-attack-modifier class'); // デバッグログを有効化
+        } else {
+            console.log(`Could not find player element at ${x},${y}`); // 要素が見つからない場合のログ
+            // 遅延実行を試みる
+            setTimeout(() => {
+                const delayedPlayerChar = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
+                console.log('Delayed player char element:', delayedPlayerChar);
+                if (delayedPlayerChar) {
+                    delayedPlayerChar.classList.add('next-attack-modifier');
+                    console.log('Added next-attack-modifier class with delay');
+                }
+            }, 100);
         }
     }
     // New method for meditation effect

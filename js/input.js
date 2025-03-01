@@ -43,13 +43,15 @@ class InputHandler {
 
     // キーが離された時の処理
     handleKeyUp(event) {
-        const key = event.key.toLowerCase();
+        // 名前入力モードの場合は大文字小文字を区別するため、keyを変換しない
+        const key = this.mode === 'name' ? event.key : event.key.toLowerCase();
         this.pressedKeys.delete(key);
     }
 
     // キーが押された時の処理
     handleKeyDown(event) {
-        const key = event.key.toLowerCase();
+        // 名前入力モードの場合は大文字小文字を区別するため、keyを変換しない
+        const key = this.mode === 'name' ? event.key : event.key.toLowerCase();
         
         // すでに押されているキーは無視（キーリピートを防止）
         if (this.pressedKeys.has(key)) {
@@ -62,8 +64,8 @@ class InputHandler {
         
         // メッセージログのスクロール制御
         // どのモードでも常に処理できるようにここで実装
-        if (key === '[' || key === ']') {
-            this.handleLogScroll(key);
+        if (key.toLowerCase() === '[' || key.toLowerCase() === ']') {
+            this.handleLogScroll(key.toLowerCase());
             
             // ヘルプモードやCodexモードの場合はスクロールのみ許可して他の処理は行わない
             if (this.game.mode === GAME_CONSTANTS.MODES.HELP || 
@@ -180,6 +182,13 @@ class InputHandler {
             !this.landmarkTargetMode && 
             !this.targetingMode && 
             this.game.mode === GAME_CONSTANTS.MODES.GAME) {  // ゲームモードの時のみ許可
+            
+            // ホームフロアでは無効にする
+            if (this.game.floorLevel === 0) {
+                this.game.logger.add("Landmark navigation is not available on the home floor.", "warning");
+                return;
+            }
+            
             this.startLandmarkNavigation();
             return;
         }
@@ -384,7 +393,7 @@ class InputHandler {
     }
 
     handleNameInput(key, event) {
-        if (key === 'enter' && this.nameBuffer.trim().length > 0) {
+        if (key === 'Enter' && this.nameBuffer.trim().length > 0) {
             this.game.player.name = this.nameBuffer.trim();
             this.game.renderer.renderStatus();
             this.mode = 'characterCreation';  // 名前入力後はキャラクター作成モードへ
@@ -398,10 +407,10 @@ class InputHandler {
             return;
         }
 
-        if (key === 'backspace') {
+        if (key === 'Backspace') {
             this.nameBuffer = this.nameBuffer.slice(0, -1);
         } else if (key.length === 1 && this.nameBuffer.length < 15) {  // 15文字制限
-            // 英数字とスペースのみ許可
+            // 英数字とスペースのみ許可（大文字と小文字を明示的に許可）
             if (/^[a-zA-Z0-9 ]$/.test(key)) {
                 this.nameBuffer += key;
             }
@@ -750,6 +759,12 @@ class InputHandler {
 
         // 自動探索の開始
         if (key === 'z') {
+            // 瞑想中は自動探索を開始できないようにする
+            if (this.game.player.meditation && this.game.player.meditation.active) {
+                this.game.logger.add("Cannot auto-explore while meditating.", "warning");
+                return;
+            }
+            
             if (!this.game.player.autoExploring) {
                 this.game.player.startAutoExplore();
             }
@@ -1407,6 +1422,12 @@ class InputHandler {
     // Landmark Navigation Methods
     // ----------------------
     startLandmarkNavigation() {
+        // ホームフロア（floorLevel = 0）ではランドマークターゲットを無効にする
+        if (this.game.floorLevel === 0) {
+            this.game.logger.add("ホームフロアではランドマークナビゲーションは使用できません。", "warning");
+            return;
+        }
+
         const landmarks = this.findExploredLandmarks();
         if (landmarks.length === 0) {
             this.game.logger.add("No notable landmarks in sight.", "warning");

@@ -583,6 +583,12 @@ class Player {
 
     // 自動探索を開始
     startAutoExplore() {
+        // 瞑想中は自動探索を開始できないように修正
+        if (this.meditation && this.meditation.active) {
+            this.game.logger.add("Cannot auto-explore while meditating.", "warning");
+            return;
+        }
+        
         this.autoExploring = true;
         this.game.logger.add("Auto-exploring...", "playerInfo");
         this.continueAutoExplore();

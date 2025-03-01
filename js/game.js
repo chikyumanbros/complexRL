@@ -550,7 +550,33 @@ class Game {
         }
 
         if (this.floorLevel === 0) {
-            this.updateHomeFloor();
+            // ホームフロアでは宇宙空間のアニメーションを停止し、プレイヤーのステータスのみ更新
+            this.updateHomeFloorStatus();
+        }
+    }
+
+    // ホームフロアでのプレイヤーステータス更新のみを行うメソッド
+    updateHomeFloorStatus() {
+        // ホームフロアでのみ実行
+        if (this.floorLevel !== 0) return;
+
+        // HPを全回復
+        if (this.player.hp < this.player.maxHp) {
+            const healAmount = this.player.maxHp - this.player.hp;
+            this.player.hp = this.player.maxHp;
+        }
+
+        // Vigorを全回復
+        if (this.player.vigor < GAME_CONSTANTS.VIGOR.MAX) {
+            this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
+            this.player.validateVigor();  // Add validation after setting vigor
+        }
+
+        // スキルのクールダウンをリセット
+        if (this.player.skills) {
+            for (const skill of this.player.skills.values()) {
+                skill.remainingCooldown = 0;
+            }
         }
     }
 
@@ -1524,6 +1550,9 @@ class Game {
         // 毎ターン床タイルと壁タイルをランダムに変更
         const centerRoom = this.rooms[0];  // ホームフロアは1つの部屋のみ
 
+        // 初回のみ宇宙空間を生成するためのフラグ
+        const isFirstUpdate = !this.lastHomeFloorUpdate;
+
         for (let y = 0; y < GAME_CONSTANTS.DIMENSIONS.HEIGHT; y++) {
             for (let x = 0; x < this.width; x++) {
                 // 階段タイルはスキップ
@@ -1535,12 +1564,16 @@ class Game {
                 if (x < centerRoom.x - 1 || x >= centerRoom.x + centerRoom.width + 1 ||
                     y < centerRoom.y - 1 || y >= centerRoom.y + centerRoom.height + 1) {
                     this.map[y][x] = 'space';
-                    this.tiles[y][x] = GAME_CONSTANTS.TILES.SPACE[
-                        Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE.length)
-                    ];
-                    this.colors[y][x] = GAME_CONSTANTS.TILES.SPACE_COLORS[
-                        Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE_COLORS.length)
-                    ];
+                    
+                    // 宇宙空間のアニメーションを停止するため、初回のみタイルと色を設定
+                    if (isFirstUpdate || !this.map[y][x] || this.map[y][x] !== 'space') {
+                        this.tiles[y][x] = GAME_CONSTANTS.TILES.SPACE[
+                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE.length)
+                        ];
+                        this.colors[y][x] = GAME_CONSTANTS.TILES.SPACE_COLORS[
+                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE_COLORS.length)
+                        ];
+                    }
                 } else {
                     // 部屋の中のタイルを更新
                     if (this.map[y][x] === 'wall') {

@@ -477,7 +477,7 @@ body {
 }
 
 .next-attack-modifier {
-    animation: next-attack-modifier 0.5s ease-in-out;
+    animation: next-attack-modifier 0.5s ease-in-out infinite;
     position: relative;
     z-index: 100;
 }
