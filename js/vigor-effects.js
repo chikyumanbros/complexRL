@@ -90,6 +90,11 @@ class VigorEffects {
             return;
         }
 
+        // vigor効果発生の通知
+        if (this.game && typeof this.game.onVigorEffectOccurred === 'function') {
+            this.game.onVigorEffectOccurred();
+        }
+
         // エフェクト適用時のコンソールログを追加
         console.log(`Applying vigor effect: ${effect.type}`);
 

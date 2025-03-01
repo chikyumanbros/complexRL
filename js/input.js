@@ -936,6 +936,13 @@ class InputHandler {
                 this.game.logger.add("You wait...", "playerInfo");
                 this.game.processTurn();
                 return;
+            // REST コマンドを追加
+            case '^':
+                this.game.startRest('turns', 10);
+                return;
+            case '~':
+                this.game.startRest('full');
+                return;
             default: return;
         }
 

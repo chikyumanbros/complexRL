@@ -30,6 +30,7 @@ class Game {
         this.hasDisplayedPresenceWarning = false;  // Added hasDisplayedPresenceWarning property
         this.lastHomeFloorUpdate = 0;  // ホームフロアの最終更新ターン
         this.inputDisabled = false;  // vigor effectsによる入力無効化フラグ
+        this.vigorEffectOccurred = false;  // vigor effect発生フラグ
 
         // 死亡したモンスターの処理キューを追加
         this.pendingMonsterDeaths = [];
@@ -357,6 +358,19 @@ class Game {
         // メディテーション処理（最優先）
         if (this.player.hp > 0 && this.player.meditation?.active) {
             this.processMeditation();
+        }
+
+        // 休憩処理の追加（メディテーション後、自然回復の前に）
+        if (this.player.hp > 0 && this.player.resting?.active) {
+            // モード別の終了条件チェック
+            if (this.player.hp >= this.player.maxHp) {
+                this.endRest("Your HP is fully restored");
+            } else if (this.player.resting.mode === 'turns') {
+                this.player.resting.turnsRemaining--;
+                if (this.player.resting.turnsRemaining <= 0) {
+                    this.endRest("You finished resting");
+                }
+            }
         }
 
         // Vigorの処理 (floor 0では全回復)
@@ -1697,6 +1711,133 @@ class Game {
             //console.log('No effect triggered');
         }
         //console.log('========================');
+    }
+
+    // 休憩を開始するメソッド
+    startRest(mode, turns = 0) {
+        if (this.player.hp <= 0 || this.player.resting?.active) return;
+        
+        // HPが最大値なら休憩する必要なし
+        if (this.player.hp >= this.player.maxHp) {
+            this.logger.add("You are already at full health", "playerInfo");
+            return;
+        }
+        
+        // 瞑想中は休憩できない
+        if (this.player.meditation && this.player.meditation.active) {
+            this.logger.add("You cannot rest while meditating", "warning");
+            return;
+        }
+        
+        // 休憩状態を初期化
+        this.player.resting = {
+            active: true,
+            mode: mode,
+            turnsRemaining: turns,
+            startHp: this.player.hp
+        };
+        
+        const message = mode === 'turns' ? 
+            `Resting for ${turns} turns...` : 
+            "Resting until fully healed...";
+        
+        this.logger.add(message, "playerInfo");
+        this.playSound('restStartSound'); // 効果音があれば
+        
+        // 休憩を継続（最初のターンを処理）
+        this.continueRest();
+    }
+
+    // 休憩を継続するメソッド（自動探索と同様の仕組み）
+    continueRest() {
+        if (!this.player.resting?.active) return;
+        
+        // キャンセル条件チェック
+        const cancelReason = this.checkRestCancelConditions();
+        if (cancelReason) {
+            this.cancelRest(cancelReason);
+            return;
+        }
+        
+        // 1ターン進める
+        this.processTurn();
+        
+        // 継続条件をチェック
+        if (this.player.resting?.active) {
+            // 終了条件に達していなければ次のターンを遅延処理
+            setTimeout(() => {
+                if (this.player.resting?.active) {
+                    this.continueRest();
+                }
+            }, 100); // 100msの遅延でターンを進行
+        }
+    }
+
+    // 休憩を終了するメソッド
+    endRest(reason) {
+        if (!this.player.resting?.active) return;
+        
+        const healedAmount = this.player.hp - this.player.resting.startHp;
+        this.logger.add(`${reason}. (Healed: ${healedAmount} HP)`, "playerInfo");
+        
+        this.player.resting = {
+            active: false,
+            mode: null,
+            turnsRemaining: 0,
+            startHp: 0
+        };
+        
+        this.playSound('restEndSound'); // 効果音があれば
+    }
+
+    // 休憩をキャンセルするメソッド
+    cancelRest(reason) {
+        if (!this.player.resting?.active) return;
+        
+        const healedAmount = this.player.hp - this.player.resting.startHp;
+        this.logger.add(`${reason}. Rest interrupted. (Healed: ${healedAmount} HP)`, "warning");
+        
+        this.player.resting = {
+            active: false,
+            mode: null,
+            turnsRemaining: 0,
+            startHp: 0
+        };
+        
+        this.playSound('restCancelSound'); // 効果音があれば
+    }
+    
+    // 休憩のキャンセル条件をチェックするメソッド
+    checkRestCancelConditions() {
+        // 敵の視認チェック
+        const visibleMonsters = this.monsters.filter(monster => {
+            // プレイヤーの視界内にいるモンスターを検出
+            return this.hasLineOfSight(this.player.x, this.player.y, monster.x, monster.y) &&
+                GAME_CONSTANTS.DISTANCE.calculate(this.player.x, this.player.y, monster.x, monster.y) <= 
+                this.player.perception.base;
+        });
+        
+        if (visibleMonsters.length > 0) {
+            return "You noticed an enemy";
+        }
+        
+        // VigorEffectsが発生したかどうかのチェック
+        if (this.vigorEffectOccurred) {
+            this.vigorEffectOccurred = false; // リセット
+            return "A strange sensation interrupted you";
+        }
+        
+        return null;
+    }
+
+    // vigorエフェクト発生時の通知メソッド
+    onVigorEffectOccurred() {
+        this.vigorEffectOccurred = true;
+        
+        // 休憩中であればキャンセル
+        if (this.player.resting?.active) {
+            this.cancelRest("A strange sensation interrupted you");
+        }
     }
 }
 
