@@ -1056,4 +1056,266 @@ class Player {
             this.stopAutoMoveToLandmark();
         }
     }
+
+    // 新規: A*アルゴリズムによる共通経路探索メソッド
+    findPath(startX, startY, isGoalFunc, options = {}) {
+        const {
+            mustBeExplored = true,     // 探索済みタイルのみを使用するか
+            diagonalMovement = true,   // 斜め移動を許可するか
+            avoidEnemies = true,       // 敵の近くを避けるか
+            maxPathLength = 1000       // 最大探索距離
+        } = options;
+
+        // 方向の定義（斜め移動の有無で変更）
+        const directions = diagonalMovement ?
+            [
+                {dx: 0, dy: -1, cost: 1},    // 上
+                {dx: 1, dy: -1, cost: 1.414}, // 右上
+                {dx: 1, dy: 0, cost: 1},     // 右
+                {dx: 1, dy: 1, cost: 1.414},  // 右下
+                {dx: 0, dy: 1, cost: 1},     // 下
+                {dx: -1, dy: 1, cost: 1.414}, // 左下
+                {dx: -1, dy: 0, cost: 1},    // 左
+                {dx: -1, dy: -1, cost: 1.414} // 左上
+            ] :
+            [
+                {dx: 0, dy: -1, cost: 1}, // 上
+                {dx: 1, dy: 0, cost: 1},  // 右
+                {dx: 0, dy: 1, cost: 1},  // 下
+                {dx: -1, dy: 0, cost: 1}  // 左
+            ];
+
+        // A*アルゴリズムの実装
+        const openSet = [];
+        const closedSet = new Set();
+        const gScore = {};
+        const fScore = {};
+        const cameFrom = {};
+        
+        // 開始点の設定
+        const startKey = `${startX},${startY}`;
+        gScore[startKey] = 0;
+        fScore[startKey] = 0; // 初期ヒューリスティック値
+        
+        openSet.push({
+            x: startX,
+            y: startY,
+            key: startKey,
+            g: 0,
+            f: 0
+        });
+        
+        while (openSet.length > 0) {
+            // fスコアが最小のノードを取得
+            openSet.sort((a, b) => a.f - b.f);
+            const current = openSet.shift();
+            
+            // 目標に到達したか確認
+            if (isGoalFunc(current.x, current.y)) {
+                // 最初の一歩を特定して返す
+                return this.reconstructFirstStep(cameFrom, current.key, startKey);
+            }
+            
+            // 閉じたセットに追加
+            closedSet.add(current.key);
+            
+            // 最大パス長のチェック
+            if (current.g >= maxPathLength) continue;
+            
+            // 各方向をチェック
+            for (const dir of directions) {
+                const newX = current.x + dir.dx;
+                const newY = current.y + dir.dy;
+                const newKey = `${newX},${newY}`;
+                
+                // 既に調査済みならスキップ
+                if (closedSet.has(newKey)) continue;
+                
+                // 有効な位置かチェック
+                if (!this.game.isValidPosition(newX, newY)) continue;
+                
+                // 通行可能かチェック（床またはドアなど）
+                if (!this.isValidPathTile(newX, newY)) continue;
+                
+                // 探索済みかチェック（オプション）
+                if (mustBeExplored && !this.game.explored[newY][newX]) continue;
+                
+                // 敵を避ける（オプション）
+                let enemyPenalty = 0;
+                if (avoidEnemies) {
+                    const surroundingEnemies = this.countSurroundingEnemies(newX, newY);
+                    if (surroundingEnemies > 0) {
+                        enemyPenalty = surroundingEnemies * 5; // 敵1体につき5コスト追加
+                    }
+                }
+                
+                // 新しいgスコアを計算
+                const tentativeGScore = current.g + dir.cost + enemyPenalty;
+                
+                // 既に計算済みで、新しい経路の方が悪い場合はスキップ
+                if (newKey in gScore && tentativeGScore >= gScore[newKey]) continue;
+                
+                // この経路が最良なので記録
+                cameFrom[newKey] = current.key;
+                gScore[newKey] = tentativeGScore;
+                
+                // ヒューリスティック値を計算（目標への直線距離の推定）
+                const heuristic = this.calculateHeuristic(newX, newY, isGoalFunc);
+                fScore[newKey] = gScore[newKey] + heuristic;
+                
+                // 既にオープンセットにある場合は更新、なければ追加
+                const existingIndex = openSet.findIndex(node => node.key === newKey);
+                if (existingIndex !== -1) {
+                    openSet[existingIndex].g = gScore[newKey];
+                    openSet[existingIndex].f = fScore[newKey];
+                } else {
+                    openSet.push({
+                        x: newX,
+                        y: newY,
+                        key: newKey,
+                        g: gScore[newKey],
+                        f: fScore[newKey]
+                    });
+                }
+            }
+        }
+        
+        // 経路が見つからなかった
+        return null;
+    }
+    
+    // 経路から最初の一歩を再構築
+    reconstructFirstStep(cameFrom, currentKey, startKey) {
+        // ゴールから開始位置まで遡る
+        const path = [currentKey];
+        
+        while (path[path.length - 1] !== startKey) {
+            path.push(cameFrom[path[path.length - 1]]);
+        }
+        
+        // 最初の一歩を特定
+        const firstStepKey = path[path.length - 2]; // 開始点の次のステップ
+        const [firstStepX, firstStepY] = firstStepKey.split(',').map(Number);
+        
+        // 方向ベクトルを計算
+        return {
+            dx: firstStepX - this.x,
+            dy: firstStepY - this.y
+        };
+    }
+    
+    // ヒューリスティック関数（目標への推定距離）
+    calculateHeuristic(x, y, isGoalFunc) {
+        // 目標が単一の座標の場合
+        if (typeof isGoalFunc === 'object' && 'x' in isGoalFunc && 'y' in isGoalFunc) {
+            // ユークリッド距離
+            const dx = x - isGoalFunc.x;
+            const dy = y - isGoalFunc.y;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+        
+        // 複数の目標を持つ場合（未探索タイルなど）
+        // マップ全体をスキャンして最も近い目標を見つける
+        let minDistance = Infinity;
+        
+        for (let ty = 0; ty < this.game.height; ty++) {
+            for (let tx = 0; tx < this.game.width; tx++) {
+                if (isGoalFunc(tx, ty)) {
+                    const dx = x - tx;
+                    const dy = y - ty;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    minDistance = Math.min(minDistance, distance);
+                }
+            }
+        }
+        
+        return minDistance === Infinity ? 0 : minDistance;
+    }
+    
+    // タイルが経路として有効かチェック
+    isValidPathTile(x, y) {
+        // 床タイルは常に有効
+        if (this.game.map[y][x] === 'floor') return true;
+        
+        // 特殊タイル（階段、ポータルなど）の場合
+        const tileChar = this.game.tiles[y][x];
+        return tileChar === GAME_CONSTANTS.STAIRS.CHAR ||
+               tileChar === GAME_CONSTANTS.PORTAL.GATE.CHAR ||
+               tileChar === GAME_CONSTANTS.PORTAL.VOID.CHAR;
+    }
+    
+    // 指定座標周辺の敵の数をカウント
+    countSurroundingEnemies(x, y) {
+        let count = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                
+                const checkX = x + dx;
+                const checkY = y + dy;
+                if (this.game.getMonsterAt(checkX, checkY)) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    // 未探索タイルへの方向を見つける（改善版）
+    findDirectionToUnexplored() {
+        // 目標関数: 未探索の床タイル
+        const isUnexploredGoal = (x, y) => {
+            return this.game.isValidPosition(x, y) && 
+                   !this.game.explored[y][x] && 
+                   this.game.map[y][x] === 'floor';
+        };
+        
+        // A*アルゴリズムで経路を探索（未探索タイルへの移動なので探索済み条件は緩める）
+        const direction = this.findPath(this.x, this.y, isUnexploredGoal, {
+            mustBeExplored: false,  // 未探索タイルも経路に含める
+            diagonalMovement: true,
+            avoidEnemies: true
+        });
+        
+        if (!direction) {
+            // マップ全体をスキャンして未探索の床タイルが残っているか確認
+            for (let y = 0; y < this.game.height; y++) {
+                for (let x = 0; x < this.game.width; x++) {
+                    if (this.game.map[y][x] === 'floor' && !this.game.explored[y][x]) {
+                        this.game.logger.add("Some areas are unreachable.", "warning");
+                        return null;
+                    }
+                }
+            }
+            return null;  // 完全に探索済み
+        }
+        
+        return direction;
+    }
+
+    // 階段への方向を見つける（改善版）
+    findDirectionToStairs(stairLocation) {
+        // 目標関数: 階段の位置
+        const isStairsGoal = (x, y) => x === stairLocation.x && y === stairLocation.y;
+        
+        // A*アルゴリズムで経路を探索
+        return this.findPath(this.x, this.y, isStairsGoal, {
+            mustBeExplored: true,  // 探索済みタイルのみ使用
+            diagonalMovement: true,
+            avoidEnemies: true
+        });
+    }
+
+    // ランドマークへの方向を見つける（改善版）
+    findDirectionToLandmark(landmark) {
+        // 目標関数: ランドマークの位置
+        const isLandmarkGoal = (x, y) => x === landmark.x && y === landmark.y;
+        
+        // A*アルゴリズムで経路を探索
+        return this.findPath(this.x, this.y, isLandmarkGoal, {
+            mustBeExplored: true,  // 探索済みタイルのみ使用
+            diagonalMovement: true,
+            avoidEnemies: true
+        });
+    }
 } 
