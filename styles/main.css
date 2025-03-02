@@ -1684,3 +1684,7 @@ body::before {
     text-align: center;
     z-index: 1000;
 }
+
+.player-caught-web {
+    animation: none !important; /* アニメーションを無効化 */
+}

@@ -268,6 +268,10 @@ class Player {
                         
                         // 移動は成功しているが、捕まり状態を設定
                         this.caughtInWeb = web;
+
+                        // プレイヤーの健康状態の色を蜘蛛の巣に適用
+                        const healthStatus = this.getHealthStatus(this.hp, this.maxHp);
+                        web.playerColor = healthStatus.color;  // ここで色を設定
                     }
                 } else {
                     // 蜘蛛の巣を避けた
@@ -459,6 +463,12 @@ class Player {
 
         // evasionを元の値に戻す
         this.evasion = baseEvasion;
+
+        // 蜘蛛の巣に捕まっている場合、色を更新
+        if (this.caughtInWeb) {
+            const healthStatus = this.getHealthStatus(this.hp, this.maxHp);
+            this.caughtInWeb.playerColor = healthStatus.color;
+        }
 
         return result;
     }
@@ -1477,6 +1487,10 @@ class Player {
             
             // 効果音を再生
             this.game.playSound('webTrapSound');
+            
+            // プレイヤーの健康状態の色を更新
+            const healthStatus = this.getHealthStatus(this.hp, this.maxHp);
+            this.caughtInWeb.playerColor = healthStatus.color;
             
             return false; // アクション失敗
         }

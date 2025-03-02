@@ -623,14 +623,36 @@ class Renderer {
                     // 蜘蛛の巣の描画
                     const web = this.game.webs && this.game.webs.find(w => w.x === x && w.y === y);
                     if (web) {
-                        // 蜘蛛の巣のアニメーションクラスを追加
-                        classes.push('web-tile');
+                        // プレイヤーが捕まっている場合は特別なクラスを追加
+                        if (this.game.player.caughtInWeb && 
+                            this.game.player.caughtInWeb.x === x && 
+                            this.game.player.caughtInWeb.y === y) {
+                            classes.push('player-caught-web');
+                        } else {
+                            classes.push('web-tile'); // 通常の蜘蛛の巣のアニメーションクラス
+                        }
                         
                         // 蜘蛛の巣の文字を上書き
                         content = GAME_CONSTANTS.WEB.CHAR;
                         
-                        // 蜘蛛の巣の色を設定
-                        style = `color: ${GAME_CONSTANTS.WEB.COLOR}; opacity: ${opacity}`;
+                        // プレイヤーが捕まっている場合、プレイヤーの健康状態の色を使用
+                        if (this.game.player.caughtInWeb && 
+                            this.game.player.caughtInWeb.x === x && 
+                            this.game.player.caughtInWeb.y === y) {
+                            
+                            // プレイヤーの健康状態を取得
+                            const healthStatus = this.game.player.getHealthStatus(
+                                this.game.player.hp, 
+                                this.game.player.maxHp
+                            );
+                            
+                            // 健康状態の色を直接使用
+                            style = `color: ${healthStatus.color}; opacity: ${opacity}`;
+                            console.log(`Web color set to player health: ${healthStatus.color}`); // デバッグログ
+                        } else {
+                            // 通常の蜘蛛の巣の色を設定
+                            style = `color: ${GAME_CONSTANTS.WEB.COLOR}; opacity: ${opacity}`;
+                        }
                         
                         if (backgroundColor) {
                             style += `; background: ${backgroundColor}`;
