@@ -1390,8 +1390,17 @@ class InputHandler {
         }
 
         // --- Acquire Skill Information ---
-        const skill = this.game.codexSystem.findSkillById(this.targetingMode);
-        const range = skill.range || 3; // デフォルトの範囲を3に設定
+        // --- Acquire Skill Information ---
+const skill = this.game.codexSystem.findSkillById(this.targetingMode);
+let range = 3; // デフォルトの範囲
+
+// スキルにgetRangeメソッドがある場合はそれを使用
+if (skill.getRange) {
+    range = skill.getRange(player);
+} else if (skill.range) {
+    // 従来のrangeプロパティがある場合はそれを使用
+    range = skill.range;
+}
 
         // --- Validate Target Distance and Tile ---
         const distance = GAME_CONSTANTS.SKILL_DISTANCE.calculate(this.targetX, this.targetY, player.x, player.y);

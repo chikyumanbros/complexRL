@@ -139,14 +139,11 @@ const SKILLS = {
                     }
 
                     // ---- Distance Check ----
-                    const distance = GAME_CONSTANTS.SKILL_DISTANCE.calculate(
-                        player.x, player.y, target.x, target.y
+                    const isInJumpRange = visibleTiles.some(tile => 
+                        tile.x === target.x && tile.y === target.y
                     );
 
-                    // ジャンプの有効範囲を計算
-                    const jumpRange = Math.floor((player.stats.dex - player.stats.con) / 3) + 3;
-
-                    if (distance > jumpRange) {
+                    if (!isInJumpRange) {
                         game.logger.add("Too far to jump!", "warning");
                         return false;
                     }
