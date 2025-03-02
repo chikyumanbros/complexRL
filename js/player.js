@@ -1486,7 +1486,7 @@ class Player {
             this.game.logger.add(randomMessage, "warning");
             
             // 効果音を再生
-            this.game.playSound('webTrapSound');
+            this.game.playSound('missSound');
             
             // プレイヤーの健康状態の色を更新
             const healthStatus = this.getHealthStatus(this.hp, this.maxHp);
