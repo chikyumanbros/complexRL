@@ -301,6 +301,13 @@ class Player {
                     },
                 });
             } else if (this.game.tiles[this.y][this.x] === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
+                // 自動移動中はVOIDポータルの確認をスキップ
+                if (this.autoExploring || this.autoMovingToLandmark || this.autoMovingToStairs) {
+                    // 自動移動中はポータルを無視して通過
+                    return true;
+                }
+                
+                // 通常の移動時は確認を表示
                 this.game.logger.add("Enter the VOID portal? [y/n]", "important");
                 this.game.setInputMode('confirm', {
                     callback: (confirmed) => {
@@ -736,6 +743,13 @@ class Player {
             return;
         }
 
+        // 隣接する蜘蛛の巣をチェック
+        if (this.checkForAdjacentWebs()) {
+            this.stopAutoExplore();
+            this.game.logger.add("Spider web detected nearby!", "warning");
+            return;
+        }
+
         // 未探索タイルへの方向を見つける
         const direction = this.findDirectionToUnexplored();
         if (!direction) {
@@ -893,6 +907,13 @@ class Player {
         if (visibleMonsters.length > 0) {
             player.stopAutoMoveToStairs();
             this.game.logger.add("Enemy spotted in range!", "warning");
+            return;
+        }
+
+        // 隣接する蜘蛛の巣をチェック
+        if (this.checkForAdjacentWebs()) {
+            player.stopAutoMoveToStairs();
+            this.game.logger.add("Spider web detected nearby!", "warning");
             return;
         }
 
@@ -1088,6 +1109,13 @@ class Player {
             return;
         }
 
+        // 隣接する蜘蛛の巣をチェック
+        if (this.checkForAdjacentWebs()) {
+            this.stopAutoMoveToLandmark();
+            this.game.logger.add("Spider web detected nearby!", "warning");
+            return;
+        }
+
         // ランドマークへの方向を見つける
         const direction = this.findDirectionToLandmark(landmark);
         if (!direction) {
@@ -1182,6 +1210,33 @@ class Player {
             this.resting.active = false;
             this.game.logger.add("Rest interrupted.", "warning");
         }
+    }
+
+    // 蜘蛛の巣が隣接しているかをチェックする新しいメソッド
+    checkForAdjacentWebs() {
+        const directions = [
+            {dx: -1, dy: -1}, {dx: 0, dy: -1}, {dx: 1, dy: -1},
+            {dx: -1, dy: 0},                    {dx: 1, dy: 0},
+            {dx: -1, dy: 1},  {dx: 0, dy: 1},  {dx: 1, dy: 1}
+        ];
+        
+        for (const dir of directions) {
+            const checkX = this.x + dir.dx;
+            const checkY = this.y + dir.dy;
+            
+            // マップ範囲内かチェック
+            if (checkX < 0 || checkX >= this.game.width || checkY < 0 || checkY >= this.game.height) {
+                continue;
+            }
+            
+            // 蜘蛛の巣があるかチェック
+            const web = this.game.webs.find(web => web.x === checkX && web.y === checkY);
+            if (web) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     // 新規: A*アルゴリズムによる共通経路探索メソッド
