@@ -56,12 +56,12 @@ class InputHandler {
         // 注意: Ctrlキーを離した直後は、数字キーを処理する前にフラグがリセットされることがあるため、
         // 少し遅延してリセットする
         if (key === 'control' || key === 'ctrl' || event.keyCode === 17) {
-            console.log('Control key released (will reset after delay)');
+            //console.log('Control key released (will reset after delay)');
             // 少し遅延してリセット（数字キーの入力を受け付ける時間を確保）
             setTimeout(() => {
                 this.ctrlPressed = false;
                 this.pendingCtrlCombo = false; // キーコンビネーション状態もリセット
-                console.log('Control key state reset after delay');
+                //console.log('Control key state reset after delay');
             }, 200); // 200ミリ秒の遅延を追加
         }
     }
@@ -69,8 +69,8 @@ class InputHandler {
     // キーが押された時の処理
     handleKeyDown(event) {
         // デバッグログを追加（MetaキーはMacのCommandキー）
-        console.log('Key pressed:', event.key, 'Ctrl:', event.ctrlKey, 'Meta:', event.metaKey, 'Key code:', event.keyCode);
-        console.log('Current ctrlPressed state:', this.ctrlPressed);
+        //console.log('Key pressed:', event.key, 'Ctrl:', event.ctrlKey, 'Meta:', event.metaKey, 'Key code:', event.keyCode);
+        //console.log('Current ctrlPressed state:', this.ctrlPressed);
         
         // Ctrlキーの状態を保存（Ctrl, Control, またはevent.ctrlKeyがtrueの場合）
         // MacではControlキー、WindowsではCtrlキーを検出
@@ -78,7 +78,7 @@ class InputHandler {
             this.ctrlPressed = true;
             this.pendingCtrlCombo = true;
             this.lastCtrlKeyTime = Date.now();
-            console.log('Control key state set to true');
+            //console.log('Control key state set to true');
         }
         
         // 名前入力モードの場合は大文字小文字を区別するため、keyを変換しない
@@ -87,7 +87,7 @@ class InputHandler {
         // Ctrl+数字キーの直接検出
         // Ctrlキーを押しながら数字キーを押した場合を検出
         if (event.ctrlKey && /^[1-9]$/.test(key)) {
-            console.log('Direct Ctrl+Number detection:', key);
+            //console.log('Direct Ctrl+Number detection:', key);
             
             // スキルスロット並べ替えモードに入る
             this.startSkillSlotSwap(key);
@@ -99,7 +99,7 @@ class InputHandler {
         
         // Alt+数字キーの直接検出（代替として）
         if (event.altKey && /^[1-9]$/.test(key)) {
-            console.log('Direct Alt+Number detection:', key);
+            //console.log('Direct Alt+Number detection:', key);
             
             // スキルスロット並べ替えモードに入る
             this.startSkillSlotSwap(key);
@@ -132,11 +132,11 @@ class InputHandler {
         
         // 数字キーが押されたときにctrlPressedの状態をログ出力
         if (/^[1-9]$/.test(key)) {
-            console.log(`Number key ${key} pressed with ctrlPressed:`, this.ctrlPressed, 'event.ctrlKey:', event.ctrlKey);
+            //console.log(`Number key ${key} pressed with ctrlPressed:`, this.ctrlPressed, 'event.ctrlKey:', event.ctrlKey);
             
             // ctrlPressedがtrueで、最近Ctrlキーが押された場合（200ms以内）
             if (this.pendingCtrlCombo && (Date.now() - this.lastCtrlKeyTime < 200)) {
-                console.log('Detected Ctrl+Number combo through tracking:', key);
+                //console.log('Detected Ctrl+Number combo through tracking:', key);
                 this.startSkillSlotSwap(key);
                 this.pendingCtrlCombo = false; // 一度使ったらリセット
                 return;
@@ -170,7 +170,7 @@ class InputHandler {
 
         // vigor effectsによる入力無効化をチェック
         if (this.game.inputDisabled) {
-            console.log('Input disabled due to vigor effect');
+            //console.log('Input disabled due to vigor effect');
             event.preventDefault();
             return;
         }
@@ -282,7 +282,7 @@ class InputHandler {
 
         // 開発者コマンドの処理を最初に行う
         if (event.ctrlKey && event.shiftKey) {
-            console.log('Developer command detected:', key);
+            //console.log('Developer command detected:', key);
             switch (key) {
                 case 's':
                     event.preventDefault();
@@ -292,12 +292,12 @@ class InputHandler {
                         spritePreview.style.display = isHidden ? 'block' : 'none';
                         
                         if (!isHidden) {
-                            console.log('Hiding sprite preview...');
+                            //console.log('Hiding sprite preview...');
                         } else {
-                            console.log('Showing sprite preview...');
+                            //console.log('Showing sprite preview...');
                             // モンスターの定義を確認
                             if (!MONSTERS) {
-                                console.error('MONSTERS is not defined');
+                                //console.error('MONSTERS is not defined');
                                 return;
                             }
 
@@ -342,7 +342,7 @@ class InputHandler {
                                     // ステータス情報の表示
                                     const monsterData = MONSTERS[type];
                                     if (!monsterData || !monsterData.stats) {
-                                        console.error(`Invalid monster data for type: ${type}`);
+                                        //console.error(`Invalid monster data for type: ${type}`);
                                         return;
                                     }
 
@@ -384,7 +384,7 @@ class InputHandler {
                                     }
                                     statsDiv.innerHTML = statsHtml;
                                 } catch (error) {
-                                    console.error(`Error processing monster ${type}:`, error);
+                                    //console.error(`Error processing monster ${type}:`, error);
                                 }
                             });
                         }
@@ -678,9 +678,8 @@ class InputHandler {
             // ニューラルオベリスクの使用を試みる
             if (tile === GAME_CONSTANTS.NEURAL_OBELISK.CHAR) {
                 // オベリスクの情報を取得
-                const obelisk = this.game.mapGenerator && 
-                                this.game.mapGenerator.neuralObelisks && 
-                                this.game.mapGenerator.neuralObelisks.find(o => o.x === x && o.y === y);
+                const obelisk = this.game.neuralObelisks && 
+                                this.game.neuralObelisks.find(o => o.x === x && o.y === y);
                 
                 let level = 3; // デフォルトはレベル3
                 let colorName = "yellow";
@@ -705,7 +704,7 @@ class InputHandler {
                     this.game.setInputMode('confirm', {
                         callback: (confirmed) => {
                             if (confirmed) {
-                                this.touchNeuralObelisk(x, y);
+                                this.game.touchNeuralObelisk(x, y);
                             } else {
                                 this.game.logger.add(`You decide not to touch the Neural Obelisk.`, "playerInfo");
                             }

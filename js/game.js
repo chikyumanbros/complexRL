@@ -42,6 +42,9 @@ class Game {
 
         // Set up initial panel
         this.logger.renderLookPanel();
+
+        // Game クラスに neuralObelisks プロパティを追加
+        this.neuralObelisks = [];  // ニューラルオベリスクの情報を保存する配列
     }
 
     initializeExplored() {
@@ -1045,7 +1048,15 @@ class Game {
         this.tiles = mapData.tiles;
         this.colors = mapData.colors;
         this.rooms = mapData.rooms;
-
+        
+        // ニューラルオベリスク情報を Game クラスに保存
+        this.neuralObelisks = mapGenerator.neuralObelisks || [];
+        
+        // デバッグログ
+        if (this.neuralObelisks.length > 0) {
+            console.log('Neural Obelisks saved to Game:', this.neuralObelisks);
+        }
+        
         // 高さと幅を定数から再設定して一貫性を保つ
         this.width = GAME_CONSTANTS.DIMENSIONS.WIDTH;
         this.height = GAME_CONSTANTS.DIMENSIONS.HEIGHT;
@@ -1189,7 +1200,7 @@ class Game {
 
         // 通常フロアの場合は既存の視界計算ロジックを使用
         const currentRoom = this.getCurrentRoom();
-        const CORRIDOR_VISIBILITY = 2; // 部屋に属さない床（通路）の視界範囲
+        const CORRIDOR_VISIBILITY = 3; // 部屋に属さない床（通路）の視界範囲
 
         for (let y = 0; y < GAME_CONSTANTS.DIMENSIONS.HEIGHT; y++) {
             for (let x = 0; x < GAME_CONSTANTS.DIMENSIONS.WIDTH; x++) {
@@ -1850,37 +1861,34 @@ class Game {
     // Game クラスに追加するメソッド
     touchNeuralObelisk(x, y) {
         // ニューラルオベリスクの情報を取得
-        const obelisk = this.mapGenerator && 
-                        this.mapGenerator.neuralObelisks && 
-                        this.mapGenerator.neuralObelisks.find(o => o.x === x && o.y === y);
+        const obelisk = this.neuralObelisks.find(o => o.x === x && o.y === y);
         
-        if (!obelisk) {
-            // オベリスクが見つからない場合はデフォルトのレベル3として処理
-            this.logger.addMessage("You touch the Neural Obelisk...");
-            this.healPlayerWithObelisk(3);
-            return;
+        let level = 3; // デフォルトはレベル3
+        let colorName = "yellow";
+        
+        if (obelisk) {
+            level = obelisk.level;
+            
+            // 色の名前を設定
+            switch(level) {
+                case 1: colorName = "blue"; break;
+                case 2: colorName = "green"; break;
+                case 3: colorName = "yellow"; break;
+                case 4: colorName = "orange"; break;
+                case 5: colorName = "purple"; break;
+            }
         }
         
-        // オベリスクのレベルに応じた色名を取得
-        let colorName = "unknown";
-        switch(obelisk.level) {
-            case 1: colorName = "blue"; break;
-            case 2: colorName = "green"; break;
-            case 3: colorName = "yellow"; break;
-            case 4: colorName = "orange"; break;
-            case 5: colorName = "purple"; break;
-        }
-        
-        this.logger.addMessage(`You touch the ${colorName} Neural Obelisk (Level ${obelisk.level})...`);
+        this.logger.add(`You touch the ${colorName} Neural Obelisk (Level ${level})...`, "playerInfo");
         
         // 回復効果を適用
-        this.healPlayerWithObelisk(obelisk.level);
+        this.healPlayerWithObelisk(level);
         
         // オベリスクを消去
         this.removeNeuralObelisk(x, y);
         
-        // 効果音やエフェクトを再生（必要に応じて）
-        this.soundManager.playSound('heal');
+        // 効果音やエフェクトを再生
+        this.soundManager.playSound('levelUpSound');
         this.renderer.showLightPillarEffect(x, y);
     }
 
@@ -1917,11 +1925,9 @@ class Game {
         this.colors[y][x] = GAME_CONSTANTS.COLORS.FLOOR;
         
         // neuralObelisks 配列から削除
-        if (this.mapGenerator && this.mapGenerator.neuralObelisks) {
-            this.mapGenerator.neuralObelisks = this.mapGenerator.neuralObelisks.filter(
-                o => !(o.x === x && o.y === y)
-            );
-        }
+        this.neuralObelisks = this.neuralObelisks.filter(
+            o => !(o.x === x && o.y === y)
+        );
         
         // マップを再描画
         this.renderer.render();

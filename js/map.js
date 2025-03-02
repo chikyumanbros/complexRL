@@ -242,13 +242,27 @@ class MapGenerator {
                 getPositions: (room) => {
                     const centerX = Math.floor(room.x + room.width / 2);
                     const centerY = Math.floor(room.y + room.height / 2);
-                    return [
-                        {x: centerX, y: centerY},
+                    
+                    // ニューラルオベリスク生成チャンスがある場合は中心を除外
+                    const shouldPlaceObelisk = Math.random() < GAME_CONSTANTS.NEURAL_OBELISK.SPAWN_CHANCE;
+                    
+                    const positions = [
+                        // 中心位置を条件付きで追加
+                        ...(shouldPlaceObelisk ? [] : [{x: centerX, y: centerY}]),
                         {x: centerX - 1, y: centerY},
                         {x: centerX + 1, y: centerY},
                         {x: centerX, y: centerY - 1},
                         {x: centerX, y: centerY + 1}
                     ];
+                    
+                    // 中心位置情報を保存
+                    if (shouldPlaceObelisk) {
+                        positions.centerX = centerX;
+                        positions.centerY = centerY;
+                        positions.shouldPlaceObelisk = true;
+                    }
+                    
+                    return positions;
                 }
             },
             {
@@ -289,13 +303,31 @@ class MapGenerator {
                         Math.floor((room.height - 4) / 2)
                     );
                     
-                    // ダイヤモンド型に配置
+                    // ニューラルオベリスク生成チャンスがある場合は中心を除外
+                    const shouldPlaceObelisk = Math.random() < GAME_CONSTANTS.NEURAL_OBELISK.SPAWN_CHANCE;
+                    
+                    // ダイヤモンド型に配置（中心を除外するかどうかを判定）
                     for (let i = 0; i <= size; i++) {
-                        positions.push({x: centerX + i, y: centerY + i});
-                        positions.push({x: centerX + i, y: centerY - i});
-                        positions.push({x: centerX - i, y: centerY + i});
-                        positions.push({x: centerX - i, y: centerY - i});
+                        // i=0 の場合は中心点なので、条件付きで追加
+                        if (i === 0) {
+                            if (!shouldPlaceObelisk) {
+                                positions.push({x: centerX, y: centerY});
+                            }
+                        } else {
+                            positions.push({x: centerX + i, y: centerY + i});
+                            positions.push({x: centerX + i, y: centerY - i});
+                            positions.push({x: centerX - i, y: centerY + i});
+                            positions.push({x: centerX - i, y: centerY - i});
+                        }
                     }
+                    
+                    // 中心位置情報を保存
+                    if (shouldPlaceObelisk) {
+                        positions.centerX = centerX;
+                        positions.centerY = centerY;
+                        positions.shouldPlaceObelisk = true;
+                    }
+                    
                     return positions;
                 }
             },
@@ -310,21 +342,40 @@ class MapGenerator {
                         Math.floor((room.height - 4) / 2)
                     );
                     
+                    // ニューラルオベリスク生成チャンスがある場合は中心を除外
+                    const shouldPlaceObelisk = Math.random() < GAME_CONSTANTS.NEURAL_OBELISK.SPAWN_CHANCE;
+                    
+                    // 部屋が小さすぎる場合（半径が1以下）は、アクセス可能なパスを確保
+                    const isTooSmall = radius <= 1;
+                    
                     // 円形に配置（近似）
                     for (let angle = 0; angle < 360; angle += 45) {
                         const radian = angle * Math.PI / 180;
                         const x = Math.round(centerX + radius * Math.cos(radian));
                         const y = Math.round(centerY + radius * Math.sin(radian));
+                        
                         if (x >= room.x + 2 && x < room.x + room.width - 2 &&
                             y >= room.y + 2 && y < room.y + room.height - 2) {
-                            positions.push({x, y});
+                            
+                            // 小さな部屋で、オベリスクを配置する場合は、アクセスパスを確保
+                            if (isTooSmall && shouldPlaceObelisk) {
+                                // 南側（プレイヤーが通常アクセスする方向）のパスを空ける
+                                if (!(angle >= 135 && angle <= 225)) {
+                                    positions.push({x, y});
+                                }
+                            } else {
+                                positions.push({x, y});
+                            }
                         }
                     }
 
                     // 中央位置を保存（ニューラルオベリスク用）
-                    positions.centerX = centerX;
-                    positions.centerY = centerY;
-                    positions.isCircle = true;
+                    if (shouldPlaceObelisk) {
+                        positions.centerX = centerX;
+                        positions.centerY = centerY;
+                        positions.isCircle = true;
+                        positions.shouldPlaceObelisk = true;
+                    }
                     
                     return positions;
                 }
@@ -378,7 +429,7 @@ class MapGenerator {
         });
 
         // サークルパターンの場合、中央にニューラルオベリスクを配置する可能性がある
-        if (positions.isCircle && Math.random() < GAME_CONSTANTS.NEURAL_OBELISK.SPAWN_CHANCE) {
+        if (positions.shouldPlaceObelisk && pattern.name === 'circle') {
             const centerX = positions.centerX;
             const centerY = positions.centerY;
             
@@ -386,7 +437,59 @@ class MapGenerator {
                 // 回復レベルをランダムに決定（1〜5）
                 const level = Math.floor(Math.random() * 5) + 1;
                 
-                console.log(`Generated Neural Obelisk at (${centerX},${centerY}) with level ${level}`);
+                console.log(`Generated Neural Obelisk at (${centerX},${centerY}) with level ${level} (circle pattern)`);
+                
+                // ニューラルオベリスクを配置
+                this.map[centerY][centerX] = 'neural_obelisk';
+                this.tiles[centerY][centerX] = GAME_CONSTANTS.NEURAL_OBELISK.CHAR;
+                this.colors[centerY][centerX] = GAME_CONSTANTS.NEURAL_OBELISK.LEVELS[level].COLOR;
+                
+                // レベル情報を保存
+                if (!this.neuralObelisks) this.neuralObelisks = [];
+                this.neuralObelisks.push({
+                    x: centerX,
+                    y: centerY,
+                    level: level
+                });
+            }
+        }
+        
+        // ダイヤモンドパターンの場合も中央にニューラルオベリスクを配置する可能性を追加
+        if (positions.shouldPlaceObelisk && pattern.name === 'diamond') {
+            const centerX = positions.centerX;
+            const centerY = positions.centerY;
+            
+            if (this.isValidObstaclePosition(centerX, centerY)) {
+                // 回復レベルをランダムに決定（1〜5）
+                const level = Math.floor(Math.random() * 5) + 1;
+                
+                console.log(`Generated Neural Obelisk at (${centerX},${centerY}) with level ${level} (diamond pattern)`);
+                
+                // ニューラルオベリスクを配置
+                this.map[centerY][centerX] = 'neural_obelisk';
+                this.tiles[centerY][centerX] = GAME_CONSTANTS.NEURAL_OBELISK.CHAR;
+                this.colors[centerY][centerX] = GAME_CONSTANTS.NEURAL_OBELISK.LEVELS[level].COLOR;
+                
+                // レベル情報を保存
+                if (!this.neuralObelisks) this.neuralObelisks = [];
+                this.neuralObelisks.push({
+                    x: centerX,
+                    y: centerY,
+                    level: level
+                });
+            }
+        }
+        
+        // クロスパターンの場合も中央にニューラルオベリスクを配置する可能性を追加
+        if (positions.shouldPlaceObelisk && pattern.name === 'cross') {
+            const centerX = positions.centerX;
+            const centerY = positions.centerY;
+            
+            if (this.isValidObstaclePosition(centerX, centerY)) {
+                // 回復レベルをランダムに決定（1〜5）
+                const level = Math.floor(Math.random() * 5) + 1;
+                
+                console.log(`Generated Neural Obelisk at (${centerX},${centerY}) with level ${level} (cross pattern)`);
                 
                 // ニューラルオベリスクを配置
                 this.map[centerY][centerX] = 'neural_obelisk';

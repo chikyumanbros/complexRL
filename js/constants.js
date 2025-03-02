@@ -199,15 +199,15 @@ const GAME_CONSTANTS = {
     // 部屋生成関連
     ROOM: {
         MIN_SIZE: 5,
-        MAX_SIZE: 15,
-        MIN_COUNT: 10,
-        MAX_COUNT: 15,
-        PADDING: 2,
+        MAX_SIZE: 10,
+        MIN_COUNT: 12,
+        MAX_COUNT: 20,
+        PADDING: 1,
         SAFE_RADIUS: 3,
         BRIGHTNESS: {
-            DIM: 2,      // 暗い部屋
-            MODERATE: 4,  // 中程度の明るさ
-            BRIGHT: 6,    // 明るい部屋
+            DIM: 3,      // 暗い部屋
+            MODERATE: 5,  // 中程度の明るさ
+            BRIGHT: 7,    // 明るい部屋
             PROBABILITIES: {
                 DIM: 0.2,      // 20%の確率
                 MODERATE: 0.4,  // 40%の確率
@@ -217,9 +217,9 @@ const GAME_CONSTANTS = {
         OBSTACLES: {
             CHANCE: 0.7,           // 障害物配置確率
             MIN_COUNT: 2,          // 最小障害物数
-            MAX_COUNT: 8,          // 最大障害物数
+            MAX_COUNT: 10,          // 最大障害物数
             TRANSPARENT_RATIO: 0.5, // 視線を通す障害物の割合
-            MIN_ROOM_SIZE: 7       // パターン配置に必要な最小部屋サイズ
+            MIN_ROOM_SIZE: 5       // パターン配置に必要な最小部屋サイズ
         }
     },
 

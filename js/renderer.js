@@ -492,7 +492,7 @@ class Renderer {
                 } else if (isVisible) {
                     // タイルごとに部屋を判定する
                     const roomAtTile = this.game.getRoomAt(x, y);
-                    const tileVisibility = (currentRoom && roomAtTile && roomAtTile === currentRoom) ? currentRoom.brightness : 2;
+                    const tileVisibility = (currentRoom && roomAtTile && roomAtTile === currentRoom) ? currentRoom.brightness : 3;
 
                     const distance = GAME_CONSTANTS.DISTANCE.calculate(x, y, px, py);
 
@@ -609,9 +609,8 @@ class Renderer {
                         classes.push('neural-obelisk-tile');
                         
                         // ニューラルオベリスクのレベルに応じたクラスを追加
-                        const obelisk = this.game.mapGenerator && 
-                            this.game.mapGenerator.neuralObelisks && 
-                            this.game.mapGenerator.neuralObelisks.find(o => o.x === x && o.y === y);
+                        const obelisk = this.game.neuralObelisks && 
+                            this.game.neuralObelisks.find(o => o.x === x && o.y === y);
                         
                         if (obelisk) {
                             classes.push(`neural-obelisk-level-${obelisk.level}`);
@@ -1628,17 +1627,18 @@ class Renderer {
                     lookInfo = "You see a swirling void portal here.";
                 } else if (tile === GAME_CONSTANTS.NEURAL_OBELISK.CHAR) {
                     // ニューラルオベリスクのレベル情報を取得
-                    const obelisk = this.game.mapGenerator && 
-                        this.game.mapGenerator.neuralObelisks && 
-                        this.game.mapGenerator.neuralObelisks.find(o => o.x === targetX && o.y === targetY);
+                    const obelisk = this.game.neuralObelisks && 
+                        this.game.neuralObelisks.find(o => o.x === targetX && o.y === targetY);
+                    
+                    console.log('Looking at Neural Obelisk:', { targetX, targetY });
+                    console.log('Found obelisk in neuralObelisks array:', obelisk);
+                    console.log('All obelisks:', this.game.neuralObelisks);
                     
                     let level = 3; // デフォルトはレベル3
-                    let healAmount = 30;
                     let colorName = "yellow";
                     
                     if (obelisk) {
                         level = obelisk.level;
-                        healAmount = GAME_CONSTANTS.NEURAL_OBELISK.LEVELS[level].HEAL_AMOUNT;
                         
                         // 色の名前を設定
                         switch(level) {
