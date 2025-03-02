@@ -428,14 +428,33 @@ class MapGenerator {
             }
         });
 
+        // Helper function to determine obelisk level with weighted probabilities
+        function determineObeliskLevel() {
+            // レベル1: 30%, レベル2: 25%, レベル3: 20%, レベル4: 15%, レベル5: 10%
+            const levelWeights = [30, 25, 20, 15, 10];
+            const totalWeight = levelWeights.reduce((sum, weight) => sum + weight, 0);
+            let roll = Math.random() * totalWeight;
+            let level = 1;
+            
+            for (let i = 0; i < levelWeights.length; i++) {
+                roll -= levelWeights[i];
+                if (roll <= 0) {
+                    level = i + 1;
+                    break;
+                }
+            }
+            
+            return level;
+        }
+
         // サークルパターンの場合、中央にニューラルオベリスクを配置する可能性がある
         if (positions.shouldPlaceObelisk && pattern.name === 'circle') {
             const centerX = positions.centerX;
             const centerY = positions.centerY;
             
             if (this.isValidObstaclePosition(centerX, centerY)) {
-                // 回復レベルをランダムに決定（1〜5）
-                const level = Math.floor(Math.random() * 5) + 1;
+                // 回復レベルを重み付き確率で決定
+                const level = determineObeliskLevel();
                 
                 console.log(`Generated Neural Obelisk at (${centerX},${centerY}) with level ${level} (circle pattern)`);
                 
@@ -460,8 +479,8 @@ class MapGenerator {
             const centerY = positions.centerY;
             
             if (this.isValidObstaclePosition(centerX, centerY)) {
-                // 回復レベルをランダムに決定（1〜5）
-                const level = Math.floor(Math.random() * 5) + 1;
+                // 回復レベルを重み付き確率で決定
+                const level = determineObeliskLevel();
                 
                 console.log(`Generated Neural Obelisk at (${centerX},${centerY}) with level ${level} (diamond pattern)`);
                 
@@ -486,8 +505,8 @@ class MapGenerator {
             const centerY = positions.centerY;
             
             if (this.isValidObstaclePosition(centerX, centerY)) {
-                // 回復レベルをランダムに決定（1〜5）
-                const level = Math.floor(Math.random() * 5) + 1;
+                // 回復レベルを重み付き確率で決定
+                const level = determineObeliskLevel();
                 
                 console.log(`Generated Neural Obelisk at (${centerX},${centerY}) with level ${level} (cross pattern)`);
                 
