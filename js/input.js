@@ -185,7 +185,7 @@ class InputHandler {
         // 入力時間を更新
         this.lastInputTime = currentTime;
 
-        console.log('Processing input:', key, 'Ctrl key state:', this.ctrlPressed);
+        //console.log('Processing input:', key, 'Ctrl key state:', this.ctrlPressed);
 
         // ESCキーの処理を最優先で行う
         if (key === 'escape') {
@@ -971,11 +971,11 @@ class InputHandler {
         // --- Skill Usage via Number Keys ---
         if (/^[1-9]$/.test(key)) {
             // デバッグ: 修飾キーの状態を詳細に確認
-            console.log('Number key pressed:', key, 
-                'Ctrl state tracking:', this.ctrlPressed, 
-                'Direct event.ctrlKey:', event ? event.ctrlKey : 'event is null',
-                'Alt key:', event ? event.altKey : 'event is null',
-                'Meta key:', event ? event.metaKey : 'event is null');
+            //console.log('Number key pressed:', key, 
+            //    'Ctrl state tracking:', this.ctrlPressed, 
+            //    'Direct event.ctrlKey:', event ? event.ctrlKey : 'event is null',
+            //    'Alt key:', event ? event.altKey : 'event is null',
+            //    'Meta key:', event ? event.metaKey : 'event is null');
             
             // Ctrlキーまたはevent.ctrlKeyが有効か確認（より頑健に）
             // MacではmetaKeyがCommandキーを表すため、それも確認
@@ -984,7 +984,7 @@ class InputHandler {
                 (event && (event.ctrlKey || event.altKey));
             
             if (isModifierPressed) {
-                console.log('Modifier+Number detected! Starting skill swap for slot:', key);
+                //console.log('Modifier+Number detected! Starting skill swap for slot:', key);
                 this.startSkillSlotSwap(key);
                 return;
             }
@@ -1771,15 +1771,15 @@ class InputHandler {
 
     // スキルスロット並べ替えモードを開始するメソッド
     startSkillSlotSwap(slotKey) {
-        console.log('Starting skill slot swap for slot:', slotKey);
+        //console.log('Starting skill slot swap for slot:', slotKey);
         const player = this.game.player;
         
         // スロットが存在するか確認
-        console.log('Player skills:', [...player.skills.entries()]);
+        //console.log('Player skills:', [...player.skills.entries()]);
         
         // スロットが空の場合、並べ替えを開始しない
         if (!player.skills.has(slotKey)) {
-            console.log('No skill found in slot:', slotKey);
+            //console.log('No skill found in slot:', slotKey);
             this.game.logger.add("No skill in slot " + slotKey + " to swap!", "warning");
             return;
         }
@@ -1787,21 +1787,21 @@ class InputHandler {
         this.skillSlotSwapMode = true;
         this.firstSlot = slotKey;
         const skillData = player.skills.get(slotKey);
-        console.log('Selected skill data:', skillData);
+        //console.log('Selected skill data:', skillData);
         
         const skill = this.game.codexSystem.findSkillById(skillData.id);
-        console.log('Found skill:', skill);
+        //console.log('Found skill:', skill);
         
         this.game.logger.add(`Select another skill slot to swap with ${skill.name} (Slot ${slotKey})`, "info");
     }
     
     // スキルスロット並べ替えモードの処理メソッド
     handleSkillSlotSwapMode(key) {
-        console.log('Handling skill slot swap, key pressed:', key);
+        //console.log('Handling skill slot swap, key pressed:', key);
         
         // 数字キーのみ処理
         if (!/^[1-9]$/.test(key)) {
-            console.log('Not a number key, cancelling swap');
+            //console.log('Not a number key, cancelling swap');
             this.cancelSkillSlotSwap();
             return;
         }
@@ -1809,11 +1809,11 @@ class InputHandler {
         const player = this.game.player;
         const secondSlot = key;
         
-        console.log('First slot:', this.firstSlot, 'Second slot:', secondSlot);
+        //console.log('First slot:', this.firstSlot, 'Second slot:', secondSlot);
         
         // 同じスロットを選択した場合はキャンセル
         if (this.firstSlot === secondSlot) {
-            console.log('Same slot selected, cancelling swap');
+            //console.log('Same slot selected, cancelling swap');
             this.cancelSkillSlotSwap();
             return;
         }
@@ -1822,11 +1822,11 @@ class InputHandler {
         const firstSkill = player.skills.get(this.firstSlot);
         const secondSkill = player.skills.get(secondSlot);
         
-        console.log('First skill:', firstSkill, 'Second skill:', secondSkill);
+        //console.log('First skill:', firstSkill, 'Second skill:', secondSkill);
         
         // 2つ目のスロットが空の場合
         if (!secondSkill) {
-            console.log('Moving skill to empty slot');
+            //console.log('Moving skill to empty slot');
             // 1つ目のスロットから2つ目のスロットに移動
             player.skills.set(secondSlot, firstSkill);
             player.skills.delete(this.firstSlot);
@@ -1834,7 +1834,7 @@ class InputHandler {
             const skillName = this.game.codexSystem.findSkillById(firstSkill.id).name;
             this.game.logger.add(`Moved ${skillName} from slot ${this.firstSlot} to slot ${secondSlot}`, "playerInfo");
         } else {
-            console.log('Swapping skills between slots');
+            //console.log('Swapping skills between slots');
             // 両方のスロットにスキルがある場合は交換
             player.skills.set(this.firstSlot, secondSkill);
             player.skills.set(secondSlot, firstSkill);
@@ -1848,7 +1848,7 @@ class InputHandler {
         this.skillSlotSwapMode = false;
         this.firstSlot = null;
         
-        console.log('Skill swap completed, updating skill panel');
+        //console.log('Skill swap completed, updating skill panel');
         
         // スキルパネルを更新（renderAvailableSkillsではなくrenderStatusを使用）
         this.game.renderer.renderStatus();
@@ -1859,7 +1859,7 @@ class InputHandler {
     
     // スキルスロット並べ替えをキャンセルするメソッド
     cancelSkillSlotSwap() {
-        console.log('Cancelling skill slot swap');
+        //console.log('Cancelling skill slot swap');
         this.skillSlotSwapMode = false;
         this.firstSlot = null;
         this.game.logger.add("Skill swap cancelled", "info");
