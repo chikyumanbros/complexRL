@@ -795,7 +795,7 @@ class Monster {
         // プレイヤーとの距離を計算
         const dx = game.player.x - this.x;
         const dy = game.player.y - this.y;
-        const distance = GAME_CONSTANTS.DISTANCE.calculate(
+        const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
             game.player.x, game.player.y,
             this.x, this.y
         );
@@ -827,14 +827,14 @@ class Monster {
                     !game.getMonsterAt(targetX, targetY)) {
                     
                     // 距離を計算
-                    const jumpDistance = GAME_CONSTANTS.DISTANCE.calculate(
+                    const jumpDistance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
                         this.x, this.y,
                         targetX, targetY
                     );
                     
                     // 最小距離と最大距離の両方をチェック
                     // 実質的な移動量を計算（現在位置からジャンプ先までの距離）
-                    const effectiveMovement = GAME_CONSTANTS.DISTANCE.calculate(
+                    const effectiveMovement = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
                         this.x, this.y,
                         targetX, targetY
                     );
@@ -858,8 +858,8 @@ class Monster {
         
         // プレイヤーに最も近い位置を選択
         jumpCandidates.sort((a, b) => {
-            const distA = GAME_CONSTANTS.DISTANCE.calculate(a.x, a.y, game.player.x, game.player.y);
-            const distB = GAME_CONSTANTS.DISTANCE.calculate(b.x, b.y, game.player.x, game.player.y);
+            const distA = GAME_CONSTANTS.DISTANCE.calculateChebyshev(a.x, a.y, game.player.x, game.player.y);
+            const distB = GAME_CONSTANTS.DISTANCE.calculateChebyshev(b.x, b.y, game.player.x, game.player.y);
             return distA - distB;
         });
         
