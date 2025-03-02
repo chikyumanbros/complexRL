@@ -32,6 +32,19 @@ class Monster {
             );
         }
         
+        // --- Special Abilities Initialization ---
+        // 特殊能力の初期化
+        if (template.abilities) {
+            this.abilities = JSON.parse(JSON.stringify(template.abilities)); // ディープコピー
+            
+            // ジャンプ能力の初期化
+            if (this.abilities.canJump) {
+                this.jumpCooldownRemaining = 0; // 初期状態ではクールダウンなし
+            }
+        } else {
+            this.abilities = {}; // 空のオブジェクトを作成
+        }
+        
         // --- Codex Points Calculation ---
         // codexPointsを計算（一時的な計算式）
         const basePoints = 1;
@@ -349,6 +362,17 @@ class Monster {
             this.lastKnownPlayerY = game.player.y;
             this.trackingTurns = this.maxTrackingTurns;
             
+            // ジャンプ能力を持つモンスターの場合、ジャンプを試みる
+            if (this.abilities && this.abilities.canJump) {
+                // ジャンプを試みる
+                const jumped = this.tryJump(game);
+                
+                // ジャンプに成功した場合は、このターンの行動を終了
+                if (jumped) {
+                    return;
+                }
+            }
+            
             this.pursueTarget(game, game.player.x, game.player.y);
         } 
         else if (this.trackingTurns > 0 && this.lastKnownPlayerX !== null) {
@@ -650,5 +674,121 @@ class Monster {
 
     getHealthStatus(currentHp, maxHp) {
         return GAME_CONSTANTS.HEALTH_STATUS.getStatus(currentHp, maxHp, this.stats);
+    }
+    
+    // ========================== tryJump Method ==========================
+    // 新規: ジャンプを試みるメソッド
+    tryJump(game) {
+        // ジャンプ能力がない場合は何もしない
+        if (!this.abilities || !this.abilities.canJump) {
+            return false;
+        }
+        
+        // クールダウン中の場合は何もしない
+        if (this.jumpCooldownRemaining > 0) {
+            this.jumpCooldownRemaining--;
+            return false;
+        }
+        
+        // ジャンプを試みる確率チェック
+        if (Math.random() > this.abilities.jumpChance) {
+            return false;
+        }
+        
+        // プレイヤーとの距離を計算
+        const dx = game.player.x - this.x;
+        const dy = game.player.y - this.y;
+        const distance = GAME_CONSTANTS.DISTANCE.calculate(
+            game.player.x, game.player.y,
+            this.x, this.y
+        );
+        
+        // 距離が近すぎる場合や遠すぎる場合はジャンプしない
+        if (distance <= 2 || distance > this.abilities.jumpRange) {
+            return false;
+        }
+        
+        // プレイヤーが見えない場合はジャンプしない
+        if (!this.hasLineOfSight(game)) {
+            return false;
+        }
+        
+        // ジャンプ先の候補を生成
+        const jumpCandidates = [];
+        
+        // プレイヤーの周囲のタイルをチェック
+        for (let offsetX = -1; offsetX <= 1; offsetX++) {
+            for (let offsetY = -1; offsetY <= 1; offsetY++) {
+                // プレイヤーの位置自体は除外
+                if (offsetX === 0 && offsetY === 0) continue;
+                
+                const targetX = game.player.x + offsetX;
+                const targetY = game.player.y + offsetY;
+                
+                // 移動可能かチェック
+                if (this.canMoveTo(targetX, targetY, game) && 
+                    !game.getMonsterAt(targetX, targetY)) {
+                    
+                    // 距離を計算
+                    const jumpDistance = GAME_CONSTANTS.DISTANCE.calculate(
+                        this.x, this.y,
+                        targetX, targetY
+                    );
+                    
+                    // 最小距離と最大距離の両方をチェック
+                    // 実質的な移動量を計算（現在位置からジャンプ先までの距離）
+                    const effectiveMovement = GAME_CONSTANTS.DISTANCE.calculate(
+                        this.x, this.y,
+                        targetX, targetY
+                    );
+                    
+                    // 範囲内かつ実質的な移動量が2マス以上ならジャンプ候補に追加
+                    if (jumpDistance <= this.abilities.jumpRange && effectiveMovement >= 2) {
+                        jumpCandidates.push({
+                            x: targetX,
+                            y: targetY,
+                            distance: jumpDistance
+                        });
+                    }
+                }
+            }
+        }
+        
+        // ジャンプ候補がない場合は何もしない
+        if (jumpCandidates.length === 0) {
+            return false;
+        }
+        
+        // プレイヤーに最も近い位置を選択
+        jumpCandidates.sort((a, b) => {
+            const distA = GAME_CONSTANTS.DISTANCE.calculate(a.x, a.y, game.player.x, game.player.y);
+            const distB = GAME_CONSTANTS.DISTANCE.calculate(b.x, b.y, game.player.x, game.player.y);
+            return distA - distB;
+        });
+        
+        const jumpTarget = jumpCandidates[0];
+        
+        // ジャンプ実行
+        const fromX = this.x;
+        const fromY = this.y;
+        
+        // 移動エフェクトを表示
+        game.renderer.showMovementTrailEffect(fromX, fromY, jumpTarget.x, jumpTarget.y);
+        
+        // 位置を更新
+        this.x = jumpTarget.x;
+        this.y = jumpTarget.y;
+        
+        // ログにジャンプメッセージを追加
+        game.logger.add(`${this.name} leaps toward you!`, "monsterInfo");
+        game.renderer.flashLogPanel();
+        
+        // ジャンプ効果音を再生
+        game.playSound('jumpSound');
+        
+        // クールダウンを設定
+        this.jumpCooldownRemaining = this.abilities.jumpCooldown;
+        
+        return true;
     }
 } 

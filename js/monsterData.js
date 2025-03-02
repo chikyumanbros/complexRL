@@ -57,6 +57,12 @@ const MONSTERS = {
             chance: 0.4,
             min: 2,
             max: 7
+        },
+        abilities: {
+            canJump: true,
+            jumpCooldown: 10,     // ジャンプのクールダウン（ターン数）
+            jumpChance: 0.4,     // ジャンプを試みる確率
+            jumpRange: 3         // ジャンプの最大距離
         }
     },
     GOBLIN: {
