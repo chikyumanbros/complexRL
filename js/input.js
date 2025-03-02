@@ -1679,22 +1679,19 @@ class InputHandler {
 
     findExploredLandmarks() {
         const landmarks = [];
-        // const visibleTiles = new Set( // 不要なので削除
-        //     this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
-        // );
 
         for (let y = 0; y < this.game.height; y++) {
             for (let x = 0; x < this.game.width; x++) {
-                // if (!visibleTiles.has(`${x},${y}`)) continue; // 不要なので削除
-                // ↓↓↓ 変更箇所: 探索済みかどうかをチェック ↓↓↓
+                // 探索済みかどうかをチェック
                 if (!this.game.explored[y][x]) continue;
-                // ↑↑↑ 変更箇所: 探索済みかどうかをチェック ↑↑↑
+                
                 const tile = this.game.tiles[y][x];
                 if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
                     tile === GAME_CONSTANTS.TILES.DOOR.OPEN ||
                     tile === GAME_CONSTANTS.STAIRS.CHAR ||
                     tile === GAME_CONSTANTS.PORTAL.GATE.CHAR ||
-                    tile === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
+                    tile === GAME_CONSTANTS.PORTAL.VOID.CHAR ||
+                    tile === GAME_CONSTANTS.NEURAL_OBELISK.CHAR) { // ニューラルオベリスクを追加
                     landmarks.push({ x, y, type: tile });
                 }
             }
