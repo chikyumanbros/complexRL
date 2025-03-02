@@ -1471,7 +1471,7 @@ class Player {
             this.caughtInWeb = null;
             
             // 効果音を再生
-            this.game.playSound('webBreakSound');
+            this.game.playSound('damageSound');
             
             return true; // アクションを続行可能
         } else {
