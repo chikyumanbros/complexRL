@@ -225,7 +225,7 @@ class Renderer {
         // プレイヤーとその周辺のタイルのみを更新
         const px = this.game.player.x;
         const py = this.game.player.y;
-        const updateRadius = 20; // プレイヤーの周囲20マスを更新
+        const updateRadius = 8; // プレイヤーの周囲20マスを更新
         
         // 更新範囲内のタイルとそのキーを収集
         const tilesToUpdate = [];
@@ -485,7 +485,8 @@ class Renderer {
                         content === GAME_CONSTANTS.TILES.DOOR.OPEN ||
                         content === GAME_CONSTANTS.STAIRS.CHAR ||
                         content === GAME_CONSTANTS.PORTAL.GATE.CHAR ||
-                        content === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
+                        content === GAME_CONSTANTS.PORTAL.VOID.CHAR ||
+                        content === GAME_CONSTANTS.NEURAL_OBELISK.CHAR) {
                         style = `color: #00ff00; opacity: 0.5`; // ランドマークはコンソールっぽい緑
                     }
                 } else if (isVisible) {
@@ -537,6 +538,21 @@ class Renderer {
                             classes.push('player-on-portal');
                         } else if (this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
                             classes.push('player-on-void');
+                        } else if (this.game.tiles[y][x] === GAME_CONSTANTS.NEURAL_OBELISK.CHAR) {
+                            style += '; opacity: ' + opacity;
+                            classes.push('neural-obelisk-tile');
+                            
+                            // ニューラルオベリスクのレベルに応じたクラスを追加
+                            const obelisk = this.game.mapGenerator && 
+                                this.game.mapGenerator.neuralObelisks && 
+                                this.game.mapGenerator.neuralObelisks.find(o => o.x === x && o.y === y);
+                            
+                            if (obelisk) {
+                                classes.push(`neural-obelisk-level-${obelisk.level}`);
+                            } else {
+                                // デフォルトはレベル3（黄色）
+                                classes.push('neural-obelisk-level-3');
+                            }
                         }
                     } else {
                         // 残像エフェクトの描画
@@ -603,6 +619,21 @@ class Renderer {
                     } else if (content === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
                         style += '; opacity: ' + opacity;
                         classes.push('void-tile');
+                    } else if (content === GAME_CONSTANTS.NEURAL_OBELISK.CHAR) {
+                        style += '; opacity: ' + opacity;
+                        classes.push('neural-obelisk-tile');
+                        
+                        // ニューラルオベリスクのレベルに応じたクラスを追加
+                        const obelisk = this.game.mapGenerator && 
+                            this.game.mapGenerator.neuralObelisks && 
+                            this.game.mapGenerator.neuralObelisks.find(o => o.x === x && o.y === y);
+                        
+                        if (obelisk) {
+                            classes.push(`neural-obelisk-level-${obelisk.level}`);
+                        } else {
+                            // デフォルトはレベル3（黄色）
+                            classes.push('neural-obelisk-level-3');
+                        }
                     }
                 } else if (isExplored) {
                     opacity = 0.3;
@@ -1610,6 +1641,33 @@ class Renderer {
                     lookInfo = "You see a shimmering portal gate here.";
                 } else if (tile === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
                     lookInfo = "You see a swirling void portal here.";
+                } else if (tile === GAME_CONSTANTS.NEURAL_OBELISK.CHAR) {
+                    // ニューラルオベリスクのレベル情報を取得
+                    const obelisk = this.game.mapGenerator && 
+                        this.game.mapGenerator.neuralObelisks && 
+                        this.game.mapGenerator.neuralObelisks.find(o => o.x === targetX && o.y === targetY);
+                    
+                    let level = 3; // デフォルトはレベル3
+                    let healAmount = 30;
+                    let colorName = "黄色";
+                    
+                    if (obelisk) {
+                        level = obelisk.level;
+                        healAmount = GAME_CONSTANTS.NEURAL_OBELISK.LEVELS[level].HEAL_AMOUNT;
+                        
+                        // 色の名前を設定
+                        switch(level) {
+                            case 1: colorName = "青色"; break;
+                            case 2: colorName = "緑色"; break;
+                            case 3: colorName = "黄色"; break;
+                            case 4: colorName = "オレンジ色"; break;
+                            case 5: colorName = "紫色"; break;
+                        }
+                    }
+                    
+                    lookInfo = `神秘的な輝きを放つニューラルオベリスク（レベル${level}）があります。<br>
+                                ${colorName}に輝いており、使用すると${healAmount}ポイントのHP/Vigorを回復できます。<br>
+                                使用すると消滅します。`;
                 } else {
                     lookInfo = `You see ${tile} here.`;
                 }

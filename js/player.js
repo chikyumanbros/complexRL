@@ -221,13 +221,13 @@ class Player {
                     callback: (confirmed) => {
                         if (confirmed) {
                             this.game.logger.add("You step into the portal...", "important");
+                            this.game.processTurn();  // 先にターンを消費
                             this.game.renderer.startPortalTransition(() => {
                                 this.game.floorLevel++;
                                 this.game.generateNewFloor();
                                 this.game.soundManager.updateBGM();  // ポータルアニメーション完了後にBGMを更新
                             });
                             this.game.soundManager.playPortalSound();  // 新しいメソッドを使用
-                            this.game.processTurn();
                         } else {
                             this.game.logger.add("You decide not to enter the portal.", "playerInfo");
                         }
@@ -240,6 +240,7 @@ class Player {
                     callback: (confirmed) => {
                         if (confirmed) {
                             this.game.logger.add("You step into the VOID portal...", "important");
+                            this.game.processTurn();  // 先にターンを消費
                             this.game.renderer.startPortalTransition(() => {
                                 this.game.floorLevel = 0;  // ホームフロアに戻る
                                 this.game.generateNewFloor();
@@ -257,7 +258,6 @@ class Player {
                                 }
                             });
                             this.game.soundManager.playPortalSound();  // 新しいメソッドを使用
-                            this.game.processTurn();  // ターンを消費
                         } else {
                             this.game.logger.add("You decide not to enter the VOID portal.", "playerInfo");
                         }
@@ -558,12 +558,12 @@ class Player {
     // ===== Floor Navigation and Surroundings Methods =====
     descendStairs() {
         if (this.game.tiles[this.y][this.x] === GAME_CONSTANTS.STAIRS.CHAR) {
+            this.game.logger.add(`You descend to floor ${this.game.floorLevel + 1}...`, "important");
+            this.game.processTurn();  // 先にターンを消費
             this.game.floorLevel++;
-            this.game.logger.add(`You descend to floor ${this.game.floorLevel}...`, "important");
             this.game.generateNewFloor();
             this.game.soundManager.updateBGM();  // BGMを更新
             this.game.playSound('descendStairsSound');
-            this.game.processTurn();  // ターンを消費
             return true;
         }
         return false;
