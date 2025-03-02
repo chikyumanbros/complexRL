@@ -1434,7 +1434,7 @@ body::before {
         color: var(--lighter-color);
     }
     60% {
-        color: var(--lightest-color);
+        color: #FFFFFF;
     }
     80% {
         color: #FFFFFF;

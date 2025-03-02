@@ -386,6 +386,8 @@ class MapGenerator {
                 // 回復レベルをランダムに決定（1〜5）
                 const level = Math.floor(Math.random() * 5) + 1;
                 
+                console.log(`Generated Neural Obelisk at (${centerX},${centerY}) with level ${level}`);
+                
                 // ニューラルオベリスクを配置
                 this.map[centerY][centerX] = 'neural_obelisk';
                 this.tiles[centerY][centerX] = GAME_CONSTANTS.NEURAL_OBELISK.CHAR;

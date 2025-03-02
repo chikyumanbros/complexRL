@@ -1846,6 +1846,86 @@ class Game {
             this.cancelRest("A strange sensation interrupted you");
         }
     }
+
+    // Game クラスに追加するメソッド
+    touchNeuralObelisk(x, y) {
+        // ニューラルオベリスクの情報を取得
+        const obelisk = this.mapGenerator && 
+                        this.mapGenerator.neuralObelisks && 
+                        this.mapGenerator.neuralObelisks.find(o => o.x === x && o.y === y);
+        
+        if (!obelisk) {
+            // オベリスクが見つからない場合はデフォルトのレベル3として処理
+            this.logger.addMessage("You touch the Neural Obelisk...");
+            this.healPlayerWithObelisk(3);
+            return;
+        }
+        
+        // オベリスクのレベルに応じた色名を取得
+        let colorName = "unknown";
+        switch(obelisk.level) {
+            case 1: colorName = "blue"; break;
+            case 2: colorName = "green"; break;
+            case 3: colorName = "yellow"; break;
+            case 4: colorName = "orange"; break;
+            case 5: colorName = "purple"; break;
+        }
+        
+        this.logger.addMessage(`You touch the ${colorName} Neural Obelisk (Level ${obelisk.level})...`);
+        
+        // 回復効果を適用
+        this.healPlayerWithObelisk(obelisk.level);
+        
+        // オベリスクを消去
+        this.removeNeuralObelisk(x, y);
+        
+        // 効果音やエフェクトを再生（必要に応じて）
+        this.soundManager.playSound('heal');
+        this.renderer.showLightPillarEffect(x, y);
+    }
+
+    // 回復効果を適用するヘルパーメソッド
+    healPlayerWithObelisk(level) {
+        const healPercent = GAME_CONSTANTS.NEURAL_OBELISK.LEVELS[level].HEAL_PERCENT;
+        
+        // HP回復量を計算（最大HPの割合）
+        const hpHealAmount = Math.floor(this.player.maxHp * (healPercent / 100));
+        const oldHp = this.player.hp;
+        this.player.hp = Math.min(this.player.maxHp, this.player.hp + hpHealAmount);
+        const actualHpHealed = this.player.hp - oldHp;
+        
+        // Vigor回復量を計算（最大Vigorの割合）
+        const vigorHealAmount = Math.floor(GAME_CONSTANTS.VIGOR.MAX * (healPercent / 100));
+        const oldVigor = this.player.vigor;
+        this.player.vigor = Math.min(GAME_CONSTANTS.VIGOR.MAX, this.player.vigor + vigorHealAmount);
+        const actualVigorHealed = this.player.vigor - oldVigor;
+        
+        // 回復メッセージを表示
+        this.logger.addMessage(`You feel revitalized! Recovered ${actualHpHealed} HP and ${actualVigorHealed} Vigor.`);
+        
+        // ステータスパネルを更新
+        this.renderer.renderStatus();
+    }
+
+    // オベリスクを消去するメソッド
+    removeNeuralObelisk(x, y) {
+        // マップデータを床に戻す
+        this.map[y][x] = 'floor';
+        this.tiles[y][x] = GAME_CONSTANTS.TILES.FLOOR[
+            Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+        ];
+        this.colors[y][x] = GAME_CONSTANTS.COLORS.FLOOR;
+        
+        // neuralObelisks 配列から削除
+        if (this.mapGenerator && this.mapGenerator.neuralObelisks) {
+            this.mapGenerator.neuralObelisks = this.mapGenerator.neuralObelisks.filter(
+                o => !(o.x === x && o.y === y)
+            );
+        }
+        
+        // マップを再描画
+        this.renderer.render();
+    }
 }
 
 // Start the game.

@@ -672,8 +672,52 @@ class InputHandler {
                 return;
             }
 
-            // ポータルの使用を試みる
+            // タイルをチェック
             const tile = this.game.tiles[y][x];
+            
+            // ニューラルオベリスクの使用を試みる
+            if (tile === GAME_CONSTANTS.NEURAL_OBELISK.CHAR) {
+                // オベリスクの情報を取得
+                const obelisk = this.game.mapGenerator && 
+                                this.game.mapGenerator.neuralObelisks && 
+                                this.game.mapGenerator.neuralObelisks.find(o => o.x === x && o.y === y);
+                
+                let level = 3; // デフォルトはレベル3
+                let colorName = "yellow";
+                
+                if (obelisk) {
+                    level = obelisk.level;
+                    
+                    // 色の名前を設定
+                    switch(level) {
+                        case 1: colorName = "blue"; break;
+                        case 2: colorName = "green"; break;
+                        case 3: colorName = "yellow"; break;
+                        case 4: colorName = "orange"; break;
+                        case 5: colorName = "purple"; break;
+                    }
+                }
+                
+                this.game.logger.add(`Touch the ${colorName} Neural Obelisk (Level ${level})? [y/n]`, "important");
+                
+                // 次のフレームでconfirmモードに移行（即時実行を防ぐ）
+                setTimeout(() => {
+                    this.game.setInputMode('confirm', {
+                        callback: (confirmed) => {
+                            if (confirmed) {
+                                this.touchNeuralObelisk(x, y);
+                            } else {
+                                this.game.logger.add(`You decide not to touch the Neural Obelisk.`, "playerInfo");
+                            }
+                        }
+                    });
+                }, 0);
+
+                this.mode = 'normal';  // インタラクトモードを終了
+                return;
+            }
+
+            // ポータルの使用を試みる
             if (tile === GAME_CONSTANTS.PORTAL.VOID.CHAR || tile === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
                 const isVoid = tile === GAME_CONSTANTS.PORTAL.VOID.CHAR;
                 this.game.logger.add(`Enter the ${isVoid ? 'VOID' : ''} portal? [y/n]`, "important");
@@ -744,7 +788,7 @@ class InputHandler {
                 { dx: -1, dy: 1 },  { dx: 0, dy: 1 },  { dx: 1, dy: 1 }
             ];
 
-            // 隣接する扉とポータルをチェック
+            // 隣接する扉、ポータル、ニューラルオベリスクをチェック
             for (let offset of adjacentOffsets) {
                 const x = player.x + offset.dx;
                 const y = player.y + offset.dy;
@@ -758,6 +802,9 @@ class InputHandler {
                 } else if (tile === GAME_CONSTANTS.PORTAL.VOID.CHAR || 
                          tile === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
                     interactables.push({ x, y, type: 'portal', tile });
+                } else if (tile === GAME_CONSTANTS.NEURAL_OBELISK.CHAR) {
+                    // ニューラルオベリスクをインタラクト可能なオブジェクトとして追加
+                    interactables.push({ x, y, type: 'obelisk', tile });
                 }
             }
 
@@ -765,11 +812,13 @@ class InputHandler {
             if (interactables.length === 1) {
                 const target = interactables[0];
                 if (target.type === 'door') {
+                    // 既存の扉処理
                     const operation = target.tile === GAME_CONSTANTS.TILES.DOOR.CLOSED ? 'o' : 'c';
                     this.operateDoor({ x: target.x, y: target.y, tile: target.tile }, operation);
                     this.game.processTurn();
                     this.game.renderer.render();
                 } else if (target.type === 'portal') {
+                    // 既存のポータル処理
                     const isVoid = target.tile === GAME_CONSTANTS.PORTAL.VOID.CHAR;
                     this.game.logger.add(`Enter the ${isVoid ? 'VOID' : ''} portal? [y/n]`, "important");
                     
@@ -803,6 +852,42 @@ class InputHandler {
                                     this.game.processTurn();
                                 } else {
                                     this.game.logger.add(`You decide not to enter the ${isVoid ? 'VOID' : ''} portal.`, "playerInfo");
+                                }
+                            }
+                        });
+                    }, 0);
+                } else if (target.type === 'obelisk') {
+                    // ニューラルオベリスクの処理
+                    // オベリスクの情報を取得
+                    const obelisk = this.game.mapGenerator && 
+                                    this.game.mapGenerator.neuralObelisks && 
+                                    this.game.mapGenerator.neuralObelisks.find(o => o.x === target.x && o.y === target.y);
+                    
+                    let level = 3; // デフォルトはレベル3
+                    let colorName = "yellow";
+                    
+                    if (obelisk) {
+                        level = obelisk.level;
+                        
+                        // 色の名前を設定
+                        switch(level) {
+                            case 1: colorName = "blue"; break;
+                            case 2: colorName = "green"; break;
+                            case 3: colorName = "yellow"; break;
+                            case 4: colorName = "orange"; break;
+                            case 5: colorName = "purple"; break;
+                        }
+                    }
+                    
+                    this.game.logger.add(`Touch the ${colorName} Neural Obelisk (Level ${level})? [y/n]`, "important");
+                    
+                    setTimeout(() => {
+                        this.game.setInputMode('confirm', {
+                            callback: (confirmed) => {
+                                if (confirmed) {
+                                    this.touchNeuralObelisk(target.x, target.y);
+                                } else {
+                                    this.game.logger.add(`You decide not to touch the Neural Obelisk.`, "playerInfo");
                                 }
                             }
                         });
@@ -1532,7 +1617,7 @@ class InputHandler {
     startLandmarkNavigation() {
         // ホームフロア（floorLevel = 0）ではランドマークターゲットを無効にする
         if (this.game.floorLevel === 0) {
-            this.game.logger.add("ホームフロアではランドマークナビゲーションは使用できません。", "warning");
+            this.game.logger.add("Home floor does not support landmark navigation.", "warning");
             return;
         }
 
@@ -1868,5 +1953,85 @@ class InputHandler {
     // Shiftキーが押されているかをチェックするメソッド
     isShiftPressed(event) {
         return event && event.shiftKey;
+    }
+
+    // ニューラルオベリスクに触れる処理
+    touchNeuralObelisk(x, y) {
+        // オベリスクの情報を取得
+        const obelisk = this.game.mapGenerator && 
+                        this.game.mapGenerator.neuralObelisks && 
+                        this.game.mapGenerator.neuralObelisks.find(o => o.x === x && o.y === y);
+        
+        let level = 3; // デフォルトはレベル3
+        let colorName = "yellow";
+        let healPercent = 50; // デフォルトは50%
+        
+        if (obelisk) {
+            level = obelisk.level;
+            healPercent = GAME_CONSTANTS.NEURAL_OBELISK.LEVELS[level].HEAL_PERCENT;
+            
+            // 色の名前を設定
+            switch(level) {
+                case 1: colorName = "blue"; break;
+                case 2: colorName = "green"; break;
+                case 3: colorName = "yellow"; break;
+                case 4: colorName = "orange"; break;
+                case 5: colorName = "purple"; break;
+            }
+        }
+        
+        this.game.logger.add(`You touch the ${colorName} Neural Obelisk...`, "playerInfo");
+        
+        // HP回復量を計算（最大HPの割合）
+        const player = this.game.player;
+        const hpHealAmount = Math.floor(player.maxHp * (healPercent / 100));
+        const oldHp = player.hp;
+        player.hp = Math.min(player.maxHp, player.hp + hpHealAmount);
+        const actualHpHealed = player.hp - oldHp;
+        
+        // Vigor回復量を計算（最大Vigorの割合）
+        const vigorHealAmount = Math.floor(GAME_CONSTANTS.VIGOR.MAX * (healPercent / 100));
+        const oldVigor = player.vigor;
+        player.vigor = Math.min(GAME_CONSTANTS.VIGOR.MAX, player.vigor + vigorHealAmount);
+        const actualVigorHealed = player.vigor - oldVigor;
+        
+        // 回復メッセージを表示
+        this.game.logger.add(`A surge of energy flows through you! Recovered ${actualHpHealed} HP and ${actualVigorHealed} Vigor.`, "important");
+        
+        // オベリスクを消去
+        this.removeNeuralObelisk(x, y);
+        
+        // levelUpSoundを再生
+        if (this.game.soundManager && this.game.soundManager.playSound) {
+            this.game.soundManager.playSound('levelUpSound');
+        }
+        
+        // 光の柱エフェクトを表示
+        if (this.game.renderer && this.game.renderer.showLightPillarEffect) {
+            this.game.renderer.showLightPillarEffect(x, y);
+        }
+        
+        // ターンを進める
+        this.game.processTurn();
+    }
+
+    // オベリスクを消去するメソッド
+    removeNeuralObelisk(x, y) {
+        // マップデータを床に戻す
+        this.game.map[y][x] = 'floor';
+        this.game.tiles[y][x] = GAME_CONSTANTS.TILES.FLOOR[
+            Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+        ];
+        this.game.colors[y][x] = GAME_CONSTANTS.COLORS.FLOOR;
+        
+        // neuralObelisks 配列から削除
+        if (this.game.mapGenerator && this.game.mapGenerator.neuralObelisks) {
+            this.game.mapGenerator.neuralObelisks = this.game.mapGenerator.neuralObelisks.filter(
+                o => !(o.x === x && o.y === y)
+            );
+        }
+        
+        // マップを再描画
+        this.game.renderer.render();
     }
 }

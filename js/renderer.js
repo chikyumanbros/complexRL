@@ -1651,7 +1651,7 @@ class Renderer {
                     }
                     
                     lookInfo = `There is a Neural Obelisk (Level ${level}) emitting a mysterious glow.<br>
-                                It glows ${colorName} and can restore ${healAmount} HP/Vigor when used.<br>
+                                It glows ${colorName} and can restore ${GAME_CONSTANTS.NEURAL_OBELISK.LEVELS[level].HEAL_PERCENT}% of your max HP/Vigor when touched.<br>
                                 It will vanish after use.`;
                 } else {
                     lookInfo = `You see ${tile} here.`;
