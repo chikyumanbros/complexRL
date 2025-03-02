@@ -567,9 +567,6 @@ class Game {
             // ホームフロアでは宇宙空間のアニメーションを停止し、プレイヤーのステータスのみ更新
             this.updateHomeFloorStatus();
         }
-        
-        // 入力無効化フラグをリセット
-        this.inputDisabled = false;
     }
 
     // ホームフロアでのプレイヤーステータス更新のみを行うメソッド

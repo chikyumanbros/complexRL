@@ -676,7 +676,7 @@ class InputHandler {
             const tile = this.game.tiles[y][x];
             if (tile === GAME_CONSTANTS.PORTAL.VOID.CHAR || tile === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
                 const isVoid = tile === GAME_CONSTANTS.PORTAL.VOID.CHAR;
-                this.game.logger.add(`Enter the ${isVoid ? 'VOID' : ''} portal? [y/n]`, "question");
+                this.game.logger.add(`Enter the ${isVoid ? 'VOID' : ''} portal? [y/n]`, "important");
                 
                 // 次のフレームでconfirmモードに移行（即時実行を防ぐ）
                 setTimeout(() => {
@@ -758,8 +758,6 @@ class InputHandler {
                 } else if (tile === GAME_CONSTANTS.PORTAL.VOID.CHAR || 
                          tile === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
                     interactables.push({ x, y, type: 'portal', tile });
-                } else if (tile === GAME_CONSTANTS.NEURAL_OBELISK.CHAR) {
-                    interactables.push({ x, y, type: 'neural_obelisk', tile });
                 }
             }
 
@@ -770,10 +768,45 @@ class InputHandler {
                     const operation = target.tile === GAME_CONSTANTS.TILES.DOOR.CLOSED ? 'o' : 'c';
                     this.operateDoor({ x: target.x, y: target.y, tile: target.tile }, operation);
                     this.game.processTurn();
+                    this.game.renderer.render();
                 } else if (target.type === 'portal') {
-                    this.usePortal(target);
-                } else if (target.type === 'neural_obelisk') {
-                    this.useNeuralObelisk(target);
+                    const isVoid = target.tile === GAME_CONSTANTS.PORTAL.VOID.CHAR;
+                    this.game.logger.add(`Enter the ${isVoid ? 'VOID' : ''} portal? [y/n]`, "important");
+                    
+                    setTimeout(() => {
+                        this.game.setInputMode('confirm', {
+                            callback: (confirmed) => {
+                                if (confirmed) {
+                                    this.game.logger.add(`You step into the ${isVoid ? 'VOID' : ''} portal...`, "important");
+                                    this.game.renderer.startPortalTransition(() => {
+                                        if (isVoid) {
+                                            this.game.floorLevel = 0;
+                                            this.game.generateNewFloor();
+                                            this.game.soundManager.updateBGM();
+                                            
+                                            for (let y = 0; y < this.game.height; y++) {
+                                                for (let x = 0; x < this.game.width; x++) {
+                                                    if (this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+                                                        this.game.player.x = x;
+                                                        this.game.player.y = y + 1;
+                                                        return;
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            this.game.floorLevel++;
+                                            this.game.generateNewFloor();
+                                            this.game.soundManager.updateBGM();
+                                        }
+                                    });
+                                    this.game.soundManager.playPortalSound();
+                                    this.game.processTurn();
+                                } else {
+                                    this.game.logger.add(`You decide not to enter the ${isVoid ? 'VOID' : ''} portal.`, "playerInfo");
+                                }
+                            }
+                        });
+                    }, 0);
                 }
                 return;
             }
@@ -1330,12 +1363,7 @@ class InputHandler {
             this.statSelectCallback = options.callback;
         }
         if (mode === 'confirm') {
-            // onConfirmとonCancelの両方をサポート
-            if (options.onConfirm) {
-                this.confirmCallback = options.onConfirm;
-            } else if (options.callback) {
-                this.confirmCallback = options.callback;
-            }
+            this.confirmCallback = options.callback;
             // additionalKeysをオプションとして受け取る
             this.additionalKeys = options.additionalKeys || {};
         }
@@ -1840,146 +1868,5 @@ class InputHandler {
     // Shiftキーが押されているかをチェックするメソッド
     isShiftPressed(event) {
         return event && event.shiftKey;
-    }
-
-    // ニューラルオベリスクを使用する
-    useNeuralObelisk(target) {
-        // 確認プロンプトを表示
-        this.game.logger.add("Use Neural Obelisk? (y/n)", "question");
-        this.game.setInputMode('confirm', {
-            callback: (confirmed) => {
-                if (confirmed) {
-                    // ニューラルオベリスクのレベル情報を取得
-                    const obelisk = this.game.mapGenerator && 
-                        this.game.mapGenerator.neuralObelisks && 
-                        this.game.mapGenerator.neuralObelisks.find(o => 
-                            o.x === target.x && o.y === target.y);
-                    
-                    if (obelisk) {
-                        const level = obelisk.level;
-                        const healAmount = GAME_CONSTANTS.NEURAL_OBELISK.LEVELS[level].HEAL_AMOUNT;
-                        
-                        // プレイヤーのHP回復
-                        const player = this.game.player;
-                        const oldHP = player.hp;
-                        player.hp = Math.min(player.maxHp, player.hp + healAmount);
-                        
-                        // Vigor回復（実装されている場合）
-                        if (player.vigor !== undefined && player.maxVigor !== undefined) {
-                            const oldVigor = player.vigor;
-                            player.vigor = Math.min(player.maxVigor, player.vigor + healAmount);
-                            this.game.logger.add(`Vigor restored: ${oldVigor} -> ${player.vigor}`, "heal");
-                        }
-                        
-                        // ログメッセージ
-                        this.game.logger.add(`Neural Obelisk used. HP restored: ${oldHP} -> ${player.hp}`, "heal");
-                        
-                        // 効果音再生
-                        if (this.game.soundManager) {
-                            this.game.soundManager.play('heal');
-                        }
-                        
-                        // ニューラルオベリスクを消去
-                        this.game.mapGenerator.map[target.y][target.x] = 'floor';
-                        this.game.mapGenerator.tiles[target.y][target.x] = 
-                            GAME_CONSTANTS.TILES.FLOOR[
-                                Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
-                            ];
-                        this.game.mapGenerator.colors[target.y][target.x] = GAME_CONSTANTS.COLORS.FLOOR;
-                        
-                        // リストから削除
-                        const index = this.game.mapGenerator.neuralObelisks.findIndex(o => 
-                            o.x === target.x && o.y === target.y);
-                        if (index !== -1) {
-                            this.game.mapGenerator.neuralObelisks.splice(index, 1);
-                        }
-                        
-                        // 入力無効化フラグをリセット
-                        this.game.inputDisabled = false;
-                        
-                        // ターン処理
-                        this.game.processTurn();
-                    } else {
-                        // オベリスク情報が見つからない場合のフォールバック処理
-                        const healAmount = GAME_CONSTANTS.NEURAL_OBELISK.LEVELS[3].HEAL_AMOUNT; // デフォルトはレベル3
-                        
-                        // プレイヤーのHP回復
-                        const player = this.game.player;
-                        const oldHP = player.hp;
-                        player.hp = Math.min(player.maxHp, player.hp + healAmount);
-                        
-                        // Vigor回復（実装されている場合）
-                        if (player.vigor !== undefined && player.maxVigor !== undefined) {
-                            const oldVigor = player.vigor;
-                            player.vigor = Math.min(player.maxVigor, player.vigor + healAmount);
-                            this.game.logger.add(`Vigor restored: ${oldVigor} -> ${player.vigor}`, "heal");
-                        }
-                        
-                        // ログメッセージ
-                        this.game.logger.add(`Neural Obelisk used. HP restored: ${oldHP} -> ${player.hp}`, "heal");
-                        
-                        // 効果音再生
-                        if (this.game.soundManager) {
-                            this.game.soundManager.play('heal');
-                        }
-                        
-                        // ニューラルオベリスクを消去
-                        this.game.mapGenerator.map[target.y][target.x] = 'floor';
-                        this.game.mapGenerator.tiles[target.y][target.x] = 
-                            GAME_CONSTANTS.TILES.FLOOR[
-                                Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
-                            ];
-                        this.game.mapGenerator.colors[target.y][target.x] = GAME_CONSTANTS.COLORS.FLOOR;
-                        
-                        // 入力無効化フラグをリセット
-                        this.game.inputDisabled = false;
-                        
-                        // ターン処理
-                        this.game.processTurn();
-                    }
-                } else {
-                    this.game.logger.add("You decide not to use the Neural Obelisk.", "info");
-                }
-            }
-        });
-    }
-
-    // ポータルを使用する
-    usePortal(target) {
-        const isVoid = target.tile === GAME_CONSTANTS.PORTAL.VOID.CHAR;
-        this.game.logger.add(`Enter the ${isVoid ? 'VOID' : ''} portal? [y/n]`, "question");
-        
-        this.game.setInputMode('confirm', {
-            callback: (confirmed) => {
-                if (confirmed) {
-                    this.game.logger.add(`You step into the ${isVoid ? 'VOID' : ''} portal...`, "important");
-                    this.game.renderer.startPortalTransition(() => {
-                        if (isVoid) {
-                            this.game.floorLevel = 0;
-                            this.game.generateNewFloor();
-                            this.game.soundManager.updateBGM();
-                            
-                            for (let y = 0; y < this.game.height; y++) {
-                                for (let x = 0; x < this.game.width; x++) {
-                                    if (this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
-                                        this.game.player.x = x;
-                                        this.game.player.y = y + 1;
-                                        return;
-                                    }
-                                }
-                            }
-                        } else {
-                            this.game.floorLevel++;
-                            this.game.generateNewFloor();
-                            this.game.soundManager.updateBGM();
-                        }
-                    });
-                    this.game.soundManager.playPortalSound();
-                    this.game.processTurn();
-                } else {
-                    this.game.logger.add(`You decide not to enter the ${isVoid ? 'VOID' : ''} portal.`, "playerInfo");
-                }
-            }
-        });
     }
 }

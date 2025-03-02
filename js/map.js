@@ -8,7 +8,6 @@ class MapGenerator {
         this.tiles = null;  // タイルの文字を保存
         this.colors = null; // タイルの色を保存
         this.rooms = null;  // 部屋の情報を保存するプロパティを追加
-        this.neuralObelisks = [];  // ニューラルオベリスクの情報を保存する配列を初期化
     }
 
     generate() {
@@ -320,12 +319,6 @@ class MapGenerator {
                             positions.push({x, y});
                         }
                     }
-
-                    // 中央位置を保存（ニューラルオベリスク用）
-                    positions.centerX = centerX;
-                    positions.centerY = centerY;
-                    positions.isCircle = true;
-                    
                     return positions;
                 }
             },
@@ -376,30 +369,6 @@ class MapGenerator {
                 ];
             }
         });
-
-        // サークルパターンの場合、中央にニューラルオベリスクを配置する可能性がある
-        if (positions.isCircle && Math.random() < GAME_CONSTANTS.NEURAL_OBELISK.SPAWN_CHANCE) {
-            const centerX = positions.centerX;
-            const centerY = positions.centerY;
-            
-            if (this.isValidObstaclePosition(centerX, centerY)) {
-                // 回復レベルをランダムに決定（1〜5）
-                const level = Math.floor(Math.random() * 5) + 1;
-                
-                // ニューラルオベリスクを配置
-                this.map[centerY][centerX] = 'neural_obelisk';
-                this.tiles[centerY][centerX] = GAME_CONSTANTS.NEURAL_OBELISK.CHAR;
-                this.colors[centerY][centerX] = GAME_CONSTANTS.NEURAL_OBELISK.LEVELS[level].COLOR;
-                
-                // レベル情報を保存
-                if (!this.neuralObelisks) this.neuralObelisks = [];
-                this.neuralObelisks.push({
-                    x: centerX,
-                    y: centerY,
-                    level: level
-                });
-            }
-        }
     }
 
     isValidObstaclePosition(x, y) {

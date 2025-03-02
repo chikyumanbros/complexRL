@@ -70,35 +70,6 @@ const GAME_CONSTANTS = {
         }   
     },
 
-    // ニューラルオベリスク関連
-    NEURAL_OBELISK: {
-        CHAR: '♀',
-        ANIMATION_CHARS: ['♀','♁','⊕', '░', '▒', '░'],
-        LEVELS: {
-            1: {
-                COLOR: '#00BFFF',  // 薄い青色
-                HEAL_AMOUNT: 10
-            },
-            2: {
-                COLOR: '#00FF00',  // 緑色
-                HEAL_AMOUNT: 20
-            },
-            3: {
-                COLOR: '#FFFF00',  // 黄色
-                HEAL_AMOUNT: 30
-            },
-            4: {
-                COLOR: '#FFA500',  // オレンジ色
-                HEAL_AMOUNT: 40
-            },
-            5: {
-                COLOR: '#800080',  // 紫色
-                HEAL_AMOUNT: 50
-            }
-        },
-        SPAWN_CHANCE: 0.5  // サークルパターンの中央に生成される確率
-    },
-
     // 色関連
     COLORS: {
         FLOOR: '#333',
