@@ -1688,3 +1688,23 @@ body::before {
 .player-caught-web {
     animation: none !important; /* アニメーションを無効化 */
 }
+
+/* 捕まったモンスター用の点滅アニメーション */
+.monster-caught-web {
+    animation: web-blink 0.5s infinite alternate;
+}
+
+@keyframes web-blink {
+    0% { opacity: 0.2; }
+    100% { opacity: 1.0; }
+}
+
+/* プレイヤーが捕まっている場合のアニメーション（既存のものと区別） */
+.player-caught-web {
+    animation: player-web-blink 0.8s infinite alternate;
+}
+
+@keyframes player-web-blink {
+    0% { opacity: 0.4; }
+    100% { opacity: 1.0; }
+} 

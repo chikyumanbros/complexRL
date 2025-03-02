@@ -123,6 +123,9 @@ class Monster {
                 level: this.level
             });
         }
+
+        // 蜘蛛の巣関連のプロパティを追加
+        this.caughtInWeb = null;  // 蜘蛛の巣に捕まっている場合、そのwebオブジェクトを保持
     }
 
     // ========================== takeDamage Method ==========================
@@ -290,6 +293,16 @@ class Monster {
             return;
         }
 
+        // --- Web Entrapment Check ---
+        // 蜘蛛の巣に捕まっている場合、まず脱出を試みる
+        if (this.caughtInWeb) {
+            if (!this.tryToBreakFreeFromWeb(game)) {
+                // 脱出失敗時はターンを消費して終了
+                return;
+            }
+            // 脱出成功の場合は通常の行動を続行
+        }
+
         // --- Fleeing Action ---
         if (this.hasStartedFleeing) {
             this.flee(game);
@@ -440,6 +453,18 @@ class Monster {
     attackPlayer(player, game) {
         if (this.isSleeping) return;
         
+        // 蜘蛛の巣に捕まっている場合は攻撃できない
+        if (this.caughtInWeb) {
+            // プレイヤーの視界内にいる場合のみメッセージを表示
+            const isVisibleToPlayer = game.getVisibleTiles()
+                .some(tile => tile.x === this.x && tile.y === this.y);
+            
+            if (isVisibleToPlayer) {
+                game.logger.add(`${this.name} struggles in the web and can't attack.`, "monsterInfo");
+            }
+            return;
+        }
+        
         game.lastCombatMonster = this;
         game.renderer.examineTarget(this.x, this.y);
         
@@ -562,7 +587,7 @@ class Monster {
             const newY = this.y + bestMove.y;
             
             // 蜘蛛の巣チェック
-            const web = this.game.webs && this.game.webs.find(w => w.x === newX && w.y === newY);
+            const web = game.webs && game.webs.find(w => w.x === newX && w.y === newY);
             
             if (web) {
                 // 蜘蛛の巣を生成したモンスター自身は影響を受けない
@@ -570,24 +595,54 @@ class Monster {
                     this.x = newX;
                     this.y = newY;
                 } else {
-                    // 蜘蛛の巣に引っかかるかチェック
-                    const trapChance = web.trapChance || GAME_CONSTANTS.WEB.TRAP_CHANCE;
                     // Giant Spiderは蜘蛛の巣の影響を受けない
                     const isSpider = this.type === 'G_SPIDER';
                     
-                    if (isSpider || Math.random() > trapChance) {
-                        // 蜘蛛または回避成功時は通常移動
+                    if (isSpider) {
+                        // 蜘蛛は通常移動
                         this.x = newX;
                         this.y = newY;
                     } else {
-                        // 蜘蛛の巣に引っかかった場合は移動できない
-                        // ログメッセージは表示しない（プレイヤーから見えない場合があるため）
+                        // 蜘蛛の巣に引っかかるかチェック
+                        const trapChance = web.trapChance || GAME_CONSTANTS.WEB.TRAP_CHANCE;
+                        const roll = Math.random();
+                        
+                        if (roll < trapChance) {
+                            // 蜘蛛の巣に引っかかった
+                            this.x = newX;
+                            this.y = newY;
+                            
+                            // 捕まり状態を設定
+                            this.caughtInWeb = web;
+                            
+                            // プレイヤーの視界内にいる場合のみメッセージを表示
+                            const isVisibleToPlayer = game.getVisibleTiles()
+                                .some(tile => tile.x === newX && tile.y === newY);
+                            
+                            if (isVisibleToPlayer) {
+                                game.logger.add(`${this.name} is caught in a web!`, "monsterInfo");
+                                // 効果音を再生
+                                game.playSound('webTrapSound');
+                            }
+                        } else {
+                            // 蜘蛛の巣を避けた
+                            this.x = newX;
+                            this.y = newY;
+                            
+                            // プレイヤーの視界内にいる場合のみメッセージを表示
+                            const isVisibleToPlayer = game.getVisibleTiles()
+                                .some(tile => tile.x === newX && tile.y === newY);
+                            
+                            if (isVisibleToPlayer) {
+                                game.logger.add(`${this.name} navigates through the web.`, "monsterInfo");
+                            }
+                        }
                     }
                 }
             } else {
                 // 通常の移動
-                this.x = bestMove.x + this.x;
-                this.y = bestMove.y + this.y;
+                this.x = newX;
+                this.y = newY;
             }
         }
     }
@@ -925,5 +980,55 @@ class Monster {
         this.webCooldownRemaining = this.abilities.webCooldown;
         
         return true;
+    }
+
+    // ========================== tryToBreakFreeFromWeb Method ==========================
+    // 蜘蛛の巣からの脱出を試みるメソッドを追加
+    tryToBreakFreeFromWeb(game) {
+        if (!this.caughtInWeb) return true; // 捕まっていなければ成功とみなす
+        
+        // 脱出チャンスを計算（DEXが高いほど脱出しやすい）
+        const baseChance = 0.2; // ベース確率を20%に設定
+        const dexBonus = Math.max(0, (this.stats.dex - 10) * 0.02); // DEXボーナス
+        const escapeChance = Math.min(0.75, baseChance + dexBonus); // 最大確率は75%
+        
+        const roll = Math.random();
+        if (roll < escapeChance) {
+            // 脱出成功
+            // プレイヤーの視界内にいる場合のみメッセージを表示
+            const isVisibleToPlayer = game.getVisibleTiles()
+                .some(tile => tile.x === this.x && tile.y === this.y);
+            
+            if (isVisibleToPlayer) {
+                game.logger.add(`${this.name} breaks free from the web!`, "monsterInfo");
+                // 効果音を再生
+                game.playSound('webBreakSound');
+            }
+            
+            // webの位置情報を取得
+            const webX = this.caughtInWeb.x;
+            const webY = this.caughtInWeb.y;
+            
+            // 蜘蛛の巣を除去
+            game.webs = game.webs.filter(w => !(w.x === webX && w.y === webY));
+            
+            // 捕まり状態を解除
+            this.caughtInWeb = null;
+            
+            return true; // アクションを続行可能
+        } else {
+            // 脱出失敗
+            // プレイヤーの視界内にいる場合のみメッセージを表示
+            const isVisibleToPlayer = game.getVisibleTiles()
+                .some(tile => tile.x === this.x && tile.y === this.y);
+            
+            if (isVisibleToPlayer) {
+                game.logger.add(`${this.name} struggles in the web.`, "monsterInfo");
+                // 効果音を再生
+                game.playSound('webTrapSound');
+            }
+            
+            return false; // アクション失敗
+        }
     }
 } 

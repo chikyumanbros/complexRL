@@ -562,6 +562,12 @@ class Renderer {
                                 if (monster.isSleeping) {
                                     style += '; animation: sleeping-monster 1s infinite';
                                 }
+                                
+                                // モンスターが蜘蛛の巣に捕まっている場合、monster-caught-webクラスを追加
+                                if (monster.caughtInWeb && monster.type !== 'G_SPIDER') {
+                                    classes.push('monster-caught-web');
+                                }
+                                
                                 content = displayChar; // 表示用の文字を content に設定
                             } else {
                                 const psychedelicEffect = this.calculatePsychedelicEffect(x, y, content, this.game.colors[y][x], true);
@@ -629,7 +635,13 @@ class Renderer {
                             this.game.player.caughtInWeb.y === y) {
                             classes.push('player-caught-web');
                         } else {
-                            classes.push('web-tile'); // 通常の蜘蛛の巣のアニメーションクラス
+                            // モンスターが捕まっているかチェック
+                            const monster = this.game.getMonsterAt(x, y);
+                            if (monster && monster.caughtInWeb && monster.type !== 'G_SPIDER') {
+                                classes.push('monster-caught-web');
+                            } else {
+                                classes.push('web-tile'); // 通常の蜘蛛の巣のアニメーションクラス
+                            }
                         }
                         
                         // 蜘蛛の巣の文字を上書き
