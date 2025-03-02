@@ -1957,17 +1957,14 @@ class InputHandler {
     // ニューラルオベリスクに触れる処理
     touchNeuralObelisk(x, y) {
         // オベリスクの情報を取得
-        const obelisk = this.game.mapGenerator && 
-                        this.game.mapGenerator.neuralObelisks && 
-                        this.game.mapGenerator.neuralObelisks.find(o => o.x === x && o.y === y);
+        const obelisk = this.game.neuralObelisks && 
+                        this.game.neuralObelisks.find(o => o.x === x && o.y === y);
         
         let level = 3; // デフォルトはレベル3
         let colorName = "yellow";
-        let healPercent = 50; // デフォルトは50%
         
         if (obelisk) {
             level = obelisk.level;
-            healPercent = GAME_CONSTANTS.NEURAL_OBELISK.LEVELS[level].HEAL_PERCENT;
             
             // 色の名前を設定
             switch(level) {
@@ -1983,6 +1980,7 @@ class InputHandler {
         
         // HP回復量を計算（最大HPの割合）
         const player = this.game.player;
+        const healPercent = GAME_CONSTANTS.NEURAL_OBELISK.LEVELS[level].HEAL_PERCENT;
         const hpHealAmount = Math.floor(player.maxHp * (healPercent / 100));
         const oldHp = player.hp;
         player.hp = Math.min(player.maxHp, player.hp + hpHealAmount);
@@ -1994,8 +1992,22 @@ class InputHandler {
         player.vigor = Math.min(GAME_CONSTANTS.VIGOR.MAX, player.vigor + vigorHealAmount);
         const actualVigorHealed = player.vigor - oldVigor;
         
-        // 回復メッセージを表示
-        this.game.logger.add(`A surge of energy flows through you! Recovered ${actualHpHealed} HP and ${actualVigorHealed} Vigor.`, "important");
+        // Vigorの増減を表現する言葉を選択
+        let vigorChangeDesc;
+        if (actualVigorHealed > 0) {
+            if (level >= 4) {
+                vigorChangeDesc = "significantly increased";
+            } else if (level >= 2) {
+                vigorChangeDesc = "moderately increased";
+            } else {
+                vigorChangeDesc = "slightly increased";
+            }
+        } else {
+            vigorChangeDesc = "unchanged";
+        }
+        
+        // 回復メッセージを表示（Vigorの具体的な数値は隠す）
+        this.game.logger.add(`A surge of energy flows through you! Recovered ${actualHpHealed} HP. Your Vigor is ${vigorChangeDesc}.`, "important");
         
         // オベリスクを消去
         this.removeNeuralObelisk(x, y);

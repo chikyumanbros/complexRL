@@ -90,7 +90,39 @@ class Logger {
                 "The Nexus hums with ancient protective magic.",
                 "Safe haven surrounds you in the mystical Nexus.",
                 "The tranquil energy of the Nexus embraces you."
-            ]
+            ],
+            obelisk: {
+                level1: [
+                    "A blue Neural Obelisk pulses with gentle energy, offering minor restoration.",
+                    "Soft blue light emanates from a Neural Obelisk, promising a small measure of healing.",
+                    "A Neural Obelisk glows with a calming blue aura, its restorative powers modest but welcome.",
+                    "The blue glow of a Neural Obelisk offers basic healing to those who touch it."
+                ],
+                level2: [
+                    "A green Neural Obelisk hums with moderate power, ready to restore your vitality.",
+                    "Emerald light bathes the area around a Neural Obelisk of appreciable healing potential.",
+                    "A Neural Obelisk radiates a soothing green light, promising significant restoration.",
+                    "The verdant glow of a Neural Obelisk suggests moderate healing capabilities."
+                ],
+                level3: [
+                    "A yellow Neural Obelisk shines brightly, containing substantial healing energy.",
+                    "Golden light streams from a powerful Neural Obelisk, offering considerable restoration.",
+                    "A Neural Obelisk bathes the area in warm yellow light, its healing potential substantial.",
+                    "The brilliant yellow glow of a Neural Obelisk promises significant recovery upon touch."
+                ],
+                level4: [
+                    "An orange Neural Obelisk thrums with impressive power, capable of major restoration.",
+                    "Intense orange energy swirls within a Neural Obelisk of remarkable healing capacity.",
+                    "A Neural Obelisk pulses with fierce orange light, promising extensive revitalization.",
+                    "The vibrant orange aura of a Neural Obelisk suggests powerful healing properties."
+                ],
+                level5: [
+                    "A purple Neural Obelisk crackles with extraordinary power, offering near-complete restoration.",
+                    "Violet energy cascades from a Neural Obelisk of exceptional healing potential.",
+                    "A Neural Obelisk emanates deep purple light, promising the most potent restoration.",
+                    "The majestic purple glow of a Neural Obelisk indicates its supreme healing capabilities."
+                ]
+            }
         };
         this.messageColors = {
             bright: '#d4af37',      // Antique Gold
@@ -117,6 +149,13 @@ class Logger {
             portal: '#4169E1',    // Royal Blue
             voidportal: '#483D8B', // Dark Slate Blue
             nexus: '#9370DB',     // Medium Purple
+            obelisk: {
+                level1: '#1E90FF', // ドジャーブルー
+                level2: '#32CD32', // ライムグリーン
+                level3: '#FFD700', // ゴールド
+                level4: '#FF8C00', // ダークオレンジ
+                level5: '#9932CC'  // ダークオーキッド
+            },
         };
 
         // lookInfoElementの初期化を変更
@@ -180,8 +219,8 @@ class Logger {
     }
 
     // Update room information
-    updateRoomInfo(room, monsterCount, isDoorKill = false, isMeleeKill = false) {
-        if (this.shouldUpdateRoomInfo(room, monsterCount) || isDoorKill || isMeleeKill) {
+    updateRoomInfo(room, monsterCount, isDoorKill = false, isMeleeKill = false, obeliskInfo = null) {
+        if (this.shouldUpdateRoomInfo(room, monsterCount) || isDoorKill || isMeleeKill || obeliskInfo) {
             let roomInfo = '';
             let brightnessColor = '';
             let monsterColor = '';
@@ -220,6 +259,15 @@ class Logger {
             } else if (room && room.isNexus) {
                 portalDesc = this.getRandomDescription('nexus');
             }
+            
+            // Add obelisk description if present
+            let obeliskDesc = '';
+            let obeliskColor = '';
+            if (obeliskInfo) {
+                const level = obeliskInfo.level || 3; // デフォルトはレベル3
+                obeliskDesc = this.getRandomDescription(`obelisk.level${level}`);
+                obeliskColor = this.messageColors.obelisk[`level${level}`];
+            }
 
             // Select monster presence description and its color (for both room and corridor)
             let monsterDesc = '';
@@ -241,6 +289,7 @@ class Logger {
             roomInfo = `<span style="color: ${brightnessColor}">${roomInfo}</span><br>` +
                        (combatDesc ? `<span style="color: ${this.messageColors.monsters.many}">${combatDesc}</span><br>` : '') +
                        (portalDesc ? `<span style="color: ${this.messageColors[room.hasVoidPortal ? 'voidportal' : room.hasPortal ? 'portal' : 'nexus']}">${portalDesc}</span><br>` : '') +
+                       (obeliskDesc ? `<span style="color: ${obeliskColor}">${obeliskDesc}</span><br>` : '') +
                        `<span style="color: ${monsterColor}">${monsterDesc}</span>`;
 
             this.roomInfo = roomInfo;

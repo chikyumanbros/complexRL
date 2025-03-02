@@ -213,13 +213,17 @@ class VigorEffects {
                             // 3. プレイヤーの現在位置ではない
                             // 4. ブロッキング障害物がない
                             // 5. 透過障害物もない
+                            // 6. 階段ではない
+                            // 7. ポータルではない
+                            // 8. ニューラルオベリスクではない（追加）
                             if (this.game.map[ty][tx] === 'floor' && 
                                 !this.game.getMonsterAt(tx, ty) &&
                                 !(tx === this.game.player.x && ty === this.game.player.y) &&
                                 !GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.game.tiles[ty][tx]) &&
                                 !GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.game.tiles[ty][tx]) &&
                                 this.game.tiles[ty][tx] !== GAME_CONSTANTS.STAIRS.CHAR &&
-                                this.game.tiles[ty][tx] !== GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+                                this.game.tiles[ty][tx] !== GAME_CONSTANTS.PORTAL.GATE.CHAR &&
+                                this.game.tiles[ty][tx] !== GAME_CONSTANTS.NEURAL_OBELISK.CHAR) { // ニューラルオベリスクを避ける
                                 validFloorTiles.push({x: tx, y: ty});
                             }
                         }
@@ -237,7 +241,8 @@ class VigorEffects {
                             y = Math.floor(Math.random() * this.game.height);
                         } while (this.game.map[y][x] !== 'floor' || this.game.getMonsterAt(x, y) ||
                             (x === this.game.player.x && y === this.game.player.y) ||
-                            GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.game.tiles[y][x]));
+                            GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.game.tiles[y][x]) ||
+                            this.game.tiles[y][x] === GAME_CONSTANTS.NEURAL_OBELISK.CHAR); // ニューラルオベリスクを避ける
                     }
 
                     this.game.player.x = x;

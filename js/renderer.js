@@ -1653,6 +1653,19 @@ class Renderer {
                     lookInfo = `There is a Neural Obelisk (Level ${level}) emitting a mysterious glow.<br>
                                 It glows ${colorName} and can restore ${GAME_CONSTANTS.NEURAL_OBELISK.LEVELS[level].HEAL_PERCENT}% of your max HP/Vigor when touched.<br>
                                 It will vanish after use.`;
+                    
+                    // フレーバーテキストを表示するために logger.updateRoomInfo を呼び出す
+                    if (this.game.logger) {
+                        const currentRoom = this.game.getCurrentRoom();
+                        const monsterCount = currentRoom ? this.game.getMonstersInRoom(currentRoom).length : 0;
+                        this.game.logger.updateRoomInfo(
+                            currentRoom, 
+                            monsterCount, 
+                            false, 
+                            false, 
+                            { level: level }
+                        );
+                    }
                 } else {
                     lookInfo = `You see ${tile} here.`;
                 }

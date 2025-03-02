@@ -296,6 +296,7 @@ class Game {
             if (this.isPositionInRoom(testX, testY, randomRoom) &&
                 this.map[testY][testX] === 'floor' &&
                 this.tiles[testY][testX] !== GAME_CONSTANTS.STAIRS.CHAR &&
+                this.tiles[testY][testX] !== GAME_CONSTANTS.NEURAL_OBELISK.CHAR && // ニューラルオベリスクを避ける
                 !GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[testY][testX]) &&
                 !GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.tiles[testY][testX])) {
                 validPosition = { x: testX, y: testY };
