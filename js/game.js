@@ -45,6 +45,9 @@ class Game {
 
         // Game クラスに neuralObelisks プロパティを追加
         this.neuralObelisks = [];  // ニューラルオベリスクの情報を保存する配列
+        
+        // 蜘蛛の巣の情報を保存する配列
+        this.webs = [];
     }
 
     initializeExplored() {
@@ -93,6 +96,12 @@ class Game {
         this.rooms = [];
         this.isGameOver = false;
         this.floorLevel = 0;  // Changed from 1 to 0
+
+        // ニューラルオベリスクの配列をリセット
+        this.neuralObelisks = [];
+        
+        // 蜘蛛の巣の配列をリセット
+        this.webs = [];
 
         // Vigorの初期化: セーブデータがあればロード、なければ最大値
         const savedData = localStorage.getItem('complexRL_saveData');
@@ -359,6 +368,15 @@ class Game {
         // 明るさの揺らぎを更新
         this.renderer.updateFlickerValues();
 
+        // 蜘蛛の巣に捕まっている状態を確認
+        if (this.player.caughtInWeb) {
+            // ターン開始時に自動的に脱出を試みる
+            if (!this.player.tryToBreakFreeFromWeb()) {
+                // 失敗した場合、このターンの行動は制限される
+                // メッセージは tryToBreakFreeFromWeb 内で表示されるのでここでは追加しない
+            }
+        }
+
         // メディテーション処理（最優先）
         if (this.player.hp > 0 && this.player.meditation?.active) {
             this.processMeditation();
@@ -558,6 +576,10 @@ class Game {
         this.updateExplored();
         this.updateRoomInfo();
         this.renderer.psychedelicTurn++;
+        
+        // 蜘蛛の巣の更新処理
+        this.updateWebs();
+        
         this.renderer.render();
         this.saveGame();
 
@@ -1932,6 +1954,16 @@ class Game {
         
         // マップを再描画
         this.renderer.render();
+    }
+
+    // 蜘蛛の巣の更新処理
+    updateWebs() {
+        // 蜘蛛の巣は永続的に残るため、持続時間の減少処理を削除
+        // 以前のコード:
+        // this.webs = this.webs.filter(web => {
+        //     web.duration--;
+        //     return web.duration > 0;
+        // });
     }
 }
 

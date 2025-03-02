@@ -38,6 +38,26 @@ const GAME_CONSTANTS = {
         ],
     },
 
+    // 蜘蛛の巣関連
+    WEB: {
+        CHAR: '⅗',
+        COLOR: '#CCCCCC',
+        ANIMATION_CHARS: ['⅗', '⅗', '⅗', '⅗', '⅗', '⅗'],
+        ANIMATION_COLORS: [
+            '#CCCCCC',  // 薄い灰色
+            '#DDDDDD',  // より薄い灰色
+            '#EEEEEE',  // さらに薄い灰色
+            '#FFFFFF',  // 白
+            '#EEEEEE',  // さらに薄い灰色
+            '#DDDDDD',  // より薄い灰色
+        ],
+        TRAP_CHANCE: 0.75,  // プレイヤーが罠にかかる基本確率
+        ESCAPE_CHANCE: {    // 罠から脱出する確率
+            BASE: 0.5       // 基本脱出確率（固定値）
+        },
+        INTERACTION_MESSAGE: "You remove the sticky web."  // インタラクト時のメッセージ
+    },
+
     // 階段関連
     STAIRS: {
         CHAR: '>',

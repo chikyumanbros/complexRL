@@ -41,6 +41,11 @@ class Monster {
             if (this.abilities.canJump) {
                 this.jumpCooldownRemaining = 0; // 初期状態ではクールダウンなし
             }
+            
+            // 蜘蛛の巣能力の初期化
+            if (this.abilities.canCreateWeb) {
+                this.webCooldownRemaining = 0; // 初期状態ではクールダウンなし
+            }
         } else {
             this.abilities = {}; // 空のオブジェクトを作成
         }
@@ -373,6 +378,14 @@ class Monster {
                 }
             }
             
+            // 蜘蛛の巣能力を持つモンスターの場合、蜘蛛の巣生成を試みる
+            if (this.abilities && this.abilities.canCreateWeb) {
+                // 蜘蛛の巣生成を試みる
+                const webCreated = this.tryCreateWeb(game);
+                
+                // 蜘蛛の巣生成に成功した場合でも、通常の移動や攻撃は行う
+            }
+            
             this.pursueTarget(game, game.player.x, game.player.y);
         } 
         else if (this.trackingTurns > 0 && this.lastKnownPlayerX !== null) {
@@ -545,8 +558,37 @@ class Monster {
         }
 
         if (bestMove) {
-            this.x += bestMove.x;
-            this.y += bestMove.y;
+            const newX = this.x + bestMove.x;
+            const newY = this.y + bestMove.y;
+            
+            // 蜘蛛の巣チェック
+            const web = this.game.webs && this.game.webs.find(w => w.x === newX && w.y === newY);
+            
+            if (web) {
+                // 蜘蛛の巣を生成したモンスター自身は影響を受けない
+                if (web.createdBy === this.id) {
+                    this.x = newX;
+                    this.y = newY;
+                } else {
+                    // 蜘蛛の巣に引っかかるかチェック
+                    const trapChance = web.trapChance || GAME_CONSTANTS.WEB.TRAP_CHANCE;
+                    // Giant Spiderは蜘蛛の巣の影響を受けない
+                    const isSpider = this.type === 'G_SPIDER';
+                    
+                    if (isSpider || Math.random() > trapChance) {
+                        // 蜘蛛または回避成功時は通常移動
+                        this.x = newX;
+                        this.y = newY;
+                    } else {
+                        // 蜘蛛の巣に引っかかった場合は移動できない
+                        // ログメッセージは表示しない（プレイヤーから見えない場合があるため）
+                    }
+                }
+            } else {
+                // 通常の移動
+                this.x = bestMove.x + this.x;
+                this.y = bestMove.y + this.y;
+            }
         }
     }
 
@@ -788,6 +830,99 @@ class Monster {
         
         // クールダウンを設定
         this.jumpCooldownRemaining = this.abilities.jumpCooldown;
+        
+        return true;
+    }
+    
+    // ========================== tryCreateWeb Method ==========================
+    // 新規: 蜘蛛の巣を生成するメソッドを追加
+    tryCreateWeb(game) {
+        // 蜘蛛の巣能力がない場合は何もしない
+        if (!this.abilities || !this.abilities.canCreateWeb) {
+            return false;
+        }
+        
+        // クールダウン中の場合は何もしない
+        if (this.webCooldownRemaining > 0) {
+            this.webCooldownRemaining--;
+            return false;
+        }
+        
+        // 蜘蛛の巣を生成する確率チェック
+        if (Math.random() > this.abilities.webChance) {
+            return false;
+        }
+        
+        // プレイヤーとの距離を計算
+        const distance = GAME_CONSTANTS.DISTANCE.calculate(
+            game.player.x, game.player.y,
+            this.x, this.y
+        );
+        
+        // プレイヤーが近すぎる場合は蜘蛛の巣を生成しない（戦闘中は生成しない）
+        if (distance <= 1.5) {
+            return false;
+        }
+        
+        // 蜘蛛の巣を生成する位置を決定
+        // 現在位置または隣接する空きマスに生成
+        const webPositions = [];
+        
+        // 現在位置を追加
+        webPositions.push({ x: this.x, y: this.y });
+        
+        // 隣接する位置をチェック
+        for (let offsetX = -1; offsetX <= 1; offsetX++) {
+            for (let offsetY = -1; offsetY <= 1; offsetY++) {
+                // 自分の位置は除外（すでに追加済み）
+                if (offsetX === 0 && offsetY === 0) continue;
+                
+                const targetX = this.x + offsetX;
+                const targetY = this.y + offsetY;
+                
+                // 移動可能かチェック（壁や閉じたドアがない）
+                if (this.canMoveTo(targetX, targetY, game) && 
+                    !game.getMonsterAt(targetX, targetY) &&
+                    !(targetX === game.player.x && targetY === game.player.y)) {
+                    
+                    webPositions.push({ x: targetX, y: targetY });
+                }
+            }
+        }
+        
+        // 蜘蛛の巣を生成する位置がない場合は何もしない
+        if (webPositions.length === 0) {
+            return false;
+        }
+        
+        // ランダムに位置を選択
+        const webPos = webPositions[Math.floor(Math.random() * webPositions.length)];
+        
+        // 蜘蛛の巣オブジェクトを生成
+        const web = {
+            x: webPos.x,
+            y: webPos.y,
+            char: GAME_CONSTANTS.WEB.CHAR,
+            color: GAME_CONSTANTS.WEB.COLOR,
+            type: 'web',
+            createdBy: this.id,
+            trapChance: this.abilities.webTrapChance || GAME_CONSTANTS.WEB.TRAP_CHANCE
+        };
+        
+        // ゲームに蜘蛛の巣を追加
+        if (!game.webs) {
+            game.webs = [];
+        }
+        game.webs.push(web);
+        
+        // ログに蜘蛛の巣生成メッセージを追加
+        game.logger.add(`${this.name} spins a web!`, "monsterInfo");
+        
+        // 効果音を再生
+        game.playSound('webSound');
+        
+        // クールダウンを設定
+        this.webCooldownRemaining = this.abilities.webCooldown;
         
         return true;
     }

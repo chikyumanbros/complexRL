@@ -787,7 +787,7 @@ class InputHandler {
                 { dx: -1, dy: 1 },  { dx: 0, dy: 1 },  { dx: 1, dy: 1 }
             ];
 
-            // 隣接する扉、ポータル、ニューラルオベリスクをチェック
+            // 隣接する扉、ポータル、ニューラルオベリスク、蜘蛛の巣をチェック
             for (let offset of adjacentOffsets) {
                 const x = player.x + offset.dx;
                 const y = player.y + offset.dy;
@@ -805,6 +805,12 @@ class InputHandler {
                     // ニューラルオベリスクをインタラクト可能なオブジェクトとして追加
                     interactables.push({ x, y, type: 'obelisk', tile });
                 }
+                
+                // 蜘蛛の巣をチェック
+                const web = this.game.webs && this.game.webs.find(w => w.x === x && w.y === y);
+                if (web) {
+                    interactables.push({ x, y, type: 'web', web });
+                }
             }
 
             // インタラクト可能なオブジェクトが1つだけの場合
@@ -818,79 +824,66 @@ class InputHandler {
                     this.game.renderer.render();
                 } else if (target.type === 'portal') {
                     // 既存のポータル処理
-                    const isVoid = target.tile === GAME_CONSTANTS.PORTAL.VOID.CHAR;
-                    this.game.logger.add(`Enter the ${isVoid ? 'VOID' : ''} portal? [y/n]`, "important");
-                    
-                    setTimeout(() => {
-                        this.game.setInputMode('confirm', {
+                    if (target.tile === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+                        this.game.logger.add("Enter the portal? [y/n]", "important");
+                        this.setMode('confirm', {
                             callback: (confirmed) => {
                                 if (confirmed) {
-                                    this.game.logger.add(`You step into the ${isVoid ? 'VOID' : ''} portal...`, "important");
+                                    this.game.logger.add("You step into the portal...", "important");
+                                    this.game.processTurn();  // 先にターンを消費
                                     this.game.renderer.startPortalTransition(() => {
-                                        if (isVoid) {
-                                            this.game.floorLevel = 0;
-                                            this.game.generateNewFloor();
-                                            this.game.soundManager.updateBGM();
-                                            
-                                            for (let y = 0; y < this.game.height; y++) {
-                                                for (let x = 0; x < this.game.width; x++) {
-                                                    if (this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
-                                                        this.game.player.x = x;
-                                                        this.game.player.y = y + 1;
-                                                        return;
-                                                    }
+                                        this.game.floorLevel++;
+                                        this.game.generateNewFloor();
+                                        this.game.soundManager.updateBGM();  // ポータルアニメーション完了後にBGMを更新
+                                    });
+                                    this.game.soundManager.playPortalSound();  // 新しいメソッドを使用
+                                } else {
+                                    this.game.logger.add("You decide not to enter the portal.", "playerInfo");
+                                }
+                                this.setMode('normal');
+                            },
+                        });
+                    } else if (target.tile === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
+                        this.game.logger.add("Enter the VOID portal? [y/n]", "important");
+                        this.setMode('confirm', {
+                            callback: (confirmed) => {
+                                if (confirmed) {
+                                    this.game.logger.add("You step into the VOID portal...", "important");
+                                    this.game.processTurn();  // 先にターンを消費
+                                    this.game.renderer.startPortalTransition(() => {
+                                        this.game.floorLevel = 0;  // ホームフロアに戻る
+                                        this.game.generateNewFloor();
+                                        this.game.soundManager.updateBGM();  // BGMを更新
+                                        
+                                        // プレイヤーをホームフロアのポータルの1マス下に配置
+                                        for (let y = 0; y < this.game.height; y++) {
+                                            for (let x = 0; x < this.game.width; x++) {
+                                                if (this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
+                                                    this.game.player.x = x;
+                                                    this.game.player.y = y + 1;  // ポータルの1マス下
+                                                    return;
                                                 }
                                             }
-                                        } else {
-                                            this.game.floorLevel++;
-                                            this.game.generateNewFloor();
-                                            this.game.soundManager.updateBGM();
                                         }
                                     });
-                                    this.game.soundManager.playPortalSound();
-                                    this.game.processTurn();
+                                    this.game.soundManager.playPortalSound();  // 新しいメソッドを使用
                                 } else {
-                                    this.game.logger.add(`You decide not to enter the ${isVoid ? 'VOID' : ''} portal.`, "playerInfo");
+                                    this.game.logger.add("You decide not to enter the VOID portal.", "playerInfo");
                                 }
-                            }
+                                this.setMode('normal');
+                            },
                         });
-                    }, 0);
+                    }
                 } else if (target.type === 'obelisk') {
                     // ニューラルオベリスクの処理
-                    // オベリスクの情報を取得
-                    const obelisk = this.game.mapGenerator && 
-                                    this.game.mapGenerator.neuralObelisks && 
-                                    this.game.mapGenerator.neuralObelisks.find(o => o.x === target.x && o.y === target.y);
-                    
-                    let level = 3; // デフォルトはレベル3
-                    let colorName = "yellow";
-                    
-                    if (obelisk) {
-                        level = obelisk.level;
-                        
-                        // 色の名前を設定
-                        switch(level) {
-                            case 1: colorName = "blue"; break;
-                            case 2: colorName = "green"; break;
-                            case 3: colorName = "yellow"; break;
-                            case 4: colorName = "orange"; break;
-                            case 5: colorName = "purple"; break;
-                        }
-                    }
-                    
-                    this.game.logger.add(`Touch the ${colorName} Neural Obelisk (Level ${level})? [y/n]`, "important");
-                    
-                    setTimeout(() => {
-                        this.game.setInputMode('confirm', {
-                            callback: (confirmed) => {
-                                if (confirmed) {
-                                    this.touchNeuralObelisk(target.x, target.y);
-                                } else {
-                                    this.game.logger.add(`You decide not to touch the Neural Obelisk.`, "playerInfo");
-                                }
-                            }
-                        });
-                    }, 0);
+                    this.touchNeuralObelisk(target.x, target.y);
+                    this.game.processTurn();
+                    this.game.renderer.render();
+                } else if (target.type === 'web') {
+                    // 蜘蛛の巣の処理
+                    this.removeWeb(target.x, target.y, target.web);
+                    this.game.processTurn();
+                    this.game.renderer.render();
                 }
                 return;
             }
@@ -2047,6 +2040,24 @@ if (skill.getRange) {
                 o => !(o.x === x && o.y === y)
             );
         }
+        
+        // マップを再描画
+        this.game.renderer.render();
+    }
+
+    // 蜘蛛の巣を除去するメソッド
+    removeWeb(x, y, web) {
+        // 蜘蛛の巣を除去するメッセージを表示
+        this.game.logger.add(GAME_CONSTANTS.WEB.INTERACTION_MESSAGE, "playerInfo");
+        
+        // 蜘蛛の巣を除去するエフェクトを表示
+        this.game.renderer.showWebRemoveEffect(x, y);
+        
+        // 蜘蛛の巣を除去する効果音を再生
+        this.game.playSound('webBreakSound');
+        
+        // 蜘蛛の巣を配列から削除
+        this.game.webs = this.game.webs.filter(w => !(w.x === x && w.y === y));
         
         // マップを再描画
         this.game.renderer.render();

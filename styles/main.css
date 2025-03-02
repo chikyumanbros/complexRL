@@ -1603,3 +1603,84 @@ body::before {
 [tabindex="-1"] {
     outline: none !important;
 }
+
+/* 蜘蛛の巣のアニメーション */
+.web-tile {
+    animation: web-animation 2s infinite;
+    position: relative;
+    display: inline-block;
+}
+
+@keyframes web-animation {
+    0%, 100% {
+        opacity: 0.8;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+@keyframes web-char-animation {
+    0%, 45% {
+        content: '⅗';
+    }
+    50%, 65% {
+        content: '⅗';
+        opacity: 0.9;
+    }
+    70%, 85% {
+        content: '⅗';
+        opacity: 0.7;
+    }
+    90%, 100% {
+        content: '⅗';
+        opacity: 0.8;
+    }
+}
+
+.web-tile::before {
+    content: '⅗';
+    animation: web-char-animation 2s infinite;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    color: #CCCCCC;
+}
+
+/* フォーカスの無効化 */
+*:focus {
+    outline: none;
+}
+
+*:not([tabindex]):focus {
+    outline: none;
+}
+
+[tabindex="-1"] {
+    outline: none;
+}
+
+@keyframes web-remove-animation {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.5);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(2);
+    }
+}
+
+.web-remove-effect {
+    animation: web-remove-animation 0.5s forwards;
+    position: absolute;
+    display: inline-block;
+    text-align: center;
+    z-index: 1000;
+}

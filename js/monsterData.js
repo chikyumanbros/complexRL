@@ -103,6 +103,14 @@ const MONSTERS = {
             chance: 0.4,
             min: 2,
             max: 10
+        },
+        // 特殊能力: 蜘蛛の巣
+        abilities: {
+            canCreateWeb: true,
+            webCooldown: 8,       // 蜘蛛の巣生成のクールダウン（ターン数）
+            webChance: 0.3,       // 蜘蛛の巣を生成する確率
+            webDuration: 20,      // 蜘蛛の巣の持続ターン数
+            webTrapChance: 0.75   // プレイヤーが罠にかかる確率
         }
     },
     SKELETON: {

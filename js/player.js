@@ -37,6 +37,9 @@ class Player {
         this.autoExploring = false;  // 自動探索フラグを追加
         this.detectedPresences = new Set();  // 既に感知した存在を記録
         this.name = '';  // プレイヤー名を追加
+        
+        // 蜘蛛の巣関連のプロパティを追加
+        this.caughtInWeb = null;  // 蜘蛛の巣に捕まっている場合、そのwebオブジェクトを保持
     }
 
     validateVigor() {
@@ -186,9 +189,18 @@ class Player {
 
     // ===== Movement Methods =====
     move(dx, dy, map) {
-        // 移動時にメディテーションを解除
+        // 蜘蛛の巣に捕まっている場合、まず脱出を試みる
+        if (this.caughtInWeb) {
+            if (!this.tryToBreakFreeFromWeb()) {
+                // 脱出失敗時はターンを消費して終了
+                this.game.logger.add("You're stuck in the web and can't move.", "warning");
+                return true; // ターンは消費するが移動はしない
+            }
+            // 脱出成功の場合は通常の移動処理を続行
+        }
+
+        // 以下、通常の移動処理（既存コード）
         if (this.meditation && this.meditation.active) {
-            // cannotCancelByInputフラグがある場合はキャンセルしない
             if (!this.meditation.cannotCancelByInput) {
                 this.game.logger.add(`Meditation cancelled. (Total healed: ${this.meditation.totalHealed})`, "playerInfo");
                 this.game.stopSound('meditationSound');
@@ -202,16 +214,66 @@ class Player {
         const newY = this.y + dy;
         
         if (this.canMoveTo(newX, newY, map)) {
-            // 移動前の位置を保存
+            // まず移動を実行
             this.lastPosition = { x: this.x, y: this.y };
             this.x = newX;
             this.y = newY;
-
+            
             // 移動効果音を再生
             const moveSoundKeys = Object.keys(this.game.soundManager.moveSounds);
             const randomIndex = Math.floor(Math.random() * moveSoundKeys.length);
             const soundName = moveSoundKeys[randomIndex];
             this.game.playSound(soundName);
+            
+            // 蜘蛛の巣チェック - 移動後に判定
+            const web = this.game.webs.find(web => web.x === this.x && web.y === this.y);
+            if (web) {
+                // 蜘蛛の巣に引っかかるかチェック - 捕捉確率を高く
+                const trapChance = web.trapChance || GAME_CONSTANTS.WEB.TRAP_CHANCE;
+                // ここで捕捉確率を調整（もしGAME_CONSTANTSで定義されていない場合は直接値を使用）
+                const adjustedTrapChance = Math.min(0.9, trapChance * 1.5); // 50%増しに
+                const roll = Math.random();
+                
+                // 蜘蛛の巣を生成したモンスターを探す
+                const createdBySpider = this.game.monsters.find(monster => monster.id === web.createdBy);
+                
+                if (roll < adjustedTrapChance) {
+                    // 蜘蛛の巣に引っかかった
+                    this.game.logger.add("You are caught in a sticky web!", "warning");
+                    
+                    // 移動したらほぼ確実に捕まるように - 同一ターン内の脱出確率を大幅に下げる
+                    const immediateEscapeChance = 0.15; // 15%の確率でのみ即時脱出可能に
+                    const escapeRoll = Math.random();
+                    
+                    if (escapeRoll < immediateEscapeChance) {
+                        // 脱出成功（同一ターン内）- まれなケース
+                        this.game.logger.add("By sheer luck, you manage to break free immediately!", "playerInfo");
+                        
+                        // 蜘蛛の巣を除去
+                        this.game.webs = this.game.webs.filter(w => !(w.x === this.x && w.y === this.y));
+                        
+                        // 効果音を再生
+                        this.game.playSound('webBreakSound');
+                    } else {
+                        // 脱出失敗 - 捕まり状態をセット（ほとんどのケース）
+                        this.game.logger.add("You struggle but can't break free this turn.", "warning");
+                        
+                        // 効果音を再生
+                        this.game.playSound('webTrapSound');
+                        
+                        // 蜘蛛がいる場合は警告メッセージ
+                        if (createdBySpider) {
+                            this.game.logger.add(`The ${createdBySpider.name} watches you struggle!`, "warning");
+                        }
+                        
+                        // 移動は成功しているが、捕まり状態を設定
+                        this.caughtInWeb = web;
+                    }
+                } else {
+                    // 蜘蛛の巣を避けた
+                    this.game.logger.add("You carefully navigate through the web.", "playerInfo");
+                }
+            }
 
             // ポータルチェックを追加
             if (this.game.floorLevel === 0 && 
@@ -265,6 +327,12 @@ class Player {
                     },
                 });
             }
+            
+            // ニューラルオベリスクチェック
+            if (this.game.tiles[this.y][this.x] === GAME_CONSTANTS.NEURAL_OBELISK.CHAR) {
+                this.game.touchNeuralObelisk(this.x, this.y);
+            }
+            
             return true;
         }
         return false;
@@ -335,14 +403,24 @@ class Player {
 
         // 元のevasion値を保持
         const baseEvasion = this.evasion;
+        
+        // surroundingPenaltyの宣言をif-elseブロックの外に移動
+        let surroundingPenalty = 0;
+        
+        // 蜘蛛の巣に捕まっている場合は回避率を0にする
+        if (this.caughtInWeb) {
+            this.evasion = 0;
+            this.game.logger.add("Caught in web! Cannot evade!", "warning");
+        } else {
+            // 通常の回避率計算
+            // 周囲のモンスター数によるペナルティを計算
+            const surroundingMonsters = this.countSurroundingMonsters(this.game);
+            const penaltyPerMonster = 15; // 1体につき15%のペナルティ
+            surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
 
-        // 周囲のモンスター数によるペナルティを計算
-        const surroundingMonsters = this.countSurroundingMonsters(this.game);
-        const penaltyPerMonster = 15; // 1体につき15%のペナルティ
-        const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
-
-        // 回避率にペナルティを一時的に適用
-        this.evasion = Math.floor(baseEvasion * (1 - surroundingPenalty));
+            // 回避率にペナルティを一時的に適用
+            this.evasion = Math.floor(baseEvasion * (1 - surroundingPenalty));
+        }
 
         // クリティカルヒットの場合、回避と防御を無視
         let damage;
@@ -362,7 +440,7 @@ class Player {
             this.game.gameOver();
         }
         this.game.renderer.render();
-// ダメージが1以上の場合のみ、SEとフラッシュエフェクトを再生
+        // ダメージが1以上の場合のみ、SEとフラッシュエフェクトを再生
         if (damage > 0) {
             this.game.renderer.flashStatusPanel();
             this.game.playSound('takeDamageSound');
@@ -387,6 +465,16 @@ class Player {
 
     // ===== Combat Resolution Methods =====
     attackMonster(monster, game) {
+        // 蜘蛛の巣に捕まっている場合、まず脱出を試みる
+        if (this.caughtInWeb) {
+            if (!this.tryToBreakFreeFromWeb()) {
+                // 脱出失敗時はターンを消費して終了
+                game.processTurn();
+                return;
+            }
+            // 脱出成功の場合は通常の攻撃処理を続行
+        }
+
         // 機会攻撃の条件をチェック（逃走中で逃げ場がある場合）
         if (monster.hasStartedFleeing && monster.checkEscapeRoute(game)) {
             // 機会攻撃の場合は、イニシアチブ判定や反撃なしで直接攻撃を解決
@@ -459,6 +547,16 @@ class Player {
     }
 
     useSkill(skillId, target, game) {
+        // 蜘蛛の巣に捕まっている場合、まず脱出を試みる
+        if (this.caughtInWeb) {
+            if (!this.tryToBreakFreeFromWeb()) {
+                // 脱出失敗時はターンを消費して終了
+                game.processTurn();
+                return false;
+            }
+            // 脱出成功の場合は通常のスキル処理を続行
+        }
+
         // スキルスロットを見つける
         let skillSlot = null;
         for (const [slot, skill] of this.skills.entries()) {
@@ -706,7 +804,7 @@ class Player {
             // キューを距離でソート（より近いタイルを優先）
             queue.sort((a, b) => a.distance - b.distance);
         }
-
+        
         // マップ全体をスキャンして未探索のfloorタイルが残っているか確認
         for (let y = 0; y < this.game.height; y++) {
             for (let x = 0; x < this.game.width; x++) {
@@ -1280,8 +1378,8 @@ class Player {
         return count;
     }
 
-    // 未探索タイルへの方向を見つける（改善版）
-    findDirectionToUnexplored() {
+     // 未探索タイルへの方向を見つける（改善版）
+     findDirectionToUnexplored() {
         // 目標関数: 未探索の床タイル
         const isUnexploredGoal = (x, y) => {
             return this.game.isValidPosition(x, y) && 
@@ -1336,5 +1434,51 @@ class Player {
             diagonalMovement: true,
             avoidEnemies: true
         });
+    }
+
+    // 新しいメソッド: 蜘蛛の巣からの脱出を試みる
+    tryToBreakFreeFromWeb() {
+        if (!this.caughtInWeb) return true; // 捕まっていなければ成功とみなす
+        
+        // 脱出チャンスを計算（DEXが高いほど脱出しやすいが、ベース確率を下げる）
+        const baseChance = 0.2; // ベース確率を20%に下げる（元の値より低く）
+        const dexBonus = Math.max(0, (this.stats.dex - 10) * 0.02); // DEXボーナスも減少（3%→2%）
+        const escapeChance = Math.min(0.75, baseChance + dexBonus); // 最大確率も75%に制限
+        
+        const roll = Math.random();
+        if (roll < escapeChance) {
+            // 脱出成功
+            this.game.logger.add("You break free from the web!", "playerInfo");
+            
+            // webの位置情報を取得
+            const webX = this.caughtInWeb.x;
+            const webY = this.caughtInWeb.y;
+            
+            // 蜘蛛の巣を除去
+            this.game.webs = this.game.webs.filter(w => !(w.x === webX && w.y === webY));
+            
+            // 捕まり状態を解除
+            this.caughtInWeb = null;
+            
+            // 効果音を再生
+            this.game.playSound('webBreakSound');
+            
+            return true; // アクションを続行可能
+        } else {
+            // 脱出失敗のメッセージをより厳しく
+            const messages = [
+                "You struggle but remain caught in the web.",
+                "The sticky strands cling to you, preventing escape.",
+                "Your movements only entangle you further in the web.",
+                "The web tightens around you as you struggle."
+            ];
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            this.game.logger.add(randomMessage, "warning");
+            
+            // 効果音を再生
+            this.game.playSound('webTrapSound');
+            
+            return false; // アクション失敗
+        }
     }
 } 
