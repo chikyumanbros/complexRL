@@ -72,9 +72,12 @@ class InputHandler {
         //console.log('Key pressed:', event.key, 'Ctrl:', event.ctrlKey, 'Meta:', event.metaKey, 'Key code:', event.keyCode);
         //console.log('Current ctrlPressed state:', this.ctrlPressed);
         
+        // 名前入力モードの場合は大文字小文字を区別するため、keyを変換しない
+        const key = this.mode === 'name' ? event.key : event.key.toLowerCase();
+        
         // Ctrlキーの状態を保存（Ctrl, Control, またはevent.ctrlKeyがtrueの場合）
         // MacではControlキー、WindowsではCtrlキーを検出
-        if (event.ctrlKey || event.key === 'Control' || event.key === 'Ctrl' || event.keyCode === 17) {
+        if (event.ctrlKey || key === 'control' || key === 'ctrl' || event.keyCode === 17) {
             this.ctrlPressed = true;
             this.pendingCtrlCombo = true;
             this.lastCtrlKeyTime = Date.now();
@@ -82,24 +85,17 @@ class InputHandler {
         }
 
         // ハイスコア表示のキー判定（Ctrl + s）
-        if (event.ctrlKey && event.key.toLowerCase() === 's') {
+        if (event.ctrlKey && key === 's') {
+            console.log('Ctrl+S pressed, showing high scores');
             event.preventDefault(); // ブラウザのデフォルトの保存動作を防止
             this.game.showHighScores();
             return;
         }
         
-        // 名前入力モードの場合は大文字小文字を区別するため、keyを変換しない
-        const key = this.mode === 'name' ? event.key : event.key.toLowerCase();
-        
         // Ctrl+数字キーの直接検出
-        // Ctrlキーを押しながら数字キーを押した場合を検出
         if (event.ctrlKey && /^[1-9]$/.test(key)) {
             //console.log('Direct Ctrl+Number detection:', key);
-            
-            // スキルスロット並べ替えモードに入る
             this.startSkillSlotSwap(key);
-            
-            // イベントをデフォルト動作をキャンセル（ブラウザのショートカットを防止）
             event.preventDefault();
             return;
         }
@@ -107,11 +103,7 @@ class InputHandler {
         // Alt+数字キーの直接検出（代替として）
         if (event.altKey && /^[1-9]$/.test(key)) {
             //console.log('Direct Alt+Number detection:', key);
-            
-            // スキルスロット並べ替えモードに入る
             this.startSkillSlotSwap(key);
-            
-            // イベントをデフォルト動作をキャンセル
             event.preventDefault();
             return;
         }

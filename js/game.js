@@ -51,6 +51,7 @@ class Game {
 
         // ハイスコアの初期化
         this.highScores = this.loadHighScores();
+        this.isShowingHighScores = false;  // ハイスコア表示状態フラグ
     }
 
     initializeExplored() {
@@ -2032,33 +2033,145 @@ class Game {
 
     // ハイスコアの表示
     showHighScores() {
-        if (this.highScores.length === 0) {
-            this.logger.add("No high scores yet!", "info");
+        const codexPanelElement = document.getElementById('available-skills');
+        console.log('codexPanelElement:', codexPanelElement);
+        if (!codexPanelElement) return;
+
+        console.log('現在のハイスコア表示状態:', this.isShowingHighScores);
+        
+        // ハイスコアが表示されている場合は、表示を消去
+        if (this.isShowingHighScores) {
+            console.log('消去処理実行');
+            codexPanelElement.innerHTML = '';
+            this.isShowingHighScores = false;
             return;
         }
 
-        // 名前入力モード中の場合は、一時的にinputHandlerのmodeを保存
-        const currentMode = this.inputHandler.mode;
-        const isNameInputMode = currentMode === 'name';
-
-        this.logger.add("=== HIGH SCORES ===", "important");
-        this.highScores.forEach((score, index) => {
-            const date = new Date(score.date).toLocaleDateString();
-            this.logger.add(`${index + 1}. Score: ${score.totalScore}`, "important");
-            this.logger.add(`   Level: ${score.deathInfo.level}`, "info");
-            this.logger.add(`   Monsters: ${score.monstersKilled}`, "info");
-            this.logger.add(`   Codex: ${score.codexPoints}`, "info");
-            this.logger.add(`   Turns: ${score.turns}`, "info");
-            this.logger.add(`   Death: ${score.deathInfo.cause}`, "death");
-            this.logger.add(`   Date: ${date}`, "info");
-            this.logger.add("", "info");
-        });
-
-        // 名前入力モード中の場合は、名前入力プロンプトを再表示
-        if (isNameInputMode) {
-            this.renderer.renderNamePrompt(this.player.name || '');
-            this.inputHandler.mode = 'name';
+        console.log('ハイスコア表示処理実行');
+        // ハイスコア表示に切り替え
+        // HTMLの生成
+        const titleElement = document.createElement('div');
+        titleElement.style.color = '#FFD700';
+        titleElement.style.fontWeight = 'bold';
+        titleElement.style.fontSize = '18px';
+        titleElement.style.marginBottom = '10px';
+        titleElement.textContent = '=== HIGH SCORES ===';
+        
+        const instructionElement = document.createElement('div');
+        instructionElement.style.color = '#FFFFFF';
+        instructionElement.style.marginBottom = '15px';
+        instructionElement.textContent = '(Press Ctrl+S again to hide)';
+        
+        // 既存の内容をクリア
+        codexPanelElement.innerHTML = '';
+        
+        // 要素を追加
+        codexPanelElement.appendChild(titleElement);
+        codexPanelElement.appendChild(instructionElement);
+        
+        if (this.highScores.length === 0) {
+            const noScoresElement = document.createElement('div');
+            noScoresElement.textContent = 'No high scores yet!';
+            codexPanelElement.appendChild(noScoresElement);
+        } else {
+            // スコア表示のコンテナ
+            const scoresContainer = document.createElement('div');
+            scoresContainer.style.display = 'flex';
+            scoresContainer.style.justifyContent = 'space-between';
+            
+            // 3列に分けるために配列を分割
+            const firstColumn = this.highScores.slice(0, 2);   // 1-2位
+            const secondColumn = this.highScores.slice(2, 4);  // 3-4位
+            const thirdColumn = this.highScores.slice(4);      // 5位
+            
+            // 各列のコンテナ
+            const column1Container = document.createElement('div');
+            column1Container.style.flex = '1';
+            column1Container.style.whiteSpace = 'pre-wrap';
+            
+            const column2Container = document.createElement('div');
+            column2Container.style.flex = '1';
+            column2Container.style.whiteSpace = 'pre-wrap';
+            column2Container.style.marginLeft = '20px';
+            
+            const column3Container = document.createElement('div');
+            column3Container.style.flex = '1';
+            column3Container.style.whiteSpace = 'pre-wrap';
+            column3Container.style.marginLeft = '20px';
+            
+            // 各スコアをフォーマット
+            const addScoreToColumn = (score, index, container) => {
+                const date = new Date(score.date).toLocaleDateString();
+                const rankColor = index === 0 ? '#FFD700' : // 金
+                                 index === 1 ? '#C0C0C0' : // 銀
+                                 index === 2 ? '#CD7F32' : // 銅
+                                 '#FFFFFF';  // その他
+                
+                const scoreTitle = document.createElement('div');
+                scoreTitle.style.color = rankColor;
+                scoreTitle.style.fontWeight = 'bold';
+                scoreTitle.textContent = `${index + 1}. Score: ${score.totalScore}`;
+                container.appendChild(scoreTitle);
+                
+                const levelInfo = document.createElement('div');
+                levelInfo.style.color = '#4169E1';
+                levelInfo.style.marginLeft = '10px';
+                levelInfo.textContent = `Level: ${score.deathInfo.level}`;
+                container.appendChild(levelInfo);
+                
+                const monstersInfo = document.createElement('div');
+                monstersInfo.style.color = '#FF6B6B';
+                monstersInfo.style.marginLeft = '10px';
+                monstersInfo.textContent = `Monsters: ${score.monstersKilled}`;
+                container.appendChild(monstersInfo);
+                
+                const codexInfo = document.createElement('div');
+                codexInfo.style.color = '#98FB98';
+                codexInfo.style.marginLeft = '10px';
+                codexInfo.textContent = `Codex: ${score.codexPoints}`;
+                container.appendChild(codexInfo);
+                
+                const turnsInfo = document.createElement('div');
+                turnsInfo.style.color = '#DEB887';
+                turnsInfo.style.marginLeft = '10px';
+                turnsInfo.textContent = `Turns: ${score.turns}`;
+                container.appendChild(turnsInfo);
+                
+                const deathInfo = document.createElement('div');
+                deathInfo.style.color = '#FF4500';
+                deathInfo.style.marginLeft = '10px';
+                deathInfo.textContent = `Death: ${score.deathInfo.cause}`;
+                container.appendChild(deathInfo);
+                
+                const dateInfo = document.createElement('div');
+                dateInfo.style.color = '#B8860B';
+                dateInfo.style.marginLeft = '10px';
+                dateInfo.textContent = `Date: ${date}`;
+                container.appendChild(dateInfo);
+                
+                const spacer = document.createElement('div');
+                spacer.style.marginBottom = '15px';
+                container.appendChild(spacer);
+            };
+            
+            // 各列にスコアを追加
+            firstColumn.forEach((score, i) => addScoreToColumn(score, i, column1Container));
+            secondColumn.forEach((score, i) => addScoreToColumn(score, i + 2, column2Container));
+            thirdColumn.forEach((score, i) => addScoreToColumn(score, i + 4, column3Container));
+            
+            // 列をコンテナに追加
+            scoresContainer.appendChild(column1Container);
+            scoresContainer.appendChild(column2Container);
+            scoresContainer.appendChild(column3Container);
+            
+            // スコアコンテナをパネルに追加
+            codexPanelElement.appendChild(scoresContainer);
         }
+        
+        // 表示状態を更新
+        this.isShowingHighScores = true;
+        
+        console.log('ハイスコア表示完了:', codexPanelElement.innerHTML.substring(0, 100) + '...');
     }
 }
 
