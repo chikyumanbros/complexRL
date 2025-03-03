@@ -805,8 +805,12 @@ class Monster {
             this.x, this.y
         );
         
+        // スキルのジャンプと同じ計算方法でジャンプ範囲を計算
+        // DEXとCONの差を3で割って3を加えた値
+        const jumpRange = Math.floor((this.stats.dex - this.stats.con) / 3) + 3;
+        
         // 距離が近すぎる場合や遠すぎる場合はジャンプしない
-        if (distance <= 2 || distance > this.abilities.jumpRange) {
+        if (distance <= 2 || distance > jumpRange) {
             return false;
         }
         
@@ -845,7 +849,7 @@ class Monster {
                     );
                     
                     // 範囲内かつ実質的な移動量が2マス以上ならジャンプ候補に追加
-                    if (jumpDistance <= this.abilities.jumpRange && effectiveMovement >= 2) {
+                    if (jumpDistance <= jumpRange && effectiveMovement >= 2) {
                         jumpCandidates.push({
                             x: targetX,
                             y: targetY,
