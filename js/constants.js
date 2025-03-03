@@ -220,9 +220,9 @@ const GAME_CONSTANTS = {
     ROOM: {
         MIN_SIZE: 5,
         MAX_SIZE: 10,
-        MIN_COUNT: 12,
+        MIN_COUNT: 15,
         MAX_COUNT: 20,
-        PADDING: 1,
+        PADDING: 0,
         SAFE_RADIUS: 3,
         BRIGHTNESS: {
             DIM: 3,      // 暗い部屋

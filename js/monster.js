@@ -373,7 +373,12 @@ class Monster {
                     }
                 } else {
                     // プレイヤーからモンスターが見える場合のみスポットメッセージ
-                    const spotType = pathDistance <= effectiveSoundRange ? "hears" : "spots";
+                    // 修正: 視覚と聴覚を明確に区別
+                    const isVisual = euclideanDistance <= (this.perception + sizeBonus) && this.hasLineOfSight(game);
+                    const isAuditory = pathDistance <= effectiveSoundRange;
+                    
+                    // 視覚優先 (視覚的に検出できる場合は「spots」、そうでない場合は「hears」)
+                    const spotType = isVisual ? "spots" : "hears";
                     game.logger.add(`${this.name} ${spotType} you!`, "monsterInfo");
                     game.renderer.flashLogPanel();
                     game.soundManager.playSound('cautionSound');
@@ -962,6 +967,11 @@ class Monster {
         // ランダムに位置を選択
         const webPos = webPositions[Math.floor(Math.random() * webPositions.length)];
         
+        // 再度位置が有効か最終チェック
+        if (!this.canMoveTo(webPos.x, webPos.y, game)) {
+            return false;
+        }
+        
         // 蜘蛛の巣オブジェクトを生成
         const web = {
             x: webPos.x,
@@ -979,11 +989,17 @@ class Monster {
         }
         game.webs.push(web);
         
-        // ログに蜘蛛の巣生成メッセージを追加
-        game.logger.add(`${this.name} spins a web!`, "monsterInfo");
+        // プレイヤーの視界内にいる場合のみメッセージを表示
+        const isVisibleToPlayer = game.getVisibleTiles()
+            .some(tile => tile.x === this.x && tile.y === this.y);
         
-        // 効果音を再生
-        game.playSound('webSound');
+        if (isVisibleToPlayer) {
+            // ログに蜘蛛の巣生成メッセージを追加
+            game.logger.add(`${this.name} spins a web!`, "monsterInfo");
+            
+            // 効果音を再生
+            game.playSound('webSound');
+        }
         
         // クールダウンを設定
         this.webCooldownRemaining = this.abilities.webCooldown;

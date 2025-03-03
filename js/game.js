@@ -20,7 +20,7 @@ class Game {
         this.turn = 0;
         this.monsters = [];
         this.totalMonstersSpawned = 0;
-        this.maxTotalMonsters = 50;
+        this.maxTotalMonsters = 100;
         this.rooms = [];  // Stores room information
         this.isGameOver = false;
         this.floorLevel = 0;  // Changed from 1 to 0 for starting at home floor
@@ -96,7 +96,7 @@ class Game {
         this.turn = 0;
         this.monsters = [];
         this.totalMonstersSpawned = 0;
-        this.maxTotalMonsters = 50;
+        this.maxTotalMonsters = 100;
         this.rooms = [];
         this.isGameOver = false;
         this.floorLevel = 0;  // Changed from 1 to 0
@@ -1017,7 +1017,7 @@ class Game {
         localStorage.removeItem('complexRL_saveData');
 
         // Calculate final score.
-        const monstersKilled = this.maxTotalMonsters - this.monsters.length;
+        const monstersKilled = this.totalMonstersSpawned - this.monsters.length;
         const totalXP = this.player.xp;
         const finalScore = {
             monstersKilled: monstersKilled,
@@ -1106,6 +1106,9 @@ class Game {
         this.totalMonstersSpawned = 0;
         this.explored = this.initializeExplored();
         this.turn = 0;  // フロアごとのターン数をリセット
+        
+        // 蜘蛛の巣情報をリセット
+        this.webs = [];
 
         this.placePlayerInRoom();
         this.player.autoExploring = false;
@@ -1445,7 +1448,8 @@ class Game {
                 hp: monster.hp,
                 isSleeping: monster.isSleeping,
                 hasStartedFleeing: monster.hasStartedFleeing
-            }))
+            })),
+            webs: this.webs // 蜘蛛の巣データを保存
         };
 
         try {
@@ -1545,6 +1549,23 @@ class Game {
                         monster.hasStartedFleeing = monsterData.hasStartedFleeing ?? false;
                         return monster;
                     });
+            }
+            
+            // 蜘蛛の巣情報をリセットしてから復元
+            this.webs = [];
+            if (Array.isArray(data.webs)) {
+                // 有効な位置にあるwebだけを復元（壁の上にはwebを置かない）
+                this.webs = data.webs.filter(web => {
+                    if (!web || typeof web.x !== 'number' || typeof web.y !== 'number') {
+                        return false;
+                    }
+                    // 範囲チェック
+                    if (web.x < 0 || web.x >= this.width || web.y < 0 || web.y >= this.height) {
+                        return false;
+                    }
+                    // 床タイルの上にあるものだけ復元
+                    return this.map[web.y][web.x] === 'floor';
+                });
             }
 
             this.renderer.render();
