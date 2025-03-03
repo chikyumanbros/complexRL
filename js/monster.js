@@ -335,6 +335,7 @@ class Monster {
                 this.isSleeping = false;
                 game.logger.add(`${this.name} wakes up!`, "monsterInfo");
                 game.renderer.flashLogPanel();  // ログパネルをフラッシュ
+                game.playSound('cautionSound');
                 return;
             }
             return;

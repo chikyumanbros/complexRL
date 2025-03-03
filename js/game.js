@@ -1087,7 +1087,7 @@ class Game {
             this
         );
         const mapData = mapGenerator.generate();
-
+        
         this.map = mapData.map;
         this.tiles = mapData.tiles;
         this.colors = mapData.colors;
@@ -1112,11 +1112,32 @@ class Game {
         
         // 蜘蛛の巣情報をリセット
         this.webs = [];
+        
+        // マップ生成時に設置された蜘蛛の巣をゲームオブジェクトに追加
+        if (mapGenerator.initialWebs && mapGenerator.initialWebs.length > 0) {
+            console.log(`マップ生成時に ${mapGenerator.initialWebs.length} 個の蜘蛛の巣を配置しました。`);
+            
+            // 初期化されていなければ初期化
+            if (!this.webs) {
+                this.webs = [];
+            }
+            
+            // マップ生成時の蜘蛛の巣を追加
+            this.webs.push(...mapGenerator.initialWebs);
+        } else {
+            console.warn('マップ生成時に蜘蛛の巣が生成されませんでした');
+        }
+        
+        // Home Floorモードのために、階段の位置を記録
+        if (this.homeFloorData) {
+            this.homeFloorData.stairsPos = this.findStairsPosition();
+        }
 
+        // プレイヤーを配置
         this.placePlayerInRoom();
         this.player.autoExploring = false;
-
-        // モンスターの生成
+        
+        // モンスターの初期配置
         this.spawnInitialMonsters();
 
         // Initialize and display information
@@ -1977,8 +1998,8 @@ class Game {
         this.player.vigor = Math.min(GAME_CONSTANTS.VIGOR.MAX, this.player.vigor + vigorHealAmount);
         const actualVigorHealed = this.player.vigor - oldVigor;
         
-        // 回復メッセージを表示
-        this.logger.addMessage(`You feel revitalized! Recovered ${actualHpHealed} HP and ${actualVigorHealed} Vigor.`);
+        // 回復メッセージを表示（誤った関数名を修正）
+        this.logger.add(`You feel revitalized! Recovered ${actualHpHealed} HP and ${actualVigorHealed} Vigor.`, "playerInfo");
         
         // ステータスパネルを更新
         this.renderer.renderStatus();

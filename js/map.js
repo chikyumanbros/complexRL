@@ -9,6 +9,7 @@ class MapGenerator {
         this.colors = null; // タイルの色を保存
         this.rooms = null;  // 部屋の情報を保存するプロパティを追加
         this.neuralObelisks = [];  // ニューラルオベリスクの情報を保存する配列を初期化
+        this.initialWebs = [];     // 生成される蜘蛛の巣の情報を保存する配列を初期化
     }
 
     generate() {
@@ -20,11 +21,15 @@ class MapGenerator {
         if (this.floorLevel === 0) {
             this.generateHomeFloor();
         } else {
-            this.rooms = this.generateRooms();
-            this.connectRooms(this.rooms);
-            this.placeDoors(this.rooms);
-            this.placeStairs(this.rooms);
+            const rooms = this.generateRooms();
+            // 生成した部屋情報をインスタンス変数として保存
+            this.rooms = rooms;
+            this.connectRooms(rooms);
+            this.placeDoors(rooms);
+            this.placeStairs(rooms);
             this.placeVoidPortal(); // VOIDポータルを追加
+            this.placeWebsInRooms(rooms);
+            this.placeWebsInCorridors();
         }
         
         return {
@@ -1056,6 +1061,12 @@ class MapGenerator {
             return;
         }
 
+        // 部屋情報がない場合は処理しない
+        if (!this.rooms || !Array.isArray(this.rooms) || this.rooms.length <= 1) {
+            console.warn('placeVoidPortal: 部屋情報が不足しているか不正です。VOIDポータルを生成できません。');
+            return;
+        }
+
         // 最初の部屋以外からランダムに部屋を選択
         const availableRooms = this.rooms.slice(1);
         if (availableRooms.length === 0) return;
@@ -1086,5 +1097,125 @@ class MapGenerator {
         this.map[pos.y][pos.x] = 'void';  // 'portal'から'void'に変更
         this.tiles[pos.y][pos.x] = GAME_CONSTANTS.PORTAL.VOID.CHAR;
         this.colors[pos.y][pos.x] = GAME_CONSTANTS.PORTAL.VOID.COLORS[0];
+    }
+
+    // 部屋内に蜘蛛の巣を配置するメソッド
+    placeWebsInRooms(rooms) {
+        // roomsが不正な場合は処理しない
+        if (!rooms || !Array.isArray(rooms) || rooms.length === 0) {
+            console.warn('placeWebsInRooms: 部屋情報が不足しているか不正です。蜘蛛の巣を生成できません。');
+            return;
+        }
+
+        console.log(`placeWebsInRooms: ${rooms.length}個の部屋に蜘蛛の巣を生成します`);
+        let totalWebsCreated = 0;
+
+        rooms.forEach(room => {
+            // 部屋ごとに蜘蛛の巣を配置する確率（15%に調整）
+            if (Math.random() < 0.15) {
+                // 部屋内に配置する蜘蛛の巣の数（1〜2個に調整）
+                const webCount = Math.floor(Math.random() * 2) + 1;
+                let roomWebsCreated = 0;
+                
+                for (let i = 0; i < webCount; i++) {
+                    // 部屋内のランダムな位置を選択
+                    const x = room.x + 1 + Math.floor(Math.random() * (room.width - 2));
+                    const y = room.y + 1 + Math.floor(Math.random() * (room.height - 2));
+                    
+                    // 位置が有効かつ床タイルであることを確認
+                    if (this.isValidWebPosition(x, y)) {
+                        this.placeWeb(x, y);
+                        roomWebsCreated++;
+                        totalWebsCreated++;
+                    }
+                }
+                
+                if (roomWebsCreated > 0) {
+                    console.log(`部屋(${room.x},${room.y})に${roomWebsCreated}個の蜘蛛の巣を生成しました`);
+                }
+            }
+        });
+        
+        console.log(`placeWebsInRooms: 合計${totalWebsCreated}個の蜘蛛の巣を生成しました`);
+    }
+    
+    // 廊下に蜘蛛の巣を配置するメソッド
+    placeWebsInCorridors() {
+        console.log('placeWebsInCorridors: 廊下に蜘蛛の巣を生成します');
+        let totalWebsCreated = 0;
+        
+        // マップ全体をスキャン
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                // 床タイルかつ部屋内ではない場所（廊下）を検出
+                if (this.map[y][x] === 'floor' && !this.isInsideAnyRoom(x, y)) {
+                    // 廊下に蜘蛛の巣を配置する確率（2%に調整）
+                    if (Math.random() < 0.02) {
+                        if (this.isValidWebPosition(x, y)) {
+                            this.placeWeb(x, y);
+                            totalWebsCreated++;
+                        }
+                    }
+                }
+            }
+        }
+        
+        console.log(`placeWebsInCorridors: 廊下に${totalWebsCreated}個の蜘蛛の巣を生成しました`);
+    }
+    
+    // 蜘蛛の巣を配置可能な位置かどうかを判定
+    isValidWebPosition(x, y) {
+        // マップ範囲内チェック
+        if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
+            return false;
+        }
+
+        // 床タイルかつ何も配置されていないことを確認
+        if (this.map[y][x] !== 'floor') {
+            return false;
+        }
+        
+        // 階段、ポータル、障害物などが配置されていないか確認
+        // ニューラルオベリスクなどの特別なオブジェクトとの重複を避ける
+        // 基本床タイルであることを確認するよう条件を緩和
+        const isBasicFloorTile = GAME_CONSTANTS.TILES.FLOOR.includes(this.tiles[y][x]);
+        if (!isBasicFloorTile) {
+            return false;
+        }
+
+        // プレイヤーの初期位置からの安全距離チェック
+        if (this.game?.player) {
+            const dx = Math.abs(x - this.game.player.x);
+            const dy = Math.abs(y - this.game.player.y);
+            if (dx + dy < GAME_CONSTANTS.ROOM.SAFE_RADIUS) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    
+    // 指定位置に蜘蛛の巣を配置
+    placeWeb(x, y) {
+        const web = {
+            x: x,
+            y: y,
+            char: GAME_CONSTANTS.WEB.CHAR,
+            color: GAME_CONSTANTS.WEB.COLOR,
+            type: 'web',
+            createdBy: 'environment', // 環境によって生成されたことを示す
+            trapChance: GAME_CONSTANTS.WEB.TRAP_CHANCE
+        };
+        
+        // 常にinitialWebsに追加（バックアップとして）
+        this.initialWebs.push(web);
+        
+        // ゲームオブジェクトがあれば、websにも追加
+        if (this.game) {
+            if (!this.game.webs) {
+                this.game.webs = [];
+            }
+            this.game.webs.push(web);
+        }
     }
 } 
