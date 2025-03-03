@@ -11,6 +11,7 @@ class Player {
         this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
         this.stats = { ...GAME_CONSTANTS.STATS.DEFAULT_VALUES };
         this.remainingStatPoints = 12;  // 追加: 残りのステータスポイント
+        this.deathCause = null;  // 死亡原因を記録
 
         // HPの計算
         this.maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(this.stats, this.level);
@@ -443,26 +444,39 @@ class Player {
         
         // HPが0未満にならないように制限
         this.hp = Math.max(0, this.hp - damage);
+
+        // ダメージ結果を作成
+        const result = {
+            damage: damage,
+            killed: this.hp === 0,
+            evaded: false
+        };
         
         // HPが0になった場合の処理
         if (this.hp === 0) {
             this.game.renderer.showDeathEffect(this.x, this.y);
             this.game.playSound('playerDeathSound');  // 死亡時にSEを再生
+            
+            // 死因を設定
+            let cause = 'Exhaustion';  // デフォルトの死因
+            if (context.source) {
+                if (context.source instanceof Monster) {
+                    cause = `Killed by ${context.source.name}`;
+                } else if (context.source === 'exhaustion') {
+                    cause = 'Succumbed to exhaustion';
+                }
+            }
+            this.deathCause = cause;
+            
             this.game.gameOver();
         }
+
         this.game.renderer.render();
         // ダメージが1以上の場合のみ、SEとフラッシュエフェクトを再生
         if (damage > 0) {
             this.game.renderer.flashStatusPanel();
             this.game.playSound('takeDamageSound');
         }
-
-        // ダメージ結果を返す
-        const result = {
-            damage: damage,
-            killed: this.hp === 0,
-            evaded: false
-        };
 
         if (surroundingPenalty > 0) {
             this.game.logger.add(`Surrounded! (-${Math.floor(surroundingPenalty * 100)}% evasion)`, "warning");

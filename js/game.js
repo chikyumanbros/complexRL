@@ -44,10 +44,13 @@ class Game {
         this.logger.renderLookPanel();
 
         // Game クラスに neuralObelisks プロパティを追加
-        this.neuralObelisks = [];  // ニューラルオベリスクの情報を保存する配列
+        this.neuralObelisks = [];
         
         // 蜘蛛の巣の情報を保存する配列
         this.webs = [];
+
+        // ハイスコアの初期化
+        this.highScores = this.loadHighScores();
     }
 
     initializeExplored() {
@@ -1022,6 +1025,9 @@ class Game {
             totalScore: Math.floor((totalXP * 1.5) + (this.player.codexPoints / (this.turn * 0.01)))
         };
 
+        // ハイスコアを保存
+        this.saveHighScore(finalScore);
+
         // Render the final state.
         this.renderer.render();
 
@@ -1966,6 +1972,60 @@ class Game {
         //     web.duration--;
         //     return web.duration > 0;
         // });
+    }
+
+    // ハイスコアの保存
+    saveHighScore(finalScore) {
+        const deathInfo = {
+            cause: this.player.deathCause || 'Unknown',
+            level: this.player.level,
+            skills: Array.from(this.player.skills.entries()).map(([slot, skill]) => ({
+                slot,
+                id: skill.id
+            }))
+        };
+
+        const newScore = {
+            ...finalScore,
+            deathInfo,
+            date: new Date().toISOString()
+        };
+
+        this.highScores.push(newScore);
+        // スコアでソート（降順）
+        this.highScores.sort((a, b) => b.totalScore - a.totalScore);
+        // 上位5件のみ保持
+        this.highScores = this.highScores.slice(0, 5);
+
+        // ローカルストレージに保存
+        localStorage.setItem('complexRL_highScores', JSON.stringify(this.highScores));
+    }
+
+    // ハイスコアの読み込み
+    loadHighScores() {
+        const savedScores = localStorage.getItem('complexRL_highScores');
+        return savedScores ? JSON.parse(savedScores) : [];
+    }
+
+    // ハイスコアの表示
+    showHighScores() {
+        if (this.highScores.length === 0) {
+            this.logger.add("No high scores yet!", "info");
+            return;
+        }
+
+        this.logger.add("=== HIGH SCORES ===", "important");
+        this.highScores.forEach((score, index) => {
+            const date = new Date(score.date).toLocaleDateString();
+            this.logger.add(`${index + 1}. Score: ${score.totalScore}`, "important");
+            this.logger.add(`   Level: ${score.deathInfo.level}`, "info");
+            this.logger.add(`   Monsters: ${score.monstersKilled}`, "info");
+            this.logger.add(`   Codex: ${score.codexPoints}`, "info");
+            this.logger.add(`   Turns: ${score.turns}`, "info");
+            this.logger.add(`   Death: ${score.deathInfo.cause}`, "death");
+            this.logger.add(`   Date: ${date}`, "info");
+            this.logger.add("", "info");
+        });
     }
 }
 

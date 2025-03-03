@@ -129,10 +129,14 @@ class Monster {
     }
 
     // ========================== takeDamage Method ==========================
-    takeDamage(amount, game) {
+    takeDamage(amount, gameOrContext) {
+        // gameOrContextがオブジェクトで、gameプロパティを持っている場合はコンテキスト
+        const game = gameOrContext.game || gameOrContext;
+        const context = gameOrContext.game ? gameOrContext : {};
+
         if (!game) {
             console.error('Game object is undefined in takeDamage');
-            return { damage: amount, killed: false };
+            return { damage: amount, killed: false, evaded: false };
         }
 
         const damage = Math.max(1, amount);
@@ -152,10 +156,6 @@ class Monster {
 
         // HPの上限チェック
         if (this.hp > this.maxHp) {
-            //console.warn(`Monster HP exceeded maxHP after damage: ${this.name}`, {
-            //    hp: this.hp,
-            //    maxHp: this.maxHp
-            //});
             this.hp = this.maxHp;
         }
 
@@ -456,7 +456,7 @@ class Monster {
 
     // ========================== attackPlayer Method ==========================
     attackPlayer(player, game) {
-        if (this.isSleeping) return;
+        if (this.isSleeping) return { hit: false, evaded: false, damage: 0 };
         
         // 蜘蛛の巣に捕まっている場合は攻撃できない
         if (this.caughtInWeb) {
@@ -467,7 +467,7 @@ class Monster {
             if (isVisibleToPlayer) {
                 game.logger.add(`${this.name} struggles in the web and can't attack.`, "monsterInfo");
             }
-            return;
+            return { hit: false, evaded: false, damage: 0 };
         }
         
         game.lastCombatMonster = this;

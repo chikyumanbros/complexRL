@@ -80,6 +80,12 @@ class InputHandler {
             this.lastCtrlKeyTime = Date.now();
             //console.log('Control key state set to true');
         }
+
+        // ハイスコア表示のキー判定（Shift + s）
+        if (event.shiftKey && event.key.toLowerCase() === 's') {
+            this.game.showHighScores();
+            return;
+        }
         
         // 名前入力モードの場合は大文字小文字を区別するため、keyを変換しない
         const key = this.mode === 'name' ? event.key : event.key.toLowerCase();
@@ -591,9 +597,6 @@ class InputHandler {
             return;
         }
 
-        // --- 処理済みかどうかをチェック ---
-        let processed = false;
-        
         // --- Tab key to toggle codex ---
         if (key === 'tab') {
             this.game.toggleMode();
@@ -621,6 +624,9 @@ class InputHandler {
             return;
         }
 
+        // --- 処理済みかどうかをチェック ---
+        let processed = false;
+        
         // スキルスロット並べ替えモードの処理
         if (this.skillSlotSwapMode) {
             this.handleSkillSlotSwapMode(key);

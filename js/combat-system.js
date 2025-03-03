@@ -4,7 +4,7 @@ class CombatSystem {
     static resolveCombatAction(attacker, defender, game, context = {}) {
         if (!game) {
             console.error('Game object is undefined in resolveCombatAction');
-            return { hit: false };
+            return { hit: false, evaded: false };
         }
         // 機会攻撃の場合の特別処理
         if (context.isOpportunityAttack) {
@@ -72,7 +72,7 @@ class CombatSystem {
                 damage: 0,
                 context: attackContext
             };
-            return { hit: false };
+            return game.lastAttackResult;
         }
 
         // 回避判定（クリティカルまたは機会攻撃の場合はスキップ）
@@ -85,7 +85,7 @@ class CombatSystem {
                     damage: 0,
                     context: attackContext
                 };
-                return { hit: true, evaded: true };
+                return game.lastAttackResult;
             }
         }
         
@@ -94,7 +94,20 @@ class CombatSystem {
         
         // ダメージ適用
         const finalDamage = Math.min(defender.hp, damageResult.damage);
-        const result = defender.takeDamage(finalDamage, game);
+        const result = defender.takeDamage(finalDamage, {
+            game: game,
+            isCritical: attackContext.isCritical
+        });
+        
+        if (!result) {
+            console.error('takeDamage returned undefined result');
+            return {
+                hit: true,
+                evaded: false,
+                damage: finalDamage,
+                killed: false
+            };
+        }
         
         // 結果の処理
         this.processCombatResult(attacker, defender, result, damageResult, attackContext, game);
