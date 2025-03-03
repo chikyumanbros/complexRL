@@ -1139,6 +1139,14 @@ class Player {
             return;
         }
 
+        // ランドマークに隣接しているかチェック（斜めも含む）
+        const isAdjacent = Math.abs(this.x - landmark.x) <= 1 && Math.abs(this.y - landmark.y) <= 1;
+        if (isAdjacent) {
+            this.stopAutoMoveToLandmark();
+            this.game.logger.add("You arrive at your destination.", "playerInfo");
+            return;
+        }
+
         // ランドマークへの方向を見つける
         const direction = this.findDirectionToLandmark(landmark);
         if (!direction) {
@@ -1150,14 +1158,8 @@ class Player {
         // 移動実行
         if (this.move(direction.dx, direction.dy, this.game.map)) {
             this.game.processTurn();
-            // ランドマークに到着したかチェック
-            if (this.x === landmark.x && this.y === landmark.y) {
-                this.stopAutoMoveToLandmark();
-                this.game.logger.add("You arrive at your destination.", "playerInfo");
-            } else {
-                // 次のターンの自動移動をスケジュール
-                setTimeout(() => this.continueAutoMoveToLandmark(landmark), 50);
-            }
+            // 次のターンの自動移動をスケジュール
+            setTimeout(() => this.continueAutoMoveToLandmark(landmark), 50);
         } else {
             this.stopAutoMoveToLandmark();
         }
@@ -1442,11 +1444,12 @@ class Player {
         // 床タイルは常に有効
         if (this.game.map[y][x] === 'floor') return true;
         
-        // 特殊タイル（階段、ポータルなど）の場合
+        // 特殊タイル（階段、ポータル、ニューラルオベリスクなど）の場合
         const tileChar = this.game.tiles[y][x];
         return tileChar === GAME_CONSTANTS.STAIRS.CHAR ||
                tileChar === GAME_CONSTANTS.PORTAL.GATE.CHAR ||
-               tileChar === GAME_CONSTANTS.PORTAL.VOID.CHAR;
+               tileChar === GAME_CONSTANTS.PORTAL.VOID.CHAR ||
+               tileChar === GAME_CONSTANTS.NEURAL_OBELISK.CHAR;  // ニューラルオベリスクを追加
     }
     
     // 指定座標周辺の敵の数をカウント
