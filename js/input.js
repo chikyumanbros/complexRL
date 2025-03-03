@@ -200,6 +200,18 @@ class InputHandler {
                 this.cancelTargeting();
                 return;
             }
+            // restモードの解除を追加
+            if (this.game.player.resting?.active) {
+                this.game.cancelRest("Cancelled by player");
+                return;
+            }
+            // 自動移動・自動探索の解除を追加
+            if (this.game.player.autoExploring || 
+                this.game.player.autoMovingToStairs || 
+                this.game.player.autoMovingToLandmark) {
+                this.game.player.stopAllAutoMovement();
+                return;
+            }
             // スキルスロット並べ替えモードの解除を追加
             if (this.skillSlotSwapMode) {
                 this.cancelSkillSlotSwap();
@@ -575,6 +587,21 @@ class InputHandler {
     // Game Mode Input Handling
     // ----------------------
     handleGameModeInput(key) {
+        // restモード中なら任意のキー入力でキャンセル（ESCキー以外の場合）
+        if (this.game.player.resting?.active && key !== 'escape') {
+            this.game.cancelRest("Cancelled by player");
+            return;
+        }
+
+        // 自動探索や自動移動中なら任意のキー入力でキャンセル（ESCキー以外の場合）
+        if ((this.game.player.autoExploring || 
+             this.game.player.autoMovingToStairs || 
+             this.game.player.autoMovingToLandmark) && 
+            key !== 'escape') {
+            this.game.player.stopAllAutoMovement();
+            return;
+        }
+
         // --- Debug ---
         if (key === '`') {
             const debug = document.getElementById('debug-panel');
