@@ -1014,10 +1014,12 @@ class Game {
 
         // Calculate final score.
         const monstersKilled = this.maxTotalMonsters - this.monsters.length;
+        const totalXP = this.player.xp;
         const finalScore = {
             monstersKilled: monstersKilled,
             codexPoints: this.player.codexPoints,
-            turns: this.turn
+            turns: this.turn,
+            totalScore: Math.floor((totalXP * 1.5) + (this.player.codexPoints / (this.turn * 0.01)))
         };
 
         // Render the final state.

@@ -353,7 +353,12 @@ class Monster {
         const hasDoorBetween = this.hasClosedDoorBetween(game, game.player.x, game.player.y);
         const effectiveSoundRange = hasDoorBetween ? soundRange / 2 : soundRange;
 
-        if ((euclideanDistance <= this.perception && this.hasLineOfSight(game)) || 
+        // プレイヤーのサイズによる感知ボーナスを計算（プレイヤーの感知システムと同じ計算式）
+        const playerSize = GAME_CONSTANTS.FORMULAS.SIZE(game.player.stats);
+        const sizeBonus = (3 - playerSize.value) * 2;  // プレイヤーの感知システムと同じ計算式
+
+        // サイズボーナスを考慮した感知判定
+        if ((euclideanDistance <= (this.perception + sizeBonus) && this.hasLineOfSight(game)) || 
             (pathDistance <= effectiveSoundRange)) {
             if (!this.hasSpottedPlayer) {
                 const isVisibleToPlayer = game.getVisibleTiles()
