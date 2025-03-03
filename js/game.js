@@ -369,29 +369,42 @@ class Game {
     }
 
     processTurn() {
-        this.hasDisplayedPresenceWarning = false;  // フラグをリセット
+        this.hasDisplayedPresenceWarning = false;
         this.turn++;
-
-        // 明るさの揺らぎを更新
         this.renderer.updateFlickerValues();
 
-        // 蜘蛛の巣に捕まっている状態を確認
+        // プレイヤーのターン処理
+        if (this.player.hp > 0) {
+            this.processPlayerTurn();
+        }
+
+        // モンスターのターン処理
+        this.processMonsterTurn();
+
+        // 自然回復処理
+        if (this.player.hp > 0 && !this.player.meditation) {
+            this.processNaturalHealing();
+        }
+
+        // ターン終了時の更新処理
+        this.processEndTurnUpdates();
+    }
+
+    processPlayerTurn() {
+        // 蜘蛛の巣処理
         if (this.player.caughtInWeb) {
-            // ターン開始時に自動的に脱出を試みる
             if (!this.player.tryToBreakFreeFromWeb()) {
                 // 失敗した場合、このターンの行動は制限される
-                // メッセージは tryToBreakFreeFromWeb 内で表示されるのでここでは追加しない
             }
         }
 
-        // メディテーション処理（最優先）
-        if (this.player.hp > 0 && this.player.meditation?.active) {
+        // メディテーション処理
+        if (this.player.meditation?.active) {
             this.processMeditation();
         }
 
-        // 休憩処理の追加（メディテーション後、自然回復の前に）
-        if (this.player.hp > 0 && this.player.resting?.active) {
-            // モード別の終了条件チェック
+        // 休憩処理
+        if (this.player.resting?.active) {
             if (this.player.hp >= this.player.maxHp) {
                 this.endRest("Your HP is fully restored");
             } else if (this.player.resting.mode === 'turns') {
@@ -402,100 +415,13 @@ class Game {
             }
         }
 
-        // Vigorの処理 (floor 0では全回復)
-        if (this.player.hp > 0) {
-            if (this.floorLevel === 0) {
-                // floor 0では最大値まで回復
-                const currentVigor = Number.isFinite(this.player.vigor) ? 
-                    Number(this.player.vigor) : 
-                    GAME_CONSTANTS.VIGOR.MAX;
-
-                if (currentVigor < GAME_CONSTANTS.VIGOR.MAX) {
-                    const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(
-                        currentVigor,
-                        this.player.stats
-                    );
-                    
-                    // 値を設定する前にバリデーション
-                    this.player.validateVigor();
-                    this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
-                    this.player.validateVigor();
-
-                    const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
-
-                    // 状態が変化した場合のみログ表示
-                    if (oldStatus.name !== newStatus.name) {
-                        this.logger.add(`Your vigor has been restored to ${newStatus.name.toLowerCase()} level.`, "playerInfo");
-                        // Vigor状態変化時に効果音を再生
-                        this.playSound('vigorUpSound');
-                    }
-                }
-            } else {
-                // 通常フロアでのVigor減少処理
-                this.player.validateVigor();  // 初期バリデーション
-
-                const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
-                
-                // 現在の部屋の危険度を取得
-                const currentRoom = this.getCurrentRoom();
-                const dangerLevel = currentRoom ? currentRoom.dangerLevel : 'NORMAL';
-                
-                const decreaseChance = GAME_CONSTANTS.VIGOR.calculateDecreaseChance(this.turn, dangerLevel);
-                const roll = Math.floor(Math.random() * 100);
-
-                // Vigor減少処理
-                if (roll < decreaseChance) {
-                    // 体力状態を取得
-                    const healthStatus = GAME_CONSTANTS.HEALTH_STATUS.getStatus(
-                        this.player.hp,
-                        this.player.maxHp,
-                        this.player.stats
-                    );
-                    
-                    // 新しいcalculateDecreaseAmount関数を使用して低下量を計算（体力状態も考慮）
-                    const decrease = GAME_CONSTANTS.VIGOR.calculateDecreaseAmount(
-                        this.player.vigor, 
-                        this.player.stats,
-                        healthStatus
-                    );
-                    
-                    const oldVigor = this.player.vigor;
-                    this.player.vigor = Math.max(0, this.player.vigor - decrease);
-                    this.player.validateVigor();  // 値変更後のバリデーション
-
-                    // 新しい状態を取得
-                    const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
-
-                    // vigorChange を計算
-                    const vigorChange = this.player.vigor - oldVigor;
-
-                    // 状態が変化した場合のみログ表示
-                    if (oldStatus.name !== newStatus.name) {
-                        if (vigorChange < 0) {
-                            this.logger.add(`Your vigor has decreased to ${newStatus.name.toLowerCase()} level.`, "warning");
-                            this.playSound('vigorDownSound');
-                        } else if (vigorChange > 0) {
-                            this.logger.add(`Your vigor has increased to ${newStatus.name.toLowerCase()} level.`, "playerInfo");
-                            this.playSound('vigorUpSound');
-                        }
-                    }
-                }
-            }
-
-            // Vigorペナルティの処理（Vigor減少とは完全に独立）
-            // HPが0より大きく、かつホームフロア以外の場合に毎ターン実行
-            if (this.player.hp > 0 && this.floorLevel !== 0) {
-                const currentStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
-                this.processVigorPenalty(currentStatus);
-            }
-        }
+        // Vigor処理
+        this.processVigorUpdate();
 
         // スキルのクールダウン処理
-        if (this.player.hp > 0) {
-            for (const [_, skill] of this.player.skills) {
-                if (skill.remainingCooldown > 0) {
-                    skill.remainingCooldown--;
-                }
+        for (const [_, skill] of this.player.skills) {
+            if (skill.remainingCooldown > 0) {
+                skill.remainingCooldown--;
             }
         }
 
@@ -506,10 +432,90 @@ class Game {
 
         // プレイヤーのnextAttackModifiersをクリア
         this.player.nextAttackModifiers = [];
+    }
 
+    processVigorUpdate() {
+        if (this.floorLevel === 0) {
+            this.processHomeFloorVigor();
+        } else {
+            this.processNormalFloorVigor();
+        }
+
+        // Vigorペナルティの処理
+        if (this.floorLevel !== 0) {
+            const currentStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+            this.processVigorPenalty(currentStatus);
+        }
+    }
+
+    processHomeFloorVigor() {
+        const currentVigor = Number.isFinite(this.player.vigor) ? 
+            Number(this.player.vigor) : 
+            GAME_CONSTANTS.VIGOR.MAX;
+
+        if (currentVigor < GAME_CONSTANTS.VIGOR.MAX) {
+            const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(currentVigor, this.player.stats);
+            
+            this.player.validateVigor();
+            this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
+            this.player.validateVigor();
+
+            const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+
+            if (oldStatus.name !== newStatus.name) {
+                this.logger.add(`Your vigor has been restored to ${newStatus.name.toLowerCase()} level.`, "playerInfo");
+                this.playSound('vigorUpSound');
+            }
+        }
+    }
+
+    processNormalFloorVigor() {
+        this.player.validateVigor();
+
+        const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+        
+        const currentRoom = this.getCurrentRoom();
+        const dangerLevel = currentRoom ? currentRoom.dangerLevel : 'NORMAL';
+        
+        const decreaseChance = GAME_CONSTANTS.VIGOR.calculateDecreaseChance(this.turn, dangerLevel);
+        const roll = Math.floor(Math.random() * 100);
+
+        if (roll < decreaseChance) {
+            const healthStatus = GAME_CONSTANTS.HEALTH_STATUS.getStatus(
+                this.player.hp,
+                this.player.maxHp,
+                this.player.stats
+            );
+            
+            const decrease = GAME_CONSTANTS.VIGOR.calculateDecreaseAmount(
+                this.player.vigor, 
+                this.player.stats,
+                healthStatus
+            );
+            
+            const oldVigor = this.player.vigor;
+            this.player.vigor = Math.max(0, this.player.vigor - decrease);
+            this.player.validateVigor();
+
+            const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+            const vigorChange = this.player.vigor - oldVigor;
+
+            if (oldStatus.name !== newStatus.name) {
+                if (vigorChange < 0) {
+                    this.logger.add(`Your vigor has decreased to ${newStatus.name.toLowerCase()} level.`, "warning");
+                    this.playSound('vigorDownSound');
+                } else if (vigorChange > 0) {
+                    this.logger.add(`Your vigor has increased to ${newStatus.name.toLowerCase()} level.`, "playerInfo");
+                    this.playSound('vigorUpSound');
+                }
+            }
+        }
+    }
+
+    processMonsterTurn() {
         // モンスターの行動
         this.monsters.forEach(monster => {
-            if (!monster.hasActedThisTurn) { // 追加: 行動済みでないか確認
+            if (!monster.hasActedThisTurn) {
                 monster.act(this);
             }
         });
@@ -522,82 +528,84 @@ class Game {
             monster.hasActedThisTurn = false;
         }
 
-        // プレイヤーの知覚チェック（存在感知）
+        // プレイヤーの知覚チェック
         if (this.player.hp > 0) {
             this.player.checkPerception(this);
         }
+    }
 
-        // ターンの最後に自然回復処理を実行
-        if (this.player.hp > 0 && !this.player.meditation) {
-            // プレイヤーの自然回復処理
-            const vigorStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
-            if (vigorStatus.name !== 'Exhausted' && this.player.hp < this.player.maxHp) {
-                const successChance = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.getSuccessChance(this.player.stats);
-                const roll = Math.random() * 100;
+    processNaturalHealing() {
+        // プレイヤーの自然回復
+        this.processPlayerNaturalHealing();
 
-                if (roll < successChance) {
-                    const healingDice = GAME_CONSTANTS.FORMULAS.HEALING_DICE(this.player.stats);
-                    const healModifier = GAME_CONSTANTS.FORMULAS.HEAL_MODIFIER(this.player.stats);
-                    const healResult = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.calculateHeal(healingDice, healModifier);
-                    const actualHeal = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.applyHeal(this.player, healResult.amount);
+        // モンスターの自然回復
+        this.processMonsterNaturalHealing();
+    }
 
-                    if (actualHeal > 0) {
-                        this.logger.add(
-                            `Natural healing: [${healResult.rolls.join(',')}]+${healModifier} > +${actualHeal} HP`,
-                            "heal"  // CSSで定義された heal クラスを使用
-                        );
-                    }
-                }
-            }
+    processPlayerNaturalHealing() {
+        const vigorStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
+        if (vigorStatus.name !== 'Exhausted' && this.player.hp < this.player.maxHp) {
+            const successChance = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.getSuccessChance(this.player.stats);
+            const roll = Math.random() * 100;
 
-            // モンスターの自然回復処理
-            for (const monster of this.monsters) {
-                if (monster.hp < monster.maxHp) {
-                    const successChance = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.getSuccessChance(monster.stats);
-                    const roll = Math.random() * 100;
+            if (roll < successChance) {
+                const healingDice = GAME_CONSTANTS.FORMULAS.HEALING_DICE(this.player.stats);
+                const healModifier = GAME_CONSTANTS.FORMULAS.HEAL_MODIFIER(this.player.stats);
+                const healResult = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.calculateHeal(healingDice, healModifier);
+                const actualHeal = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.applyHeal(this.player, healResult.amount);
 
-                    if (roll < successChance) {
-                        const healingDice = GAME_CONSTANTS.FORMULAS.HEALING_DICE(monster.stats);
-                        const healModifier = GAME_CONSTANTS.FORMULAS.HEAL_MODIFIER(monster.stats);
-                        const healResult = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.calculateHeal(healingDice, healModifier);
-                        const actualHeal = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.applyHeal(monster, healResult.amount);
-
-                        // 回復後に再度maxHPチェック
-                        if (monster.hp > monster.maxHp) {
-                            console.warn(`Monster HP exceeded maxHP after healing: ${monster.name}`, {
-                                hp: monster.hp,
-                                maxHp: monster.maxHp
-                            });
-                            monster.hp = monster.maxHp;
-                        }
-                    }
-
-                    if (monster.hasStartedFleeing && (monster.hp / monster.maxHp) > monster.fleeThreshold) {
-                        monster.hasStartedFleeing = false;
-                    }
+                if (actualHeal > 0) {
+                    this.logger.add(
+                        `Natural healing: [${healResult.rolls.join(',')}]+${healModifier} > +${actualHeal} HP`,
+                        "heal"
+                    );
                 }
             }
         }
+    }
 
-        // ターン終了時の更新処理
+    processMonsterNaturalHealing() {
+        for (const monster of this.monsters) {
+            if (monster.hp < monster.maxHp) {
+                const successChance = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.getSuccessChance(monster.stats);
+                const roll = Math.random() * 100;
+
+                if (roll < successChance) {
+                    const healingDice = GAME_CONSTANTS.FORMULAS.HEALING_DICE(monster.stats);
+                    const healModifier = GAME_CONSTANTS.FORMULAS.HEAL_MODIFIER(monster.stats);
+                    const healResult = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.calculateHeal(healingDice, healModifier);
+                    const actualHeal = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.applyHeal(monster, healResult.amount);
+
+                    if (monster.hp > monster.maxHp) {
+                        console.warn(`Monster HP exceeded maxHP after healing: ${monster.name}`, {
+                            hp: monster.hp,
+                            maxHp: monster.maxHp
+                        });
+                        monster.hp = monster.maxHp;
+                    }
+                }
+
+                if (monster.hasStartedFleeing && (monster.hp / monster.maxHp) > monster.fleeThreshold) {
+                    monster.hasStartedFleeing = false;
+                }
+            }
+        }
+    }
+
+    processEndTurnUpdates() {
         this.updateExplored();
         this.updateRoomInfo();
         this.renderer.psychedelicTurn++;
-        
-        // 蜘蛛の巣の更新処理
         this.updateWebs();
-        
         this.renderer.render();
         this.saveGame();
 
-        // lookInfoの更新を追加
         if (this.inputHandler.examineTarget) {
             const target = this.inputHandler.examineTarget;
             this.logger.updateLookInfo(target.x, target.y);
         }
 
         if (this.floorLevel === 0) {
-            // ホームフロアでは宇宙空間のアニメーションを停止し、プレイヤーのステータスのみ更新
             this.updateHomeFloorStatus();
         }
     }
