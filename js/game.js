@@ -1025,6 +1025,15 @@ class Game {
             totalScore: Math.floor((totalXP * 1.5) + (this.player.codexPoints / (this.turn * 0.01)))
         };
 
+        // 死因が設定されていない場合は、最後の戦闘情報から推測
+        if (!this.player.deathCause) {
+            if (this.lastCombatMonster) {
+                this.player.deathCause = `Slain by ${this.lastCombatMonster.name}`;
+            } else if (this.player.hp <= 0) {
+                this.player.deathCause = 'Unknown cause';
+            }
+        }
+
         // ハイスコアを保存
         this.saveHighScore(finalScore);
 
@@ -1689,6 +1698,7 @@ class Game {
                     if (this.player.hp <= 0) {
                         this.soundManager.playSound('playerDeathSound');
                         this.logger.add("You succumb to exhaustion...", "important");
+                        this.player.deathCause = "Died from exhaustion";  // 死因を設定
                         this.gameOver();
                         return; // 死亡した場合は処理を終了
                     }
@@ -1991,11 +2001,24 @@ class Game {
             date: new Date().toISOString()
         };
 
-        this.highScores.push(newScore);
+        // 既存のスコアを読み込む
+        let allScores = this.loadHighScores();
+        
+        // 新しいスコアを追加
+        allScores.push(newScore);
+        
         // スコアでソート（降順）
-        this.highScores.sort((a, b) => b.totalScore - a.totalScore);
-        // 上位5件のみ保持
-        this.highScores = this.highScores.slice(0, 5);
+        allScores.sort((a, b) => {
+            // まずtotalScoreで比較
+            if (b.totalScore !== a.totalScore) {
+                return b.totalScore - a.totalScore;
+            }
+            // totalScoreが同じ場合は、より新しい日付を優先
+            return new Date(b.date) - new Date(a.date);
+        });
+        
+        // 上位5件のみを保持
+        this.highScores = allScores.slice(0, 5);
 
         // ローカルストレージに保存
         localStorage.setItem('complexRL_highScores', JSON.stringify(this.highScores));
@@ -2014,6 +2037,10 @@ class Game {
             return;
         }
 
+        // 名前入力モード中の場合は、一時的にinputHandlerのmodeを保存
+        const currentMode = this.inputHandler.mode;
+        const isNameInputMode = currentMode === 'name';
+
         this.logger.add("=== HIGH SCORES ===", "important");
         this.highScores.forEach((score, index) => {
             const date = new Date(score.date).toLocaleDateString();
@@ -2026,6 +2053,12 @@ class Game {
             this.logger.add(`   Date: ${date}`, "info");
             this.logger.add("", "info");
         });
+
+        // 名前入力モード中の場合は、名前入力プロンプトを再表示
+        if (isNameInputMode) {
+            this.renderer.renderNamePrompt(this.player.name || '');
+            this.inputHandler.mode = 'name';
+        }
     }
 }
 

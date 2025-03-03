@@ -454,9 +454,6 @@ class Player {
         
         // HPが0になった場合の処理
         if (this.hp === 0) {
-            this.game.renderer.showDeathEffect(this.x, this.y);
-            this.game.playSound('playerDeathSound');  // 死亡時にSEを再生
-            
             // 死因を設定
             let cause = 'Exhaustion';  // デフォルトの死因
             if (context.source) {
@@ -468,7 +465,19 @@ class Player {
             }
             this.deathCause = cause;
             
-            this.game.gameOver();
+            // エフェクトと効果音を再生
+            this.game.renderer.showDeathEffect(this.x, this.y);
+            this.game.playSound('playerDeathSound');
+            
+            // 画面の更新
+            this.game.renderer.render();
+            
+            // 結果を返してからゲームオーバー処理を実行
+            setTimeout(() => {
+                this.game.gameOver();
+            }, 0);
+            
+            return result;
         }
 
         this.game.renderer.render();

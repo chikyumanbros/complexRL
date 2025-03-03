@@ -81,8 +81,9 @@ class InputHandler {
             //console.log('Control key state set to true');
         }
 
-        // ハイスコア表示のキー判定（Shift + s）
-        if (event.shiftKey && event.key.toLowerCase() === 's') {
+        // ハイスコア表示のキー判定（Ctrl + s）
+        if (event.ctrlKey && event.key.toLowerCase() === 's') {
+            event.preventDefault(); // ブラウザのデフォルトの保存動作を防止
             this.game.showHighScores();
             return;
         }

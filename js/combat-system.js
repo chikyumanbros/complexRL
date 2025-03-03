@@ -248,6 +248,8 @@ class CombatSystem {
     static processCombatResult(attacker, defender, result, damageResult, context, game) {
         // プレイヤーが死亡している場合は処理を中断
         if (!context.isPlayer && defender.hp <= 0) {
+            // プレイヤーが死亡した場合、死因を記録
+            defender.deathCause = `Slain by ${attacker.name}`;
             return;
         }
 
