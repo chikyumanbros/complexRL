@@ -79,12 +79,7 @@ class Game {
         document.body.classList.remove('codex-mode');
         document.body.classList.remove('help-mode');
 
-        // スキルのクールダウンをリセット
-        if (this.player.skills) {
-            for (const skill of this.player.skills.values()) {
-                skill.remainingCooldown = 0;
-            }
-        }
+        // スキルのクールダウンをリセット部分は削除
 
         // Fully reset the state
         this.map = [];
@@ -226,6 +221,14 @@ class Game {
             this.player.stats[stat] = 6;
         });
         this.player.remainingStatPoints = 12;  // 割り振り可能なポイント
+        
+        // スキルのクールダウンをリセット（ゲーム初期化時のみ）
+        if (this.player.skills) {
+            for (const skill of this.player.skills.values()) {
+                skill.remainingCooldown = 0;
+            }
+        }
+        
         this.codexSystem = new CodexSystem();
         this.logger = new Logger(this);
         this.isGameOver = false;
@@ -1517,6 +1520,9 @@ class Game {
                         });
                     }
                 });
+            } else {
+                // 新規ゲーム開始時（スキルが存在しない場合）にはクールダウンをリセットする
+                // 既存のゲームロード時は、スキルのクールダウンはそのまま保持する
             }
 
             // 派生ステータスの復元
@@ -2065,6 +2071,8 @@ class Game {
             console.log('消去処理実行');
             codexPanelElement.innerHTML = '';
             this.isShowingHighScores = false;
+            // lookpanelの内容を復元する
+            this.logger.renderLookPanel();
             return;
         }
 
