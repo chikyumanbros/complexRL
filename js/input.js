@@ -742,6 +742,16 @@ class InputHandler {
                 return;
             }
 
+            // 蜘蛛の巣の処理を追加
+            const web = this.game.webs && this.game.webs.find(w => w.x === x && w.y === y);
+            if (web) {
+                this.removeWeb(x, y, web);
+                this.game.processTurn();
+                this.game.renderer.render();
+                this.mode = 'normal';
+                return;
+            }
+
             // ポータルの使用を試みる
             if (tile === GAME_CONSTANTS.PORTAL.VOID.CHAR || tile === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
                 const isVoid = tile === GAME_CONSTANTS.PORTAL.VOID.CHAR;
@@ -814,9 +824,9 @@ class InputHandler {
             ];
 
             // 隣接する扉、ポータル、ニューラルオベリスク、蜘蛛の巣をチェック
-            for (let offset of adjacentOffsets) {
-                const x = player.x + offset.dx;
-                const y = player.y + offset.dy;
+            for (const dir of adjacentOffsets) {
+                const x = player.x + dir.dx;
+                const y = player.y + dir.dy;
 
                 if (x < 0 || x >= this.game.width || y < 0 || y >= this.game.height) continue;
 
@@ -828,8 +838,24 @@ class InputHandler {
                          tile === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
                     interactables.push({ x, y, type: 'portal', tile });
                 } else if (tile === GAME_CONSTANTS.NEURAL_OBELISK.CHAR) {
-                    // ニューラルオベリスクをインタラクト可能なオブジェクトとして追加
-                    interactables.push({ x, y, type: 'obelisk', tile });
+                    // オベリスクの情報を取得
+                    const obelisk = this.game.neuralObelisks && 
+                                  this.game.neuralObelisks.find(o => o.x === x && o.y === y);
+                    
+                    let level = 3; // デフォルトはレベル3
+                    let colorName = "yellow";
+                    
+                    if (obelisk) {
+                        level = obelisk.level;
+                        switch(level) {
+                            case 1: colorName = "blue"; break;
+                            case 2: colorName = "green"; break;
+                            case 3: colorName = "yellow"; break;
+                            case 4: colorName = "orange"; break;
+                            case 5: colorName = "purple"; break;
+                        }
+                    }
+                    interactables.push({ x, y, type: 'obelisk', level, colorName });
                 }
                 
                 // 蜘蛛の巣をチェック
@@ -902,7 +928,7 @@ class InputHandler {
                     }
                 } else if (target.type === 'obelisk') {
                     // ニューラルオベリスクの処理
-                    this.touchNeuralObelisk(target.x, target.y);
+                    this.game.touchNeuralObelisk(target.x, target.y);
                     this.game.processTurn();
                     this.game.renderer.render();
                 } else if (target.type === 'web') {
@@ -917,7 +943,14 @@ class InputHandler {
             // 複数のインタラクト可能なオブジェクトがある場合は通常のインタラクトモードを開始
             if (interactables.length > 0) {
                 this.mode = 'interact';
-                this.game.logger.add("Choose direction to interact. (Press direction key)", "info");
+                // インタラクト可能なオブジェクトの種類に応じてメッセージを変更
+                let message = "Choose direction to interact with:";
+                const types = new Set(interactables.map(item => item.type));
+                if (types.has('door')) message += " door";
+                if (types.has('portal')) message += " portal";
+                if (types.has('obelisk')) message += " neural obelisk";
+                if (types.has('web')) message += " spider web";
+                this.game.logger.add(message, "info");
             } else {
                 this.game.logger.add("Nothing to interact with nearby.", "warning");
             }
