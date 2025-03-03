@@ -2010,63 +2010,17 @@ class Renderer {
         this.render(); // 再描画を実行
     }
 
-    // 蜘蛛の巣エフェクトを表示するメソッド
+    /**
+     * ウェブ生成エフェクトを表示
+     * @param {number} x - ウェブのX座標
+     * @param {number} y - ウェブのY座標
+     */
     showWebEffect(x, y) {
-        // エフェクト表示用のdivを作成
-        const effectDiv = document.createElement('div');
-        effectDiv.className = 'web-effect';
-        effectDiv.style.position = 'absolute';
-        effectDiv.style.left = `${x * 20}px`;  // 仮の値、実際のタイルサイズに合わせて調整
-        effectDiv.style.top = `${y * 20}px`;   // 仮の値、実際のタイルサイズに合わせて調整
-        effectDiv.style.width = '20px';        // 仮の値、実際のタイルサイズに合わせて調整
-        effectDiv.style.height = '20px';       // 仮の値、実際のタイルサイズに合わせて調整
-        effectDiv.style.zIndex = '100';
-        effectDiv.style.animation = 'web-animation 0.5s';
-        effectDiv.textContent = GAME_CONSTANTS.WEB.CHAR;
-        effectDiv.style.color = GAME_CONSTANTS.WEB.COLOR;
-        
-        // ゲームコンテナに追加
-        const gameContainer = document.getElementById('game');
-        gameContainer.appendChild(effectDiv);
-        
-        // アニメーション終了後に要素を削除
-        setTimeout(() => {
-            if (gameContainer.contains(effectDiv)) {
-                gameContainer.removeChild(effectDiv);
-            }
-        }, 500);
-        
-        // マップを再描画
-        this.render();
+        this.effects.showWebEffect(x, y);
     }
     
     // 蜘蛛の巣を除去するエフェクトを表示するメソッド
     showWebRemoveEffect(x, y) {
-        // エフェクト表示用のdivを作成
-        const effectDiv = document.createElement('div');
-        effectDiv.className = 'web-remove-effect';
-        effectDiv.style.position = 'absolute';
-        effectDiv.style.left = `${x * 20}px`;  // 仮の値、実際のタイルサイズに合わせて調整
-        effectDiv.style.top = `${y * 20}px`;   // 仮の値、実際のタイルサイズに合わせて調整
-        effectDiv.style.width = '20px';        // 仮の値、実際のタイルサイズに合わせて調整
-        effectDiv.style.height = '20px';       // 仮の値、実際のタイルサイズに合わせて調整
-        effectDiv.style.zIndex = '100';
-        effectDiv.style.animation = 'web-remove-animation 0.5s';
-        effectDiv.textContent = GAME_CONSTANTS.WEB.CHAR;
-        effectDiv.style.color = '#FFFFFF';
-        
-        // ゲームコンテナに追加
-        const gameContainer = document.getElementById('game');
-        gameContainer.appendChild(effectDiv);
-        
-        // アニメーション終了後に要素を削除
-        setTimeout(() => {
-            if (gameContainer.contains(effectDiv)) {
-                gameContainer.removeChild(effectDiv);
-            }
-        }, 500);
-        
-        // マップを再描画
-        this.render();
+        this.effects.showWebRemoveEffect(x, y);
     }
 }

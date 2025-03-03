@@ -1218,7 +1218,81 @@ class RendererEffects {
      * @param {Function} callback - 遷移完了時に呼び出すコールバック関数
      */
     startShortPortalTransition(callback) {
-        this.animatePortal(500, 25, callback);
+        this.animatePortal(200, 5, callback);
+    }
+
+    /**
+     * ウェブ生成エフェクトを表示
+     * @param {number} x - ウェブのX座標
+     * @param {number} y - ウェブのY座標
+     */
+    showWebEffect(x, y) {
+        // 位置を計算
+        const position = this.renderer.getTilePosition(x, y);
+        
+        // エフェクト表示用のdivを作成
+        const effectDiv = document.createElement('div');
+        effectDiv.className = 'web-effect';
+        effectDiv.style.position = 'absolute';
+        effectDiv.style.left = `${position.x}px`;
+        effectDiv.style.top = `${position.y}px`;
+        effectDiv.style.width = '20px';        // 仮の値、実際のタイルサイズに合わせて調整
+        effectDiv.style.height = '20px';       // 仮の値、実際のタイルサイズに合わせて調整
+        effectDiv.style.zIndex = '100';
+        effectDiv.style.animation = 'web-animation 0.5s';
+        effectDiv.textContent = GAME_CONSTANTS.WEB.CHAR;
+        effectDiv.style.color = GAME_CONSTANTS.WEB.COLOR;
+        
+        // ゲームコンテナに追加
+        const gameContainer = document.getElementById('game');
+        gameContainer.appendChild(effectDiv);
+        
+        // アニメーション終了後に要素を削除
+        setTimeout(() => {
+            if (gameContainer.contains(effectDiv)) {
+                gameContainer.removeChild(effectDiv);
+            }
+        }, 500);
+        
+        // マップを再描画
+        this.renderer.render();
+    }
+
+    /**
+     * ウェブ消滅エフェクトを表示
+     * @param {number} x - ウェブのX座標
+     * @param {number} y - ウェブのY座標
+     */
+    showWebRemoveEffect(x, y) {
+        // 位置を計算
+        const position = this.renderer.getTilePosition(x, y);
+        
+        // エフェクト要素を作成
+        const effectDiv = document.createElement('div');
+        effectDiv.className = 'web-remove-effect';
+        effectDiv.style.position = 'absolute';
+        effectDiv.style.left = `${position.x}px`;
+        effectDiv.style.top = `${position.y}px`;
+        effectDiv.style.width = '20px';        // 仮の値、実際のタイルサイズに合わせて調整
+        effectDiv.style.height = '20px';       // 仮の値、実際のタイルサイズに合わせて調整
+        effectDiv.style.zIndex = '100';
+        effectDiv.style.animation = 'web-remove-animation 0.5s';
+        effectDiv.textContent = GAME_CONSTANTS.WEB.CHAR;
+        effectDiv.style.color = '#FFFFFF';
+        
+        // ゲームコンテナに追加
+        const gameContainer = document.getElementById('game');
+        gameContainer.appendChild(effectDiv);
+        
+        // アニメーション終了後に要素を削除
+        setTimeout(() => {
+            if (gameContainer.contains(effectDiv)) {
+                gameContainer.removeChild(effectDiv);
+            }
+        }, 500);
+        
+        // マップを再描画
+        this.renderer.render();
     }
 }
 
