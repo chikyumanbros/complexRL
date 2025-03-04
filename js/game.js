@@ -1188,37 +1188,24 @@ class Game {
     // Check if there is a clear line of sight.
     hasLineOfSight(x1, y1, x2, y2) {
         const points = this.getLinePoints(x1, y1, x2, y2);
-
-        // Check the intermediate points, excluding the start and end.
-        for (let i = 1; i < points.length - 1; i++) {
-            const { x, y } = points[i];
-
-            // 視線を遮る障害物かどうかをチェック
-            const isBlockingObstacle =
-                this.map[y][x] === 'wall' ||
-                this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
-                (this.map[y][x] === 'obstacle' &&
-                    GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][x]));
-
-            if (isBlockingObstacle) {
-                return false;
-            }
-
-            // 斜めの視線チェック
-            if (i > 0) {
-                const prev = points[i - 1];
-                if (prev.x !== x && prev.y !== y) {
-                    const isCornerBlocking =
-                        (this.map[prev.y][x] === 'wall' && this.map[y][prev.x] === 'wall') ||
-                        (this.map[prev.y][x] === 'obstacle' &&
-                            GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[prev.y][x]) &&
-                            this.map[y][prev.x] === 'obstacle' &&
-                            GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][prev.x]));
-
-                    if (isCornerBlocking) {
-                        return false;
-                    }
+        
+        // プレイヤーの位置を除く全ての点をチェック
+        for (let i = 0; i < points.length - 1; i++) {
+            const point = points[i];
+            const tile = this.tiles[point.y][point.x];
+            
+            // 床でない場合、障害物の種類をチェック
+            if (this.map[point.y][point.x] !== 'floor') {
+                // 透明な障害物は視線を通す
+                const isTransparentObstacle = GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tile);
+                if (!isTransparentObstacle) {
+                    return false;
                 }
+            }
+            
+            // 閉じたドアは視線を遮る
+            if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                return false;
             }
         }
         return true;

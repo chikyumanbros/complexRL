@@ -1681,8 +1681,8 @@ class Player {
             return false;
         }
 
-        // 射程範囲外の場合は攻撃できない
-        const distance = GAME_CONSTANTS.DISTANCE.calculate(
+        // 射程範囲外の場合は攻撃できない（チェビシェフ距離を使用）
+        const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
             this.x, this.y,
             target.x, target.y
         );
