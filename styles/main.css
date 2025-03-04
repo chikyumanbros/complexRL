@@ -206,7 +206,6 @@ body {
     flex-grow: 1;
     overflow-y: auto;
     font-family: 'IBM VGA 8x16', monospace;
-    color: #aaa;
     scrollbar-width: thin;
     scrollbar-color: #666 #333;
 }
@@ -340,7 +339,6 @@ body {
 .value {
     width: 60px;
     text-align: right;
-    color: #aaa;
 }
 
 .bar-container {

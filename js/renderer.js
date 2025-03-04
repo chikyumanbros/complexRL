@@ -471,14 +471,73 @@ class Renderer {
                 let opacity = 1.0;
                 let tileKey = `${x},${y}`;
 
-                // ランドマークターゲットモードの場合、探索済みなら描画
+                // ランドマークターゲットモードまたは遠距離攻撃モードの場合、探索済みなら描画
                 if (this.game.inputHandler.landmarkTargetMode && isExplored) {
                     content = this.game.tiles[y][x];
-                    backgroundColor = isHighlighted ? 'rgba(0, 255, 0, 0.6)' : 'var(--dark-background)'; // 背景色
-                    if (GAME_CONSTANTS.TILES.WALL.includes(content) || GAME_CONSTANTS.TILES.FLOOR.includes(content) ||
-                        GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(content) || GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(content)) {
-                        style = `color:rgba(0, 255, 0, 0.35);`; // 壁はコンソールっぽい緑
+                    backgroundColor = backgroundColor || 'var(--dark-background)';
+                    backgroundColor = 'rgba(0, 255, 255, 0.6)'; // サイバーブルー
+                    style += '; text-shadow: 0 0 5px #00ffff'; // ネオングロー効果
+                } else if (this.game.player.rangedCombat.isActive && isVisible) {
+                    content = this.game.tiles[y][x];
+                    
+                    // 遠距離攻撃モードの場合は射程範囲内かどうかをチェック
+                    const isInRange = GAME_CONSTANTS.DISTANCE.calculate(
+                        this.game.player.x, 
+                        this.game.player.y, 
+                        x, 
+                        y
+                    ) <= this.game.player.rangedCombat.range;
+
+                    // 射程範囲内の場合は明るい緑、範囲外は暗い緑
+                    const highlightColor = isInRange ? 'rgba(0, 255, 0, 0.6)' : 'rgba(0, 100, 0, 0.3)';
+                    backgroundColor = isHighlighted ? highlightColor : 'var(--dark-background)';
+
+                    // プレイヤーの位置の場合は優先的に描画
+                    if (x === this.game.player.x && y === this.game.player.y) {
+                        content = '@';
+                        style = 'color: #fff; opacity: 1';  // プレイヤーは常に白色で明るく表示
+                    } else if (GAME_CONSTANTS.TILES.WALL.includes(content) || 
+                        GAME_CONSTANTS.TILES.FLOOR.includes(content) ||
+                        GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(content) || 
+                        GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(content)) {
+                        style = `color:rgba(0, 255, 0, ${isInRange ? 0.35 : 0.2});`; // 射程範囲内外で明るさを変える
                         backgroundColor = 'var(--dark-background)';
+                    }
+                    
+                    // モンスターの場合は特別な表示
+                    const monster = this.game.getMonsterAt(x, y);
+                    if (monster) {
+                        content = monster.char;
+                        style = `color: ${isInRange ? '#ff4444' : '#662222'}`; // 射程範囲内は明るい赤、範囲外は暗い赤
+                    }
+                    
+                    // ターゲットのハイライト
+                    if (this.game.player.rangedCombat.target &&
+                        x === this.game.player.rangedCombat.target.x && 
+                        y === this.game.player.rangedCombat.target.y) {
+                        classes.push('target-highlight');
+                        if (monster) {
+                            backgroundColor = 'rgba(255, 0, 128, 0.4)'; // ネオンピンク
+                            style += '; text-shadow: 0 0 8px #ff0080'; // ネオングロー効果
+                        }
+                    }
+
+                    // 射線のハイライト
+                    if (this.game.player.rangedCombat.target) {
+                        const linePoints = this.game.getLinePoints(
+                            this.game.player.x,
+                            this.game.player.y,
+                            this.game.player.rangedCombat.target.x,
+                            this.game.player.rangedCombat.target.y
+                        );
+
+                        // 射線上のポイントかどうかをチェック
+                        const isOnLine = linePoints.some(point => point.x === x && point.y === y);
+                        if (isOnLine) {
+                            backgroundColor = backgroundColor || 'var(--dark-background)';
+                            backgroundColor = 'rgba(0, 255, 255, 0.6)'; // サイバーブルー
+                            style += '; text-shadow: 0 0 5px #00ffff'; // ネオングロー効果
+                        }
                     }
                     
                     if (content === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
@@ -487,7 +546,7 @@ class Renderer {
                         content === GAME_CONSTANTS.PORTAL.GATE.CHAR ||
                         content === GAME_CONSTANTS.PORTAL.VOID.CHAR ||
                         content === GAME_CONSTANTS.NEURAL_OBELISK.CHAR) {
-                        style = `color: #00ff00; opacity: 0.5`; // ランドマークはコンソールっぽい緑
+                        style = `color: #00ff00; opacity: ${isInRange ? 0.5 : 0.3}`; // 射程範囲内外で明るさを変える
                     }
                 } else if (isVisible) {
                     // タイルごとに部屋を判定する
@@ -1088,12 +1147,17 @@ createRangedCombatStats(player) {
 }
 
     getNearbyEnemiesHTML() {
-        const visibleTiles = new Set(
-            this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
-        );
+        // 視界内のタイルを取得
+        const visibleTiles = this.game.getVisibleTiles();
+        const visibleTilesSet = new Set(visibleTiles.map(({ x, y }) => `${x},${y}`));
 
+        // 視界内のモンスターのみをフィルタリング
         const visibleMonsters = this.game.monsters
-            .filter(monster => visibleTiles.has(`${monster.x},${monster.y}`))
+            .filter(monster => {
+                const monsterKey = `${monster.x},${monster.y}`;
+                // モンスターが視界内のタイルにいるかどうかを判定
+                return visibleTilesSet.has(monsterKey);
+            })
             .map(monster => ({
                 ...monster,
                 distance: GAME_CONSTANTS.DISTANCE.calculate(
@@ -1127,15 +1191,30 @@ createRangedCombatStats(player) {
             const hpBars = Math.ceil((monster.hp / monster.maxHp) * 20);
             const hpText = '|'.repeat(hpBars).padEnd(20, ' ');
 
-            // 元のHTML構造に可能な限り近づける
+            // ターゲット中のモンスターかどうかをチェック
+            const isTargeted = this.game.player.rangedCombat.isActive && 
+                this.game.player.rangedCombat.target &&
+                monster.x === this.game.player.rangedCombat.target.x && 
+                monster.y === this.game.player.rangedCombat.target.y;
+
+            // ターゲット中のモンスターの場合、lookinfoに情報を表示
+            if (isTargeted) {
+                this.examineTarget(monster.x, monster.y);
+            }
+
+            // モンスターの名前を表示（ターゲット中の場合は黄色の[]で囲む）
+            const monsterName = isTargeted ? 
+                `<span style="color: #ffff00">[${monster.name}]</span>` : 
+                monster.name;
+
             return `<span style="color: ${monsterColor}">` +
                 `<span style="color: ${directionColor}; display: inline-block; width: 2em">${direction}</span>[${monsterSymbol}] </span>` +
-                `<span style="color: ${monsterColor}">${monster.name}</span> ${sleepStatus}${fleeingStatus} <br>` +
+                `<span style="color: ${monsterColor}">${monsterName}</span> ${sleepStatus}${fleeingStatus} <br>` +
                 `<div class="hp-bar">` +
                     `<div class="hp-numbers">HP: ${monster.hp}/${monster.maxHp}</div>` +
                     `<span class="bar ${healthClass}">${hpText}</span>` +
                 `</div>`;
-        }).join(''); // 各モンスター情報を<br>で区切る
+        }).join('');
 
         return `<div id="nearby-enemies">${monsterList}</div>`;
     }
