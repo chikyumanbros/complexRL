@@ -22,15 +22,25 @@ class InputHandler {
         this.landmarkTargetMode = false;
         this.currentLandmarks = null;
         this.currentLandmarkIndex = 0;
-        this.pressedKeys = new Set();  // 押されているキーを追跡
-        // スキルスロットの並べ替え用変数を追加
         this.skillSlotSwapMode = false;
         this.firstSlot = null;
-        // Ctrlキーの状態を保存する変数
-        this.ctrlPressed = false;
-        // 直接キーコンビネーションを検出するための変数を追加
-        this.pendingCtrlCombo = false;
-        this.lastCtrlKeyTime = 0;
+        
+        // キーハンドラの初期化は別メソッドで行う
+        this.initKeyHandlers();
+    }
+
+    // キーハンドラの初期化
+    initKeyHandlers() {
+        this.keyHandlers = [
+            { check: () => true, handler: this.handleGlobalKeys.bind(this) },           // グローバルキー（ESC等）
+            { check: () => this.mode === 'name', handler: this.handleNameInput.bind(this) },  // 名前入力
+            { check: () => this.lookMode, handler: this.handleLookMode.bind(this) },    // ルックモード
+            { check: () => this.targetingMode, handler: this.handleTargetingMode.bind(this) },  // ターゲッティング
+            { check: () => this.landmarkTargetMode, handler: this.handleLandmarkTargetMode.bind(this) },  // ランドマーク
+            { check: () => this.skillSlotSwapMode, handler: this.handleSkillSlotSwapMode.bind(this) },   // スキルスロット
+            { check: () => this.game.mode === GAME_CONSTANTS.MODES.CODEX, handler: this.handleCodexModeInput.bind(this) },  // コデックス
+            { check: () => true, handler: this.handleGameModeInput.bind(this) }         // 通常ゲームモード
+        ];
     }
 
     // ----------------------
@@ -51,99 +61,101 @@ class InputHandler {
         // 名前入力モードの場合は大文字小文字を区別するため、keyを変換しない
         const key = this.mode === 'name' ? event.key : event.key.toLowerCase();
         this.pressedKeys.delete(key);
-        
-        // Ctrlキーの検出を改善（MacとWindows両方で動作するように）
-        // 注意: Ctrlキーを離した直後は、数字キーを処理する前にフラグがリセットされることがあるため、
-        // 少し遅延してリセットする
-        if (key === 'control' || key === 'ctrl' || event.keyCode === 17) {
-            //console.log('Control key released (will reset after delay)');
-            // 少し遅延してリセット（数字キーの入力を受け付ける時間を確保）
-            setTimeout(() => {
-                this.ctrlPressed = false;
-                this.pendingCtrlCombo = false; // キーコンビネーション状態もリセット
-                //console.log('Control key state reset after delay');
-            }, 200); // 200ミリ秒の遅延を追加
-        }
     }
 
     // キーが押された時の処理
     handleKeyDown(event) {
-        // デバッグログを追加（MetaキーはMacのCommandキー）
-        //console.log('Key pressed:', event.key, 'Ctrl:', event.ctrlKey, 'Meta:', event.metaKey, 'Key code:', event.keyCode);
-        //console.log('Current ctrlPressed state:', this.ctrlPressed);
+        const inputKey = this.mode === 'name' ? event.key : event.key.toLowerCase();
+
+        // キーリピート防止
+        if (this.pressedKeys.has(inputKey)) {
+            event.preventDefault();
+            return;
+        }
+        this.pressedKeys.add(inputKey);
+
+        // 修飾キー + 数字キーの処理（最優先）
+        if (this.handleModifierKeys(inputKey, event)) {
+            return;
+        }
         
-        // 名前入力モードの場合は大文字小文字を区別するため、keyを変換しない
-        const key = this.mode === 'name' ? event.key : event.key.toLowerCase();
-        
-        // Ctrlキーの状態を保存（Ctrl, Control, またはevent.ctrlKeyがtrueの場合）
-        // MacではControlキー、WindowsではCtrlキーを検出
-        if (event.ctrlKey || key === 'control' || key === 'ctrl' || event.keyCode === 17) {
-            this.ctrlPressed = true;
-            this.pendingCtrlCombo = true;
-            this.lastCtrlKeyTime = Date.now();
-            //console.log('Control key state set to true');
+        // 登録された優先順位に従ってキー処理を実行
+        for (const { check, handler } of this.keyHandlers) {
+            if (check()) {
+                if (handler(inputKey, event)) {
+            return;
+        }
+            }
+        }
+    }
+
+    // 修飾キー + 数字キーの処理
+    handleModifierKeys(inputKey, event) {
+        // Ctrl/Command + 数字キー
+        if ((event.ctrlKey || event.metaKey) && /^[1-9]$/.test(inputKey)) {
+            event.preventDefault();
+            this.startSkillSlotSwap(inputKey);
+            return true;
         }
 
-        // ハイスコア表示のキー判定（Ctrl + s）
-        if (event.ctrlKey && key === 's') {
-            console.log('Ctrl+S pressed, showing high scores');
-            event.preventDefault(); // ブラウザのデフォルトの保存動作を防止
+        // Alt + 数字キー
+        if (event.altKey && /^[1-9]$/.test(inputKey)) {
+            event.preventDefault();
+            this.startSkillSlotSwap(inputKey);
+            return true;
+        }
+
+        // Ctrl + S（ハイスコア表示）
+        if (event.ctrlKey && inputKey === 's') {
+            event.preventDefault();
             this.game.showHighScores();
-            return;
+            return true;
         }
-        
-        // Ctrl+数字キーの直接検出
-        if (event.ctrlKey && /^[1-9]$/.test(key)) {
-            //console.log('Direct Ctrl+Number detection:', key);
-            this.startSkillSlotSwap(key);
-            event.preventDefault();
-            return;
-        }
-        
-        // Alt+数字キーの直接検出（代替として）
-        if (event.altKey && /^[1-9]$/.test(key)) {
-            //console.log('Direct Alt+Number detection:', key);
-            this.startSkillSlotSwap(key);
-            event.preventDefault();
-            return;
-        }
-        
-        // すでに押されているキーは無視（キーリピートを防止）
-        if (this.pressedKeys.has(key)) {
-            event.preventDefault();
-            return;
-        }
-        
-        // 新しく押されたキーとして記録
-        this.pressedKeys.add(key);
-        
-        // メッセージログのスクロール制御
-        // どのモードでも常に処理できるようにここで実装
-        if (key.toLowerCase() === '[' || key.toLowerCase() === ']') {
-            this.handleLogScroll(key.toLowerCase());
-            
-            // ヘルプモードやCodexモードの場合はスクロールのみ許可して他の処理は行わない
-            if (this.game.mode === GAME_CONSTANTS.MODES.HELP || 
-                this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
-                return;
+
+        return false;
+    }
+
+    // ESCキーの処理
+    handleEscapeKey() {
+            if (this.lookMode) {
+                this.endLookMode();
+            return true;
             }
-        }
-        
-        // 数字キーが押されたときにctrlPressedの状態をログ出力
-        if (/^[1-9]$/.test(key)) {
-            //console.log(`Number key ${key} pressed with ctrlPressed:`, this.ctrlPressed, 'event.ctrlKey:', event.ctrlKey);
-            
-            // ctrlPressedがtrueで、最近Ctrlキーが押された場合（200ms以内）
-            if (this.pendingCtrlCombo && (Date.now() - this.lastCtrlKeyTime < 200)) {
-                //console.log('Detected Ctrl+Number combo through tracking:', key);
-                this.startSkillSlotSwap(key);
-                this.pendingCtrlCombo = false; // 一度使ったらリセット
-                return;
+            if (this.landmarkTargetMode) {
+                this.endLandmarkTargetMode();
+            return true;
             }
+            if (this.targetingMode) {
+                this.cancelTargeting();
+            return true;
+            }
+            if (this.game.player.resting?.active) {
+                this.game.cancelRest("Cancelled by player");
+            return true;
+            }
+            if (this.game.player.autoExploring || 
+                this.game.player.autoMovingToStairs || 
+                this.game.player.autoMovingToLandmark) {
+                this.game.player.stopAllAutoMovement();
+            return true;
+            }
+            if (this.skillSlotSwapMode) {
+                this.cancelSkillSlotSwap();
+            return true;
+            }
+            if (this.game.mode === GAME_CONSTANTS.MODES.WIKI) {
+                this.closeWikiMode();
+            return true;
+            }
+        if (this.game.mode === GAME_CONSTANTS.MODES.HELP ||
+            this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
+                if (document.body.classList.contains('codex-mode')) {
+                document.body.classList.remove('codex-mode');
+                }
+                this.game.toggleMode();
+            return true;
         }
-        
-        // 通常の入力処理を行う
-        this.handleInput(key, event);
+        return false;
     }
 
     // ----------------------
@@ -170,313 +182,24 @@ class InputHandler {
         // vigor effectsによる入力無効化をチェック
         if (this.game.inputDisabled) {
             //console.log('Input disabled due to vigor effect');
-            event.preventDefault();
-            return;
-        }
+                    event.preventDefault();
+                                return;
+                            }
 
         // 入力クールダウンのチェック
         const currentTime = Date.now();
         if (currentTime - this.lastInputTime < this.inputCooldown) {
-            if (event) event.preventDefault();
+                if (event) event.preventDefault();
             return;
         }
-        
+
         // 入力時間を更新
         this.lastInputTime = currentTime;
 
         //console.log('Processing input:', key, 'Ctrl key state:', this.ctrlPressed);
 
-        // ESCキーの処理を最優先で行う
-        if (key === 'escape') {
-            if (this.lookMode) {
-                this.endLookMode();
-                return;
-            }
-            if (this.landmarkTargetMode) {
-                this.endLandmarkTargetMode();
-                return;
-            }
-            if (this.targetingMode) {
-                this.cancelTargeting();
-                return;
-            }
-            // restモードの解除を追加
-            if (this.game.player.resting?.active) {
-                this.game.cancelRest("Cancelled by player");
-                return;
-            }
-            // 自動移動・自動探索の解除を追加
-            if (this.game.player.autoExploring || 
-                this.game.player.autoMovingToStairs || 
-                this.game.player.autoMovingToLandmark) {
-                this.game.player.stopAllAutoMovement();
-                return;
-            }
-            // スキルスロット並べ替えモードの解除を追加
-            if (this.skillSlotSwapMode) {
-                this.cancelSkillSlotSwap();
-                return;
-            }
-            // Wikiモードの解除を追加
-            if (this.game.mode === GAME_CONSTANTS.MODES.WIKI) {
-                this.closeWikiMode();
-                return;
-            }
-            // ヘルプモードの解除を追加
-            if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
-                if (document.body.classList.contains('codex-mode')) {
-                    document.body.classList.remove('codex-mode');  // Codexモードのクラスを削除
-                }
-                this.game.toggleMode();
-                return;
-            }
-            // Codexモードの解除を追加
-            if (this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
-                this.game.toggleMode();
-                return;
-            }
-            return;
-        }
-
-        // プレイヤー名入力モードの処理
-        if (this.mode === 'name') {
-            // 名前入力モードの時点でタイプライターエフェクトを無効化
-            const messageLogElement = document.getElementById('message-log');
-            if (messageLogElement) {
-                messageLogElement.classList.add('no-typewriter');
-            }
-            this.handleNameInput(key, event);
-            return;
-        }
-
-        if (this.mode === 'characterCreation') {
-            this.handleCharacterCreation(key);
-            return;
-        }
-
-        // 名前入力モード以外の場合はタイプライターエフェクトを有効化
-        const messageLogElement = document.getElementById('message-log');
-        if (messageLogElement) {
-            messageLogElement.classList.remove('no-typewriter');
-        }
-
-        // --- Clean up visual effects on new input ---
-        this.game.renderer.clearEffects();
-
-        // バックスペースでランドマークナビゲーション開始（他のモードでない時のみ）
-        if (key === 'backspace' && 
-            !this.lookMode && 
-            !this.landmarkTargetMode && 
-            !this.targetingMode && 
-            this.game.mode === GAME_CONSTANTS.MODES.GAME) {  // ゲームモードの時のみ許可
-            
-            // ホームフロアでは無効にする
-            if (this.game.floorLevel === 0) {
-                this.game.logger.add("Landmark navigation is not available on the home floor.", "warning");
-                return;
-            }
-            
-            this.startLandmarkNavigation();
-            return;
-        }
-
-        // 各モードの処理
-        if (this.lookMode) {
-            this.handleLookMode(key);
-            return;
-        }
-
-        if (this.landmarkTargetMode) {
-            this.handleLandmarkTargetMode(key);
-            return;
-        }
-
-        // 開発者コマンドの処理を最初に行う
-        if (event.ctrlKey && event.shiftKey) {
-            //console.log('Developer command detected:', key);
-            switch (key) {
-                case 's':
-                    event.preventDefault();
-                    const spritePreview = document.getElementById('sprite-preview');
-                    if (spritePreview) {
-                        const isHidden = spritePreview.style.display === 'none';
-                        spritePreview.style.display = isHidden ? 'block' : 'none';
-                        
-                        if (!isHidden) {
-                            //console.log('Hiding sprite preview...');
-                        } else {
-                            //console.log('Showing sprite preview...');
-                            // モンスターの定義を確認
-                            if (!MONSTERS) {
-                                //console.error('MONSTERS is not defined');
-                                return;
-                            }
-
-                            // スプライトプレビューの内容をクリア
-                            spritePreview.innerHTML = '';
-
-                            // フレックスコンテナを作成
-                            const flexContainer = document.createElement('div');
-                            flexContainer.style.display = 'flex';
-                            flexContainer.style.flexWrap = 'wrap';
-                            flexContainer.style.gap = '20px';
-                            flexContainer.style.padding = '20px';
-                            spritePreview.appendChild(flexContainer);
-
-                            // モンスタータイプごとにコンテナを生成
-                            const monsters = Object.keys(MONSTERS);
-                            monsters.forEach((type, index) => {
-                                const containerId = `sprite-preview-container${index === 0 ? '' : index + 1}`;
-                                const container = document.createElement('div');
-                                container.id = containerId;
-                                container.style.padding = '10px';
-                                container.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-                                container.style.border = '1px solid #333';
-                                container.style.borderRadius = '5px';
-                                container.style.minWidth = '200px';
-                                container.style.flex = '0 0 auto';
-                                
-                                // タイトルを追加
-                                const title = document.createElement('div');
-                                title.style.color = '#fff';
-                                title.style.marginBottom = '10px';
-                                title.style.fontFamily = 'monospace';
-                                title.textContent = `Monster Type: ${type}`;
-                                container.appendChild(title);
-
-                                flexContainer.appendChild(container);
-
-                                try {
-                                    // スプライトの描画
-                                    this.game.renderer.previewMonsterSprite(type, containerId);
-
-                                    // ステータス情報の表示
-                                    const monsterData = MONSTERS[type];
-                                    if (!monsterData || !monsterData.stats) {
-                                        //console.error(`Invalid monster data for type: ${type}`);
-                                        return;
-                                    }
-
-                                    const monsterStats = monsterData.stats;
-                                    const size = GAME_CONSTANTS.FORMULAS.SIZE(monsterStats);
-                                    const speed = GAME_CONSTANTS.FORMULAS.SPEED(monsterStats);
-                                    const attack = GAME_CONSTANTS.FORMULAS.ATTACK(monsterStats);
-                                    const defense = GAME_CONSTANTS.FORMULAS.DEFENSE(monsterStats);
-                                    const accuracy = GAME_CONSTANTS.FORMULAS.ACCURACY(monsterStats);
-                                    const evasion = GAME_CONSTANTS.FORMULAS.EVASION(monsterStats);
-                                    const maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(monsterStats, MONSTERS[type].level);
-
-                                    const statsHtml = `
-                                        <div style="text-align: left; margin-top: 10px; font-family: monospace;">
-                                            <div style="color: #ffd700">Level ${MONSTERS[type].level}</div>
-                                            <div>HP: ${maxHp}</div>
-                                            <div>ATK: ${attack.base}+${attack.diceCount}d${attack.diceSides}</div>
-                                            <div>DEF: ${defense.base}+${defense.diceCount}d${defense.diceSides}</div>
-                                            <div>ACC: ${accuracy}%</div>
-                                            <div>EVA: ${evasion}%</div>
-                                            <div>PER: ${GAME_CONSTANTS.FORMULAS.PERCEPTION(monsterStats)}</div>
-                                            <div style="color: ${GAME_CONSTANTS.COLORS.SIZE[size.value].color}">Size: ${size.name}</div>
-                                            <div style="color: ${GAME_CONSTANTS.COLORS.SPEED[speed.value].color}">Speed: ${speed.name}</div>
-                                            <div style="color: #3498db">Stats:</div>
-                                            <div>STR: ${monsterStats.str}</div>
-                                            <div>DEX: ${monsterStats.dex}</div>
-                                            <div>CON: ${monsterStats.con}</div>
-                                            <div>INT: ${monsterStats.int}</div>
-                                            <div>WIS: ${monsterStats.wis}</div>
-                                        </div>
-                                    `;
-
-                                    // 既存のステータス情報があれば更新、なければ新規作成
-                                    let statsDiv = container.querySelector('.monster-stats');
-                                    if (!statsDiv) {
-                                        statsDiv = document.createElement('div');
-                                        statsDiv.className = 'monster-stats';
-                                        container.appendChild(statsDiv);
-                                    }
-                                    statsDiv.innerHTML = statsHtml;
-                                } catch (error) {
-                                    //console.error(`Error processing monster ${type}:`, error);
-                                }
-                            });
-                        }
-                    }
-                    return;
-            }
-        }
-
-        // 通常のゲーム入力の処理
-        if (this.game.player.isDead) {
-            // ... existing dead player code ...
-            return;
-        }
-
-        // --- Game Over Input Handling ---
-        if (this.game.isGameOver) {
-            if (key === 'enter') {
-                this.game.reset();  // ゲームをリセット
-            }
-            if (key === ' ') {
-                this.game.reset();
-            }
-            return;  // その他のキー入力を無視
-        }
-
-        // --- Help Mode Activation/Deactivation ---
-        if (key === '?') {
-            if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
-                this.game.toggleMode();  // ヘルプモードを解除
-            } else {
-                this.game.enterHelpMode();  // ヘルプモードを開始
-            }
-            return;
-        }
-
-        // --- Help Mode Cancellation (First Block) ---
-        if (this.game.mode === GAME_CONSTANTS.MODES.HELP && !document.body.classList.contains('codex-mode')) {
-            if (key === 'escape') {
-                this.game.toggleMode();  // 変更: toggleModeを使用
-            } else if (key === 'tab') {
-                if (event) event.preventDefault();
-                this.game.toggleMode();  // ヘルプモードを解除
-                this.toggleCodexMode();  // Codexモードを有効化
-                this.game.mode = GAME_CONSTANTS.MODES.CODEX;  // モードをCodexに設定
-                this.game.renderer.renderCodexMenu();  // Codexメニューを表示
-            }
-            return;
-        }
-
-        // --- Tab Key Handling for Codex & Mode Toggle ---
-        if (key === 'tab') {
-            if (event) event.preventDefault();
-            // lookモードが有効な場合は解除
-            if (this.lookMode) {
-                this.endLookMode();
-            }
-            this.toggleCodexMode();
-            this.game.toggleMode();
-            return;
-        }
-
-        // --- Stat Selection Mode Handling ---
-        if (this.mode === 'statSelect') {
-            this.handleStatSelection(key);
-            return;
-        }
-
-        // --- Codex Mode vs Game Mode Input Handling ---
-        if (document.body.classList.contains('codex-mode')) {
-            this.handleCodexModeInput(key);
-        } else {
-            this.handleGameModeInput(key);
-        }
-
-        // Ctrl+R for resetの部分を修正
-        if (key === 'r' && event && event.ctrlKey) {
-            if (event) event.preventDefault();
-            if (confirm('Are you sure you want to reset the game? All progress will be lost.')) {
-                this.game.reset();
-            }
-        }
+        // 通常の入力処理を行う
+        this.handleInput(key, event);
     }
 
     handleNameInput(key, event) {
@@ -620,352 +343,12 @@ class InputHandler {
         // --- Tab key to toggle codex ---
         if (key === 'tab') {
             this.game.toggleMode();
-            processed = true;
-        }
-        
-        // confirmモードの場合、Y/Nの入力のみを受け付ける
-        if (this.mode === 'confirm') {
-            const upperKey = key.toLowerCase();  // 小文字に変換
-            if (upperKey === 'y' || upperKey === 'n') {  // 小文字で比較
-                if (this.confirmCallback) {
-                    this.confirmCallback(upperKey === 'y');  // 小文字で比較
-                    this.confirmCallback = null;
-                    this.mode = 'normal';  // 通常モードに戻す
-                }
-            }
-            // ここにadditionalKeysの処理を追加
-            else if (this.additionalKeys && this.additionalKeys[key] !== undefined) {
-                if (this.confirmCallback) {
-                    this.confirmCallback(this.additionalKeys[key]);
-                    this.confirmCallback = null;
-                    this.mode = 'normal';
-                }
-            }
-            return;
-        }
-
-        // --- 処理済みかどうかをチェック ---
-        let processed = false;
-        
-        // スキルスロット並べ替えモードの処理
-        if (this.skillSlotSwapMode) {
-            this.handleSkillSlotSwapMode(key);
-            return;
-        }
-
-        // インタラクションモードの処理
-        if (this.mode === 'interact') {
-            let dx = 0;
-            let dy = 0;
-
-            // '.'キーで現在のマスを指定
-            if (key === '.') {
-                dx = 0;
-                dy = 0;
-            } else {
-                switch (key) {
-                    case 'arrowleft':
-                    case 'h': dx = -1; break;
-                    case 'arrowright':
-                    case 'l': dx = 1; break;
-                    case 'arrowup':
-                    case 'k': dy = -1; break;
-                    case 'arrowdown':
-                    case 'j': dy = 1; break;
-                    case 'y': dx = -1; dy = -1; break;
-                    case 'u': dx = 1; dy = -1; break;
-                    case 'b': dx = -1; dy = 1; break;
-                    case 'n': dx = 1; dy = 1; break;
-                    case 'escape':
-                        this.mode = 'normal';
-                        this.game.logger.add("Interaction cancelled.", "info");
-                        return;
-                    default: return;
-                }
-            }
-
-            const x = this.game.player.x + dx;
-            const y = this.game.player.y + dy;
-
-            // 扉の操作を試みる
-            const door = this.findAdjacentDoors().find(d => d.x === x && d.y === y);
-            if (door) {
-                const operation = door.tile === GAME_CONSTANTS.TILES.DOOR.CLOSED ? 'o' : 'c';
-                this.operateDoor(door, operation);
-                this.game.processTurn();
-                this.game.renderer.render();
-                this.mode = 'normal';
-                return;
-            }
-
-            // タイルをチェック
-            const tile = this.game.tiles[y][x];
-            
-            // ニューラルオベリスクの使用を試みる
-            if (tile === GAME_CONSTANTS.NEURAL_OBELISK.CHAR) {
-                // オベリスクの情報を取得
-                const obelisk = this.game.neuralObelisks && 
-                                this.game.neuralObelisks.find(o => o.x === x && o.y === y);
-                
-                let level = 3; // デフォルトはレベル3
-                let colorName = "yellow";
-                
-                if (obelisk) {
-                    level = obelisk.level;
-                    
-                    // 色の名前を設定
-                    switch(level) {
-                        case 1: colorName = "blue"; break;
-                        case 2: colorName = "green"; break;
-                        case 3: colorName = "yellow"; break;
-                        case 4: colorName = "orange"; break;
-                        case 5: colorName = "purple"; break;
-                    }
-                }
-                
-                this.game.logger.add(`Touch the ${colorName} Neural Obelisk (Level ${level})? [y/n]`, "important");
-                
-                // 次のフレームでconfirmモードに移行（即時実行を防ぐ）
-                setTimeout(() => {
-                    this.game.setInputMode('confirm', {
-                        callback: (confirmed) => {
-                            if (confirmed) {
-                                this.game.touchNeuralObelisk(x, y);
-                            } else {
-                                this.game.logger.add(`You decide not to touch the Neural Obelisk.`, "playerInfo");
-                            }
-                        }
-                    });
-                }, 0);
-
-                this.mode = 'normal';  // インタラクトモードを終了
-                return;
-            }
-
-            // 蜘蛛の巣の処理を追加
-            const web = this.game.webs && this.game.webs.find(w => w.x === x && w.y === y);
-            if (web) {
-                this.removeWeb(x, y, web);
-                this.game.processTurn();
-                this.game.renderer.render();
-                this.mode = 'normal';
-                return;
-            }
-
-            // ポータルの使用を試みる
-            if (tile === GAME_CONSTANTS.PORTAL.VOID.CHAR || tile === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
-                const isVoid = tile === GAME_CONSTANTS.PORTAL.VOID.CHAR;
-                this.game.logger.add(`Enter the ${isVoid ? 'VOID' : ''} portal? [y/n]`, "important");
-                
-                // 次のフレームでconfirmモードに移行（即時実行を防ぐ）
-                setTimeout(() => {
-                    this.game.setInputMode('confirm', {
-                        callback: (confirmed) => {
-                            if (confirmed) {
-                                this.game.logger.add(`You step into the ${isVoid ? 'VOID' : ''} portal...`, "important");
-                                this.game.renderer.startPortalTransition(() => {
-                                    if (isVoid) {
-                                        this.game.floorLevel = 0;  // ホームフロアに戻る
-                                        this.game.generateNewFloor();
-                                        this.game.soundManager.updateBGM();
-                                        
-                                        // プレイヤーをホームフロアのポータルの1マス下に配置
-                                        for (let y = 0; y < this.game.height; y++) {
-                                            for (let x = 0; x < this.game.width; x++) {
-                                                if (this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
-                                                    this.game.player.x = x;
-                                                    this.game.player.y = y + 1;  // ポータルの1マス下
-                                                    return;
-                                                }
-                                            }
-                                        }
-                                    } else {
-                                        this.game.floorLevel++;
-                                        this.game.generateNewFloor();
-                                        this.game.soundManager.updateBGM();
-                                    }
-                                });
-                                this.game.soundManager.playPortalSound();
-                                this.game.processTurn();
-                            } else {
-                                this.game.logger.add(`You decide not to enter the ${isVoid ? 'VOID' : ''} portal.`, "playerInfo");
-                            }
-                        }
-                    });
-                }, 0);
-
-                this.mode = 'normal';  // インタラクトモードを終了
-                return;
-            }
-
-            this.game.logger.add("Nothing to interact with in that direction.", "warning");
-            this.mode = 'normal';
-            return;
-        }
-
-        // スペースキーでインタラクションモードを開始
-        if (key === ' ') {
-            // インタラクト可能なオブジェクトを探す
-            const player = this.game.player;
-            const interactables = [];
-
-            // 現在のマスをチェック
-            const currentTile = this.game.tiles[player.y][player.x];
-            if (currentTile === GAME_CONSTANTS.PORTAL.VOID.CHAR || 
-                currentTile === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
-                interactables.push({ x: player.x, y: player.y, type: 'portal', tile: currentTile });
-            }
-
-            // 隣接マスをチェック
-            const adjacentOffsets = [
-                { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 },
-                { dx: -1, dy: 0 },                      { dx: 1, dy: 0 },
-                { dx: -1, dy: 1 },  { dx: 0, dy: 1 },  { dx: 1, dy: 1 }
-            ];
-
-            // 隣接する扉、ポータル、ニューラルオベリスク、蜘蛛の巣をチェック
-            for (const dir of adjacentOffsets) {
-                const x = player.x + dir.dx;
-                const y = player.y + dir.dy;
-
-                if (x < 0 || x >= this.game.width || y < 0 || y >= this.game.height) continue;
-
-                const tile = this.game.tiles[y][x];
-                if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED || 
-                    tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
-                    interactables.push({ x, y, type: 'door', tile });
-                } else if (tile === GAME_CONSTANTS.PORTAL.VOID.CHAR || 
-                         tile === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
-                    interactables.push({ x, y, type: 'portal', tile });
-                } else if (tile === GAME_CONSTANTS.NEURAL_OBELISK.CHAR) {
-                    // オベリスクの情報を取得
-                    const obelisk = this.game.neuralObelisks && 
-                                  this.game.neuralObelisks.find(o => o.x === x && o.y === y);
-                    
-                    let level = 3; // デフォルトはレベル3
-                    let colorName = "yellow";
-                    
-                    if (obelisk) {
-                        level = obelisk.level;
-                        switch(level) {
-                            case 1: colorName = "blue"; break;
-                            case 2: colorName = "green"; break;
-                            case 3: colorName = "yellow"; break;
-                            case 4: colorName = "orange"; break;
-                            case 5: colorName = "purple"; break;
-                        }
-                    }
-                    interactables.push({ x, y, type: 'obelisk', level, colorName });
-                }
-                
-                // 蜘蛛の巣をチェック
-                const web = this.game.webs && this.game.webs.find(w => w.x === x && w.y === y);
-                if (web) {
-                    interactables.push({ x, y, type: 'web', web });
-                }
-            }
-
-            // インタラクト可能なオブジェクトが1つだけの場合
-            if (interactables.length === 1) {
-                const target = interactables[0];
-                if (target.type === 'door') {
-                    // 既存の扉処理
-                    const operation = target.tile === GAME_CONSTANTS.TILES.DOOR.CLOSED ? 'o' : 'c';
-                    this.operateDoor({ x: target.x, y: target.y, tile: target.tile }, operation);
-                    this.game.processTurn();
-                    this.game.renderer.render();
-                } else if (target.type === 'portal') {
-                    // 既存のポータル処理
-                    if (target.tile === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
-                        this.game.logger.add("Enter the portal? [y/n]", "important");
-                        this.setMode('confirm', {
-                            callback: (confirmed) => {
-                                if (confirmed) {
-                                    this.game.logger.add("You step into the portal...", "important");
-                                    this.game.processTurn();  // 先にターンを消費
-                                    this.game.renderer.startPortalTransition(() => {
-                                        this.game.floorLevel++;
-                                        this.game.generateNewFloor();
-                                        this.game.soundManager.updateBGM();  // ポータルアニメーション完了後にBGMを更新
-                                    });
-                                    this.game.soundManager.playPortalSound();  // 新しいメソッドを使用
-                                } else {
-                                    this.game.logger.add("You decide not to enter the portal.", "playerInfo");
-                                }
-                                this.setMode('normal');
-                            },
-                        });
-                    } else if (target.tile === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
-                        this.game.logger.add("Enter the VOID portal? [y/n]", "important");
-                        this.setMode('confirm', {
-                            callback: (confirmed) => {
-                                if (confirmed) {
-                                    this.game.logger.add("You step into the VOID portal...", "important");
-                                    this.game.processTurn();  // 先にターンを消費
-                                    this.game.renderer.startPortalTransition(() => {
-                                        this.game.floorLevel = 0;  // ホームフロアに戻る
-                                        this.game.generateNewFloor();
-                                        this.game.soundManager.updateBGM();  // BGMを更新
-                                        
-                                        // プレイヤーをホームフロアのポータルの1マス下に配置
-                                        for (let y = 0; y < this.game.height; y++) {
-                                            for (let x = 0; x < this.game.width; x++) {
-                                                if (this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
-                                                    this.game.player.x = x;
-                                                    this.game.player.y = y + 1;  // ポータルの1マス下
-                                                    return;
-                                                }
-                                            }
-                                        }
-                                    });
-                                    this.game.soundManager.playPortalSound();  // 新しいメソッドを使用
-                                } else {
-                                    this.game.logger.add("You decide not to enter the VOID portal.", "playerInfo");
-                                }
-                                this.setMode('normal');
-                            },
-                        });
-                    }
-                } else if (target.type === 'obelisk') {
-                    // ニューラルオベリスクの処理
-                    this.game.touchNeuralObelisk(target.x, target.y);
-                    this.game.processTurn();
-                    this.game.renderer.render();
-                } else if (target.type === 'web') {
-                    // 蜘蛛の巣の処理
-                    this.removeWeb(target.x, target.y, target.web);
-                    this.game.processTurn();
-                    this.game.renderer.render();
-                }
-                return;
-            }
-
-            // 複数のインタラクト可能なオブジェクトがある場合は通常のインタラクトモードを開始
-            if (interactables.length > 0) {
-                this.mode = 'interact';
-                // インタラクト可能なオブジェクトの種類に応じてメッセージを変更
-                let message = "Choose direction to interact with:";
-                const types = new Set(interactables.map(item => item.type));
-                if (types.has('door')) message += " door";
-                if (types.has('portal')) message += " portal";
-                if (types.has('obelisk')) message += " neural obelisk";
-                if (types.has('web')) message += " spider web";
-                this.game.logger.add(message, "info");
-            } else {
-                this.game.logger.add("Nothing to interact with nearby.", "warning");
-            }
             return;
         }
 
         // --- Look Mode Processing ---
         if (this.lookMode) {
             this.handleLookMode(key);
-            return;
-        }
-
-        // --- Landmark Navigation Mode ---
-        if (key === 'backspace') {
-            this.startLandmarkNavigation();
             return;
         }
 
@@ -1693,7 +1076,7 @@ if (skill.getRange) {
         this.currentLandmarks = landmarks;
         this.currentLandmarkIndex = 0;
         
-        this.game.logger.add("Landmark navigation mode - Use arrow keys to cycle, ENTER to move, ESC to cancel", "info");
+        this.game.logger.add("Landmark navigation mode - Use h/l to cycle, ENTER to move, ESC to cancel", "info");
         this.game.renderer.highlightTarget(this.targetX, this.targetY, true);
         this.game.renderer.examineTarget(this.targetX, this.targetY, true);
     }
@@ -1701,25 +1084,26 @@ if (skill.getRange) {
     handleLandmarkTargetMode(key) {
         if (!this.currentLandmarks || this.currentLandmarks.length === 0) {
             this.endLandmarkTargetMode();
-            return;
+            return true;
         }
 
         switch (key) {
             case 'h':
                 this.cycleLandmark(-1);
-                break;
+                return true;
             case 'l':
                 this.cycleLandmark(1);
-                break;
+                return true;
             case 'enter':
             case ' ':
                 this.startAutoMoveToLandmark();
-                break;
+                return true;
             case 'escape':
             case 'backspace':  // backspaceでも解除可能に
                 this.endLandmarkTargetMode();
-                break;
+                return true;
         }
+        return false;
     }
 
     cycleLandmark(direction) {
@@ -2126,5 +1510,55 @@ if (skill.getRange) {
         
         // マップを再描画
         this.game.renderer.render();
+    }
+
+    // グローバルキーの処理（ESCやログスクロール等）
+    handleGlobalKeys(inputKey, event) {
+        // ESCキーの処理
+        if (inputKey === 'escape') {
+            return this.handleEscapeKey();
+        }
+
+        // ヘルプモードの切り替え
+        if (inputKey === '?') {
+            if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
+                this.game.toggleMode();  // ヘルプモードを解除
+            } else {
+                this.game.enterHelpMode();  // ヘルプモードを開始
+            }
+            return true;
+        }
+
+        // バックスペースでランドマークナビゲーションの切り替え
+        if (inputKey === 'backspace' && 
+            !this.lookMode && 
+            !this.targetingMode && 
+            this.game.mode === GAME_CONSTANTS.MODES.GAME) {  // ゲームモードの時のみ許可
+
+            // すでにランドマークターゲットモードの場合は解除
+            if (this.landmarkTargetMode) {
+                this.endLandmarkTargetMode();
+                return true;
+            }
+
+            // ホームフロアでは無効
+            if (this.game.floorLevel === 0) {
+                this.game.logger.add("Landmark navigation is not available on the home floor.", "warning");
+                return true;
+            }
+
+            // ランドマークナビゲーション開始
+            this.startLandmarkNavigation();
+            return true;
+        }
+
+        // メッセージログのスクロール
+        if (inputKey === '[' || inputKey === ']') {
+            this.handleLogScroll(inputKey);
+            return this.game.mode === GAME_CONSTANTS.MODES.HELP || 
+                   this.game.mode === GAME_CONSTANTS.MODES.CODEX;
+        }
+
+        return false;
     }
 }
