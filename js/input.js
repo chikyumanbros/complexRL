@@ -455,6 +455,12 @@ class InputHandler {
                 this.game.reset();
             }
         }
+
+        // Fキーで遠距離攻撃モードの切り替え
+        if (key === 'f') {
+            this.toggleRangedCombatMode();
+            return;
+        }
     }
 
     handleNameInput(key, event) {
@@ -1128,6 +1134,36 @@ class InputHandler {
                     this.game.processTurn();
                 }
             }
+            return;
+        }
+
+            // 遠距離攻撃モードの処理を最初に行う
+        if (player.rangedCombat.isActive) {
+            // ターゲット移動
+            if (this.isMovementKey(key)) {
+                const direction = this.getDirectionFromKey(key);
+                if (direction) {
+                    player.cycleTarget(direction);
+                    this.game.renderer.render();
+                }
+                return;
+            }
+
+            // 射撃実行
+            if (key === 'enter' && player.rangedCombat.target) {
+                // 射撃処理は後で実装
+                return;
+            }
+
+            // キャンセル
+            if (key === 'escape') {
+                player.rangedCombat.isActive = false;
+                player.rangedCombat.target = null;
+                this.game.renderer.render();
+                return;
+            }
+
+            // モード中は他の入力を無視
             return;
         }
 
@@ -2106,5 +2142,41 @@ if (skill.getRange) {
         
         // マップを再描画
         this.renderMap();
+    }
+
+    // 新しいメソッドを追加
+    toggleRangedCombatMode() {
+        const player = this.game.player;
+        player.rangedCombat.isActive = !player.rangedCombat.isActive;
+        
+        if (player.rangedCombat.isActive) {
+            // モード開始時に最も近いターゲットを自動選択
+            player.rangedCombat.target = player.findNearestTargetInRange();
+            this.game.logger.add("Switched to ranged combat mode.", "playerInfo");
+        } else {
+            player.rangedCombat.target = null;
+            this.game.logger.add("Switched to normal combat mode.", "playerInfo");
+        }
+        
+        this.game.renderer.render();
+    }
+
+    // input.js に追加
+    getDirectionFromKey(key) {
+        switch (key) {
+            case 'ArrowLeft':
+            case 'h': return 'prev';
+            case 'ArrowRight':
+            case 'l': return 'next';
+            case 'ArrowUp':
+            case 'k': return 'prev';
+            case 'ArrowDown':
+            case 'j': return 'next';
+            case 'y': return 'prev';
+            case 'u': return 'next';
+            case 'b': return 'prev';
+            case 'n': return 'next';
+            default: return null;
+        }
     }
 }

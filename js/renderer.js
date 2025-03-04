@@ -625,7 +625,22 @@ class Renderer {
                             classes.push('neural-obelisk-level-3');
                         }
                     }
-                    
+
+                                    // 遠距離攻撃のターゲットハイライトを tileState に追加
+                    if (this.game.player.rangedCombat.isActive && this.game.player.rangedCombat.target) {
+                        const target = this.game.player.rangedCombat.target;
+                        const tileKey = `${target.x},${target.y}`;
+                        
+                        if (tileState[tileKey]) {
+
+                                            tileState[tileKey].classes.push('target-highlight');
+                            // モンスターの場合は赤いハイライト
+                            if (this.game.getMonsterAt(target.x, target.y)) {
+                                tileState[tileKey].style += 'background-color: rgba(255, 100, 100, 0.3);';
+                            }
+                        }
+                    }
+                       
                     // 蜘蛛の巣の描画
                     const web = this.game.webs && this.game.webs.find(w => w.x === x && w.y === y);
                     if (web) {
@@ -832,222 +847,245 @@ class Renderer {
         return 'rgba(255, 255, 255, 0.2)';  // Standard highlight
     }
 
-    renderStatus() {
-        const player = this.game.player;
-        const statusPanel = document.getElementById('status-panel');
-        if (!statusPanel) return;
+    // renderer.js の renderStatus メソッド内を修正
 
-        // Calculate penalty based on surrounding monsters count
-        const surroundingMonsters = player.countSurroundingMonsters(this.game);
-        const penaltyPerMonster = 15;
-        const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
+renderStatus() {
+    const player = this.game.player;
+    const statusPanel = document.getElementById('status-panel');
+    if (!statusPanel) return;
 
-        // Generate status panel HTML
-        const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.game.dangerLevel];
-        const floorDisplay = this.game.floorLevel === 0 ? "< THE NEXUS >" : this.game.floorLevel;
-        const healthStatus = player.getHealthStatus(player.hp, player.maxHp);
-        const vigorStatus = GAME_CONSTANTS.VIGOR.getStatus(player.vigor, player.stats);
-        const size = GAME_CONSTANTS.FORMULAS.SIZE(player.stats);
-        const sizeInfo = GAME_CONSTANTS.COLORS.SIZE[size.value];
-        const baseSpeed = GAME_CONSTANTS.FORMULAS.SPEED(player.stats);
-        const speedInfo = GAME_CONSTANTS.COLORS.SPEED[baseSpeed.value];
+    // 既存の計算部分
+    const surroundingMonsters = player.countSurroundingMonsters(this.game);
+    const penaltyPerMonster = 15;
+    const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
 
-        // HP bar calculation
-        const hpBars = Math.ceil((player.hp / player.maxHp) * 20);
-        const hpText = '|'.repeat(Math.max(0, hpBars)).padEnd(20, ' ');
+    // 既存のステータス計算
+    const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.game.dangerLevel];
+    const floorDisplay = this.game.floorLevel === 0 ? "< THE NEXUS >" : this.game.floorLevel;
+    const healthStatus = player.getHealthStatus(player.hp, player.maxHp);
+    const vigorStatus = GAME_CONSTANTS.VIGOR.getStatus(player.vigor, player.stats);
+    const size = GAME_CONSTANTS.FORMULAS.SIZE(player.stats);
+    const sizeInfo = GAME_CONSTANTS.COLORS.SIZE[size.value];
+    const baseSpeed = GAME_CONSTANTS.FORMULAS.SPEED(player.stats);
+    const speedInfo = GAME_CONSTANTS.COLORS.SPEED[baseSpeed.value];
 
-        // Attack modifiers
-        let attackText = `${player.attackPower.base}+${player.attackPower.diceCount}d${player.attackPower.diceSides}`;
-        let totalDamageMod = 1;
-        if (player.nextAttackModifiers?.length > 0) {
-            for (const mod of player.nextAttackModifiers) {
-                if (mod.damageMod) totalDamageMod *= mod.damageMod;
-            }
-            if (totalDamageMod !== 1) {
-                const damageColor = totalDamageMod > 1 ? '#2ecc71' : '#e74c3c';
-                attackText = `<span style="color: ${damageColor}">${player.attackPower.base}+${player.attackPower.diceCount}d${player.attackPower.diceSides} ×${totalDamageMod.toFixed(1)}</span>`;
-            }
+    // 既存の計算を維持
+    const hpBars = Math.ceil((player.hp / player.maxHp) * 20);
+    const hpText = '|'.repeat(Math.max(0, hpBars)).padEnd(20, ' ');
+
+    // Attack modifiers
+    let attackText = `${player.attackPower.base}+${player.attackPower.diceCount}d${player.attackPower.diceSides}`;
+    let totalDamageMod = 1;
+    if (player.nextAttackModifiers?.length > 0) {
+        for (const mod of player.nextAttackModifiers) {
+            if (mod.damageMod) totalDamageMod *= mod.damageMod;
         }
-
-        // Speed modifiers
-        let speedText = `<span style="color: ${speedInfo.color}">${speedInfo.name}</span>`;
-        if (player.nextAttackModifiers?.length > 0) {
-            const speedTierMod = player.nextAttackModifiers.find(mod => mod.speedTier);
-            if (speedTierMod) {
-                const modInfo = GAME_CONSTANTS.COLORS.SPEED[speedTierMod.speedTier];
-                speedText = `<span style="color: ${modInfo.color}">${modInfo.name}</span>`;
-            }
-        }
-
-        // Accuracy calculation with penalties
-        const baseAccuracy = Math.floor(player.accuracy * (1 - surroundingPenalty));
-        let accText = surroundingPenalty > 0
-            ? `<span style="color: #e74c3c">${baseAccuracy}%</span>`
-            : `${baseAccuracy}%`;
-        let totalAccuracyMod = 0;
-        if (player.nextAttackModifiers?.length > 0) {
-            for (const mod of player.nextAttackModifiers) {
-                if (mod.accuracyMod) totalAccuracyMod += mod.accuracyMod;
-            }
-            if (totalAccuracyMod !== 0) {
-                const modifiedAcc = Math.floor(baseAccuracy * (1 + totalAccuracyMod));
-                accText = `<span style="color: ${totalAccuracyMod > 0 ? '#2ecc71' : '#e74c3c'}">${modifiedAcc}%</span>`;
-            }
-        }
-
-        // Evasion calculation
-        const baseEvasion = Math.floor(player.evasion * (1 - surroundingPenalty));
-        const evaText = surroundingPenalty > 0
-            ? `<span style="color: #e74c3c">${baseEvasion}%</span>`
-            : `${baseEvasion}%`;
-
-        // Get nearby enemies HTML
-        const nearbyEnemiesHTML = this.getNearbyEnemiesHTML();
-
-        statusPanel.innerHTML = `
-            <div class="basic-info">
-                <div class="section-title">STATUS</div>
-                <div class="info-row">
-                    <span class="label">Name:</span>
-                    <span id="player-name">${player.name || 'Unknown'}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">Floor:</span>
-                    <span id="floor-level">${floorDisplay} <span style="color: ${dangerInfo.color}">[${dangerInfo.name}]</span></span>
-                </div>
-                <div class="info-row">
-                    <span class="label">Level:</span>
-                    <span id="level">${player.level}</span>
-                </div>
-            </div>
-
-            <div class="vitals-section">
-                <div class="hp-bar">
-                    <div class="hp-numbers">
-                        HP: <span id="hp">${player.hp}</span>/<span id="max-hp">${player.maxHp}</span>
-                    </div>
-                    <span id="hp-text" class="bar ${healthStatus.name.toLowerCase().replace(' ', '-')}">${hpText}</span>
-                </div>
-                <div class="status-text">
-                    <div class="status-row">
-                        <span class="label">Health:</span>
-                        <span id="health-status" style="color: ${healthStatus.color}">${healthStatus.name}</span>
-                    </div>
-                    <div class="status-row">
-                        <span class="label">Vigor:</span>
-                        <span id="vigor-status">
-                            <span style="color: ${vigorStatus.color}">[${vigorStatus.ascii}]</span>
-                            <span class="bar ${vigorStatus.name.toLowerCase().replace(' ', '-')}"></span>
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="progress-section">
-                <div class="xp-row">
-                    <span class="label">XP:</span>
-                    <span id="xp">${player.xp}/${player.xpToNextLevel}</span>
-                </div>
-                <div class="codex-row">
-                    <span class="label">CODEX:</span>
-                    <span id="codexPoints">${player.codexPoints}</span>
-                </div>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-row">
-                    <span class="label">STR:</span>
-                    <span id="str">${player.stats.str}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="label">DEX:</span>
-                    <span id="dex">${player.stats.dex}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="label">CON:</span>
-                    <span id="con">${player.stats.con}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="label">INT:</span>
-                    <span id="int">${player.stats.int}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="label">WIS:</span>
-                    <span id="wis">${player.stats.wis}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="label">SIZE:</span>
-                    <span id="size" style="color: ${sizeInfo.color}">${sizeInfo.name}</span>
-                </div>
-            </div>
-
-            <div class="derived-stats-grid">
-                <div class="stat-row">
-                    <span class="label">ATK:</span>
-                    <span id="attack">${attackText}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="label">DEF:</span>
-                    <span id="defense">${player.defense.base}+${player.defense.diceCount}d${player.defense.diceSides}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="label">ACC:</span>
-                    <span id="accuracy">${accText}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="label">EVA:</span>
-                    <span id="evasion">${evaText}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="label">PER:</span>
-                    <span id="perception">${player.perception}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="label">SPD:</span>
-                    <span id="speed">${speedText}</span>
-                </div>
-            </div>
-
-            <div class="enemy-info">
-                <div class="section-title">ENEMIES</div>
-                ${nearbyEnemiesHTML}
-            </div>
-        `;
-        // Update skill list display (only slots 1-9)
-        const skillsElement = document.getElementById('skills');
-        if (skillsElement) {
-            const skillsDisplay = player.skills.size > 0
-                ? Array.from(player.skills.entries())
-                    .filter(([slot]) => /^[1-9]$/.test(slot))
-                    .map(([slot, skillData]) => {
-                        const skill = this.game.codexSystem.findSkillById(skillData.id);
-                        const cooldownText = skillData.remainingCooldown > 0
-                            ? ` (CD: ${skillData.remainingCooldown})`
-                            : '';
-                        const effectText = skill.getEffectText(player);
-
-                        // スキルが属するカテゴリーを見つける
-                        let categoryColor;
-                        for (let cat in this.game.codexSystem.categories) {
-                            if (this.game.codexSystem.categories[cat].skills.some(s => s.id === skill.id)) {
-                                categoryColor = GAME_CONSTANTS.COLORS.CODEX_CATEGORY[cat];
-                                break;
-                            }
-                        }
-
-                        // スロット番号の使用可否判定
-                        const isAvailable = skillData.remainingCooldown === 0 &&
-                            (skill.id !== 'meditation' || player.hp < player.maxHp || player.vigor < GAME_CONSTANTS.VIGOR.MAX);
-                        const slotClass = isAvailable ? 'skill-slot available' : 'skill-slot';
-
-                        return `[<span class="${slotClass}">${slot}</span>] ` +
-                            `<span style="color: ${categoryColor}">${skill.name[0]}</span>${skill.name.slice(1)} ${effectText}${cooldownText}`;
-                    })
-                    .join('<br>')
-                : 'NO SKILLS';
-            skillsElement.innerHTML = skillsDisplay;
+        if (totalDamageMod !== 1) {
+            const damageColor = totalDamageMod > 1 ? '#2ecc71' : '#e74c3c';
+            attackText = `<span style="color: ${damageColor}">${player.attackPower.base}+${player.attackPower.diceCount}d${player.attackPower.diceSides} ×${totalDamageMod.toFixed(1)}</span>`;
         }
     }
+
+    // Speed modifiers
+    let speedText = `<span style="color: ${speedInfo.color}">${speedInfo.name}</span>`;
+    if (player.nextAttackModifiers?.length > 0) {
+        const speedTierMod = player.nextAttackModifiers.find(mod => mod.speedTier);
+        if (speedTierMod) {
+            const modInfo = GAME_CONSTANTS.COLORS.SPEED[speedTierMod.speedTier];
+            speedText = `<span style="color: ${modInfo.color}">${modInfo.name}</span>`;
+        }
+    }
+
+    // Accuracy calculation with penalties
+    const baseAccuracy = Math.floor(player.accuracy * (1 - surroundingPenalty));
+    let accText = surroundingPenalty > 0
+        ? `<span style="color: #e74c3c">${baseAccuracy}%</span>`
+        : `${baseAccuracy}%`;
+
+    // 通常ステータスまたは遠距離攻撃ステータスを表示（モードによって切り替え）
+    const combatStatsHTML = player.rangedCombat.isActive 
+        ? this.createRangedCombatStats(player)
+        : this.createNormalCombatStats(player, attackText, accText, speedText, sizeInfo);
+
+    // 敵情報の取得
+    const nearbyEnemiesHTML = this.getNearbyEnemiesHTML();
+
+    statusPanel.innerHTML = `
+        <div class="basic-info">
+            <div class="section-title">STATUS</div>
+            <div class="info-row">
+                <span class="label">Name:</span>
+                <span id="player-name">${player.name || 'Unknown'}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Floor:</span>
+                <span id="floor-level">${floorDisplay} <span style="color: ${dangerInfo.color}">[${dangerInfo.name}]</span></span>
+            </div>
+            <div class="info-row">
+                <span class="label">Level:</span>
+                <span id="level">${player.level}</span>
+            </div>
+        </div>
+
+        <div class="vitals-section">
+            <div class="hp-bar">
+                <div class="hp-numbers">
+                    HP: <span id="hp">${player.hp}</span>/<span id="max-hp">${player.maxHp}</span>
+                </div>
+                <span id="hp-text" class="bar ${healthStatus.name.toLowerCase().replace(' ', '-')}">${hpText}</span>
+            </div>
+            <div class="status-text">
+                <div class="status-row">
+                    <span class="label">Health:</span>
+                    <span id="health-status" style="color: ${healthStatus.color}">${healthStatus.name}</span>
+                </div>
+                <div class="status-row">
+                    <span class="label">Vigor:</span>
+                    <span id="vigor-status">
+                        <span style="color: ${vigorStatus.color}">[${vigorStatus.ascii}]</span>
+                        <span class="bar ${vigorStatus.name.toLowerCase().replace(' ', '-')}"></span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="progress-section">
+            <div class="xp-row">
+                <span class="label">XP:</span>
+                <span id="xp">${player.xp}/${player.xpToNextLevel}</span>
+            </div>
+            <div class="codex-row">
+                <span class="label">CODEX:</span>
+                <span id="codexPoints">${player.codexPoints}</span>
+            </div>
+        </div>
+
+        ${combatStatsHTML}
+
+        <div class="enemy-info">
+            <div class="section-title">ENEMIES</div>
+            ${nearbyEnemiesHTML}
+        </div>
+    `;
+
+    // スキルリストの更新
+    const skillsElement = document.getElementById('skills');
+    if (skillsElement) {
+        const skillsDisplay = player.skills.size > 0
+            ? Array.from(player.skills.entries())
+                .filter(([slot]) => /^[1-9]$/.test(slot))
+                .map(([slot, skillData]) => {
+                    const skill = this.game.codexSystem.findSkillById(skillData.id);
+                    const cooldownText = skillData.remainingCooldown > 0
+                        ? ` (CD: ${skillData.remainingCooldown})`
+                        : '';
+                    const effectText = skill.getEffectText(player);
+
+                    // スキルカテゴリーの色を取得
+                    let categoryColor;
+                    for (let cat in this.game.codexSystem.categories) {
+                        if (this.game.codexSystem.categories[cat].skills.some(s => s.id === skill.id)) {
+                            categoryColor = GAME_CONSTANTS.COLORS.CODEX_CATEGORY[cat];
+                            break;
+                        }
+                    }
+
+                    // スロットの使用可否判定
+                    const isAvailable = skillData.remainingCooldown === 0 &&
+                        (skill.id !== 'meditation' || player.hp < player.maxHp || player.vigor < GAME_CONSTANTS.VIGOR.MAX);
+                    const slotClass = isAvailable ? 'skill-slot available' : 'skill-slot';
+
+                    return `[<span class="${slotClass}">${slot}</span>] ` +
+                        `<span style="color: ${categoryColor}">${skill.name[0]}</span>${skill.name.slice(1)} ${effectText}${cooldownText}`;
+                })
+                .join('<br>')
+            : 'NO SKILLS';
+        skillsElement.innerHTML = skillsDisplay;
+    }
+}
+
+// 通常戦闘ステータスセクションの作成（新規メソッド）
+createNormalCombatStats(player, attackText, accText, speedText, sizeInfo) {
+    return `
+        <div class="stats-grid">
+            <div class="stat-row">
+                <span class="label">STR:</span>
+                <span id="str">${player.stats.str}</span>
+            </div>
+            <div class="stat-row">
+                <span class="label">DEX:</span>
+                <span id="dex">${player.stats.dex}</span>
+            </div>
+            <div class="stat-row">
+                <span class="label">CON:</span>
+                <span id="con">${player.stats.con}</span>
+            </div>
+            <div class="stat-row">
+                <span class="label">INT:</span>
+                <span id="int">${player.stats.int}</span>
+            </div>
+            <div class="stat-row">
+                <span class="label">WIS:</span>
+                <span id="wis">${player.stats.wis}</span>
+            </div>
+            <div class="stat-row">
+                <span class="label">SIZE:</span>
+                <span id="size" style="color: ${sizeInfo.color}">${sizeInfo.name}</span>
+            </div>
+        </div>
+
+        <div class="derived-stats-grid">
+            <div class="stat-row">
+                <span class="label">ATK:</span>
+                <span id="attack">${attackText}</span>
+            </div>
+            <div class="stat-row">
+                <span class="label">DEF:</span>
+                <span id="defense">${player.defense.base}+${player.defense.diceCount}d${player.defense.diceSides}</span>
+            </div>
+            <div class="stat-row">
+                <span class="label">ACC:</span>
+                <span id="accuracy">${accText}</span>
+            </div>
+            <div class="stat-row">
+                <span class="label">EVA:</span>
+                <span id="evasion">${player.evasion}%</span>
+            </div>
+            <div class="stat-row">
+                <span class="label">PER:</span>
+                <span id="perception">${player.perception}</span>
+            </div>
+            <div class="stat-row">
+                <span class="label">SPD:</span>
+                <span id="speed">${speedText}</span>
+            </div>
+        </div>
+    `;
+}
+
+// 遠距離攻撃セクションの作成（新規メソッド）
+createRangedCombatStats(player) {
+    const ranged = player.rangedCombat;
+    const energyPercent = (ranged.energy.current / ranged.energy.max) * 100;
+
+    return `
+        <div class="ranged-combat-section">
+            <div class="energy-bar">
+                <div class="energy-numbers">${ranged.energy.current}/${ranged.energy.max}</div>
+                <div class="bar-container">
+                    <div class="bar" style="width: ${energyPercent}%"></div>
+                </div>
+            </div>
+            <div class="ranged-stats-grid">
+                <div class="ranged-info">ATK: <span class="value">${ranged.attack.base}+${ranged.attack.dice.count}d${ranged.attack.dice.sides}</span></div>
+                <div class="ranged-info">ACC: <span class="value">${ranged.accuracy}%</span></div>
+                <div class="ranged-info">Range: <span class="value">${ranged.range}</span></div>
+                <div class="ranged-info">Cost: <span class="value">${ranged.energy.cost}/shot</span></div>
+            </div>
+            <div class="ranged-info">Recharge: <span class="value">${ranged.energy.rechargeRate}/trn</span></div>
+        </div>
+    `;
+}
 
     getNearbyEnemiesHTML() {
         const visibleTiles = new Set(

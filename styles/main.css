@@ -1707,4 +1707,42 @@ body::before {
 @keyframes player-web-blink {
     0% { opacity: 0.4; }
     100% { opacity: 1.0; }
-} 
+}
+
+/* 遠距離攻撃セクション */
+.ranged-combat-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 5px;
+}
+
+/* エネルギーバーの色を調整 */
+.energy-bar .bar {
+    background: linear-gradient(to right, #4a9eff, #6cf);
+}
+
+/* アクティブな遠距離攻撃モード時のコントロール表示 */
+.ranged-combat-section .controls {
+    color: #6cf;
+    text-align: center;
+    margin-top: 5px;
+}
+
+.energy-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.energy-numbers {
+    min-width: 45px;
+    text-align: right;
+    color: #6cf;
+}
+
+.ranged-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 5px 10px;
+}

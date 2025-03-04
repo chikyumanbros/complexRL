@@ -41,6 +41,26 @@ class Player {
         
         // 蜘蛛の巣関連のプロパティを追加
         this.caughtInWeb = null;  // 蜘蛛の巣に捕まっている場合、そのwebオブジェクトを保持
+
+        // 遠距離攻撃システムの初期化
+        this.rangedCombat = {
+            energy: {
+                current: 100,
+                max: 100,
+                rechargeRate: 10,
+                cost: 20
+            },
+            attack: {
+                base: 4,
+                dice: {
+                    count: 2,
+                    sides: 4
+                }
+            },
+            accuracy: 75,
+            range: 6,
+            isActive: false  // 遠距離攻撃モードのフラグ
+        };
     }
 
     validateVigor() {
@@ -1575,5 +1595,63 @@ class Player {
             
             return false; // アクション失敗
         }
+    }
+
+    // プレイヤークラスに新しいメソッドを追加
+    findNearestTargetInRange() {
+        if (!this.rangedCombat.isActive) return null;
+
+        const visibleTiles = this.game.getVisibleTiles();
+        const visibleTilesSet = new Set(visibleTiles.map(({x, y}) => `${x},${y}`));
+        
+        let nearestTarget = null;
+        let minDistance = Infinity;
+
+        this.game.monsters.forEach(monster => {
+            const distance = GAME_CONSTANTS.DISTANCE.calculate(this.x, this.y, monster.x, monster.y);
+            const monsterKey = `${monster.x},${monster.y}`;
+
+            if (distance <= this.rangedCombat.range && visibleTilesSet.has(monsterKey)) {
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestTarget = { x: monster.x, y: monster.y };
+                }
+            }
+        });
+
+        return nearestTarget;
+    }
+
+    cycleTarget(direction) {
+        if (!this.rangedCombat.isActive || !this.rangedCombat.target) return;
+
+        const visibleTiles = this.game.getVisibleTiles();
+        const visibleTilesSet = new Set(visibleTiles.map(({x, y}) => `${x},${y}`));
+        
+        // 射程範囲内の有効なターゲットをすべて取得
+        const validTargets = this.game.monsters
+            .filter(monster => {
+                const distance = GAME_CONSTANTS.DISTANCE.calculate(this.x, this.y, monster.x, monster.y);
+                const monsterKey = `${monster.x},${monster.y}`;
+                return distance <= this.rangedCombat.range && visibleTilesSet.has(monsterKey);
+            })
+            .map(monster => ({ x: monster.x, y: monster.y }));
+
+        if (validTargets.length === 0) return;
+
+        // 現在のターゲットのインデックスを見つける
+        const currentIndex = validTargets.findIndex(t => 
+            t.x === this.rangedCombat.target.x && t.y === this.rangedCombat.target.y
+        );
+
+        // 次のターゲットを選択
+        let nextIndex;
+        if (direction === 'next') {
+            nextIndex = (currentIndex + 1) % validTargets.length;
+        } else {
+            nextIndex = (currentIndex - 1 + validTargets.length) % validTargets.length;
+        }
+
+        this.rangedCombat.target = validTargets[nextIndex];
     }
 } 
