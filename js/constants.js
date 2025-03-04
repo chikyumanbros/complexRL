@@ -55,7 +55,8 @@ const GAME_CONSTANTS = {
         ESCAPE_CHANCE: {    // 罠から脱出する確率
             BASE: 0.5       // 基本脱出確率（固定値）
         },
-        INTERACTION_MESSAGE: "You remove the sticky web."  // インタラクト時のメッセージ
+        INTERACTION_MESSAGE: "You remove the sticky web.",  // インタラクト時のメッセージ
+        FAIL_MESSAGE: "The web is too sticky to remove."    // 取り除けなかった時のメッセージ
     },
 
     // 階段関連
