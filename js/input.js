@@ -2047,50 +2047,64 @@ if (skill.getRange) {
 
     // オベリスクを消去するメソッド
     removeNeuralObelisk(x, y) {
-        // マップデータを床に戻す
-        this.game.map[y][x] = 'floor';
-        this.game.tiles[y][x] = GAME_CONSTANTS.TILES.FLOOR[
-            Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
-        ];
-        this.game.colors[y][x] = GAME_CONSTANTS.COLORS.FLOOR;
-        
-        // neuralObelisks 配列から削除
-        if (this.game.mapGenerator && this.game.mapGenerator.neuralObelisks) {
-            this.game.mapGenerator.neuralObelisks = this.game.mapGenerator.neuralObelisks.filter(
-                o => !(o.x === x && o.y === y)
-            );
-        }
-        
-        // マップを再描画
-        this.renderMap();
+        this.removeMapObject(x, y, 'obelisk');
     }
 
     // 蜘蛛の巣を除去するメソッド
     removeWeb(x, y, web) {
-        // 蜘蛛の巣を取り除けるかどうかの判定
-        if (Math.random() >= GAME_CONSTANTS.WEB.TRAP_CHANCE) {
-            // 蜘蛛の巣を除去するメッセージを表示
-            this.game.logger.add(GAME_CONSTANTS.WEB.INTERACTION_MESSAGE, "playerInfo");
-            
-            // 蜘蛛の巣を除去するエフェクトを表示
-            this.game.renderer.showWebRemoveEffect(x, y);
-            
-            // 蜘蛛の巣を除去する効果音を再生
-            this.game.playSound('damageSound');
-            
-            // 蜘蛛の巣を配列から削除
-            this.game.webs = this.game.webs.filter(w => !(w.x === x && w.y === y));
-        } else {
-            // 蜘蛛の巣を取り除けなかった場合のメッセージ
-            this.game.logger.add(GAME_CONSTANTS.WEB.FAIL_MESSAGE, "playerInfo");
-        }
-        
-        // マップを再描画
-        this.renderMap();
+        this.removeMapObject(x, y, 'web');
     }
 
     // マップを再描画するヘルパーメソッド
     renderMap() {
         this.game.renderer.render();
+    }
+
+    // マップオブジェクトを除去する共通メソッド
+    removeMapObject(x, y, type, options = {}) {
+        switch (type) {
+            case 'web':
+                // 蜘蛛の巣を取り除けるかどうかの判定
+                if (Math.random() >= GAME_CONSTANTS.WEB.TRAP_CHANCE) {
+                    // 蜘蛛の巣を除去するメッセージを表示
+                    this.game.logger.add(GAME_CONSTANTS.WEB.INTERACTION_MESSAGE, "playerInfo");
+                    
+                    // 蜘蛛の巣を除去するエフェクトを表示
+                    this.game.renderer.showWebRemoveEffect(x, y);
+                    
+                    // 蜘蛛の巣を除去する効果音を再生
+                    this.game.playSound('damageSound');
+                    
+                    // 蜘蛛の巣を配列から削除
+                    this.game.webs = this.game.webs.filter(w => !(w.x === x && w.y === y));
+                } else {
+                    // 蜘蛛の巣を取り除けなかった場合のメッセージ
+                    this.game.logger.add(GAME_CONSTANTS.WEB.FAIL_MESSAGE, "playerInfo");
+                }
+                break;
+
+            case 'obelisk':
+                // マップデータを床に戻す
+                this.game.map[y][x] = 'floor';
+                this.game.tiles[y][x] = GAME_CONSTANTS.TILES.FLOOR[
+                    Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+                ];
+                this.game.colors[y][x] = GAME_CONSTANTS.COLORS.FLOOR;
+                
+                // neuralObelisks 配列から削除
+                if (this.game.mapGenerator && this.game.mapGenerator.neuralObelisks) {
+                    this.game.mapGenerator.neuralObelisks = this.game.mapGenerator.neuralObelisks.filter(
+                        o => !(o.x === x && o.y === y)
+                    );
+                }
+                break;
+
+            default:
+                console.warn(`Unknown map object type: ${type}`);
+                return;
+        }
+        
+        // マップを再描画
+        this.renderMap();
     }
 }
