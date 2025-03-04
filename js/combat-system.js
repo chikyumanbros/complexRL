@@ -6,6 +6,12 @@ class CombatSystem {
             console.error('Game object is undefined in resolveCombatAction');
             return { hit: false, evaded: false };
         }
+
+        // 遠距離攻撃の場合の特別処理
+        if (context.isRangedAttack) {
+            return this.resolveRangedAttack(attacker, defender, game, context);
+        }
+
         // 機会攻撃の場合の特別処理
         if (context.isOpportunityAttack) {
             // 機会攻撃用の修正を適用
@@ -374,5 +380,112 @@ class CombatSystem {
         }
 
         return { accuracyMod: totalAccuracyMod, damageMod: totalDamageMod, effectDesc };
+    }
+
+    // 遠距離攻撃の処理を行う新しいメソッド
+    static resolveRangedAttack(attacker, defender, game, context = {}) {
+        // 命中判定
+        const roll = Math.floor(Math.random() * 100) + 1;
+        const hitChance = attacker.rangedCombat.accuracy;
+        const isCritical = roll <= GAME_CONSTANTS.FORMULAS.CRITICAL_RANGE(attacker.stats);
+
+        // ログ出力用のプレフィックス
+        const logPrefix = context.isPlayer ? "You" : attacker.name;
+        const logTarget = context.isPlayer ? defender.name : "you";
+
+        // 命中判定のログを出力
+        game.logger.add(
+            `${logPrefix} fire at ${logTarget} ` +
+            `(ACC: ${Math.floor(hitChance)}% | Roll: ${roll}${isCritical ? ' [CRITICAL HIT!]' : ''})`,
+            isCritical ? "playerCrit" : "playerInfo"
+        );
+
+        // クリティカルヒットまたは通常命中の場合
+        if (isCritical || roll <= hitChance) {
+            // ダメージ計算
+            const attack = attacker.rangedCombat.attack;
+            const defense = defender.defense;
+            
+            // 基本攻撃力の計算
+            let damage = attack.base;
+            
+            // ダイス攻撃力の計算
+            const attackRolls = Array(attack.dice.count).fill(0)
+                .map(() => Math.floor(Math.random() * attack.dice.sides) + 1);
+            damage += attackRolls.reduce((sum, roll) => sum + roll, 0);
+
+            // クリティカルの場合は防御を無視
+            let finalDamage;
+            let defenseRolls = [];
+            if (isCritical) {
+                finalDamage = damage;
+                game.renderer.showCritEffect(defender.x, defender.y);
+                game.playSound('critSound');
+            } else {
+                // 通常命中の場合は防御計算
+                defenseRolls = Array(defense.diceCount).fill(0)
+                    .map(() => Math.floor(Math.random() * defense.diceSides) + 1);
+                const totalDefense = defense.base + defenseRolls.reduce((sum, roll) => sum + roll, 0);
+                finalDamage = Math.max(1, damage - totalDefense);
+            }
+
+            // ダメージを適用
+            const result = defender.takeDamage(finalDamage, {
+                source: attacker,
+                game: game,
+                isCritical: isCritical
+            });
+
+            // 攻撃結果を設定
+            game.lastAttackResult = {
+                hit: true,
+                evaded: false,
+                damage: finalDamage,
+                killed: result.killed,
+                isCritical: isCritical
+            };
+            game.lastAttackLocation = { x: defender.x, y: defender.y };
+
+            // ダメージエフェクトを表示
+            game.renderer.showDamageFlash();
+            game.renderer.render();
+
+            // 命中時のログ出力
+            const healthStatus = context.isPlayer 
+                ? `HP: ${defender.hp}/${defender.maxHp}`
+                : `HP: ${defender.hp}/${defender.maxHp}`;
+            
+            // 攻撃計算の詳細を表示
+            const attackCalc = `ATK: ${attack.base}+[${attackRolls.join(',')}]`;
+            const defenseCalc = isCritical 
+                ? '[DEF IGNORED]' 
+                : `vs DEF: ${defense.base}+[${defenseRolls.join(',')}]`;
+            
+            game.logger.add(
+                `The shot hits for ${finalDamage} damage! (${attackCalc} ${defenseCalc}) (${healthStatus})`,
+                isCritical ? "playerCrit" : "playerHit"
+            );
+
+            // 効果音を再生
+            game.playSound('damageSound');
+
+            return game.lastAttackResult;
+        } else {
+            // ミス時の処理
+            game.lastAttackResult = {
+                hit: false,
+                evaded: false,
+                damage: 0,
+                killed: false
+            };
+            game.lastAttackLocation = { x: defender.x, y: defender.y };
+
+            game.logger.add("The shot misses!", "playerMiss");
+            game.renderer.showMissEffect(defender.x, defender.y, 'miss');
+            game.playSound('missSound');
+            game.renderer.render();
+
+            return game.lastAttackResult;
+        }
     }
 } 

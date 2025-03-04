@@ -128,6 +128,10 @@ class Renderer {
             this.movementEffects = new Set();
         }
 
+        // 遠距離攻撃モード中はハイライトを維持
+        const keepHighlight = this.game.player.rangedCombat.isActive;
+        const currentHighlight = keepHighlight ? {...this.highlightedTile} : null;
+
         // 既にレンダリングがスケジュールされている場合は重複しない
         if (this.pendingRender) return;
         
@@ -162,6 +166,11 @@ class Renderer {
                     tile.classList.add('movement-trail');
                 }
             });
+
+            // 遠距離攻撃モード中は再度ハイライトを表示
+            if (keepHighlight && currentHighlight) {
+                this.highlightTarget(currentHighlight.x, currentHighlight.y);
+            }
             
             // レンダリング完了フラグをリセット
             this.pendingRender = false;

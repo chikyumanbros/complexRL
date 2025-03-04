@@ -369,22 +369,17 @@ class Game {
     }
 
     processTurn() {
-        this.hasDisplayedPresenceWarning = false;
-        this.turn++;
-        this.renderer.updateFlickerValues();
-
         // プレイヤーのターン処理
-        if (this.player.hp > 0) {
-            this.processPlayerTurn();
-        }
+        this.processPlayerTurn();
 
         // モンスターのターン処理
         this.processMonsterTurn();
 
-        // 自然回復処理
-        if (this.player.hp > 0 && !this.player.meditation) {
-            this.processNaturalHealing();
-        }
+        // 自然回復の処理
+        this.processNaturalHealing();
+
+        // エネルギー回復の処理を追加
+        this.player.processEnergyRecharge();
 
         // ターン終了時の更新処理
         this.processEndTurnUpdates();

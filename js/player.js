@@ -189,6 +189,27 @@ class Player {
                 this.defense = GAME_CONSTANTS.FORMULAS.DEFENSE(this.stats);
                 this.accuracy = GAME_CONSTANTS.FORMULAS.ACCURACY(this.stats);
                 this.evasion = GAME_CONSTANTS.FORMULAS.EVASION(this.stats);
+
+                // 遠距離攻撃パラメータの更新
+                this.rangedCombat = {
+                    ...this.rangedCombat,
+                    energy: {
+                        current: Math.min(
+                            this.rangedCombat.energy.current,
+                            GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats)
+                        ),
+                        max: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats),
+                        rechargeRate: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_RECHARGE(this.stats),
+                        cost: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_COST(this.stats)
+                    },
+                    attack: {
+                        base: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.BASE_ATTACK(this.stats),
+                        dice: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ATTACK_DICE(this.stats)
+                    },
+                    accuracy: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ACCURACY(this.stats),
+                    range: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.RANGE(this.stats),
+                    isActive: this.rangedCombat.isActive
+                };
                 
                 // HP増加と回復のログを表示
                 this.game.logger.add(`Maximum HP increased by ${hpIncrease}!`, "playerInfo");
@@ -1650,5 +1671,73 @@ class Player {
         }
 
         this.rangedCombat.target = validTargets[nextIndex];
+    }
+
+    // 遠距離攻撃を実行するメソッド
+    performRangedAttack(target, game) {
+        // エネルギーが不足している場合は攻撃できない
+        if (this.rangedCombat.energy.current < this.rangedCombat.energy.cost) {
+            game.logger.add("Not enough energy for ranged attack!", "warning");
+            return false;
+        }
+
+        // 射程範囲外の場合は攻撃できない
+        const distance = GAME_CONSTANTS.DISTANCE.calculate(
+            this.x, this.y,
+            target.x, target.y
+        );
+        if (distance > this.rangedCombat.range) {
+            game.logger.add("Target is out of range!", "warning");
+            return false;
+        }
+
+        // 視線が通っているかチェック
+        if (!game.hasLineOfSight(this.x, this.y, target.x, target.y)) {
+            game.logger.add("No clear line of sight to target!", "warning");
+            return false;
+        }
+
+        // 攻撃を実行
+        const result = CombatSystem.resolveCombatAction(this, target, game, {
+            isPlayer: true,
+            isRangedAttack: true
+        });
+
+        // エネルギーを消費
+        this.rangedCombat.energy.current = Math.max(0, 
+            this.rangedCombat.energy.current - this.rangedCombat.energy.cost
+        );
+
+        // 攻撃結果の処理
+        if (result.killed) {
+            game.processMonsterDeath({
+                monster: target,
+                result,
+                context: { isPlayer: true, isRangedAttack: true }
+            });
+            // モンスターが死亡した場合のみターゲットをクリア
+            this.rangedCombat.target = null;
+        }
+
+        return true;
+    }
+
+    // エネルギー回復処理を追加
+    processEnergyRecharge() {
+        if (!this.rangedCombat) return;
+
+        const oldEnergy = this.rangedCombat.energy.current;
+        this.rangedCombat.energy.current = Math.min(
+            this.rangedCombat.energy.max,
+            this.rangedCombat.energy.current + this.rangedCombat.energy.rechargeRate
+        );
+
+        // エネルギーが回復した場合のみログを表示
+        if (this.rangedCombat.energy.current > oldEnergy) {
+            game.logger.add(
+                `Energy restored: ${this.rangedCombat.energy.current}/${this.rangedCombat.energy.max}`,
+                "playerInfo"
+            );
+        }
     }
 } 

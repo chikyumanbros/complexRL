@@ -461,6 +461,45 @@ class InputHandler {
             this.toggleRangedCombatMode();
             return;
         }
+
+        // 遠距離攻撃モード中の処理
+        if (this.game.player.rangedCombat.isActive) {
+            // ターゲット切り替え
+            if (key === 'Tab') {
+                const direction = event.shiftKey ? 'prev' : 'next';
+                this.game.player.cycleTarget(direction);
+                this.game.renderer.render();
+                return;
+            }
+
+            // 攻撃実行
+            if (key === 'enter') {
+                const target = this.game.player.rangedCombat.target;
+                if (!target) {
+                    this.game.logger.add("No target selected!", "warning");
+                    return;
+                }
+
+                const monster = this.game.getMonsterAt(target.x, target.y);
+                if (!monster) {
+                    this.game.logger.add("No monster at target location!", "warning");
+                    return;
+                }
+
+                if (this.game.player.performRangedAttack(monster, this.game)) {
+                    this.game.processTurn();
+                }
+                return;
+            }
+
+            // ESCで遠距離攻撃モードを解除
+            if (key === 'Escape') {
+                this.game.player.rangedCombat.isActive = false;
+                this.game.player.rangedCombat.target = null;
+                this.game.renderer.render();
+                return;
+            }
+        }
     }
 
     handleNameInput(key, event) {
@@ -2147,17 +2186,22 @@ if (skill.getRange) {
     // 新しいメソッドを追加
     toggleRangedCombatMode() {
         const player = this.game.player;
-        player.rangedCombat.isActive = !player.rangedCombat.isActive;
-        
-        if (player.rangedCombat.isActive) {
-            // モード開始時に最も近いターゲットを自動選択
-            player.rangedCombat.target = player.findNearestTargetInRange();
-            this.game.logger.add("Switched to ranged combat mode.", "playerInfo");
+        if (!player.rangedCombat.isActive) {
+            // 遠距離攻撃モードを有効化
+            player.rangedCombat.isActive = true;
+            this.game.logger.add("Entered ranged attack mode.", "playerInfo");
+
+            // 最も近いターゲットを自動選択
+            const nearestTarget = player.findNearestTargetInRange();
+            if (nearestTarget) {
+                player.rangedCombat.target = nearestTarget;
+            }
         } else {
+            // 遠距離攻撃モードを無効化
+            player.rangedCombat.isActive = false;
             player.rangedCombat.target = null;
-            this.game.logger.add("Switched to normal combat mode.", "playerInfo");
+            this.game.logger.add("Exited ranged attack mode.", "playerInfo");
         }
-        
         this.game.renderer.render();
     }
 

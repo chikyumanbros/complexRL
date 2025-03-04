@@ -594,9 +594,16 @@ class Monster {
         }
 
         if (bestMove) {
+            const oldX = this.x;
+            const oldY = this.y;
             const newX = this.x + bestMove.x;
             const newY = this.y + bestMove.y;
-            
+
+            // 移動前の位置を保存
+            const wasTargeted = game.player.rangedCombat.target && 
+                              game.player.rangedCombat.target.x === oldX && 
+                              game.player.rangedCombat.target.y === oldY;
+
             // 蜘蛛の巣チェック
             const web = game.webs && game.webs.find(w => w.x === newX && w.y === newY);
             
@@ -654,6 +661,11 @@ class Monster {
                 // 通常の移動
                 this.x = newX;
                 this.y = newY;
+            }
+
+            // ターゲットの位置を更新
+            if (wasTargeted) {
+                game.player.rangedCombat.target = { x: this.x, y: this.y };
             }
         }
     }
