@@ -507,7 +507,7 @@ class InputHandler {
             this.game.generateNewFloor();  // generateFloor から generateNewFloor に修正
             this.game.mode = GAME_CONSTANTS.MODES.GAME;  // ゲームモードに設定
             this.game.processTurn();  // 最初のターンを処理
-            this.game.renderer.render();  // 画面を更新
+            this.renderMap();  // 画面を更新
             return;
         }
 
@@ -671,7 +671,7 @@ class InputHandler {
                 const operation = door.tile === GAME_CONSTANTS.TILES.DOOR.CLOSED ? 'o' : 'c';
                 this.operateDoor(door, operation);
                 this.game.processTurn();
-                this.game.renderer.render();
+                this.renderMap();
                 this.mode = 'normal';
                 return;
             }
@@ -725,7 +725,7 @@ class InputHandler {
             if (web) {
                 this.removeWeb(x, y, web);
                 this.game.processTurn();
-                this.game.renderer.render();
+                this.renderMap();
                 this.mode = 'normal';
                 return;
             }
@@ -851,7 +851,7 @@ class InputHandler {
                     const operation = target.tile === GAME_CONSTANTS.TILES.DOOR.CLOSED ? 'o' : 'c';
                     this.operateDoor({ x: target.x, y: target.y, tile: target.tile }, operation);
                     this.game.processTurn();
-                    this.game.renderer.render();
+                    this.renderMap();
                 } else if (target.type === 'portal') {
                     // 既存のポータル処理
                     if (target.tile === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
@@ -908,12 +908,12 @@ class InputHandler {
                     // ニューラルオベリスクの処理
                     this.game.touchNeuralObelisk(target.x, target.y);
                     this.game.processTurn();
-                    this.game.renderer.render();
+                    this.renderMap();
                 } else if (target.type === 'web') {
                     // 蜘蛛の巣の処理
                     this.removeWeb(target.x, target.y, target.web);
                     this.game.processTurn();
-                    this.game.renderer.render();
+                    this.renderMap();
                 }
                 return;
             }
@@ -1005,7 +1005,7 @@ class InputHandler {
             }
 
             this.game.processTurn();
-            this.game.renderer.render();
+            this.renderMap();
             return;
         }
 
@@ -1041,7 +1041,7 @@ class InputHandler {
             if (door) {
                 this.operateDoor(door, this.pendingDoorOperation);
                 this.game.processTurn();
-                this.game.renderer.render();
+                this.renderMap();
             } else {
                 this.game.logger.add("No door in that direction.", "warning");
             }
@@ -1207,32 +1207,22 @@ class InputHandler {
     // Codex Mode Input Handling
     // ----------------------
     handleCodexModeInput(key) {
+        // 現在のコードセクションで使用する変数
         const codex = this.game.codexSystem;
         const keyLower = key.toLowerCase();
 
-        if (codex.selectionMode === 'replace') {
-            if (keyLower === 'escape') {
-                codex.selectionMode = 'normal';
-                codex.pendingSkill = null;
-                this.game.renderer.renderCodexMenu();
-                return;
-            }
+        // ↓↓↓ Codexモードの実装 ↓↓↓
+        if (this.skillSlotSwapMode && key.match(/^\d$/)) {
+            // スキル入れ替えモード中の数字キー押下
 
             const slotNum = parseInt(key);
             if (slotNum >= 0 && slotNum <= 9 && this.game.player.skills.has(slotNum)) {
                 if (codex.replaceSkill(slotNum, this.game.player)) {
-                    this.game.renderer.render();
+                    this.renderMap();
                     this.game.renderer.renderCodexMenu();
                 }
                 return;
             }
-            return;
-        }
-
-        // --- Toggle Codex Input Mode with Space ---
-        if (key === ' ') {
-            codex.toggleInputMode();
-            this.game.renderer.renderCodexMenu();
             return;
         }
 
@@ -1263,7 +1253,7 @@ class InputHandler {
                 } else {
                     this.game.logger.add(result, "warning");
                 }
-                this.game.renderer.render();
+                this.renderMap();
                 this.game.renderer.renderCodexMenu();
                 return;
             }
@@ -1533,7 +1523,7 @@ if (skill.getRange) {
             
             // 扉を開けた後に視界を更新
             this.game._visibleTilesCache = null;  // キャッシュをクリア
-            this.game.renderer.render();
+            this.renderMap();
 
             // ドア開くSEを再生
             this.game.playSound('doorOpenSound');
@@ -1582,7 +1572,7 @@ if (skill.getRange) {
 
                     // 視界の更新を強制
                     this.game._visibleTilesCache = null;
-                    this.game.renderer.render();
+                    this.renderMap();
                     
                     // Look情報を更新
                     this.game.renderer.examineTarget(door.x, door.y, true);
@@ -1590,7 +1580,7 @@ if (skill.getRange) {
 
                 // 即座にレンダリング
                 this.game._visibleTilesCache = null;
-                this.game.renderer.render();
+                this.renderMap();
                 
                 // Look情報を即座に更新
                 this.game.renderer.examineTarget(door.x, door.y, true);
@@ -1604,7 +1594,7 @@ if (skill.getRange) {
                 
                 // 扉を閉めた後に視界を更新
                 this.game._visibleTilesCache = null;  // キャッシュをクリア
-                this.game.renderer.render();
+                this.renderMap();
 
                 // ドア閉じるSEを再生
                 this.game.playSound('doorCloseSound');
@@ -1917,56 +1907,49 @@ if (skill.getRange) {
     
     // スキルスロット並べ替えモードの処理メソッド
     handleSkillSlotSwapMode(key) {
-        //console.log('Handling skill slot swap, key pressed:', key);
+        if (key.match(/^\d$/)) {
+            // 数字キーが押された場合
+            const slot = parseInt(key);
+            
+            // スキルが存在するかチェック
+            if (!this.game.player.skills.has(slot)) {
+                this.game.logger.add(`Slot ${slot} does not have a skill assigned.`, "warning");
+                return;
+            }
+            
+            if (this.firstSlot === null) {
+                // 最初のスロットを選択した場合
+                this.firstSlot = slot;
+                this.game.logger.add(`Selected skill in slot ${slot}. Select another slot to swap with.`, "info");
+            } else {
+                // 2つ目のスロットを選択した場合、スワップを実行
+                this.completeSkillSlotSwap(slot);
+            }
+        } else if (key === 'escape') {
+            // キャンセル
+            this.cancelSkillSlotSwap();
+        }
+    }
+    
+    // スキルスロット並べ替えを完了するメソッド
+    completeSkillSlotSwap(secondSlot) {
+        //console.log(`Swapping skills between slots ${this.firstSlot} and ${secondSlot}`);
         
-        // 数字キーのみ処理
-        if (!/^[1-9]$/.test(key)) {
-            //console.log('Not a number key, cancelling swap');
+        // firstSlotがnullの場合は何もしない
+        if (this.firstSlot === null) {
             this.cancelSkillSlotSwap();
             return;
         }
         
-        const player = this.game.player;
-        const secondSlot = key;
+        // スキルの入れ替えを実行
+        this.game.player.swapSkills(this.firstSlot, secondSlot);
         
-        //console.log('First slot:', this.firstSlot, 'Second slot:', secondSlot);
-        
-        // 同じスロットを選択した場合はキャンセル
-        if (this.firstSlot === secondSlot) {
-            //console.log('Same slot selected, cancelling swap');
-            this.cancelSkillSlotSwap();
-            return;
-        }
-        
-        // スロット間でスキルを交換
-        const firstSkill = player.skills.get(this.firstSlot);
-        const secondSkill = player.skills.get(secondSlot);
-        
-        //console.log('First skill:', firstSkill, 'Second skill:', secondSkill);
-        
-        // 2つ目のスロットが空の場合
-        if (!secondSkill) {
-            //console.log('Moving skill to empty slot');
-            // 1つ目のスロットから2つ目のスロットに移動
-            player.skills.set(secondSlot, firstSkill);
-            player.skills.delete(this.firstSlot);
-            
-            const skillName = this.game.codexSystem.findSkillById(firstSkill.id).name;
-            this.game.logger.add(`Moved ${skillName} from slot ${this.firstSlot} to slot ${secondSlot}`, "playerInfo");
-        } else {
-            //console.log('Swapping skills between slots');
-            // 両方のスロットにスキルがある場合は交換
-            player.skills.set(this.firstSlot, secondSkill);
-            player.skills.set(secondSlot, firstSkill);
-            
-            const firstSkillName = this.game.codexSystem.findSkillById(firstSkill.id).name;
-            const secondSkillName = this.game.codexSystem.findSkillById(secondSkill.id).name;
-            this.game.logger.add(`Swapped ${firstSkillName} and ${secondSkillName}`, "playerInfo");
-        }
-        
-        // スキルスロット並べ替えモードを終了
+        // モードを解除
         this.skillSlotSwapMode = false;
         this.firstSlot = null;
+        
+        // 完了メッセージを表示
+        this.game.logger.add(`Swapped skills between slots ${this.firstSlot} and ${secondSlot}`, "playerInfo");
         
         //console.log('Skill swap completed, updating skill panel');
         
@@ -1974,7 +1957,7 @@ if (skill.getRange) {
         this.game.renderer.renderStatus();
         
         // 変更を画面に反映するためにrenderも呼び出す
-        this.game.renderer.render();
+        this.renderMap();
     }
     
     // スキルスロット並べ替えをキャンセルするメソッド
@@ -2079,7 +2062,7 @@ if (skill.getRange) {
         }
         
         // マップを再描画
-        this.game.renderer.render();
+        this.renderMap();
     }
 
     // 蜘蛛の巣を除去するメソッド
@@ -2103,6 +2086,11 @@ if (skill.getRange) {
         }
         
         // マップを再描画
+        this.renderMap();
+    }
+
+    // マップを再描画するヘルパーメソッド
+    renderMap() {
         this.game.renderer.render();
     }
 }
