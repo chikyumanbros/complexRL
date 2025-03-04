@@ -513,6 +513,38 @@ const GAME_CONSTANTS = {
             const dexBonus = Math.floor((stats.dex - 10) * 0.15);  // DEXが10以上で+0.15
             const intBonus = Math.floor((stats.int - 10) * 0.1);   // INTが10以上で+0.1
             return Math.min(5, Math.max(1, baseRange + dexBonus + intBonus));
+        },
+        // 遠距離攻撃の計算式を追加
+        RANGED_COMBAT: {
+            // エネルギー最大値の計算（INT + DEX / 2）
+            ENERGY_MAX: (stats) => {
+                return Math.floor(75 + stats.int * 2 + stats.dex);
+            },
+            // エネルギー回復量の計算（INT / 3 + 5）
+            ENERGY_RECHARGE: (stats) => {
+                return Math.floor(5 + stats.int / 3);
+            },
+            // エネルギーコストの計算（基本コスト - INT / 4）
+            ENERGY_COST: (stats) => {
+                return Math.max(15, Math.floor(30 - stats.int / 4));
+            },
+            // 基本攻撃力の計算（DEX * 0.5 + INT * 0.3）
+            BASE_ATTACK: (stats) => {
+                return Math.floor(stats.dex * 0.5 + stats.int * 0.3);
+            },
+            // 攻撃ダイスの計算
+            ATTACK_DICE: (stats) => ({
+                count: Math.max(1, Math.floor(stats.dex / 4)),
+                sides: Math.max(2, Math.floor(stats.int / 3))
+            }),
+            // 命中率の計算（50 + DEX * 0.8 + INT * 0.4）
+            ACCURACY: (stats) => {
+                return Math.min(90, Math.floor(50 + stats.dex * 0.8 + stats.int * 0.4));
+            },
+            // 射程範囲の計算（4 + INT / 3）
+            RANGE: (stats) => {
+                return Math.floor(4 + stats.int / 3);
+            }
         }
     },
 
@@ -710,5 +742,23 @@ const GAME_CONSTANTS = {
                 ascii: "∈ϴ‿ϴל"  // 変更
             };
         }
+    },
+
+    // 遠距離攻撃システムの設定を追加
+    RANGED_COMBAT: {
+        ENERGY: {
+            MAX: 100,
+            RECHARGE_RATE: 10,
+            COST: 30
+        },
+        ATTACK: {
+            BASE: 4,
+            DICE: {
+                COUNT: 2,
+                SIDES: 4
+            }
+        },
+        ACCURACY: 50,
+        RANGE: 6
     }
 };

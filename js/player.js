@@ -45,20 +45,17 @@ class Player {
         // 遠距離攻撃システムの初期化
         this.rangedCombat = {
             energy: {
-                current: 100,
-                max: 100,
-                rechargeRate: 10,
-                cost: 20
+                current: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats),
+                max: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats),
+                rechargeRate: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_RECHARGE(this.stats),
+                cost: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_COST(this.stats)
             },
             attack: {
-                base: 4,
-                dice: {
-                    count: 2,
-                    sides: 4
-                }
+                base: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.BASE_ATTACK(this.stats),
+                dice: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ATTACK_DICE(this.stats)
             },
-            accuracy: 75,
-            range: 6,
+            accuracy: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ACCURACY(this.stats),
+            range: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.RANGE(this.stats),
             isActive: false  // 遠距離攻撃モードのフラグ
         };
     }
