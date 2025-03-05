@@ -2080,6 +2080,8 @@ if (skill.getRange) {
                     this.game.webs = this.game.webs.filter(w => !(w.x === x && w.y === y));
                 } else {
                     // 蜘蛛の巣を取り除けなかった場合のメッセージ
+                    this.game.playSound('missSound');
+                    this.game.renderer.showMissEffect(x, y, 'miss');
                     this.game.logger.add(GAME_CONSTANTS.WEB.FAIL_MESSAGE, "playerInfo");
                 }
                 break;
