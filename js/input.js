@@ -60,6 +60,20 @@ class InputHandler {
         //console.log('Key pressed:', event.key, 'Ctrl:', event.ctrlKey, 'Meta:', event.metaKey, 'Key code:', event.keyCode);
         //console.log('Current ctrlPressed state:', this.ctrlPressed);
         
+        // Ctrl+Shift+Sの処理を追加
+        if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 's') {
+            event.preventDefault();
+            const spritePreview = document.getElementById('sprite-preview');
+            if (spritePreview) {
+                const isHidden = spritePreview.style.display === 'none';
+                spritePreview.style.display = isHidden ? 'block' : 'none';
+                if (isHidden) {
+                    this.renderSpritePreview();
+                }
+            }
+            return;
+        }
+        
         // 名前入力モードの場合は大文字小文字を区別するため、keyを変換しない
         const key = this.mode === 'name' ? event.key : event.key.toLowerCase();
         
@@ -276,118 +290,7 @@ class InputHandler {
             return;
         }
 
-        // 開発者コマンドの処理を最初に行う
-        if (event.ctrlKey && event.shiftKey) {
-            //console.log('Developer command detected:', key);
-            switch (key) {
-                case 's':
-                    event.preventDefault();
-                    const spritePreview = document.getElementById('sprite-preview');
-                    if (spritePreview) {
-                        const isHidden = spritePreview.style.display === 'none';
-                        spritePreview.style.display = isHidden ? 'block' : 'none';
-                        
-                        if (!isHidden) {
-                            //console.log('Hiding sprite preview...');
-                        } else {
-                            //console.log('Showing sprite preview...');
-                            // モンスターの定義を確認
-                            if (!MONSTERS) {
-                                //console.error('MONSTERS is not defined');
-                                return;
-                            }
-
-                            // スプライトプレビューの内容をクリア
-                            spritePreview.innerHTML = '';
-
-                            // フレックスコンテナを作成
-                            const flexContainer = document.createElement('div');
-                            flexContainer.style.display = 'flex';
-                            flexContainer.style.flexWrap = 'wrap';
-                            flexContainer.style.gap = '20px';
-                            flexContainer.style.padding = '20px';
-                            spritePreview.appendChild(flexContainer);
-
-                            // モンスタータイプごとにコンテナを生成
-                            const monsters = Object.keys(MONSTERS);
-                            monsters.forEach((type, index) => {
-                                const containerId = `sprite-preview-container${index === 0 ? '' : index + 1}`;
-                                const container = document.createElement('div');
-                                container.id = containerId;
-                                container.style.padding = '10px';
-                                container.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-                                container.style.border = '1px solid #333';
-                                container.style.borderRadius = '5px';
-                                container.style.minWidth = '200px';
-                                container.style.flex = '0 0 auto';
-                                
-                                // タイトルを追加
-                                const title = document.createElement('div');
-                                title.style.color = '#fff';
-                                title.style.marginBottom = '10px';
-                                title.style.fontFamily = 'monospace';
-                                title.textContent = `Monster Type: ${type}`;
-                                container.appendChild(title);
-
-                                flexContainer.appendChild(container);
-
-                                try {
-                                    // スプライトの描画
-                                    this.game.renderer.previewMonsterSprite(type, containerId);
-
-                                    // ステータス情報の表示
-                                    const monsterData = MONSTERS[type];
-                                    if (!monsterData || !monsterData.stats) {
-                                        //console.error(`Invalid monster data for type: ${type}`);
-                                        return;
-                                    }
-
-                                    const monsterStats = monsterData.stats;
-                                    const size = GAME_CONSTANTS.FORMULAS.SIZE(monsterStats);
-                                    const speed = GAME_CONSTANTS.FORMULAS.SPEED(monsterStats);
-                                    const attack = GAME_CONSTANTS.FORMULAS.ATTACK(monsterStats);
-                                    const defense = GAME_CONSTANTS.FORMULAS.DEFENSE(monsterStats);
-                                    const accuracy = GAME_CONSTANTS.FORMULAS.ACCURACY(monsterStats);
-                                    const evasion = GAME_CONSTANTS.FORMULAS.EVASION(monsterStats);
-                                    const maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(monsterStats, MONSTERS[type].level);
-
-                                    const statsHtml = `
-                                        <div style="text-align: left; margin-top: 10px; font-family: monospace;">
-                                            <div style="color: #ffd700">Level ${MONSTERS[type].level}</div>
-                                            <div>HP: ${maxHp}</div>
-                                            <div>ATK: ${attack.base}+${attack.diceCount}d${attack.diceSides}</div>
-                                            <div>DEF: ${defense.base}+${defense.diceCount}d${defense.diceSides}</div>
-                                            <div>ACC: ${accuracy}%</div>
-                                            <div>EVA: ${evasion}%</div>
-                                            <div>PER: ${GAME_CONSTANTS.FORMULAS.PERCEPTION(monsterStats)}</div>
-                                            <div style="color: ${GAME_CONSTANTS.COLORS.SIZE[size.value].color}">Size: ${size.name}</div>
-                                            <div style="color: ${GAME_CONSTANTS.COLORS.SPEED[speed.value].color}">Speed: ${speed.name}</div>
-                                            <div style="color: #3498db">Stats:</div>
-                                            <div>STR: ${monsterStats.str}</div>
-                                            <div>DEX: ${monsterStats.dex}</div>
-                                            <div>CON: ${monsterStats.con}</div>
-                                            <div>INT: ${monsterStats.int}</div>
-                                            <div>WIS: ${monsterStats.wis}</div>
-                                        </div>
-                                    `;
-
-                                    // 既存のステータス情報があれば更新、なければ新規作成
-                                    let statsDiv = container.querySelector('.monster-stats');
-                                    if (!statsDiv) {
-                                        statsDiv = document.createElement('div');
-                                        statsDiv.className = 'monster-stats';
-                                        container.appendChild(statsDiv);
-                                    }
-                                    statsDiv.innerHTML = statsHtml;
-                                } catch (error) {
-                                    //console.error(`Error processing monster ${type}:`, error);
-                                }
-                            });
-                        }
-                    }
-                    return;
-            }
-        }
+        
 
         // 通常のゲーム入力の処理
         if (this.game.player.isDead) {
@@ -2245,5 +2148,91 @@ if (skill.getRange) {
             case 'n': return 'next';
             default: return null;
         }
+    }
+
+    renderSpritePreview() {
+        const spritePreview = document.getElementById('sprite-preview');
+        if (!spritePreview) return;
+
+        // スプライトプレビューの内容をクリア
+        spritePreview.innerHTML = '';
+
+        // フレックスコンテナを作成
+        const flexContainer = document.createElement('div');
+        flexContainer.style.display = 'flex';
+        flexContainer.style.flexWrap = 'wrap';
+        flexContainer.style.gap = '20px';
+        flexContainer.style.padding = '20px';
+        spritePreview.appendChild(flexContainer);
+
+        // モンスタータイプごとにコンテナを生成
+        const monsters = Object.keys(MONSTERS);
+        monsters.forEach((type, index) => {
+            const containerId = `sprite-preview-container${index === 0 ? '' : index + 1}`;
+            const container = document.createElement('div');
+            container.id = containerId;
+            container.style.padding = '10px';
+            container.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+            container.style.border = '1px solid #333';
+            container.style.borderRadius = '5px';
+            container.style.minWidth = '200px';
+            container.style.flex = '0 0 auto';
+            
+            // タイトルを追加
+            const title = document.createElement('div');
+            title.style.color = '#fff';
+            title.style.marginBottom = '10px';
+            title.style.fontFamily = 'monospace';
+            title.textContent = `Monster Type: ${type}`;
+            container.appendChild(title);
+
+            flexContainer.appendChild(container);
+
+            try {
+                // スプライトの描画
+                this.game.renderer.previewMonsterSprite(type, containerId);
+
+                // ステータス情報の表示
+                const monsterData = MONSTERS[type];
+                if (!monsterData || !monsterData.stats) return;
+
+                const monsterStats = monsterData.stats;
+                const size = GAME_CONSTANTS.FORMULAS.SIZE(monsterStats);
+                const speed = GAME_CONSTANTS.FORMULAS.SPEED(monsterStats);
+                const attack = GAME_CONSTANTS.FORMULAS.ATTACK(monsterStats);
+                const defense = GAME_CONSTANTS.FORMULAS.DEFENSE(monsterStats);
+                const accuracy = GAME_CONSTANTS.FORMULAS.ACCURACY(monsterStats);
+                const evasion = GAME_CONSTANTS.FORMULAS.EVASION(monsterStats);
+                const maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(monsterStats, MONSTERS[type].level);
+
+                const statsHtml = `
+                    <div style="text-align: left; margin-top: 10px; font-family: monospace;">
+                        <div style="color: #ffd700">Level ${MONSTERS[type].level}</div>
+                        <div>HP: ${maxHp}</div>
+                        <div>ATK: ${attack.base}+${attack.diceCount}d${attack.diceSides}</div>
+                        <div>DEF: ${defense.base}+${defense.diceCount}d${defense.diceSides}</div>
+                        <div>ACC: ${accuracy}%</div>
+                        <div>EVA: ${evasion}%</div>
+                        <div>PER: ${GAME_CONSTANTS.FORMULAS.PERCEPTION(monsterStats)}</div>
+                        <div style="color: ${GAME_CONSTANTS.COLORS.SIZE[size.value].color}">Size: ${size.name}</div>
+                        <div style="color: ${GAME_CONSTANTS.COLORS.SPEED[speed.value].color}">Speed: ${speed.name}</div>
+                        <div style="color: #3498db">Stats:</div>
+                        <div>STR: ${monsterStats.str}</div>
+                        <div>DEX: ${monsterStats.dex}</div>
+                        <div>CON: ${monsterStats.con}</div>
+                        <div>INT: ${monsterStats.int}</div>
+                        <div>WIS: ${monsterStats.wis}</div>
+                    </div>
+                `;
+
+                // ステータス情報を追加
+                const statsDiv = document.createElement('div');
+                statsDiv.className = 'monster-stats';
+                statsDiv.innerHTML = statsHtml;
+                container.appendChild(statsDiv);
+            } catch (error) {
+                console.error(`Error processing monster ${type}:`, error);
+            }
+        });
     }
 }
