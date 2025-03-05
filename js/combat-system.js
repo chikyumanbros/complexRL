@@ -558,6 +558,7 @@ class CombatSystem {
             game.lastAttackLocation = { x: defender.x, y: defender.y };
 
             // ダメージエフェクトを表示
+            game.playSound('rangedAttackSound');
             game.renderer.showDamageFlash();
             game.renderer.render();
 

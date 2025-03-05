@@ -26,6 +26,7 @@ class SoundManager {
         this.damageSound = new Audio('assets/sounds/damage.wav'); // damage用SE
         this.takeDamageSound = new Audio('assets/sounds/takedamage.wav'); // takedamage用SE
         this.playerDeathSound = new Audio('assets/sounds/playerdeath.wav'); // playerdeath用SE
+        this.rangedAttackSound = new Audio('assets/sounds/rangedattack.wav'); // rangedattack用SE
 
         // nextattackmodifier用SE
         this.nextAttackModifierSound = new Audio('assets/sounds/nextattackmodifier.wav');
@@ -166,6 +167,7 @@ class SoundManager {
         this.damageSound.volume = 0.1; // damageの音量を設定
         this.takeDamageSound.volume = 0.5; // takedamageの音量を設定
         this.playerDeathSound.volume = this.seVolume; // playerdeathの音量を設定
+        this.rangedAttackSound.volume = 0.4; // rangedattackの音量を設定
 
         // nextattackmodifierの音量を設定
         this.nextAttackModifierSound.volume = this.seVolume;
