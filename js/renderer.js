@@ -141,7 +141,7 @@ class Renderer {
             // exploredStateのハッシュをチェック（タイル忘却などの検出用）
             const currentHash = this.effects.calculateExploredHash();
             if (currentHash !== this.exploredStateHash) {
-                console.log('Detected change in explored state. Performing full redraw.');
+                //console.log('Detected change in explored state. Performing full redraw.');
                 this.forceFullRender = true;
                 this.exploredStateHash = currentHash;
             }
@@ -431,7 +431,7 @@ class Renderer {
         
         // フロア変更時は強制的に全タイルを削除
         if (floorChanged) {
-            console.log(`Floor changed: ${this.lastFloorLevel} or forced refresh. Rebuilding all tiles...`);
+            //console.log(`Floor changed: ${this.lastFloorLevel} or forced refresh. Rebuilding all tiles...`);
             while (container.firstChild) {
                 container.removeChild(container.firstChild);
             }

@@ -197,7 +197,7 @@ class SoundManager {
         // ユーザーが操作したか確認
         if (!this.userInteracted) return;
 
-        console.log("playSound called with audioName:", audioName, "loop:", loop); // ログを追加
+        //console.log("playSound called with audioName:", audioName, "loop:", loop); // ログを追加
 
         // moveSounds の場合は this[audioName] ではなく this.moveSounds[audioName] を使う
         let audio = this.moveSounds[audioName] || this[audioName];

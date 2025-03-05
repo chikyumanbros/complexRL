@@ -399,8 +399,8 @@ const GAME_CONSTANTS = {
         },
         ACCURACY: (stats) => {
             const speed = GAME_CONSTANTS.FORMULAS.SPEED(stats);
-            const size = GAME_CONSTANTS.FORMULAS.SIZE(stats);
             const speedMod = (speed.value - 3) * 5;  // Normal(3)を基準に ±5%
+            const size = GAME_CONSTANTS.FORMULAS.SIZE(stats);
             const sizeMod = (3 - size.value) * 3;    // Medium(3)を基準に ±3%
             const acc = 50 + Math.floor(stats.dex * 0.8) + Math.floor(stats.wis * 0.4)
                 - Math.floor(stats.con / 4) + speedMod + sizeMod;
@@ -521,11 +521,11 @@ const GAME_CONSTANTS = {
             },
             // エネルギー回復量の計算（INT / 3 + 5）
             ENERGY_RECHARGE: (stats) => {
-                return Math.floor(5 + stats.int / 3);
+                return Math.floor(2 + stats.int / 3);
             },
             // エネルギーコストの計算（基本コスト - INT / 4）
             ENERGY_COST: (stats) => {
-                return Math.max(15, Math.floor(30 - stats.int / 4));
+                return Math.max(20, Math.floor(30 - stats.int / 4));
             },
             // 基本攻撃力の計算（DEX * 0.5 + INT * 0.3）
             BASE_ATTACK: (stats) => {
@@ -533,12 +533,14 @@ const GAME_CONSTANTS = {
             },
             // 攻撃ダイスの計算
             ATTACK_DICE: (stats) => ({
-                count: Math.max(1, Math.floor(stats.dex / 4)),
-                sides: Math.max(2, Math.floor(stats.int / 3))
+                count: Math.max(1, Math.floor(stats.dex / 5)),
+                sides: Math.max(2, Math.floor(stats.int / 4))
             }),
             // 命中率の計算（50 + DEX * 0.8 + INT * 0.4）
             ACCURACY: (stats) => {
-                return Math.min(90, Math.floor(50 + stats.dex * 0.8 + stats.int * 0.4));
+                const speed = GAME_CONSTANTS.FORMULAS.SPEED(stats);
+                const speedMod = (speed.value - 3) * 5;  // Normal(3)を基準に ±5%
+                return Math.min(90, Math.floor(30 + stats.dex * 0.8 + stats.int * 0.4 + speedMod));
             },
             // 射程範囲の計算（4 + INT / 3）
             RANGE: (stats) => {
