@@ -488,6 +488,13 @@ class CombatSystem {
             isCritical ? "playerCrit" : "playerInfo"
         );
 
+        // 弾道エフェクトを表示（命中判定の前に開始）
+        game.renderer.effects.showProjectileEffect(
+            attacker.x, attacker.y,
+            defender.x, defender.y,
+            isCritical || roll <= hitChance
+        );
+
         // クリティカルヒットまたは通常命中の場合
         if (isCritical || roll <= hitChance) {
             // RANGED_COMBATの計算式を使用してダメージを計算

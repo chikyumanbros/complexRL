@@ -1734,26 +1734,40 @@ class Player {
             return false;
         }
 
-        // 攻撃を実行
-        const result = CombatSystem.resolveCombatAction(this, target, game, {
-            isPlayer: true,
-            isRangedAttack: true
-        });
+        // 遠距離攻撃の実行
+        const result = CombatSystem.resolveRangedAttack(this, target, game, { isPlayer: true });
 
-        // エネルギーを消費
-        this.rangedCombat.energy.current = Math.max(0, 
-            this.rangedCombat.energy.current - this.rangedCombat.energy.cost
-        );
+        // 攻撃が命中した場合
+        if (result.hit) {
+            // 死亡処理（damageResultを含めて渡す）
+            if (target.hp <= 0) {
+                game.processMonsterDeath({
+                    monster: target,
+                    result: {
+                        damage: result.damage,
+                        killed: true,
+                        evaded: false
+                    },
+                    damageResult: result.damageResult,
+                    context: {
+                        isPlayer: true,
+                        isCritical: result.isCritical,
+                        isRangedAttack: true,
+                        attackType: "Ranged attack",
+                        damageMultiplier: 1
+                    }
+                });
 
-        // 攻撃結果の処理
-        if (result.killed) {
-            game.processMonsterDeath({
-                monster: target,
-                result,
-                context: { isPlayer: true, isRangedAttack: true }
-            });
-            // モンスターが死亡した場合のみターゲットをクリア
-            this.rangedCombat.target = null;
+                // 次のターゲットを探す
+                const nextTarget = this.findNearestTargetInRange();
+                if (nextTarget) {
+                    this.rangedCombat.target = nextTarget;
+                    game.logger.add(`Targeting next enemy at (${nextTarget.x}, ${nextTarget.y})`, "playerInfo");
+                } else {
+                    this.rangedCombat.isActive = false;
+                    game.logger.add("No more targets in range.", "playerInfo");
+                }
+            }
         }
 
         return true;

@@ -1294,6 +1294,43 @@ class RendererEffects {
         // マップを再描画
         this.renderer.render();
     }
+
+    // 弾道エフェクトを表示するメソッド
+    showProjectileEffect(fromX, fromY, toX, toY, hit = true) {
+        const points = this.renderer.game.getLinePoints(fromX, fromY, toX, toY);
+        const duration = 300; // エフェクトの総時間（ミリ秒）
+        const stepDelay = duration / points.length; // 各ポイント間の遅延
+
+        // 前のハイライトをクリア
+        this.renderer.clearHighlight();
+
+        // 各ポイントで1つずつハイライトを表示
+        points.forEach((point, index) => {
+            setTimeout(() => {
+                // 前のハイライトをクリア
+                this.renderer.clearHighlight();
+
+                // 現在の位置のみハイライト
+                const tile = document.querySelector(`#game span[data-x="${point.x}"][data-y="${point.y}"]`);
+                if (tile) {
+                    tile.classList.add('highlighted');
+                    // 最後の位置で命中/ミスの色を変える
+                    if (index === points.length - 1) {
+                        tile.style.color = hit ? '#66ccff' : '#ff6666';
+                    } else {
+                        tile.style.color = '#66ccff';
+                    }
+                }
+
+                // 最後の位置の場合、少し待ってからクリア
+                if (index === points.length - 1) {
+                    setTimeout(() => {
+                        this.renderer.clearHighlight();
+                    }, 100);
+                }
+            }, index * stepDelay);
+        });
+    }
 }
 
 // グローバルスコープでクラスを利用可能にする
