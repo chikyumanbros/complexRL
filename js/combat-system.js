@@ -429,6 +429,21 @@ class CombatSystem {
                 finalDamage = Math.max(1, damage - totalDefense);
             }
 
+            // 攻撃結果を設定
+            const damageResult = {
+                attackRolls,
+                defenseRolls,
+                totalAttack: damage,
+                totalDefense: isCritical ? 0 : defense.base + defenseRolls.reduce((sum, roll) => sum + roll, 0),
+                damage: finalDamage
+            };
+
+            // 攻撃計算の詳細を表示
+            const attackCalc = `ATK: ${attack.base}+[${attackRolls.join(',')}]`;
+            const defenseCalc = isCritical 
+                ? '[DEF IGNORED]' 
+                : `vs DEF: ${defense.base}+[${defenseRolls.join(',')}]`;
+
             // ダメージを適用
             const result = defender.takeDamage(finalDamage, {
                 source: attacker,
@@ -436,13 +451,13 @@ class CombatSystem {
                 isCritical: isCritical
             });
 
-            // 攻撃結果を設定
             game.lastAttackResult = {
                 hit: true,
                 evaded: false,
                 damage: finalDamage,
-                killed: result.killed,
-                isCritical: isCritical
+                killed: defender.hp <= 0,  // 直接HPをチェック
+                isCritical: isCritical,
+                damageResult
             };
             game.lastAttackLocation = { x: defender.x, y: defender.y };
 
@@ -450,21 +465,32 @@ class CombatSystem {
             game.renderer.showDamageFlash();
             game.renderer.render();
 
-            // 命中時のログ出力
-            const healthStatus = context.isPlayer 
-                ? `HP: ${defender.hp}/${defender.maxHp}`
-                : `HP: ${defender.hp}/${defender.maxHp}`;
-            
-            // 攻撃計算の詳細を表示
-            const attackCalc = `ATK: ${attack.base}+[${attackRolls.join(',')}]`;
-            const defenseCalc = isCritical 
-                ? '[DEF IGNORED]' 
-                : `vs DEF: ${defense.base}+[${defenseRolls.join(',')}]`;
-            
+            // まずダメージログを表示
+            const healthStatus = `HP: ${Math.max(0, defender.hp)}/${defender.maxHp}`;
             game.logger.add(
                 `The shot hits for ${finalDamage} damage! (${attackCalc} ${defenseCalc}) (${healthStatus})`,
                 isCritical ? "playerCrit" : "playerHit"
             );
+
+            // その後、死亡処理を行う（HPが0以下になった場合）
+            if (defender.hp <= 0) {
+                game.processMonsterDeath({
+                    monster: defender,
+                    result: {
+                        damage: finalDamage,
+                        killed: true,
+                        evaded: false
+                    },
+                    damageResult,
+                    context: {
+                        ...context,
+                        isCritical,
+                        isRangedAttack: true,
+                        attackType: "Ranged attack",
+                        damageMultiplier: 1  // 明示的にdamageMultiplierを設定
+                    }
+                });
+            }
 
             // 効果音を再生
             game.playSound('damageSound');
