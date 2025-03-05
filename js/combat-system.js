@@ -467,15 +467,19 @@ class CombatSystem {
         const roll = Math.floor(Math.random() * 100) + 1;
         const baseHitChance = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ACCURACY(attacker.stats);
 
-        // 周囲のモンスターによるペナルティを計算
+        // 周囲のモンスターによるペナルティを計算（先に乗算）
         const surroundingMonsters = attacker.countSurroundingMonsters(game);
         const penaltyPerMonster = 15; // 1体につき15%のペナルティ
         const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
 
-        // サイズによる命中補正を適用
+        // ペナルティを基本命中率に適用
+        const penalizedAccuracy = Math.floor(baseHitChance * (1 - surroundingPenalty));
+
+        // サイズによる命中補正を適用（後から加算）
         const sizeModifier = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.SIZE_ACCURACY_MODIFIER(defender.stats);
-        // 基本命中率にサイズ補正を加え、さらにsurroundingsペナルティを適用
-        const hitChance = Math.min(95, Math.max(5, Math.floor(baseHitChance * (1 - surroundingPenalty)) + sizeModifier));
+
+        // 最終的な命中率を計算（5%から95%の間に制限）
+        const hitChance = Math.min(95, Math.max(5, penalizedAccuracy + sizeModifier));
         const isCritical = roll <= GAME_CONSTANTS.FORMULAS.CRITICAL_RANGE(attacker.stats);
 
         // ログ出力用のプレフィックス
@@ -562,42 +566,43 @@ class CombatSystem {
             game.renderer.showDamageFlash();
             game.renderer.render();
 
-            // HPが0になった場合は死亡処理を行い、ダメージログは表示しない
-            if (defender.hp <= 0) {
-                game.processMonsterDeath({
-                    monster: defender,
-                    result: {
-                        damage: finalDamage,
-                        killed: true,
-                        evaded: false
-                    },
-                    damageResult,
-                    context: {
-                        ...context,
-                        isCritical,
-                        isRangedAttack: true,
-                        attackType: "Ranged attack",
-                        damageMultiplier: 1
-                    }
-                });
+            // 攻撃が命中した場合
+            if (result.hit) {
+                // 死亡処理（damageResultを含めて渡す）
+                if (defender.hp <= 0) {
+                    game.processMonsterDeath({
+                        monster: defender,
+                        result: {
+                            damage: result.damage,
+                            killed: true,
+                            evaded: false
+                        },
+                        damageResult: result.damageResult,
+                        context: {
+                            isPlayer: true,
+                            isCritical: result.isCritical,
+                            isRangedAttack: true,
+                            attackType: "Ranged attack",
+                            damageMultiplier: 1
+                        }
+                    });
 
-                // 死亡後の処理：次のターゲットを探すか、モードを解除
-                if (context.isPlayer) {
-                    const nextTarget = attacker.findNearestTargetInRange();
+                    // 次のターゲットを探す
+                    const nextTarget = this.findNearestTargetInRange();
                     if (nextTarget) {
-                        attacker.rangedCombat.target = nextTarget;
-                        game.logger.add(`Next target: ${nextTarget.name}`, "playerInfo");
+                        this.rangedCombat.target = nextTarget;
+                        game.logger.add(`Next target: ${nextTarget.x}, ${nextTarget.y}`, "playerInfo");
                     } else {
-                        attacker.rangedCombat.isActive = false;  // ターゲットがなければモード解除
-                        attacker.rangedCombat.target = null;     // ターゲットもクリア
-                        game.logger.add("No more targets in range. Ranged combat mode deactivated.", "playerInfo");
+                        this.rangedCombat.isActive = false;
+                        game.logger.add("No more targets in range.", "playerInfo");
                     }
+                    return result; // 死亡処理後は即座にreturn
                 }
-            } else {
+
                 // 生存している場合のみダメージログを表示
                 const healthStatus = `HP: ${Math.max(0, defender.hp)}/${defender.maxHp}`;
                 game.logger.add(
-                    `The shot hits for ${finalDamage} damage! (${attackCalc} ${defenseCalc}) (${healthStatus})`,
+                    `The shot hits for ${result.damage} damage! (${attackCalc} ${defenseCalc}) (${healthStatus})`,
                     isCritical ? "playerCrit" : "playerHit"
                 );
             }

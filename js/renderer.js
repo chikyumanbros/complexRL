@@ -976,11 +976,29 @@ renderStatus() {
         }
     }
 
-    // Accuracy calculation with penalties
-    const baseAccuracy = Math.floor(player.accuracy * (1 - surroundingPenalty));
-    let accText = surroundingPenalty > 0
-        ? `<span style="color: #e74c3c">${baseAccuracy}%</span>`
-        : `${baseAccuracy}%`;
+    // Accuracy calculation with penalties and skill modifiers
+    let baseAccuracy = player.accuracy;
+    let totalAccuracyMod = 0;
+
+    // Apply skill modifiers
+    if (player.nextAttackModifiers?.length > 0) {
+        for (const mod of player.nextAttackModifiers) {
+            if (mod.accuracyMod) {
+                totalAccuracyMod += mod.accuracyMod;
+            }
+        }
+    }
+
+    // Apply surrounding penalty
+    const penalizedAccuracy = Math.floor(baseAccuracy * (1 + totalAccuracyMod) * (1 - surroundingPenalty));
+    let accText = '';
+
+    if (totalAccuracyMod !== 0 || surroundingPenalty > 0) {
+        const color = penalizedAccuracy > baseAccuracy ? '#2ecc71' : '#e74c3c';
+        accText = `<span style="color: ${color}">${penalizedAccuracy}%</span>`;
+    } else {
+        accText = `${baseAccuracy}%`;
+    }
 
     // 通常ステータスまたは遠距離攻撃ステータスを表示（モードによって切り替え）
     const combatStatsHTML = player.rangedCombat.isActive 
@@ -1164,13 +1182,22 @@ createRangedCombatStats(player) {
     const energyPercent = (rangedCombat.energy.current / rangedCombat.energy.max) * 100;
 
     // 命中率の計算（ターゲットがいる場合はサイズ補正を含める）
-    let accuracyDisplay = `${rangedCombat.accuracy}%`;
+    const baseHitChance = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ACCURACY(player.stats);
+    let accuracyDisplay = `${baseHitChance}%`;
     if (rangedCombat.isActive && rangedCombat.target) {
         const target = this.game.getMonsterAt(rangedCombat.target.x, rangedCombat.target.y);
         if (target) {
-            // サイズ補正を計算
+            // 周囲のモンスターによるペナルティを先に計算
+            const surroundingMonsters = player.countSurroundingMonsters(this.game);
+            const penaltyPerMonster = 15;
+            const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
+
+            // ペナルティを基本命中率に適用
+            const penalizedAccuracy = Math.floor(baseHitChance * (1 - surroundingPenalty));  // baseHitChanceを使用
+
+            // サイズ補正を後から加算
             const sizeModifier = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.SIZE_ACCURACY_MODIFIER(target.stats);
-            const finalAccuracy = Math.min(95, Math.max(5, rangedCombat.accuracy + sizeModifier));
+            const finalAccuracy = Math.min(95, Math.max(5, penalizedAccuracy + sizeModifier));
             
             // サイズ補正に応じて色を変更
             if (sizeModifier !== 0) {

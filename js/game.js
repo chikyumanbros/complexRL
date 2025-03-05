@@ -1993,8 +1993,13 @@ class Game {
         this.player.vigor = Math.min(GAME_CONSTANTS.VIGOR.MAX, this.player.vigor + vigorHealAmount);
         const actualVigorHealed = this.player.vigor - oldVigor;
         
-        // 回復メッセージを表示（誤った関数名を修正）
-        this.logger.add(`You feel revitalized! Recovered ${actualHpHealed} HP and ${actualVigorHealed} Vigor.`, "playerInfo");
+        // 回復メッセージを表示
+        let message = `You feel revitalized! Recovered ${actualHpHealed} HP`;
+        if (actualVigorHealed > 0) {
+            message += " and your vigor has increased";
+        }
+        message += ".";
+        this.logger.add(message, "playerInfo");
         
         // ステータスパネルを更新
         this.renderer.renderStatus();
