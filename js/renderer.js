@@ -1086,6 +1086,18 @@ renderStatus() {
 
 // 通常戦闘ステータスセクションの作成（新規メソッド）
 createNormalCombatStats(player, attackText, accText, speedText, sizeInfo) {
+    // surroundingsペナルティの計算
+    const surroundingMonsters = player.countSurroundingMonsters(this.game);
+    const penaltyPerMonster = 15; // 1体につき15%のペナルティ
+    const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
+
+    // ペナルティ適用後のEVA値を計算
+    const baseEvasion = player.evasion;
+    const penalizedEvasion = Math.floor(baseEvasion * (1 - surroundingPenalty));
+    const evaText = surroundingPenalty > 0
+        ? `<span style="color: #e74c3c">${penalizedEvasion}%</span>`
+        : `${baseEvasion}%`;
+
     return `
         <div class="stats-grid">
             <div class="stat-row">
@@ -1129,7 +1141,7 @@ createNormalCombatStats(player, attackText, accText, speedText, sizeInfo) {
             </div>
             <div class="stat-row">
                 <span class="label">EVA:</span>
-                <span id="evasion">${player.evasion}%</span>
+                <span id="evasion">${evaText}</span>
             </div>
             <div class="stat-row">
                 <span class="label">PER:</span>
@@ -1153,9 +1165,18 @@ createRangedCombatStats(player) {
     if (ranged.isActive && ranged.target) {
         const target = this.game.getMonsterAt(ranged.target.x, ranged.target.y);
         if (target) {
+            // surroundingsペナルティを計算
+            const surroundingMonsters = player.countSurroundingMonsters(this.game);
+            const penaltyPerMonster = 15; // 1体につき15%のペナルティ
+            const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
+
+            // サイズ補正を計算
             const sizeModifier = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.SIZE_ACCURACY_MODIFIER(target.stats);
-            const finalAccuracy = Math.min(95, Math.max(5, ranged.accuracy + sizeModifier));
             
+            // 基本命中率にペナルティを適用し、その後サイズ補正を加える
+            const finalAccuracy = Math.min(95, Math.max(5, Math.floor(ranged.accuracy * (1 - surroundingPenalty)) + sizeModifier));
+            
+            // 最終的な命中率を色付きで表示（サイズ補正による色分けのみ）
             if (sizeModifier !== 0) {
                 accuracyDisplay = `<span style="color: ${sizeModifier > 0 ? '#2ecc71' : '#e74c3c'}">${finalAccuracy}%</span>`;
             } else {

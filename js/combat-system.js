@@ -230,15 +230,35 @@ class CombatSystem {
 
     static resolveEvadeCheck(attacker, defender, context, game) {
         const evadeRoll = Math.floor(Math.random() * 100) + 1;
-        const evadeChance = defender.evasion;
         
-        if (evadeRoll < evadeChance) {
+        // surroundingsペナルティの計算（プレイヤーとモンスターで処理を分ける）
+        let surroundingPenalty = 0;
+        if (context.isPlayer) {
+            // プレイヤーが攻撃側の場合、モンスター（防御側）の周囲の味方モンスター数を数える
+            const surroundingAllies = game.monsters.filter(m => 
+                m !== defender && // 自分自身を除外
+                GAME_CONSTANTS.DISTANCE.calculateChebyshev(m.x, m.y, defender.x, defender.y) <= 1
+            ).length;
+            const penaltyPerAlly = 15; // 1体につき15%のペナルティ
+            surroundingPenalty = Math.min(60, Math.max(0, (surroundingAllies - 1) * penaltyPerAlly)) / 100;
+        } else {
+            // モンスターが攻撃側の場合、プレイヤー（防御側）の周囲のモンスター数を数える
+            const surroundingMonsters = defender.countSurroundingMonsters(game);
+            const penaltyPerMonster = 15; // 1体につき15%のペナルティ
+            surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
+        }
+        
+        // ペナルティを適用した回避率を計算
+        const baseEvadeChance = defender.evasion;
+        const penalizedEvadeChance = Math.floor(baseEvadeChance * (1 - surroundingPenalty));
+        
+        if (evadeRoll < penalizedEvadeChance) {
             const logMessage = context.isPlayer
                 ? `${defender.name} dodges your ${context.attackType}!`
                 : `You dodge ${attacker.name}'s ${context.attackType}!`;
             
             game.logger.add(
-                `${logMessage} (EVA: ${Math.floor(evadeChance)}% | Roll: ${evadeRoll})`,
+                `${logMessage} (EVA: ${penalizedEvadeChance}% | Roll: ${evadeRoll})`,
                 context.isPlayer ? "monsterEvade" : "playerEvade"
             );
             game.renderer.showMissEffect(defender.x, defender.y, 'evade');
@@ -425,22 +445,28 @@ class CombatSystem {
             }
         }
 
-        // 命中判定
+        // 命中判定（遠距離攻撃は回避不可）
         const roll = Math.floor(Math.random() * 100) + 1;
         const baseHitChance = attacker.rangedCombat.accuracy;
+
+        // 周囲のモンスターによるペナルティを計算
+        const surroundingMonsters = attacker.countSurroundingMonsters(game);
+        const penaltyPerMonster = 15; // 1体につき15%のペナルティ
+        const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
+
         // サイズによる命中補正を適用
         const sizeModifier = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.SIZE_ACCURACY_MODIFIER(defender.stats);
-        const hitChance = Math.min(95, Math.max(5, baseHitChance + sizeModifier));
+        // 基本命中率にサイズ補正を加え、さらにsurroundingsペナルティを適用
+        const hitChance = Math.min(95, Math.max(5, Math.floor(baseHitChance * (1 - surroundingPenalty)) + sizeModifier));
         const isCritical = roll <= GAME_CONSTANTS.FORMULAS.CRITICAL_RANGE(attacker.stats);
 
         // ログ出力用のプレフィックス
         const logPrefix = context.isPlayer ? "You" : attacker.name;
         const logTarget = context.isPlayer ? defender.name : "you";
 
-        // 命中判定のログを出力（サイズ補正を含める）
+        // 命中判定のログを出力（サイズ補正とsurroundingsペナルティを含める）
         game.logger.add(
-            `${logPrefix} fire at ${logTarget} ` +
-            `(ACC: ${Math.floor(hitChance)}% | Roll: ${roll}${isCritical ? ' [CRITICAL HIT!]' : ''})`,
+            `${logPrefix} fire at ${logTarget} (ACC: ${Math.floor(hitChance)}% | Roll: ${roll}${isCritical ? ' [CRITICAL HIT!]' : ''})`,
             isCritical ? "playerCrit" : "playerInfo"
         );
 
@@ -497,9 +523,9 @@ class CombatSystem {
 
             game.lastAttackResult = {
                 hit: true,
-                evaded: false,
+                evaded: false,  // 遠距離攻撃は回避不可
                 damage: finalDamage,
-                killed: defender.hp <= 0,  // 直接HPをチェック
+                killed: defender.hp <= 0,
                 isCritical: isCritical,
                 damageResult
             };
@@ -551,7 +577,7 @@ class CombatSystem {
             // ミス時の処理
             game.lastAttackResult = {
                 hit: false,
-                evaded: false,
+                evaded: false,  // 遠距離攻撃は回避不可
                 damage: 0,
                 killed: false
             };
