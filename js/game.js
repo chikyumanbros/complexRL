@@ -53,6 +53,7 @@ class Game {
         // ハイスコアの初期化
         this.highScores = this.loadHighScores();
         this.isShowingHighScores = false;  // ハイスコア表示状態フラグ
+        this.monsterKillCount = 0;  // 追加：実際に倒したモンスターの数を追跡
     }
 
     initializeExplored() {
@@ -97,6 +98,7 @@ class Game {
         this.rooms = [];
         this.isGameOver = false;
         this.floorLevel = 0;  // Changed from 1 to 0
+        this.monsterKillCount = 0;  // 追加：killCountもリセット
 
         // ニューラルオベリスクの配列をリセット
         this.neuralObelisks = [];
@@ -750,6 +752,10 @@ class Game {
         if (monster.codexPoints) {
             this.player.codexPoints += monster.codexPoints;
         }
+
+        if (deathInfo.killedByPlayer) {
+            this.monsterKillCount++;  // プレイヤーが倒した場合のみカウント
+        }
     }
 
     // メディテーション処理を分離
@@ -1025,7 +1031,7 @@ class Game {
         localStorage.removeItem('complexRL_saveData');
 
         // Calculate final score.
-        const monstersKilled = this.totalMonstersSpawned - this.monsters.length;
+        const monstersKilled = this.monsterKillCount;  // 修正：正確なキル数を使用
         const totalXP = this.player.xp;
         const finalScore = {
             monstersKilled: monstersKilled,
