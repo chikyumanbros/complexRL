@@ -184,6 +184,103 @@ Defense = Base Defense + Defense Dice Roll Total
                 <li>Evasion checks are skipped</li>
                 <li>Ignores surrounding penalties</li>
             </ul>
+
+            <h3>Ranged Combat System</h3>
+            <p>
+                The ranged combat system allows players to engage enemies from a distance using energy-based attacks.
+            </p>
+
+            <h4>Basic Controls</h4>
+            <table>
+                <tr>
+                    <th>Key</th>
+                    <th>Action</th>
+                </tr>
+                <tr>
+                    <td>[F]</td>
+                    <td>Toggle ranged mode</td>
+                </tr>
+                <tr>
+                    <td>[move key]</td>
+                    <td>Cycle through targets</td>
+                </tr>
+                <tr>
+                    <td>[Enter]</td>
+                    <td>Fire at target</td>
+                </tr>
+                <tr>
+                    <td>[Esc]</td>
+                    <td>Exit ranged mode</td>
+                </tr>
+            </table>
+
+            <h4>Ranged Combat Stats</h4>
+            <table>
+                <tr>
+                    <th>Stat</th>
+                    <th>Formula</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>Energy Max</td>
+                    <td>75 + INT×2 + DEX</td>
+                    <td>Maximum energy capacity</td>
+                </tr>
+                <tr>
+                    <td>Energy Recharge</td>
+                    <td>2 + INT/3 per turn</td>
+                    <td>Energy recovered each turn</td>
+                </tr>
+                <tr>
+                    <td>Energy Cost</td>
+                    <td>max(20, 30 - INT/4) per shot</td>
+                    <td>Energy consumed per attack</td>
+                </tr>
+                <tr>
+                    <td>Base Damage</td>
+                    <td>floor(DEX×0.5 + INT×0.3)</td>
+                    <td>Base damage before dice roll</td>
+                </tr>
+                <tr>
+                    <td>Damage Dice</td>
+                    <td>max(1, floor(DEX/5))d(max(2, floor(INT/4)))</td>
+                    <td>Additional damage from dice roll</td>
+                </tr>
+                <tr>
+                    <td>Accuracy</td>
+                    <td>min(90, 30 + DEX×0.8 + INT×0.4 ± Speed)</td>
+                    <td>Base hit chance before modifiers</td>
+                </tr>
+                <tr>
+                    <td>Range</td>
+                    <td>1 + INT/3</td>
+                    <td>Maximum attack range in tiles</td>
+                </tr>
+                <tr>
+                    <td>Size Modifier</td>
+                    <td>±5% per size difference</td>
+                    <td>Accuracy bonus/penalty based on target size</td>
+                </tr>
+            </table>
+
+            <h4>Special Rules</h4>
+            <ul>
+                <li>Speed is reduced by one tier while in ranged mode</li>
+                <li>Size modifiers affect accuracy (larger targets are easier to hit)</li>
+                <li>Surrounding penalties apply to ranged attacks</li>
+                <li>Cannot attack through walls or closed doors</li>
+            </ul>
+
+            <div class="formula">
+// Size accuracy modifier calculation
+SIZE_ACCURACY_MODIFIER = (targetSize.value - 3) * 5  // Medium(3) is baseline
+// Examples:
+// Tiny(-2): -15% accuracy
+// Small(-1): -10% accuracy
+// Medium(0): +0% accuracy
+// Large(+1): +10% accuracy
+// Huge(+2): +15% accuracy
+            </div>
         </section>
 
         <section id="stats">
