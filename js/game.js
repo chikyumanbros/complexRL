@@ -741,11 +741,6 @@ class Game {
         }
         this.logger.add(rewardText, "playerInfo");
 
-        // 知力ボーナスがある場合は別行で表示
-        if (intBonus > 1) {
-            this.logger.add(`Intelligence bonus: +${Math.floor((intBonus - 1) * 100)}% XP!`, "playerInfo");
-        }
-
         // 経験値とCodexポイントの付与
         this.player.addExperience(xpGained);
         if (monster.codexPoints) {

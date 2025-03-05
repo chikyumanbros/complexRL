@@ -542,7 +542,7 @@ const GAME_CONSTANTS = {
             },
             // 射程範囲の計算（4 + INT / 3）
             RANGE: (stats) => {
-                return Math.floor(4 + stats.int / 3);
+                return Math.floor(1 + stats.int / 3);
             },
             // サイズによる命中補正を計算（新規追加）
             SIZE_ACCURACY_MODIFIER: (targetStats) => {

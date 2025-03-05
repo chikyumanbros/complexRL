@@ -1157,26 +1157,22 @@ createNormalCombatStats(player, attackText, accText, speedText, sizeInfo) {
 
 // 遠距離攻撃セクションの作成（新規メソッド）
 createRangedCombatStats(player) {
-    const ranged = player.rangedCombat;
-    const energyPercent = (ranged.energy.current / ranged.energy.max) * 100;
+    const rangedCombat = player.rangedCombat;
+    if (!rangedCombat) return '';
 
-    // ターゲットに対する命中率の計算
-    let accuracyDisplay = `${ranged.accuracy}%`;
-    if (ranged.isActive && ranged.target) {
-        const target = this.game.getMonsterAt(ranged.target.x, ranged.target.y);
+    // エネルギーバーの計算
+    const energyPercent = (rangedCombat.energy.current / rangedCombat.energy.max) * 100;
+
+    // 命中率の計算（ターゲットがいる場合はサイズ補正を含める）
+    let accuracyDisplay = `${rangedCombat.accuracy}%`;
+    if (rangedCombat.isActive && rangedCombat.target) {
+        const target = this.game.getMonsterAt(rangedCombat.target.x, rangedCombat.target.y);
         if (target) {
-            // surroundingsペナルティを計算
-            const surroundingMonsters = player.countSurroundingMonsters(this.game);
-            const penaltyPerMonster = 15; // 1体につき15%のペナルティ
-            const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
-
             // サイズ補正を計算
             const sizeModifier = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.SIZE_ACCURACY_MODIFIER(target.stats);
+            const finalAccuracy = Math.min(95, Math.max(5, rangedCombat.accuracy + sizeModifier));
             
-            // 基本命中率にペナルティを適用し、その後サイズ補正を加える
-            const finalAccuracy = Math.min(95, Math.max(5, Math.floor(ranged.accuracy * (1 - surroundingPenalty)) + sizeModifier));
-            
-            // 最終的な命中率を色付きで表示（サイズ補正による色分けのみ）
+            // サイズ補正に応じて色を変更
             if (sizeModifier !== 0) {
                 accuracyDisplay = `<span style="color: ${sizeModifier > 0 ? '#2ecc71' : '#e74c3c'}">${finalAccuracy}%</span>`;
             } else {
@@ -1195,24 +1191,47 @@ createRangedCombatStats(player) {
 
     // 速度表示の作成（基本速度→遠距離速度）
     const speedDisplay = `<span style="color: ${GAME_CONSTANTS.COLORS.SPEED[baseSpeed.value].color}">${baseSpeed.name}</span> → ` +
-                        `<span style="color: ${speedInfo.color}">${rangedSpeed.name}</span> [Ranged]`;
+                           `<span style="color: ${speedInfo.color}">${rangedSpeed.name}</span> [Ranged]`;
+
+    // 周囲のモンスターによるペナルティを計算
+    const surroundingMonsters = player.countSurroundingMonsters(this.game);
+    let penaltyText = '';
+    if (surroundingMonsters > 1) {
+        const penaltyPerMonster = 15;
+        const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster));
+    }
+
+    // ターゲット情報
+    let targetInfo = '';
+    if (rangedCombat.isActive && rangedCombat.target) {
+        const target = this.game.getMonsterAt(rangedCombat.target.x, rangedCombat.target.y);
+        if (target) {
+            const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
+                player.x, player.y,
+                rangedCombat.target.x, rangedCombat.target.y
+            );
+            targetInfo = `<div class="target-info"><span style="color: #f1c40f">Target: ${target.name} (${distance} tiles away)</span></div>`;
+        }
+    }
 
     return `
         <div class="ranged-combat-section">
             <div class="energy-bar">
-                <div class="energy-numbers">${ranged.energy.current}/${ranged.energy.max}</div>
+                <div class="energy-numbers">${Math.floor(rangedCombat.energy.current)}/${rangedCombat.energy.max}</div>
                 <div class="bar-container">
                     <div class="bar" style="width: ${energyPercent}%"></div>
                 </div>
             </div>
             <div class="ranged-stats-grid">
-                <div class="ranged-info">ATK: <span class="value">${ranged.attack.base}+${ranged.attack.dice.count}d${ranged.attack.dice.sides}</span></div>
+                <div class="ranged-info">ATK: <span class="value">${rangedCombat.attack.base}+${rangedCombat.attack.dice.count}d${rangedCombat.attack.dice.sides}</span></div>
                 <div class="ranged-info">ACC: <span class="value">${accuracyDisplay}</span></div>
-                <div class="ranged-info">Range: <span class="value">${ranged.range}</span></div>
-                <div class="ranged-info">Cost: <span class="value">${ranged.energy.cost}/shot</span></div>
+                <div class="ranged-info">Range: <span class="value">${rangedCombat.range}</span></div>
+                <div class="ranged-info">Cost: <span class="value">${rangedCombat.energy.cost}/shot</span></div>
                 <div class="ranged-info">SPD: <span class="value">${speedDisplay}</span></div>
             </div>
-            <div class="ranged-info">Recharge: <span class="value">${ranged.energy.rechargeRate}/turn</span></div>
+            <div class="ranged-info">Recharge: <span class="value">${rangedCombat.energy.rechargeRate}/turn</span></div>
+            ${targetInfo}
+            ${penaltyText}
         </div>
     `;
 }

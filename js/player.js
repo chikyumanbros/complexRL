@@ -195,7 +195,7 @@ class Player {
                     ...this.rangedCombat,
                     energy: {
                         current: Math.min(
-                            this.rangedCombat.energy.current,
+                            this.rangedCombat?.energy?.current ?? GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats),
                             GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats)
                         ),
                         max: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats),
@@ -208,7 +208,8 @@ class Player {
                     },
                     accuracy: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ACCURACY(this.stats),
                     range: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.RANGE(this.stats),
-                    isActive: this.rangedCombat.isActive
+                    isActive: this.rangedCombat?.isActive ?? false,
+                    target: this.rangedCombat?.target ?? null
                 };
                 
                 // HP増加と回復のログを表示
@@ -689,6 +690,28 @@ class Player {
         this.defense = GAME_CONSTANTS.FORMULAS.DEFENSE(this.stats);
         this.accuracy = GAME_CONSTANTS.FORMULAS.ACCURACY(this.stats);
         this.evasion = GAME_CONSTANTS.FORMULAS.EVASION(this.stats);
+
+        // 遠距離攻撃パラメータの更新
+        this.rangedCombat = {
+            ...this.rangedCombat,
+            energy: {
+                current: Math.min(
+                    this.rangedCombat?.energy?.current ?? GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats),
+                    GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats)
+                ),
+                max: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats),
+                rechargeRate: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_RECHARGE(this.stats),
+                cost: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_COST(this.stats)
+            },
+            attack: {
+                base: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.BASE_ATTACK(this.stats),
+                dice: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ATTACK_DICE(this.stats)
+            },
+            accuracy: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ACCURACY(this.stats),
+            range: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.RANGE(this.stats),
+            isActive: this.rangedCombat?.isActive ?? false,
+            target: this.rangedCombat?.target ?? null
+        };
     }
 
     getCodexPoints() {
@@ -1740,6 +1763,14 @@ class Player {
     processEnergyRecharge() {
         if (!this.rangedCombat) return;
 
+        // 隣接するモンスターをチェック
+        const surroundingMonsters = this.countSurroundingMonsters(this.game);
+        if (surroundingMonsters > 0) {
+            // モンスターが隣接している場合は回復しない
+            this.game.logger.add("Cannot recharge energy while enemies are adjacent!", "warning");
+            return;
+        }
+
         const oldEnergy = this.rangedCombat.energy.current;
         this.rangedCombat.energy.current = Math.min(
             this.rangedCombat.energy.max,
@@ -1748,8 +1779,8 @@ class Player {
 
         // エネルギーが回復した場合のみログを表示
         if (this.rangedCombat.energy.current > oldEnergy) {
-            game.logger.add(
-                `Energy restored: ${this.rangedCombat.energy.current}/${this.rangedCombat.energy.max}`,
+            this.game.logger.add(
+                `Energy restored: ${Math.floor(this.rangedCombat.energy.current)}/${this.rangedCombat.energy.max}`,
                 "playerInfo"
             );
         }

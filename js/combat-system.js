@@ -405,7 +405,8 @@ class CombatSystem {
     // 遠距離攻撃の処理を行う新しいメソッド
     static resolveRangedAttack(attacker, defender, game, context = {}) {
         // エネルギーチェックを追加
-        if (attacker.rangedCombat.energy.current < attacker.rangedCombat.energy.cost) {
+        const energyCost = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_COST(attacker.stats);
+        if (attacker.rangedCombat.energy.current < energyCost) {
             game.logger.add("Not enough energy for ranged attack!", "warning");
             attacker.rangedCombat.isActive = false;  // モードを解除
             attacker.rangedCombat.target = null;     // ターゲットもクリア
@@ -464,7 +465,7 @@ class CombatSystem {
 
         // 命中判定（遠距離攻撃は回避不可）
         const roll = Math.floor(Math.random() * 100) + 1;
-        const baseHitChance = attacker.rangedCombat.accuracy;
+        const baseHitChance = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ACCURACY(attacker.stats);
 
         // 周囲のモンスターによるペナルティを計算
         const surroundingMonsters = attacker.countSurroundingMonsters(game);
@@ -489,16 +490,16 @@ class CombatSystem {
 
         // クリティカルヒットまたは通常命中の場合
         if (isCritical || roll <= hitChance) {
-            // ダメージ計算
-            const attack = attacker.rangedCombat.attack;
-            const defense = defender.defense;
+            // RANGED_COMBATの計算式を使用してダメージを計算
+            const baseAttack = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.BASE_ATTACK(attacker.stats);
+            const attackDice = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ATTACK_DICE(attacker.stats);
             
-            // 基本攻撃力の計算
-            let damage = attack.base;
+            // 基本攻撃力
+            let damage = baseAttack;
             
             // ダイス攻撃力の計算
-            const attackRolls = Array(attack.dice.count).fill(0)
-                .map(() => Math.floor(Math.random() * attack.dice.sides) + 1);
+            const attackRolls = Array(attackDice.count).fill(0)
+                .map(() => Math.floor(Math.random() * attackDice.sides) + 1);
             damage += attackRolls.reduce((sum, roll) => sum + roll, 0);
 
             // クリティカルの場合は防御を無視
@@ -510,6 +511,7 @@ class CombatSystem {
                 game.playSound('critSound');
             } else {
                 // 通常命中の場合は防御計算
+                const defense = defender.defense;
                 defenseRolls = Array(defense.diceCount).fill(0)
                     .map(() => Math.floor(Math.random() * defense.diceSides) + 1);
                 const totalDefense = defense.base + defenseRolls.reduce((sum, roll) => sum + roll, 0);
@@ -521,15 +523,15 @@ class CombatSystem {
                 attackRolls,
                 defenseRolls,
                 totalAttack: damage,
-                totalDefense: isCritical ? 0 : defense.base + defenseRolls.reduce((sum, roll) => sum + roll, 0),
+                totalDefense: isCritical ? 0 : defender.defense.base + defenseRolls.reduce((sum, roll) => sum + roll, 0),
                 damage: finalDamage
             };
 
             // 攻撃計算の詳細を表示
-            const attackCalc = `ATK: ${attack.base}+[${attackRolls.join(',')}]`;
+            const attackCalc = `ATK: ${baseAttack}+[${attackRolls.join(',')}]`;
             const defenseCalc = isCritical 
                 ? '[DEF IGNORED]' 
-                : `vs DEF: ${defense.base}+[${defenseRolls.join(',')}]`;
+                : `vs DEF: ${defender.defense.base}+[${defenseRolls.join(',')}]`;
 
             // ダメージを適用
             const result = defender.takeDamage(finalDamage, {
@@ -583,7 +585,6 @@ class CombatSystem {
                     const nextTarget = attacker.findNearestTargetInRange();
                     if (nextTarget) {
                         attacker.rangedCombat.target = nextTarget;
-                        game.logger.add(`Targeting next enemy at (${nextTarget.x}, ${nextTarget.y})`, "playerInfo");
                     } else {
                         attacker.rangedCombat.isActive = false;  // ターゲットがなければモード解除
                         game.logger.add("No more targets in range.", "playerInfo");
@@ -608,11 +609,11 @@ class CombatSystem {
 
         // エネルギーを消費（命中判定の結果に関係なく）
         attacker.rangedCombat.energy.current = Math.max(0, 
-            attacker.rangedCombat.energy.current - attacker.rangedCombat.energy.cost
+            attacker.rangedCombat.energy.current - energyCost
         );
 
         // エネルギーが次の攻撃に不足する場合はモードを解除
-        if (attacker.rangedCombat.energy.current < attacker.rangedCombat.energy.cost) {
+        if (attacker.rangedCombat.energy.current < energyCost) {
             game.logger.add("Not enough energy for another shot.", "warning");
             attacker.rangedCombat.isActive = false;
             attacker.rangedCombat.target = null;
