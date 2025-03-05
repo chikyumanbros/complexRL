@@ -296,7 +296,6 @@ const GAME_CONSTANTS = {
                 { key: 'i', desc: 'Show inventory' },
                 { key: 'e', desc: 'Eat/Equip item' },
                 { key: '>', desc: 'Use stairs down' },
-                { key: '<', desc: 'Use stairs up' },
                 { key: 'c', desc: 'Close door' },
                 { key: 's', desc: 'Show skill tree' },
                 { key: 'z', desc: 'Cast skill (with number)' },

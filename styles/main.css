@@ -20,7 +20,7 @@
 body {
     position: relative;
     background: #090d09;
-    color: #fff;
+    color: rgb(207, 207, 207);
     margin: 5px;
     font-family: 'IBM VGA 8x16', monospace;
     font-size: 15px;

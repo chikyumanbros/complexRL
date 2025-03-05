@@ -1490,6 +1490,29 @@ createRangedCombatStats(player) {
         leftColumn += `<span style="color: #ecf0f1;">Rest until fully healed</span>`;
         leftColumn += `</div>\n`;
         
+        // 遠距離攻撃の操作説明を追加
+        leftColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● RANGED COMBAT</div>\n`;
+        leftColumn += `<div style="margin-left: 8px;">`;
+        leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[F]</span>`;
+        leftColumn += `<span style="color: #ecf0f1;">Toggle ranged mode</span>`;
+        leftColumn += `</div>\n`;
+        leftColumn += `<div style="margin-left: 8px;">`;
+        leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[Tab]</span>`;
+        leftColumn += `<span style="color: #ecf0f1;">Next target</span>`;
+        leftColumn += `</div>\n`;
+        leftColumn += `<div style="margin-left: 8px;">`;
+        leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[Shift+Tab]</span>`;
+        leftColumn += `<span style="color: #ecf0f1;">Previous target</span>`;
+        leftColumn += `</div>\n`;
+        leftColumn += `<div style="margin-left: 8px;">`;
+        leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[Enter]</span>`;
+        leftColumn += `<span style="color: #ecf0f1;">Fire at target</span>`;
+        leftColumn += `</div>\n`;
+        leftColumn += `<div style="margin-left: 8px;">`;
+        leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[Esc]</span>`;
+        leftColumn += `<span style="color: #ecf0f1;">Exit ranged mode</span>`;
+        leftColumn += `</div>\n`;
+        
         // スキルスロット並べ替え機能の説明を追加
         leftColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● SKILL MANAGEMENT</div>\n`;
         leftColumn += `<div style="margin-left: 8px;">`;
@@ -1567,6 +1590,21 @@ createRangedCombatStats(player) {
         rightColumn += `3. Roll(100) vs EVA if not crit<br>`;
         rightColumn += `4. DMG = ATK - DEF (if not crit)<br>`;
         rightColumn += `5. DMG = ATK (if critical hit)`;
+        rightColumn += `</div>\n`;
+
+        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● RANGED COMBAT</div>\n`;
+        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
+        rightColumn += `[F] Toggle ranged mode<br>`;
+        rightColumn += `[Tab/Shift+Tab] Cycle targets<br>`;
+        rightColumn += `[ENTER] Fire at target<br>`;
+        rightColumn += `[ESC] Exit ranged mode<br><br>`;
+        rightColumn += `Energy: DEX + INT×2 + 75<br>`;
+        rightColumn += `Recharge: INT/3 + 5 per turn<br>`;
+        rightColumn += `Cost: 30 - INT/4 per shot<br>`;
+        rightColumn += `DMG: (DEX×0.5 + INT×0.3) + dice<br>`;
+        rightColumn += `ACC: 50 + DEX×0.8 + INT×0.4<br>`;
+        rightColumn += `Range: 4 + INT/3<br>`;
+        rightColumn += `Speed: -1 tier in ranged mode`;
         rightColumn += `</div>\n`;
 
         rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● COMBAT PENALTIES</div>\n`;
