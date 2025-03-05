@@ -1644,13 +1644,14 @@ createRangedCombatStats(player) {
         rightColumn += `[Tab/Shift+Tab] Cycle targets<br>`;
         rightColumn += `[ENTER] Fire at target<br>`;
         rightColumn += `[ESC] Exit ranged mode<br><br>`;
-        rightColumn += `Energy: DEX + INT×2 + 75<br>`;
-        rightColumn += `Recharge: INT/3 + 5 per turn<br>`;
-        rightColumn += `Cost: 30 - INT/4 per shot<br>`;
+        rightColumn += `Energy: 75 + INT×2 + DEX<br>`;
+        rightColumn += `Recharge: 2 + INT/3 per turn<br>`;
+        rightColumn += `Cost: 30 - INT/4 per shot (min 20)<br>`;
         rightColumn += `DMG: (DEX×0.5 + INT×0.3) + dice<br>`;
-        rightColumn += `ACC: 50 + DEX×0.8 + INT×0.4<br>`;
-        rightColumn += `Range: 4 + INT/3<br>`;
-        rightColumn += `Speed: -1 tier in ranged mode`;
+        rightColumn += `Dice: (DEX/5)d(INT/4)<br>`;
+        rightColumn += `ACC: 30 + DEX×0.8 + INT×0.4 ± Speed<br>`;
+        rightColumn += `Range: 1 + INT/3<br>`;
+        rightColumn += `Size Bonus: ±5% per size diff`;
         rightColumn += `</div>\n`;
 
         rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● COMBAT PENALTIES</div>\n`;
