@@ -18,6 +18,7 @@ class Game {
         this.logger = new Logger(this);
         this.mode = GAME_CONSTANTS.MODES.GAME;
         this.turn = 0;
+        this.totalTurns = 0;  // ゲーム全体のターン数を追跡
         this.monsters = [];
         this.totalMonstersSpawned = 0;
         this.maxTotalMonsters = 100;
@@ -89,6 +90,7 @@ class Game {
         this.codexSystem = new CodexSystem();
         this.logger = new Logger(this);
         this.turn = 0;
+        this.totalTurns = 0;  // ゲーム全体のターン数をリセット
         this.monsters = [];
         this.totalMonstersSpawned = 0;
         this.maxTotalMonsters = 100;
@@ -212,6 +214,7 @@ class Game {
         this.explored = this.initializeExplored();
         this.totalMonstersSpawned = 0;
         this.turn = 0;
+        this.totalTurns = 0;  // ゲーム全体のターン数をリセット
         this.floorLevel = 0;
 
         // プレイヤーを初期化（ステータスは未割り振りの状態で）
@@ -371,6 +374,7 @@ class Game {
     processTurn() {
         // ターンカウントをインクリメント
         this.turn++;
+        this.totalTurns++;  // ゲーム全体のターン数をインクリメント
 
         // プレイヤーのターン処理
         this.processPlayerTurn();
@@ -1026,8 +1030,8 @@ class Game {
         const finalScore = {
             monstersKilled: monstersKilled,
             codexPoints: this.player.codexPoints,
-            turns: this.turn,
-            totalScore: Math.floor((totalXP * 1.5) + (this.player.codexPoints / Math.max(1, this.turn * 0.01)))
+            turns: this.totalTurns,  // 全体のターン数を使用
+            totalScore: Math.floor((totalXP * 1.5) + (this.player.codexPoints / Math.max(1, this.totalTurns * 0.01)))  // 全体のターン数を使用
         };
 
         // 死因が設定されていない場合は、最後の戦闘情報から推測
@@ -1408,6 +1412,7 @@ class Game {
             playerVigor: this.player.vigor,
             monstersState: this.monsters.map(m => `${m.x},${m.y},${m.hp}`).join('|'),
             turn: this.turn,
+            totalTurns: this.totalTurns,  // 全体のターン数を保存
             floorLevel: this.floorLevel
         };
 
@@ -1444,7 +1449,8 @@ class Game {
             gameState: {
                 floorLevel: this.floorLevel,  // フロアレベルも変更チェックに追加
                 dangerLevel: this.dangerLevel,
-                turn: this.turn
+                turn: this.turn,
+                totalTurns: this.totalTurns  // 全体のターン数を保存
             },
             mapData: {
                 map: this.map,
@@ -1497,6 +1503,7 @@ class Game {
             this.floorLevel = data.gameState.floorLevel ?? 0;
             this.dangerLevel = data.gameState.dangerLevel ?? 'SAFE';
             this.turn = data.gameState.turn ?? 0;
+            this.totalTurns = data.gameState.totalTurns ?? 0;  // 全体のターン数を復元
 
             // プレイヤー名が保存されている場合
             if (data.player.name) {
