@@ -41,9 +41,17 @@ class InputHandler {
 
     // キーが離された時の処理
     handleKeyUp(event) {
-        // 名前入力モードの場合は大文字小文字を区別するため、keyを変換しない
-        const key = this.mode === 'name' ? event.key : event.key.toLowerCase();
-        this.pressedKeys.delete(key);
+        const key = event.key.toLowerCase();
+        
+        // Ctrlキーが離された時の処理
+        if (key === 'control' || key === 'ctrl' || event.keyCode === 17) {
+            this.ctrlPressed = false;
+            this.pendingCtrlCombo = false;
+            this.lastCtrlKeyTime = 0;
+        }
+        
+        // 押されているキーのリストから削除
+        this.pressedKeys.delete(event.key.toLowerCase());
     }
 
     // キーが押された時の処理
@@ -107,15 +115,14 @@ class InputHandler {
             }
         }
         
-        // 数字キーが押されたときにctrlPressedの状態をログ出力
+        // 数字キーが押されたときの処理を修正
         if (/^[1-9]$/.test(key)) {
-            //console.log(`Number key ${key} pressed with ctrlPressed:`, this.ctrlPressed, 'event.ctrlKey:', event.ctrlKey);
-            
-            // ctrlPressedがtrueで、最近Ctrlキーが押された場合（200ms以内）
-            if (this.pendingCtrlCombo && (Date.now() - this.lastCtrlKeyTime < 200)) {
-                //console.log('Detected Ctrl+Number combo through tracking:', key);
+            // 修飾キーがない場合は通常のスキル使用として処理
+            if (!event.ctrlKey && !event.metaKey && !event.altKey && !this.pendingCtrlCombo) {
+                // handleInputで処理されるように、ここでは何もしない
+            } else if (this.pendingCtrlCombo && (Date.now() - this.lastCtrlKeyTime < 200)) {
                 this.startSkillSlotSwap(key);
-                this.pendingCtrlCombo = false; // 一度使ったらリセット
+                this.pendingCtrlCombo = false;
                 return;
             }
         }
@@ -1993,18 +2000,17 @@ if (skill.getRange) {
             // 数字キーが押された場合
             const slot = parseInt(key);
             
-            // スキルが存在するかチェック
-            if (!this.game.player.skills.has(slot)) {
-                this.game.logger.add(`Slot ${slot} does not have a skill assigned.`, "warning");
-                return;
-            }
-            
             if (this.firstSlot === null) {
                 // 最初のスロットを選択した場合
                 this.firstSlot = slot;
                 this.game.logger.add(`Selected skill in slot ${slot}. Select another slot to swap with.`, "info");
             } else {
                 // 2つ目のスロットを選択した場合、スワップを実行
+                // 同じスロットが選択された場合はキャンセル
+                if (this.firstSlot === slot) {
+                    this.cancelSkillSlotSwap();
+                    return;
+                }
                 this.completeSkillSlotSwap(slot);
             }
         } else if (key === 'escape') {
@@ -2015,29 +2021,39 @@ if (skill.getRange) {
     
     // スキルスロット並べ替えを完了するメソッド
     completeSkillSlotSwap(secondSlot) {
-        //console.log(`Swapping skills between slots ${this.firstSlot} and ${secondSlot}`);
-        
         // firstSlotがnullの場合は何もしない
         if (this.firstSlot === null) {
             this.cancelSkillSlotSwap();
             return;
         }
-        
+
+        const player = this.game.player;
+        const firstSkill = player.skills.get(this.firstSlot.toString());
+        const secondSkill = player.skills.get(secondSlot.toString());
+
         // スキルの入れ替えを実行
-        this.game.player.swapSkills(this.firstSlot, secondSlot);
-        
+        if (secondSkill) {
+            player.skills.set(this.firstSlot.toString(), secondSkill);
+        } else {
+            player.skills.delete(this.firstSlot.toString());
+        }
+
+        if (firstSkill) {
+            player.skills.set(secondSlot.toString(), firstSkill);
+        } else {
+            player.skills.delete(secondSlot.toString());
+        }
+
+        // 完了メッセージを表示
+        this.game.logger.add(`Swapped skills between slots ${this.firstSlot} and ${secondSlot}`, "playerInfo");
+
         // モードを解除
         this.skillSlotSwapMode = false;
         this.firstSlot = null;
-        
-        // 完了メッセージを表示
-        this.game.logger.add(`Swapped skills between slots ${this.firstSlot} and ${secondSlot}`, "playerInfo");
-        
-        //console.log('Skill swap completed, updating skill panel');
-        
-        // スキルパネルを更新（renderAvailableSkillsではなくrenderStatusを使用）
+
+        // スキルパネルを更新
         this.game.renderer.renderStatus();
-        
+
         // 変更を画面に反映するためにrenderも呼び出す
         this.renderMap();
     }
