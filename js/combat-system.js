@@ -554,14 +554,7 @@ class CombatSystem {
             game.renderer.showDamageFlash();
             game.renderer.render();
 
-            // まずダメージログを表示
-            const healthStatus = `HP: ${Math.max(0, defender.hp)}/${defender.maxHp}`;
-            game.logger.add(
-                `The shot hits for ${finalDamage} damage! (${attackCalc} ${defenseCalc}) (${healthStatus})`,
-                isCritical ? "playerCrit" : "playerHit"
-            );
-
-            // その後、死亡処理を行う（HPが0以下になった場合）
+            // HPが0になった場合は死亡処理を行い、ダメージログは表示しない
             if (defender.hp <= 0) {
                 game.processMonsterDeath({
                     monster: defender,
@@ -590,6 +583,13 @@ class CombatSystem {
                         game.logger.add("No more targets in range.", "playerInfo");
                     }
                 }
+            } else {
+                // 生存している場合のみダメージログを表示
+                const healthStatus = `HP: ${Math.max(0, defender.hp)}/${defender.maxHp}`;
+                game.logger.add(
+                    `The shot hits for ${finalDamage} damage! (${attackCalc} ${defenseCalc}) (${healthStatus})`,
+                    isCritical ? "playerCrit" : "playerHit"
+                );
             }
         } else {
             // ミス時の処理

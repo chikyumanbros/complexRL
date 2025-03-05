@@ -639,7 +639,7 @@ class Game {
         // 機会攻撃とキルのログを1行にまとめる
         const attackDesc = context.isOpportunityAttack ? "Opportunity attack" : context.attackType;
         const criticalText = context.isCritical ? " [CRITICAL HIT!]" : "";
-        const damageCalc = `(ATK: ${this.player.attackPower.base}+[${damageResult.attackRolls.join(',')}]` +
+        const damageCalc = `(ATK: ${damageResult.totalAttack - damageResult.attackRolls.reduce((sum, roll) => sum + roll, 0)}+[${damageResult.attackRolls.join(',')}]` +
             `${context.damageMultiplier !== 1 ? ` ×${context.damageMultiplier.toFixed(1)}` : ''} ` +
             `${context.isCritical ? '[DEF IGNORED]' : `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}]`})`;
 
