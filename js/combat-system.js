@@ -586,9 +586,11 @@ class CombatSystem {
                     const nextTarget = attacker.findNearestTargetInRange();
                     if (nextTarget) {
                         attacker.rangedCombat.target = nextTarget;
+                        game.logger.add(`Next target: ${nextTarget.name}`, "playerInfo");
                     } else {
                         attacker.rangedCombat.isActive = false;  // ターゲットがなければモード解除
-                        game.logger.add("No more targets in range.", "playerInfo");
+                        attacker.rangedCombat.target = null;     // ターゲットもクリア
+                        game.logger.add("No more targets in range. Ranged combat mode deactivated.", "playerInfo");
                     }
                 }
             } else {
@@ -622,9 +624,16 @@ class CombatSystem {
 
         // エネルギーが次の攻撃に不足する場合はモードを解除
         if (attacker.rangedCombat.energy.current < energyCost) {
-            game.logger.add("Not enough energy for another shot.", "warning");
+            game.logger.add("Not enough energy for another shot. Ranged combat mode deactivated.", "warning");
             attacker.rangedCombat.isActive = false;
             attacker.rangedCombat.target = null;
+        } else {
+            // エネルギーは十分あるが、ターゲットが存在しない場合もモードを解除
+            if (context.isPlayer && !attacker.findNearestTargetInRange()) {
+                attacker.rangedCombat.isActive = false;
+                attacker.rangedCombat.target = null;
+                game.logger.add("No valid targets in range. Ranged combat mode deactivated.", "playerInfo");
+            }
         }
 
         return game.lastAttackResult;
