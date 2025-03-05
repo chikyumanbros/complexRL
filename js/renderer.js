@@ -480,12 +480,24 @@ class Renderer {
                 let opacity = 1.0;
                 let tileKey = `${x},${y}`;
 
-                // ランドマークターゲットモードまたは遠距離攻撃モードの場合、探索済みなら描画
+                // ランドマークターゲットモードの場合、探索済みなら描画
                 if (this.game.inputHandler.landmarkTargetMode && isExplored) {
                     content = this.game.tiles[y][x];
-                    backgroundColor = backgroundColor || 'var(--dark-background)';
-                    backgroundColor = 'rgba(0, 255, 255, 0.6)'; // サイバーブルー
-                    style += '; text-shadow: 0 0 5px #00ffff'; // ネオングロー効果
+                    backgroundColor = isHighlighted ? 'rgba(0, 255, 0, 0.6)' : 'var(--dark-background)'; // 背景色
+                    if (GAME_CONSTANTS.TILES.WALL.includes(content) || GAME_CONSTANTS.TILES.FLOOR.includes(content) ||
+                        GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(content) || GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(content)) {
+                        style = `color:rgba(0, 255, 0, 0.35);`; // 壁はコンソールっぽい緑
+                        backgroundColor = 'var(--dark-background)';
+                    }
+                    
+                    if (content === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
+                        content === GAME_CONSTANTS.TILES.DOOR.OPEN ||
+                        content === GAME_CONSTANTS.STAIRS.CHAR ||
+                        content === GAME_CONSTANTS.PORTAL.GATE.CHAR ||
+                        content === GAME_CONSTANTS.PORTAL.VOID.CHAR ||
+                        content === GAME_CONSTANTS.NEURAL_OBELISK.CHAR) {
+                        style = `color: #00ff00; opacity: 0.5`; // ランドマークはコンソールっぽい緑
+                    }
                 } else if (this.game.player.rangedCombat.isActive && isVisible) {
                     content = this.game.tiles[y][x];
                     
