@@ -1415,7 +1415,7 @@ if (skill.getRange) {
 }
 
         // --- Validate Target Distance and Tile ---
-        const distance = GAME_CONSTANTS.SKILL_DISTANCE.calculateChebyshev(this.targetX, this.targetY, player.x, player.y);
+        const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(this.targetX, this.targetY, player.x, player.y);
 
         if (distance > range || this.game.map[this.targetY][this.targetX] !== 'floor') {
             this.game.logger.add("Invalid target location!", "warning");
