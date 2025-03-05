@@ -384,6 +384,13 @@ class CombatSystem {
 
     // 遠距離攻撃の処理を行う新しいメソッド
     static resolveRangedAttack(attacker, defender, game, context = {}) {
+        // エネルギーチェックを追加
+        if (attacker.rangedCombat.energy.current < attacker.rangedCombat.energy.cost) {
+            game.logger.add("Not enough energy for ranged attack!", "warning");
+            attacker.rangedCombat.isActive = false;  // モードを解除
+            return { hit: false, evaded: false, damage: 0, killed: false };
+        }
+
         // 命中判定
         const roll = Math.floor(Math.random() * 100) + 1;
         const hitChance = attacker.rangedCombat.accuracy;
@@ -487,9 +494,32 @@ class CombatSystem {
                         isCritical,
                         isRangedAttack: true,
                         attackType: "Ranged attack",
-                        damageMultiplier: 1  // 明示的にdamageMultiplierを設定
+                        damageMultiplier: 1
                     }
                 });
+
+                // 死亡後の処理：次のターゲットを探すか、モードを解除
+                if (context.isPlayer) {
+                    const nextTarget = attacker.findNearestTargetInRange();
+                    if (nextTarget) {
+                        attacker.rangedCombat.target = nextTarget;
+                        game.logger.add(`Targeting next enemy at (${nextTarget.x}, ${nextTarget.y})`, "playerInfo");
+                    } else {
+                        attacker.rangedCombat.isActive = false;  // ターゲットがなければモード解除
+                        game.logger.add("No more targets in range.", "playerInfo");
+                    }
+                }
+            }
+
+            // エネルギー消費
+            attacker.rangedCombat.energy.current = Math.max(0, 
+                attacker.rangedCombat.energy.current - attacker.rangedCombat.energy.cost
+            );
+
+            // エネルギー切れの場合はモード解除
+            if (attacker.rangedCombat.energy.current < attacker.rangedCombat.energy.cost) {
+                attacker.rangedCombat.isActive = false;
+                game.logger.add("Not enough energy to continue ranged attacks.", "warning");
             }
 
             // 効果音を再生
