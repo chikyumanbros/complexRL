@@ -796,7 +796,7 @@ class Renderer {
 
                 // takeDamageの結果に基づいてエフェクトを表示
                 if (isAttackTarget && this.game.lastAttackResult) {
-                    if (this.game.lastAttackResult.damage > 0) {
+                    if (this.game.lastAttackResult.damage >= 0) {
                         classes.push('damage');
                     }
                     if (this.game.lastAttackResult.killed) {
