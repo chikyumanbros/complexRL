@@ -412,6 +412,23 @@ class CombatSystem {
             return { hit: false, evaded: false, damage: 0, killed: false };
         }
 
+        // 射線上のモンスターをチェック
+        const lineOfSightResult = this.checkLineOfSightMonsters(attacker, defender, game);
+        if (lineOfSightResult.blocked) {
+            // 射線が完全に遮られている場合
+            game.logger.add("No clear line of sight to target!", "warning");
+            return { hit: false, evaded: false, damage: 0, killed: false };
+        }
+
+        // 射線上にモンスターがいる場合、そのモンスターに攻撃が向けられる可能性をチェック
+        if (lineOfSightResult.interferingMonsters.length > 0) {
+            const newTarget = this.resolveInterferingMonsters(attacker, defender, lineOfSightResult.interferingMonsters, game);
+            if (newTarget !== defender) {
+                game.logger.add(`Your shot is intercepted by ${newTarget.name}!`, "warning");
+                defender = newTarget;
+            }
+        }
+
         // 隣接チェック
         const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
             attacker.x, attacker.y,
@@ -602,5 +619,74 @@ class CombatSystem {
         }
 
         return game.lastAttackResult;
+    }
+
+    // 射線上のモンスターをチェックするメソッド
+    static checkLineOfSightMonsters(attacker, defender, game) {
+        const points = game.getLinePoints(attacker.x, attacker.y, defender.x, defender.y);
+        const interferingMonsters = [];
+        let blocked = false;
+
+        // 始点と終点を除いた中間地点をチェック
+        for (let i = 1; i < points.length - 1; i++) {
+            const point = points[i];
+            const monster = game.getMonsterAt(point.x, point.y);
+            
+            if (monster) {
+                // モンスターのサイズを取得
+                const size = GAME_CONSTANTS.FORMULAS.SIZE(monster.stats);
+                
+                // サイズが4以上（Large以上）のモンスターは完全に射線を遮る
+                if (size.value >= 4) {
+                    blocked = true;
+                    break;
+                }
+                
+                interferingMonsters.push({
+                    monster,
+                    distance: i,  // 射手からの距離
+                    size: size.value
+                });
+            }
+        }
+
+        return {
+            blocked,
+            interferingMonsters
+        };
+    }
+
+    // 干渉するモンスターの解決メソッド
+    static resolveInterferingMonsters(attacker, intendedTarget, interferingMonsters, game) {
+        // 各モンスターの干渉確率を計算
+        const totalWeight = interferingMonsters.reduce((sum, info) => {
+            // サイズと距離に基づく重み付け
+            const sizeWeight = (info.size - 1) * 20;  // サイズごとに20%ずつ増加
+            const distanceWeight = (10 - info.distance) * 5;  // 距離が近いほど高確率（最大50%）
+            return sum + Math.min(90, Math.max(10, sizeWeight + distanceWeight));
+        }, 0);
+
+        // ランダムロール
+        const roll = Math.random() * (totalWeight + 50);  // +50は意図したターゲットにも確率を与える
+
+        // 意図したターゲットに到達する確率
+        if (roll > totalWeight) {
+            return intendedTarget;
+        }
+
+        // どのモンスターに命中するかを決定
+        let currentSum = 0;
+        for (const info of interferingMonsters) {
+            const sizeWeight = (info.size - 1) * 20;
+            const distanceWeight = (10 - info.distance) * 5;
+            currentSum += Math.min(90, Math.max(10, sizeWeight + distanceWeight));
+            
+            if (roll <= currentSum) {
+                return info.monster;
+            }
+        }
+
+        // フォールバック
+        return intendedTarget;
     }
 } 
