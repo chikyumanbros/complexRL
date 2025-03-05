@@ -571,10 +571,9 @@ class MapGenerator {
             for (let j = i + 1; j < rooms.length; j++) {
                 const roomA = rooms[i];
                 const roomB = rooms[j];
-                const distance = Math.abs(
-                    (roomA.x + roomA.width/2) - (roomB.x + roomB.width/2)
-                ) + Math.abs(
-                    (roomA.y + roomA.height/2) - (roomB.y + roomB.height/2)
+                const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
+                    roomA.x + roomA.width/2, roomA.y + roomA.height/2,
+                    roomB.x + roomB.width/2, roomB.y + roomB.height/2
                 );
                 connections.push({
                     roomA: i,
@@ -781,7 +780,10 @@ class MapGenerator {
 
         for (const pointA of roomAPoints) {
             for (const pointB of roomBPoints) {
-                const distance = Math.abs(pointA.x - pointB.x) + Math.abs(pointA.y - pointB.y);
+                const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
+                    pointA.x, pointA.y,
+                    pointB.x, pointB.y
+                );
                 if (distance < shortestDistance) {
                     shortestDistance = distance;
                     bestPoints = { startX: pointA.x, startY: pointA.y, endX: pointB.x, endY: pointB.y };

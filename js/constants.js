@@ -601,11 +601,6 @@ const GAME_CONSTANTS = {
 
     // 距離関連
     DISTANCE: {
-        calculate: (x1, y1, x2, y2) => {
-            const dx = x2 - x1;
-            const dy = y2 - y1;
-            return Math.sqrt(dx * dx + dy * dy);
-        },
         // チェビシェフ距離の計算メソッドを追加
         calculateChebyshev: (x1, y1, x2, y2) => {
             const dx = Math.abs(x2 - x1);
@@ -613,16 +608,6 @@ const GAME_CONSTANTS = {
             return Math.max(dx, dy);
         }
     },
-
-    // スキル距離関連
-    SKILL_DISTANCE: {
-        calculate: (x1, y1, x2, y2) => {
-            const dx = Math.abs(x2 - x1);
-            const dy = Math.abs(y2 - y1);
-            return Math.max(dx, dy);
-        }
-    },
-
     // Vigor関連
     VIGOR: {
         MAX: 100,

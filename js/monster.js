@@ -313,7 +313,7 @@ class Monster {
         if (this.isSleeping) {
             const dx = game.player.x - this.x;
             const dy = game.player.y - this.y;
-            const distance = GAME_CONSTANTS.DISTANCE.calculate(
+            const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
                 game.player.x, game.player.y,
                 this.x, this.y
             );
@@ -324,7 +324,7 @@ class Monster {
                 wakeupChance = 80 + this.perception * 2;
             } 
             else if (game.lastCombatLocation && distance <= this.perception) {
-                const combatDistance = GAME_CONSTANTS.DISTANCE.calculate(
+                const combatDistance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
                     game.lastCombatLocation.x, game.lastCombatLocation.y,
                     this.x, this.y
                 );
@@ -344,7 +344,7 @@ class Monster {
         // --- Player Detection and Pursuit ---
         const dx = game.player.x - this.x;
         const dy = game.player.y - this.y;
-        const euclideanDistance = GAME_CONSTANTS.DISTANCE.calculate(
+        const Distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
             game.player.x, game.player.y,
             this.x, this.y
         );
@@ -359,7 +359,7 @@ class Monster {
         const sizeBonus = (3 - playerSize.value) * 2;  // プレイヤーの感知システムと同じ計算式
 
         // サイズボーナスを考慮した感知判定
-        if ((euclideanDistance <= (this.perception + sizeBonus) && this.hasLineOfSight(game)) || 
+        if ((Distance <= (this.perception + sizeBonus) && this.hasLineOfSight(game)) || 
             (pathDistance <= effectiveSoundRange)) {
             if (!this.hasSpottedPlayer) {
                 const isVisibleToPlayer = game.getVisibleTiles()
@@ -375,7 +375,7 @@ class Monster {
                 } else {
                     // プレイヤーからモンスターが見える場合のみスポットメッセージ
                     // 修正: 視覚と聴覚を明確に区別
-                    const isVisual = euclideanDistance <= (this.perception + sizeBonus) && this.hasLineOfSight(game);
+                    const isVisual = Distance <= (this.perception + sizeBonus) && this.hasLineOfSight(game);
                     const isAuditory = pathDistance <= effectiveSoundRange;
                     
                     // 視覚優先 (視覚的に検出できる場合は「spots」、そうでない場合は「hears」)
@@ -583,7 +583,7 @@ class Monster {
             const newX = this.x + move.x;
             const newY = this.y + move.y;
             
-            const newDistance = GAME_CONSTANTS.DISTANCE.calculate(
+            const newDistance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
                 newX, newY,
                 targetX, targetY
             );
@@ -711,9 +711,9 @@ class Monster {
     // 逃走行動を実行するメソッド
     flee(game) {
         // プレイヤーとの距離を計算
-        const currentDistance = GAME_CONSTANTS.DISTANCE.calculate(
-            this.x, this.y,
-            game.player.x, game.player.y
+        const currentDistance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
+            game.player.x, game.player.y,
+            this.x, this.y
         );
 
         // 移動候補を生成（斜め移動を含む8方向）
@@ -744,9 +744,9 @@ class Monster {
                 continue;
             }
 
-            const newDistance = GAME_CONSTANTS.DISTANCE.calculate(
-                newX, newY,
-                game.player.x, game.player.y
+            const newDistance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
+                game.player.x, game.player.y,
+                newX, newY
             );
 
             // 安全度を計算（周囲の壁や障害物の数）
@@ -936,7 +936,7 @@ class Monster {
         }
         
         // プレイヤーとの距離を計算
-        const distance = GAME_CONSTANTS.DISTANCE.calculate(
+        const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
             game.player.x, game.player.y,
             this.x, this.y
         );

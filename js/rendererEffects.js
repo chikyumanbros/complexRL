@@ -115,7 +115,7 @@ class RendererEffects {
             return { char: baseChar, color: baseColor };
         }
 
-        const distance = GAME_CONSTANTS.DISTANCE.calculate(
+        const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
             x, y,
             this.renderer.game.player.x, this.renderer.game.player.y
         );

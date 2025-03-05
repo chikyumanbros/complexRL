@@ -490,7 +490,7 @@ class Renderer {
                     content = this.game.tiles[y][x];
                     
                     // 遠距離攻撃モードの場合は射程範囲内かどうかをチェック
-                    const isInRange = GAME_CONSTANTS.DISTANCE.calculate(
+                    const isInRange = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
                         this.game.player.x, 
                         this.game.player.y, 
                         x, 
@@ -562,7 +562,7 @@ class Renderer {
                     const roomAtTile = this.game.getRoomAt(x, y);
                     const tileVisibility = (currentRoom && roomAtTile && roomAtTile === currentRoom) ? currentRoom.brightness : 3;
 
-                    const distance = GAME_CONSTANTS.DISTANCE.calculate(x, y, px, py);
+                    const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(x, y, px, py);
 
                     // 基本的な明るさを計算
                     let baseOpacity;
@@ -650,7 +650,7 @@ class Renderer {
                     }
 
                     if (isHighlighted) {
-                        const targetDistance = GAME_CONSTANTS.SKILL_DISTANCE.calculate(x, y, this.game.player.x, this.game.player.y);
+                        const targetDistance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(x, y, this.game.player.x, this.game.player.y);
 
                         if (this.game.inputHandler.targetingMode === 'look') {
                             backgroundColor = `linear-gradient(${backgroundColor || 'transparent'}, rgba(255, 255, 255, 1))`;
@@ -1169,7 +1169,7 @@ createRangedCombatStats(player) {
             })
             .map(monster => ({
                 ...monster,
-                distance: GAME_CONSTANTS.DISTANCE.calculate(
+                distance: GAME_CONSTANTS.DISTANCE.calculateChebyshev(
                     this.game.player.x,
                     this.game.player.y,
                     monster.x,
@@ -1507,13 +1507,6 @@ createRangedCombatStats(player) {
         rightColumn += `5. DMG = ATK (if critical hit)`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● DISTANCE & RANGE</div>\n`;
-        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
-        rightColumn += `Uses Euclidean distance for<br>`;
-        rightColumn += `natural line of sight and range<br>`;
-        rightColumn += `calculations`;
-        rightColumn += `</div>\n`;
-
         rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● COMBAT PENALTIES</div>\n`;
         rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
         rightColumn += `Surrounded: -15% ACC/EVA per enemy<br>`;
@@ -1776,7 +1769,7 @@ createRangedCombatStats(player) {
                       targetX === this.game.lastCombatMonster.x && 
                       targetY === this.game.lastCombatMonster.y &&
                       this.game.turn - this.game.lastCombatMonster.lastSeenTurn <= 1 &&
-                      GAME_CONSTANTS.DISTANCE.calculate(
+                      GAME_CONSTANTS.DISTANCE.calculateChebyshev(
                           this.game.player.x,
                           this.game.player.y,
                           targetX,
@@ -2075,9 +2068,10 @@ createRangedCombatStats(player) {
             for (let y = 0; y < this.game.height; y++) {
                 for (let x = 0; x < this.game.width; x++) {
                     // ポータルからの距離を計算
-                    const distanceFromPortal = Math.sqrt(
-                        Math.pow(x - this.game.player.x, 2) +
-                        Math.pow(y - this.game.player.y, 2)
+                    const distanceFromPortal = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
+                        x, y,
+                        this.game.player.x,
+                        this.game.player.y
                     );
 
                     // 距離に応じて変化の確率を調整

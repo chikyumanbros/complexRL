@@ -1268,10 +1268,10 @@ class InputHandler {
     // ----------------------
     findNearbyMonster() {
         const player = this.game.player;
-        // チェビシェフ距離からユークリッド距離に変更
+        // チェビシェフ距離を使用
         for (const monster of this.game.monsters) {
-            const distance = GAME_CONSTANTS.DISTANCE.calculate(monster.x, monster.y, player.x, player.y);
-            if (distance <= 1.5) {  // 斜め距離も考慮して1.5に設定
+            const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(monster.x, monster.y, player.x, player.y);
+            if (distance <= 1) {  // チェビシェフ距離では1で十分（斜めも含む）
                 return monster;
             }
         }
@@ -1498,7 +1498,7 @@ if (skill.getRange) {
 }
 
         // --- Validate Target Distance and Tile ---
-        const distance = GAME_CONSTANTS.SKILL_DISTANCE.calculate(this.targetX, this.targetY, player.x, player.y);
+        const distance = GAME_CONSTANTS.SKILL_DISTANCE.calculateChebyshev(this.targetX, this.targetY, player.x, player.y);
 
         if (distance > range || this.game.map[this.targetY][this.targetX] !== 'floor') {
             this.game.logger.add("Invalid target location!", "warning");

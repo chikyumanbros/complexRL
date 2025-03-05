@@ -871,8 +871,8 @@ class Player {
                     this.game.map[newY][newX] === 'floor' &&
                     this.game.tiles[newY][newX] !== GAME_CONSTANTS.TILES.DOOR.CLOSED) {
                     
-                    // ユークリッド距離を使用
-                    const newDistance = current.distance + GAME_CONSTANTS.DISTANCE.calculate(
+                    // チェビシェフ距離を使用
+                    const newDistance = current.distance + GAME_CONSTANTS.DISTANCE.calculateChebyshev(
                         current.x, current.y,
                         newX, newY
                     );
@@ -1453,10 +1453,8 @@ class Player {
     calculateHeuristic(x, y, isGoalFunc) {
         // 目標が単一の座標の場合
         if (typeof isGoalFunc === 'object' && 'x' in isGoalFunc && 'y' in isGoalFunc) {
-            // ユークリッド距離
-            const dx = x - isGoalFunc.x;
-            const dy = y - isGoalFunc.y;
-            return Math.sqrt(dx * dx + dy * dy);
+            // チェビシェフ距離を使用
+            return GAME_CONSTANTS.DISTANCE.calculateChebyshev(x, y, isGoalFunc.x, isGoalFunc.y);
         }
         
         // 複数の目標を持つ場合（未探索タイルなど）
@@ -1466,9 +1464,7 @@ class Player {
         for (let ty = 0; ty < this.game.height; ty++) {
             for (let tx = 0; tx < this.game.width; tx++) {
                 if (isGoalFunc(tx, ty)) {
-                    const dx = x - tx;
-                    const dy = y - ty;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(x, y, tx, ty);
                     minDistance = Math.min(minDistance, distance);
                 }
             }
@@ -1626,7 +1622,7 @@ class Player {
         let minDistance = Infinity;
 
         this.game.monsters.forEach(monster => {
-            const distance = GAME_CONSTANTS.DISTANCE.calculate(this.x, this.y, monster.x, monster.y);
+            const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(this.x, this.y, monster.x, monster.y);
             const monsterKey = `${monster.x},${monster.y}`;
 
             if (distance <= this.rangedCombat.range && visibleTilesSet.has(monsterKey)) {
@@ -1649,7 +1645,7 @@ class Player {
         // 射程範囲内の有効なターゲットをすべて取得
         const validTargets = this.game.monsters
             .filter(monster => {
-                const distance = GAME_CONSTANTS.DISTANCE.calculate(this.x, this.y, monster.x, monster.y);
+                const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(this.x, this.y, monster.x, monster.y);
                 const monsterKey = `${monster.x},${monster.y}`;
                 return distance <= this.rangedCombat.range && visibleTilesSet.has(monsterKey);
             })

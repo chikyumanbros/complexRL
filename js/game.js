@@ -934,7 +934,7 @@ class Game {
                     !GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.tiles[y][x]) && //透明な障害物
                     this.tiles[y][x] !== GAME_CONSTANTS.PORTAL.VOID.CHAR;  // VOIDポータルを避ける
 
-                const distance = GAME_CONSTANTS.DISTANCE.calculate(x, y, this.player.x, this.player.y);
+                const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(x, y, this.player.x, this.player.y);
 
                 if (isValidSpawn && distance >= GAME_CONSTANTS.ROOM.SAFE_RADIUS) {
 
@@ -961,7 +961,7 @@ class Game {
                                 const packY = y + Math.floor(Math.random() * 3) - 1;
 
                                 // Ensure pack members maintain a safe distance from the player.
-                                const packDistance = GAME_CONSTANTS.DISTANCE.calculate(packX, packY, this.player.x, this.player.y);
+                                const packDistance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(packX, packY, this.player.x, this.player.y);
 
                                 const isValidPackSpawn = this.isValidPosition(packX, packY) &&
                                     this.map[packY][packX] === 'floor' &&
@@ -1264,7 +1264,7 @@ class Game {
             for (let x = 0; x < GAME_CONSTANTS.DIMENSIONS.WIDTH; x++) {
                 const dx = x - this.player.x;
                 const dy = y - this.player.y;
-                const distance = GAME_CONSTANTS.DISTANCE.calculate(x, y, this.player.x, this.player.y);
+                const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(x, y, this.player.x, this.player.y);
 
                 // 対象タイルが属する部屋を検出
                 const roomAtTile = this.getRoomAt(x, y);
@@ -1344,7 +1344,7 @@ class Game {
             ).length;
         } else {
             monsterCount = this.monsters.filter(monster => {
-                const distance = GAME_CONSTANTS.DISTANCE.calculate(monster.x, monster.y, px, py);
+                const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(monster.x, monster.y, px, py);
                 return distance <= 2.5;
             }).length;
         }
@@ -1911,7 +1911,7 @@ class Game {
         const visibleMonsters = this.monsters.filter(monster => {
             // プレイヤーの視界内にいるモンスターを検出
             return this.hasLineOfSight(this.player.x, this.player.y, monster.x, monster.y) &&
-                GAME_CONSTANTS.DISTANCE.calculate(this.player.x, this.player.y, monster.x, monster.y) <= 
+                GAME_CONSTANTS.DISTANCE.calculateChebyshev(this.player.x, this.player.y, monster.x, monster.y) <= 
                 this.player.perception.base;
         });
         
