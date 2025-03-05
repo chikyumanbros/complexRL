@@ -706,6 +706,23 @@ class Player {
         const penalizedAccuracy = Math.floor(this.accuracy * (1 - surroundingPenalty));
         const penalizedEvasion = Math.floor(this.evasion * (1 - surroundingPenalty));
 
+        // 遠距離攻撃のターゲットがいる場合、サイズ補正を計算
+        let rangedAccuracyText = `${this.rangedCombat.accuracy}`;
+        if (this.rangedCombat.isActive && this.rangedCombat.target) {
+            const target = this.game.getMonsterAt(this.rangedCombat.target.x, this.rangedCombat.target.y);
+            if (target) {
+                const sizeModifier = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.SIZE_ACCURACY_MODIFIER(target.stats);
+                const finalAccuracy = Math.min(95, Math.max(5, this.rangedCombat.accuracy + sizeModifier));
+                
+                // サイズ補正に応じて色を変更
+                if (sizeModifier !== 0) {
+                    rangedAccuracyText = `<span style="color: ${sizeModifier > 0 ? '#2ecc71' : '#e74c3c'}">${finalAccuracy}</span>`;
+                } else {
+                    rangedAccuracyText = `${finalAccuracy}`;
+                }
+            }
+        }
+
         // ペナルティがある場合は赤色で表示
         const formatStat = (original, penalized) => {
             if (penalized < original) {
@@ -726,7 +743,8 @@ class Player {
                 speed: `${GAME_CONSTANTS.FORMULAS.SPEED(this.stats)}`,
                 accuracy: formatStat(this.accuracy, penalizedAccuracy),
                 evasion: formatStat(this.evasion, penalizedEvasion),
-                perception: this.perception
+                perception: this.perception,
+                rangedAccuracy: rangedAccuracyText
             }
         };
     }

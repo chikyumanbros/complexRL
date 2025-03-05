@@ -388,19 +388,56 @@ class CombatSystem {
         if (attacker.rangedCombat.energy.current < attacker.rangedCombat.energy.cost) {
             game.logger.add("Not enough energy for ranged attack!", "warning");
             attacker.rangedCombat.isActive = false;  // モードを解除
+            attacker.rangedCombat.target = null;     // ターゲットもクリア
             return { hit: false, evaded: false, damage: 0, killed: false };
+        }
+
+        // 隣接チェック
+        const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
+            attacker.x, attacker.y,
+            defender.x, defender.y
+        );
+
+        // 隣接している場合（距離が1以下）はイニシアチブ判定を行う
+        if (distance <= 1) {
+            const baseAttackerSpeed = GAME_CONSTANTS.FORMULAS.SPEED(attacker.stats);
+            const defenderSpeed = GAME_CONSTANTS.FORMULAS.SPEED(defender.stats);
+            
+            // 遠距離攻撃時は速度を1段階下げる
+            const attackerSpeed = {
+                value: Math.max(1, baseAttackerSpeed.value - 1),
+                name: GAME_CONSTANTS.COLORS.SPEED[Math.max(1, baseAttackerSpeed.value - 1)].name
+            };
+            
+            // イニシアチブ判定のログを出力（遠距離攻撃による速度低下を表示）
+            game.logger.add(`Speed Order: ${context.isPlayer ? "Player" : defender.name} (${baseAttackerSpeed.name} → ${attackerSpeed.name} [Ranged]) vs ${context.isPlayer ? defender.name : "you"} (${defenderSpeed.name})`);
+
+            // 敵の方が速い場合は先制攻撃
+            if (defenderSpeed.value > attackerSpeed.value) {
+                game.logger.add(`${defender.name} acts preemptively!`, "monsterInfo");
+                defender.attackPlayer(attacker, game);
+                defender.hasActedThisTurn = true;
+
+                // プレイヤーが死亡している場合は処理を中断
+                if (attacker.hp <= 0) {
+                    return { hit: false, evaded: false, damage: 0, killed: false };
+                }
+            }
         }
 
         // 命中判定
         const roll = Math.floor(Math.random() * 100) + 1;
-        const hitChance = attacker.rangedCombat.accuracy;
+        const baseHitChance = attacker.rangedCombat.accuracy;
+        // サイズによる命中補正を適用
+        const sizeModifier = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.SIZE_ACCURACY_MODIFIER(defender.stats);
+        const hitChance = Math.min(95, Math.max(5, baseHitChance + sizeModifier));
         const isCritical = roll <= GAME_CONSTANTS.FORMULAS.CRITICAL_RANGE(attacker.stats);
 
         // ログ出力用のプレフィックス
         const logPrefix = context.isPlayer ? "You" : attacker.name;
         const logTarget = context.isPlayer ? defender.name : "you";
 
-        // 命中判定のログを出力
+        // 命中判定のログを出力（サイズ補正を含める）
         game.logger.add(
             `${logPrefix} fire at ${logTarget} ` +
             `(ACC: ${Math.floor(hitChance)}% | Roll: ${roll}${isCritical ? ' [CRITICAL HIT!]' : ''})`,
@@ -510,22 +547,6 @@ class CombatSystem {
                     }
                 }
             }
-
-            // エネルギー消費
-            attacker.rangedCombat.energy.current = Math.max(0, 
-                attacker.rangedCombat.energy.current - attacker.rangedCombat.energy.cost
-            );
-
-            // エネルギー切れの場合はモード解除
-            if (attacker.rangedCombat.energy.current < attacker.rangedCombat.energy.cost) {
-                attacker.rangedCombat.isActive = false;
-                game.logger.add("Not enough energy to continue ranged attacks.", "warning");
-            }
-
-            // 効果音を再生
-            game.playSound('damageSound');
-
-            return game.lastAttackResult;
         } else {
             // ミス時の処理
             game.lastAttackResult = {
@@ -540,8 +561,20 @@ class CombatSystem {
             game.renderer.showMissEffect(defender.x, defender.y, 'miss');
             game.playSound('missSound');
             game.renderer.render();
-
-            return game.lastAttackResult;
         }
+
+        // エネルギーを消費（命中判定の結果に関係なく）
+        attacker.rangedCombat.energy.current = Math.max(0, 
+            attacker.rangedCombat.energy.current - attacker.rangedCombat.energy.cost
+        );
+
+        // エネルギーが次の攻撃に不足する場合はモードを解除
+        if (attacker.rangedCombat.energy.current < attacker.rangedCombat.energy.cost) {
+            game.logger.add("Not enough energy for another shot.", "warning");
+            attacker.rangedCombat.isActive = false;
+            attacker.rangedCombat.target = null;
+        }
+
+        return game.lastAttackResult;
     }
 } 

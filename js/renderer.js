@@ -1148,6 +1148,34 @@ createRangedCombatStats(player) {
     const ranged = player.rangedCombat;
     const energyPercent = (ranged.energy.current / ranged.energy.max) * 100;
 
+    // ターゲットに対する命中率の計算
+    let accuracyDisplay = `${ranged.accuracy}%`;
+    if (ranged.isActive && ranged.target) {
+        const target = this.game.getMonsterAt(ranged.target.x, ranged.target.y);
+        if (target) {
+            const sizeModifier = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.SIZE_ACCURACY_MODIFIER(target.stats);
+            const finalAccuracy = Math.min(95, Math.max(5, ranged.accuracy + sizeModifier));
+            
+            if (sizeModifier !== 0) {
+                accuracyDisplay = `<span style="color: ${sizeModifier > 0 ? '#2ecc71' : '#e74c3c'}">${finalAccuracy}%</span>`;
+            } else {
+                accuracyDisplay = `${finalAccuracy}%`;
+            }
+        }
+    }
+
+    // 速度情報の計算
+    const baseSpeed = GAME_CONSTANTS.FORMULAS.SPEED(player.stats);
+    const rangedSpeed = {
+        value: Math.max(1, baseSpeed.value - 1),
+        name: GAME_CONSTANTS.COLORS.SPEED[Math.max(1, baseSpeed.value - 1)].name
+    };
+    const speedInfo = GAME_CONSTANTS.COLORS.SPEED[rangedSpeed.value];
+
+    // 速度表示の作成（基本速度→遠距離速度）
+    const speedDisplay = `<span style="color: ${GAME_CONSTANTS.COLORS.SPEED[baseSpeed.value].color}">${baseSpeed.name}</span> → ` +
+                        `<span style="color: ${speedInfo.color}">${rangedSpeed.name}</span> [Ranged]`;
+
     return `
         <div class="ranged-combat-section">
             <div class="energy-bar">
@@ -1158,11 +1186,12 @@ createRangedCombatStats(player) {
             </div>
             <div class="ranged-stats-grid">
                 <div class="ranged-info">ATK: <span class="value">${ranged.attack.base}+${ranged.attack.dice.count}d${ranged.attack.dice.sides}</span></div>
-                <div class="ranged-info">ACC: <span class="value">${ranged.accuracy}%</span></div>
+                <div class="ranged-info">ACC: <span class="value">${accuracyDisplay}</span></div>
                 <div class="ranged-info">Range: <span class="value">${ranged.range}</span></div>
                 <div class="ranged-info">Cost: <span class="value">${ranged.energy.cost}/shot</span></div>
+                <div class="ranged-info">SPD: <span class="value">${speedDisplay}</span></div>
             </div>
-            <div class="ranged-info">Recharge: <span class="value">${ranged.energy.rechargeRate}/trn</span></div>
+            <div class="ranged-info">Recharge: <span class="value">${ranged.energy.rechargeRate}/turn</span></div>
         </div>
     `;
 }
