@@ -418,7 +418,6 @@ class Logger {
         this.add("GAME OVER", "death");
         this.add("Final Score:", "important");
         this.add(`Total Score: ${finalScore.totalScore}`, "important");
-        this.add(`Monsters Defeated: ${finalScore.monstersKilled}`, "important");
         this.add(`Codex Points: ${finalScore.codexPoints}`, "important");
         this.add(`Survived Turns: ${finalScore.turns}`, "important");
         this.add("=================", "important");

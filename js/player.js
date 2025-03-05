@@ -1781,7 +1781,6 @@ class Player {
         const surroundingMonsters = this.countSurroundingMonsters(this.game);
         if (surroundingMonsters > 0) {
             // モンスターが隣接している場合は回復しない
-            this.game.logger.add("Cannot recharge energy while enemies are adjacent!", "warning");
             return;
         }
 

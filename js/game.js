@@ -1031,10 +1031,8 @@ class Game {
         localStorage.removeItem('complexRL_saveData');
 
         // Calculate final score.
-        const monstersKilled = this.monsterKillCount;  // 修正：正確なキル数を使用
         const totalXP = this.player.xp;
         const finalScore = {
-            monstersKilled: monstersKilled,
             codexPoints: this.player.codexPoints,
             turns: this.totalTurns,  // 全体のターン数を使用
             totalScore: Math.floor((totalXP * 1.5) + (this.player.codexPoints / Math.max(1, this.totalTurns * 0.01)))  // 全体のターン数を使用
@@ -2174,12 +2172,6 @@ class Game {
                 levelInfo.style.marginLeft = '10px';
                 levelInfo.textContent = `Level: ${score.deathInfo.level}`;
                 container.appendChild(levelInfo);
-                
-                const monstersInfo = document.createElement('div');
-                monstersInfo.style.color = '#FF6B6B';
-                monstersInfo.style.marginLeft = '10px';
-                monstersInfo.textContent = `Monsters: ${score.monstersKilled}`;
-                container.appendChild(monstersInfo);
                 
                 const codexInfo = document.createElement('div');
                 codexInfo.style.color = '#98FB98';
