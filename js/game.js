@@ -369,6 +369,9 @@ class Game {
     }
 
     processTurn() {
+        // ターンカウントをインクリメント
+        this.turn++;
+
         // プレイヤーのターン処理
         this.processPlayerTurn();
 
@@ -1029,7 +1032,7 @@ class Game {
             monstersKilled: monstersKilled,
             codexPoints: this.player.codexPoints,
             turns: this.turn,
-            totalScore: Math.floor((totalXP * 1.5) + (this.player.codexPoints / (this.turn * 0.01)))
+            totalScore: Math.floor((totalXP * 1.5) + (this.player.codexPoints / Math.max(1, this.turn * 0.01)))
         };
 
         // 死因が設定されていない場合は、最後の戦闘情報から推測
