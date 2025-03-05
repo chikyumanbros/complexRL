@@ -538,7 +538,7 @@ class Renderer {
                         y === this.game.player.rangedCombat.target.y) {
                         classes.push('target-highlight');
                         if (monster) {
-                            backgroundColor = 'rgba(255, 0, 128, 0.4)'; // ネオンピンク
+                            backgroundColor = 'rgba(255, 0, 128, 0.8)'; // ネオンピンク
                             style += '; text-shadow: 0 0 8px #ff0080'; // ネオングロー効果
                         }
                     }
