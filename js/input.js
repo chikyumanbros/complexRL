@@ -1286,6 +1286,13 @@ class InputHandler {
         const codex = this.game.codexSystem;
         const keyLower = key.toLowerCase();
 
+        // スペースキーの処理を追加
+        if (key === ' ') {
+            codex.toggleInputMode();
+            this.game.renderer.renderCodexMenu();
+            return;
+        }
+
         // ↓↓↓ Codexモードの実装 ↓↓↓
         if (this.skillSlotSwapMode && key.match(/^\d$/)) {
             // スキル入れ替えモード中の数字キー押下
