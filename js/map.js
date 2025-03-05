@@ -911,7 +911,7 @@ class MapGenerator {
                     }
 
                     // 壁タイルが4個以上ある場合のみドアを配置
-                    if (wallCount >= 4) {
+                    if (wallCount >= 2) {
                         this.tiles[doorPos.y][doorPos.x] = GAME_CONSTANTS.TILES.DOOR.CLOSED;
                         this.colors[doorPos.y][doorPos.x] = GAME_CONSTANTS.COLORS.DOOR;
                     } else {
