@@ -400,6 +400,130 @@ class MapGenerator {
                     }
                     return positions;
                 }
+            },
+            {
+                name: 'maze',
+                getPositions: (room) => {
+                    const positions = [];
+                    const startX = room.x + 2;
+                    const startY = room.y + 2;
+                    const endX = room.x + room.width - 3;
+                    const endY = room.y + room.height - 3;
+                    
+                    // 迷路のような不規則なパターンを生成
+                    for (let y = startY; y <= endY; y += 2) {
+                        for (let x = startX; x <= endX; x += 2) {
+                            if (Math.random() < 0.7) { // 70%の確率で障害物を配置
+                                positions.push({x, y});
+                                // ランダムに隣接する位置にも配置
+                                if (Math.random() < 0.5 && x + 1 <= endX) {
+                                    positions.push({x: x + 1, y});
+                                } else if (y + 1 <= endY) {
+                                    positions.push({x, y: y + 1});
+                                }
+                            }
+                        }
+                    }
+                    return positions;
+                }
+            },
+            {
+                name: 'spiral',
+                getPositions: (room) => {
+                    const positions = [];
+                    const centerX = Math.floor(room.x + room.width / 2);
+                    const centerY = Math.floor(room.y + room.height / 2);
+                    const maxRadius = Math.min(
+                        Math.floor((room.width - 4) / 2),
+                        Math.floor((room.height - 4) / 2)
+                    );
+                    
+                    // 渦巻きパターンを生成
+                    let angle = 0;
+                    let radius = 1;
+                    while (radius <= maxRadius) {
+                        const x = Math.round(centerX + radius * Math.cos(angle));
+                        const y = Math.round(centerY + radius * Math.sin(angle));
+                        
+                        if (x >= room.x + 2 && x < room.x + room.width - 2 &&
+                            y >= room.y + 2 && y < room.y + room.height - 2) {
+                            positions.push({x, y});
+                        }
+                        
+                        angle += Math.PI / 8;
+                        radius += angle / (2 * Math.PI) * 0.5;
+                    }
+                    return positions;
+                }
+            },
+            {
+                name: 'checkerboard',
+                getPositions: (room) => {
+                    const positions = [];
+                    for (let y = room.y + 2; y < room.y + room.height - 2; y += 2) {
+                        for (let x = room.x + 2 + (y % 4 === 0 ? 0 : 2); x < room.x + room.width - 2; x += 4) {
+                            positions.push({x, y});
+                        }
+                    }
+                    return positions;
+                }
+            },
+            {
+                name: 'triangles',
+                getPositions: (room) => {
+                    const positions = [];
+                    const centerX = Math.floor(room.x + room.width / 2);
+                    const centerY = Math.floor(room.y + room.height / 2);
+                    const size = Math.min(
+                        Math.floor((room.width - 4) / 2),
+                        Math.floor((room.height - 4) / 2)
+                    );
+                    
+                    // 三角形パターンを生成
+                    for (let i = 0; i <= size; i++) {
+                        for (let j = 0; j <= i; j++) {
+                            // 上向き三角形
+                            if (centerY - i + 2 >= room.y + 2) {
+                                positions.push({
+                                    x: centerX - i + j * 2,
+                                    y: centerY - i + 2
+                                });
+                            }
+                            // 下向き三角形
+                            if (centerY + i - 2 < room.y + room.height - 2) {
+                                positions.push({
+                                    x: centerX - i + j * 2,
+                                    y: centerY + i - 2
+                                });
+                            }
+                        }
+                    }
+                    return positions;
+                }
+            },
+            {
+                name: 'parallel',
+                getPositions: (room) => {
+                    const positions = [];
+                    const isHorizontal = Math.random() < 0.5;
+                    
+                    if (isHorizontal) {
+                        // 水平な平行線
+                        for (let y = room.y + 2; y < room.y + room.height - 2; y += 3) {
+                            for (let x = room.x + 2; x < room.x + room.width - 2; x++) {
+                                positions.push({x, y});
+                            }
+                        }
+                    } else {
+                        // 垂直な平行線
+                        for (let x = room.x + 2; x < room.x + room.width - 2; x += 3) {
+                            for (let y = room.y + 2; y < room.y + room.height - 2; y++) {
+                                positions.push({x, y});
+                            }
+                        }
+                    }
+                    return positions;
+                }
             }
         ];
 
