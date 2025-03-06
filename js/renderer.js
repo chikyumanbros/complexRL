@@ -1116,7 +1116,22 @@ createNormalCombatStats(player, attackText, accText, speedText, sizeInfo) {
         ? `<span style="color: #e74c3c">${penalizedEvasion}%</span>`
         : `${baseEvasion}%`;
 
+    // エネルギーバーの計算（追加）
+    let energyBarHTML = '';
+    if (player.rangedCombat) {
+        const energyPercent = (player.rangedCombat.energy.current / player.rangedCombat.energy.max) * 100;
+        energyBarHTML = `
+            <div class="energy-bar">
+                <div class="energy-numbers">Eg: ${Math.floor(player.rangedCombat.energy.current)}/${player.rangedCombat.energy.max}</div>
+                <div class="bar-container">
+                    <div class="bar" style="width: ${energyPercent}%"></div>
+                </div>
+            </div>
+        `;
+    }
+
     return `
+        ${energyBarHTML}
         <div class="stats-grid">
             <div class="stat-row">
                 <span class="label">STR:</span>
@@ -1217,8 +1232,7 @@ createRangedCombatStats(player) {
     const speedInfo = GAME_CONSTANTS.COLORS.SPEED[rangedSpeed.value];
 
     // 速度表示の作成（基本速度→遠距離速度）
-    const speedDisplay = `<span style="color: ${GAME_CONSTANTS.COLORS.SPEED[baseSpeed.value].color}">${baseSpeed.name}</span> → ` +
-                           `<span style="color: ${speedInfo.color}">${rangedSpeed.name}</span> [Ranged]`;
+    const speedDisplay = `<span style="color: ${speedInfo.color}">${rangedSpeed.name}</span>`;
 
     // 周囲のモンスターによるペナルティを計算
     const surroundingMonsters = player.countSurroundingMonsters(this.game);
@@ -1244,7 +1258,7 @@ createRangedCombatStats(player) {
     return `
         <div class="ranged-combat-section">
             <div class="energy-bar">
-                <div class="energy-numbers">${Math.floor(rangedCombat.energy.current)}/${rangedCombat.energy.max}</div>
+                <div class="energy-numbers">Eg: ${Math.floor(rangedCombat.energy.current)}/${rangedCombat.energy.max}</div>
                 <div class="bar-container">
                     <div class="bar" style="width: ${energyPercent}%"></div>
                 </div>
@@ -1254,9 +1268,9 @@ createRangedCombatStats(player) {
                 <div class="ranged-info">ACC: <span class="value">${accuracyDisplay}</span></div>
                 <div class="ranged-info">Range: <span class="value">${rangedCombat.range}</span></div>
                 <div class="ranged-info">Cost: <span class="value">${rangedCombat.energy.cost}/shot</span></div>
+                <div class="ranged-info">Re.C: <span class="value">${rangedCombat.energy.rechargeRate}/turn</span></div>
                 <div class="ranged-info">SPD: <span class="value">${speedDisplay}</span></div>
             </div>
-            <div class="ranged-info">Recharge: <span class="value">${rangedCombat.energy.rechargeRate}/turn</span></div>
             ${targetInfo}
             ${penaltyText}
         </div>

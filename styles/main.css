@@ -1712,7 +1712,6 @@ body::before {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding-top: 5px;
 }
 
 /* エネルギーバーの色を調整 */

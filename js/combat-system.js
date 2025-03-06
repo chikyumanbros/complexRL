@@ -538,12 +538,6 @@ class CombatSystem {
                 damage: finalDamage
             };
 
-            // 攻撃計算の詳細を表示
-            const attackCalc = `ATK: ${baseAttack}+[${attackRolls.join(',')}]`;
-            const defenseCalc = isCritical 
-                ? '[DEF IGNORED]' 
-                : `vs DEF: ${defender.defense.base}+[${defenseRolls.join(',')}]`;
-
             // ダメージを適用
             const result = defender.takeDamage(finalDamage, {
                 source: attacker,
@@ -551,15 +545,18 @@ class CombatSystem {
                 isCritical: isCritical
             });
 
-            game.lastAttackResult = {
-                hit: true,
-                evaded: false,  // 遠距離攻撃は回避不可
-                damage: finalDamage,
-                killed: defender.hp <= 0,
-                isCritical: isCritical,
-                damageResult
-            };
-            game.lastAttackLocation = { x: defender.x, y: defender.y };
+            // 攻撃計算の詳細を表示
+            const attackCalc = `ATK: ${baseAttack}+[${attackRolls.join(',')}]`;
+            const defenseCalc = isCritical 
+                ? '[DEF IGNORED]' 
+                : `vs DEF: ${defender.defense.base}+[${defenseRolls.join(',')}]`;
+
+            // ダメージログを表示
+            const healthStatus = `HP: ${Math.max(0, defender.hp)}/${defender.maxHp}`;
+            game.logger.add(
+                `The shot hits for ${finalDamage} damage! (${attackCalc} ${defenseCalc}) (${healthStatus})`,
+                isCritical ? "playerCrit" : "playerHit"
+            );
 
             // ダメージエフェクトを表示
             game.playSound('rangedAttackSound');
@@ -580,7 +577,7 @@ class CombatSystem {
                         damageResult: result.damageResult,
                         context: {
                             isPlayer: true,
-                            isCritical: result.isCritical,
+                            isCritical: isCritical,
                             isRangedAttack: true,
                             attackType: "Ranged attack",
                             damageMultiplier: 1
@@ -588,24 +585,31 @@ class CombatSystem {
                     });
 
                     // 次のターゲットを探す
-                    const nextTarget = this.findNearestTargetInRange();
-                    if (nextTarget) {
-                        this.rangedCombat.target = nextTarget;
-                        game.logger.add(`Next target: ${nextTarget.x}, ${nextTarget.y}`, "playerInfo");
-                    } else {
-                        this.rangedCombat.isActive = false;
-                        game.logger.add("No more targets in range.", "playerInfo");
+                    if (context.isPlayer) {
+                        const nextTarget = attacker.findNearestTargetInRange();
+                        if (nextTarget) {
+                            attacker.rangedCombat.target = nextTarget;
+                            game.logger.add(`Next target: ${nextTarget.x}, ${nextTarget.y}`, "playerInfo");
+                        } else {
+                            attacker.rangedCombat.isActive = false;
+                            game.logger.add("No more targets in range.", "playerInfo");
+                        }
                     }
                     return result; // 死亡処理後は即座にreturn
                 }
-
-                // 生存している場合のみダメージログを表示
-                const healthStatus = `HP: ${Math.max(0, defender.hp)}/${defender.maxHp}`;
-                game.logger.add(
-                    `The shot hits for ${result.damage} damage! (${attackCalc} ${defenseCalc}) (${healthStatus})`,
-                    isCritical ? "playerCrit" : "playerHit"
-                );
             }
+
+            game.lastAttackResult = {
+                hit: true,
+                evaded: false,  // 遠距離攻撃は回避不可
+                damage: finalDamage,
+                killed: defender.hp <= 0,
+                isCritical: isCritical,
+                damageResult
+            };
+            game.lastAttackLocation = { x: defender.x, y: defender.y };
+
+            return game.lastAttackResult;
         } else {
             // ミス時の処理
             game.lastAttackResult = {
