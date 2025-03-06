@@ -461,7 +461,7 @@ class MapGenerator {
                 // 回復レベルを重み付き確率で決定
                 const level = determineObeliskLevel();
                 
-                console.log(`Generated Neural Obelisk at (${centerX},${centerY}) with level ${level} (circle pattern)`);
+                //console.log(`Generated Neural Obelisk at (${centerX},${centerY}) with level ${level} (circle pattern)`);
                 
                 // ニューラルオベリスクを配置
                 this.map[centerY][centerX] = 'neural_obelisk';
@@ -487,7 +487,7 @@ class MapGenerator {
                 // 回復レベルを重み付き確率で決定
                 const level = determineObeliskLevel();
                 
-                console.log(`Generated Neural Obelisk at (${centerX},${centerY}) with level ${level} (diamond pattern)`);
+                //console.log(`Generated Neural Obelisk at (${centerX},${centerY}) with level ${level} (diamond pattern)`);
                 
                 // ニューラルオベリスクを配置
                 this.map[centerY][centerX] = 'neural_obelisk';
@@ -513,7 +513,7 @@ class MapGenerator {
                 // 回復レベルを重み付き確率で決定
                 const level = determineObeliskLevel();
                 
-                console.log(`Generated Neural Obelisk at (${centerX},${centerY}) with level ${level} (cross pattern)`);
+                //console.log(`Generated Neural Obelisk at (${centerX},${centerY}) with level ${level} (cross pattern)`);
                 
                 // ニューラルオベリスクを配置
                 this.map[centerY][centerX] = 'neural_obelisk';
@@ -1105,11 +1105,11 @@ class MapGenerator {
     placeWebsInRooms(rooms) {
         // roomsが不正な場合は処理しない
         if (!rooms || !Array.isArray(rooms) || rooms.length === 0) {
-            console.warn('placeWebsInRooms: 部屋情報が不足しているか不正です。蜘蛛の巣を生成できません。');
+            //console.warn('placeWebsInRooms: 部屋情報が不足しているか不正です。蜘蛛の巣を生成できません。');
             return;
         }
 
-        console.log(`placeWebsInRooms: ${rooms.length}個の部屋に蜘蛛の巣を生成します`);
+        //console.log(`placeWebsInRooms: ${rooms.length}個の部屋に蜘蛛の巣を生成します`);
         let totalWebsCreated = 0;
 
         rooms.forEach(room => {
@@ -1133,17 +1133,17 @@ class MapGenerator {
                 }
                 
                 if (roomWebsCreated > 0) {
-                    console.log(`部屋(${room.x},${room.y})に${roomWebsCreated}個の蜘蛛の巣を生成しました`);
+                    //console.log(`部屋(${room.x},${room.y})に${roomWebsCreated}個の蜘蛛の巣を生成しました`);
                 }
             }
         });
         
-        console.log(`placeWebsInRooms: 合計${totalWebsCreated}個の蜘蛛の巣を生成しました`);
+        //console.log(`placeWebsInRooms: 合計${totalWebsCreated}個の蜘蛛の巣を生成しました`);
     }
     
     // 廊下に蜘蛛の巣を配置するメソッド
     placeWebsInCorridors() {
-        console.log('placeWebsInCorridors: 廊下に蜘蛛の巣を生成します');
+        //console.log('placeWebsInCorridors: 廊下に蜘蛛の巣を生成します');
         let totalWebsCreated = 0;
         
         // マップ全体をスキャン
@@ -1162,7 +1162,7 @@ class MapGenerator {
             }
         }
         
-        console.log(`placeWebsInCorridors: 廊下に${totalWebsCreated}個の蜘蛛の巣を生成しました`);
+        //console.log(`placeWebsInCorridors: 廊下に${totalWebsCreated}個の蜘蛛の巣を生成しました`);
     }
     
     // 蜘蛛の巣を配置可能な位置かどうかを判定

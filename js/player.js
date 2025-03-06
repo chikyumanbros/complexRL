@@ -1789,13 +1789,5 @@ class Player {
             this.rangedCombat.energy.max,
             this.rangedCombat.energy.current + this.rangedCombat.energy.rechargeRate
         );
-
-        // エネルギーが回復した場合のみログを表示
-        if (this.rangedCombat.energy.current > oldEnergy) {
-            this.game.logger.add(
-                `Energy restored: ${Math.floor(this.rangedCombat.energy.current)}/${this.rangedCombat.energy.max}`,
-                "playerInfo"
-            );
-        }
     }
 } 

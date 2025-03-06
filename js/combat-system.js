@@ -624,6 +624,17 @@ class CombatSystem {
             game.renderer.showMissEffect(defender.x, defender.y, 'miss');
             game.playSound('missSound');
             game.renderer.render();
+
+            // ミス時でも目覚める可能性をチェック
+            if (defender.isSleeping) {
+                const wakeupChance = 80; 
+                if (Math.random() * 100 < wakeupChance) {
+                    defender.isSleeping = false;
+                    game.logger.add(`${defender.name} wakes up from the noise!`, "monsterInfo");
+                    game.renderer.flashLogPanel();
+                    game.playSound('cautionSound');
+                }
+            }
         }
 
         // エネルギーを消費（命中判定の結果に関係なく）

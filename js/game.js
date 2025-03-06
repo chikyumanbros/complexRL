@@ -1107,7 +1107,7 @@ class Game {
         
         // デバッグログ
         if (this.neuralObelisks.length > 0) {
-            console.log('Neural Obelisks saved to Game:', this.neuralObelisks);
+            //console.log('Neural Obelisks saved to Game:', this.neuralObelisks);
         }
         
         // 高さと幅を定数から再設定して一貫性を保つ
@@ -1124,7 +1124,7 @@ class Game {
         
         // マップ生成時に設置された蜘蛛の巣をゲームオブジェクトに追加
         if (mapGenerator.initialWebs && mapGenerator.initialWebs.length > 0) {
-            console.log(`マップ生成時に ${mapGenerator.initialWebs.length} 個の蜘蛛の巣を配置しました。`);
+            //console.log(`マップ生成時に ${mapGenerator.initialWebs.length} 個の蜘蛛の巣を配置しました。`);
             
             // 初期化されていなければ初期化
             if (!this.webs) {
@@ -1134,7 +1134,7 @@ class Game {
             // マップ生成時の蜘蛛の巣を追加
             this.webs.push(...mapGenerator.initialWebs);
         } else {
-            console.warn('マップ生成時に蜘蛛の巣が生成されませんでした');
+            //console.warn('マップ生成時に蜘蛛の巣が生成されませんでした');
         }
         
         // Home Floorモードのために、階段の位置を記録
