@@ -1716,16 +1716,42 @@ body::before {
 
 /* エネルギーバーの色を調整 */
 .energy-bar .bar {
-    background: linear-gradient(to right, #4a9eff, #6cf);
+    background: #e74c3c; /* デフォルトは赤（射撃不可能） */
+    transition: background-color 0.3s ease;
+    background-image: 
+        linear-gradient(45deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.1) 75%),
+        linear-gradient(45deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.1) 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 4px 4px;
 }
 
-/* アクティブな遠距離攻撃モード時のコントロール表示 */
-.ranged-combat-section .controls {
-    color: #6cf;
-    text-align: center;
-    margin-top: 5px;
+/* エネルギーが射撃可能な状態 */
+.energy-bar .bar[style*="width: 100%"] {
+    background-color: #2ecc71; /* フル充填時は緑 */
+    background-image: 
+        linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.15) 75%),
+        linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.15) 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 4px 4px;
 }
 
+/* エネルギーが射撃可能な状態（30%以上） */
+.energy-bar .bar[style*="width: 3"],
+.energy-bar .bar[style*="width: 4"],
+.energy-bar .bar[style*="width: 5"],
+.energy-bar .bar[style*="width: 6"],
+.energy-bar .bar[style*="width: 7"],
+.energy-bar .bar[style*="width: 8"],
+.energy-bar .bar[style*="width: 9"] {
+    background-color: #3498db; /* 30%以上は青 */
+    background-image: 
+        linear-gradient(45deg, rgba(255, 255, 255, 0.12) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.12) 75%),
+        linear-gradient(45deg, rgba(255, 255, 255, 0.12) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.12) 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 4px 4px;
+}
+
+/* エネルギーバーのレイアウト */
 .energy-bar {
     display: flex;
     gap: 10px;
@@ -1736,6 +1762,35 @@ body::before {
     min-width: 45px;
     text-align: right;
     color: #6cf;
+}
+
+.bar-container {
+    flex-grow: 1;
+    height: 12px;
+    background: #222;
+    border: 1px solid #233023;
+    position: relative;
+    overflow: hidden;
+}
+
+.bar-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        linear-gradient(45deg, rgba(0, 0, 0, 0.1) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, 0.1) 75%),
+        linear-gradient(45deg, rgba(0, 0, 0, 0.1) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, 0.1) 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 4px 4px;
+    pointer-events: none;
+}
+
+.bar {
+    height: 100%;
+    transition: width 0.2s ease, background-color 0.3s ease;
 }
 
 .ranged-stats-grid {

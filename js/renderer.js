@@ -1120,11 +1120,13 @@ createNormalCombatStats(player, attackText, accText, speedText, sizeInfo) {
     let energyBarHTML = '';
     if (player.rangedCombat) {
         const energyPercent = (player.rangedCombat.energy.current / player.rangedCombat.energy.max) * 100;
+        const barColor = player.rangedCombat.energy.current === player.rangedCombat.energy.max ? '#2ecc71' :
+                        player.rangedCombat.energy.current >= player.rangedCombat.energy.cost ? '#3498db' : '#e74c3c';
         energyBarHTML = `
             <div class="energy-bar">
                 <div class="energy-numbers">Eg: ${Math.floor(player.rangedCombat.energy.current)}/${player.rangedCombat.energy.max}</div>
                 <div class="bar-container">
-                    <div class="bar" style="width: ${energyPercent}%"></div>
+                    <div class="bar" style="width: ${energyPercent}%; background-color: ${barColor}"></div>
                 </div>
             </div>
         `;
@@ -1195,6 +1197,8 @@ createRangedCombatStats(player) {
 
     // エネルギーバーの計算
     const energyPercent = (rangedCombat.energy.current / rangedCombat.energy.max) * 100;
+    const barColor = rangedCombat.energy.current === rangedCombat.energy.max ? '#2ecc71' :
+                    rangedCombat.energy.current >= rangedCombat.energy.cost ? '#3498db' : '#e74c3c';
 
     // 命中率の計算（ターゲットがいる場合はサイズ補正を含める）
     const baseHitChance = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ACCURACY(player.stats);
@@ -1260,7 +1264,7 @@ createRangedCombatStats(player) {
             <div class="energy-bar">
                 <div class="energy-numbers">Eg: ${Math.floor(rangedCombat.energy.current)}/${rangedCombat.energy.max}</div>
                 <div class="bar-container">
-                    <div class="bar" style="width: ${energyPercent}%"></div>
+                    <div class="bar" style="width: ${energyPercent}%; background-color: ${barColor}"></div>
                 </div>
             </div>
             <div class="ranged-stats-grid">
