@@ -336,6 +336,10 @@ class Monster {
                 game.logger.add(`${this.name} wakes up!`, "monsterInfo");
                 game.renderer.flashLogPanel();  // ログパネルをフラッシュ
                 game.playSound('cautionSound');
+                this.hasSpottedPlayer = true;  // 起床時に既にプレイヤーを認識している状態にする
+                this.lastKnownPlayerX = game.player.x;  // プレイヤーの位置を記憶
+                this.lastKnownPlayerY = game.player.y;
+                this.trackingTurns = this.maxTrackingTurns;
                 return;
             }
             return;
