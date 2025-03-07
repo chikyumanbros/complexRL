@@ -600,6 +600,7 @@ class Game {
         this.updateExplored();
         this.updateRoomInfo();
         this.renderer.psychedelicTurn++;
+        this.renderer.updateFlickerValues();  // フリッカー効果の更新を追加
         this.updateWebs();
         this.renderer.render();
         this.saveGame();
