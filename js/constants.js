@@ -540,11 +540,11 @@ const GAME_CONSTANTS = {
             ACCURACY: (stats) => {
                 const speed = GAME_CONSTANTS.FORMULAS.SPEED(stats);
                 const speedMod = (speed.value - 3) * 5;  // Normal(3)を基準に ±5%
-                return Math.min(90, Math.floor(30 + stats.dex * 0.8 + stats.int * 0.4 + speedMod));
+                return Math.min(90, Math.floor(40 + stats.dex * 0.8 + stats.int * 0.4 + speedMod));
             },
             // 射程範囲の計算（4 + INT / 3）
             RANGE: (stats) => {
-                return Math.floor(1 + stats.int / 3);
+                return Math.floor(2 + stats.int / 3);
             },
             // サイズによる命中補正を計算（新規追加）
             SIZE_ACCURACY_MODIFIER: (targetStats) => {

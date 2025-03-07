@@ -366,6 +366,21 @@ class Game {
             if (this.lastCombatMonster && this.lastCombatMonster.id === monster.id) {
                 this.lastCombatMonster = null;
             }
+
+            // 遠距離攻撃のターゲットが削除されたモンスターの場合、新しいターゲットを探す
+            if (this.player.rangedCombat?.isActive && 
+                this.player.rangedCombat.target && 
+                this.player.rangedCombat.target.x === monster.x && 
+                this.player.rangedCombat.target.y === monster.y) {
+                const nextTarget = this.player.findNearestTargetInRange();
+                if (nextTarget) {
+                    this.player.rangedCombat.target = nextTarget;
+                    this.logger.add(`Targeting next enemy at (${nextTarget.x}, ${nextTarget.y})`, "playerInfo");
+                } else {
+                    this.player.rangedCombat.isActive = false;
+                    this.logger.add("No more targets in range.", "playerInfo");
+                }
+            }
         }
     }
 
@@ -389,6 +404,26 @@ class Game {
 
         // エネルギー回復の処理を追加
         this.player.processEnergyRecharge();
+
+        // 遠距離攻撃のターゲット位置を更新
+        if (this.player.rangedCombat?.isActive && this.player.rangedCombat.target) {
+            const targetMonster = this.monsters.find(m => 
+                m.x === this.player.rangedCombat.target.x && 
+                m.y === this.player.rangedCombat.target.y
+            );
+            if (targetMonster) {
+                this.player.rangedCombat.target.x = targetMonster.x;
+                this.player.rangedCombat.target.y = targetMonster.y;
+            } else {
+                // ターゲットが見つからない場合、新しいターゲットを探す
+                const nextTarget = this.player.findNearestTargetInRange();
+                if (nextTarget) {
+                    this.player.rangedCombat.target = nextTarget;
+                } else {
+                    this.player.rangedCombat.isActive = false;
+                }
+            }
+        }
 
         // ターン終了時の更新処理
         this.processEndTurnUpdates();
