@@ -540,14 +540,33 @@ class Game {
 
     processNaturalHealing() {
         // プレイヤーの自然回復
-        if (this.player.lastAction === 'wait' || this.player.lastAction === 'move') {
+        if ((this.player.lastAction === 'wait' || this.player.lastAction === 'move') && 
+            !this.hasAdjacentMonsters(this.player.x, this.player.y)) {
             this.processPlayerNaturalHealing();
         }
 
         // モンスターの自然回復
-        if (this.player.lastAction === 'wait' || this.player.lastAction === 'move') {
+        if ((this.player.lastAction === 'wait' || this.player.lastAction === 'move')) {
             this.processMonsterNaturalHealing();
         }
+    }
+
+    // 指定座標に隣接するモンスターがいるかチェックする関数を追加
+    hasAdjacentMonsters(x, y) {
+        const directions = [
+            {dx: -1, dy: -1}, {dx: 0, dy: -1}, {dx: 1, dy: -1},
+            {dx: -1, dy: 0},                    {dx: 1, dy: 0},
+            {dx: -1, dy: 1},  {dx: 0, dy: 1},  {dx: 1, dy: 1}
+        ];
+
+        for (const dir of directions) {
+            const checkX = x + dir.dx;
+            const checkY = y + dir.dy;
+            if (this.getMonsterAt(checkX, checkY)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     processPlayerNaturalHealing() {
@@ -575,29 +594,34 @@ class Game {
     processMonsterNaturalHealing() {
         for (const monster of this.monsters) {
             if (monster.hp < monster.maxHp) {
-                const successChance = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.getSuccessChance(monster.stats);
-                const roll = Math.random() * 100;
+                // プレイヤーが隣接していない場合のみ回復
+                if (!this.hasAdjacentMonsters(monster.x, monster.y) && 
+                    !this.isPlayerAdjacent(monster.x, monster.y)) {
+                    const successChance = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.getSuccessChance(monster.stats);
+                    const roll = Math.random() * 100;
 
-                if (roll < successChance) {
-                    const healingDice = GAME_CONSTANTS.FORMULAS.HEALING_DICE(monster.stats);
-                    const healModifier = GAME_CONSTANTS.FORMULAS.HEAL_MODIFIER(monster.stats);
-                    const healResult = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.calculateHeal(healingDice, healModifier);
-                    const actualHeal = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.applyHeal(monster, healResult.amount);
+                    if (roll < successChance) {
+                        const healingDice = GAME_CONSTANTS.FORMULAS.HEALING_DICE(monster.stats);
+                        const healModifier = GAME_CONSTANTS.FORMULAS.HEAL_MODIFIER(monster.stats);
+                        const healResult = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.calculateHeal(healingDice, healModifier);
+                        const actualHeal = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.applyHeal(monster, healResult.amount);
 
-                    if (monster.hp > monster.maxHp) {
-                        console.warn(`Monster HP exceeded maxHP after healing: ${monster.name}`, {
-                            hp: monster.hp,
-                            maxHp: monster.maxHp
-                        });
-                        monster.hp = monster.maxHp;
+                        if (monster.hp > monster.maxHp) {
+                            monster.hp = monster.maxHp;
+                        }
                     }
-                }
 
-                if (monster.hasStartedFleeing && (monster.hp / monster.maxHp) > monster.fleeThreshold) {
-                    monster.hasStartedFleeing = false;
+                    if (monster.hasStartedFleeing && (monster.hp / monster.maxHp) > monster.fleeThreshold) {
+                        monster.hasStartedFleeing = false;
+                    }
                 }
             }
         }
+    }
+
+    // プレイヤーが指定座標に隣接しているかチェックする関数を追加
+    isPlayerAdjacent(x, y) {
+        return Math.abs(this.player.x - x) <= 1 && Math.abs(this.player.y - y) <= 1;
     }
 
     processEndTurnUpdates() {
