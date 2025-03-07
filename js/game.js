@@ -221,9 +221,9 @@ class Game {
 
         // プレイヤーを初期化（ステータスは未割り振りの状態で）
         this.player = new Player(0, 0, this);
-        // 初期ステータスをすべて5に設定
+        // 初期ステータスをすべて8に設定
         Object.keys(this.player.stats).forEach(stat => {
-            this.player.stats[stat] = 6;
+            this.player.stats[stat] = 8;
         });
         this.player.remainingStatPoints = 12;  // 割り振り可能なポイント
         
@@ -1271,9 +1271,11 @@ class Game {
             
             // 床でない場合、障害物の種類をチェック
             if (this.map[point.y][point.x] !== 'floor') {
-                // 透明な障害物は視線を通す
+                // 透明な障害物、void portal、obeliskは視線を通す
                 const isTransparentObstacle = GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tile);
-                if (!isTransparentObstacle) {
+                const isVoidPortal = tile === GAME_CONSTANTS.PORTAL.VOID.CHAR;
+                const isObelisk = tile === GAME_CONSTANTS.NEURAL_OBELISK.CHAR;
+                if (!isTransparentObstacle && !isVoidPortal && !isObelisk) {
                     return false;
                 }
             }

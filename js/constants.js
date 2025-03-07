@@ -422,7 +422,7 @@ const GAME_CONSTANTS = {
             const size = GAME_CONSTANTS.FORMULAS.SIZE(stats);
             const speedMod = (speed.value - 3);
             const sizeMod = (3 - size.value);
-            return Math.max(3, base + speedMod + sizeMod);
+            return Math.max(6, base + speedMod + sizeMod);
         },
         rollDamage: (attack, defense) => {
             let damage = attack.base;
