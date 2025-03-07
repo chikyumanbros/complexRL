@@ -32,7 +32,6 @@ class Game {
         this.lastHomeFloorUpdate = 0;  // ホームフロアの最終更新ターン
         this.inputDisabled = false;  // vigor effectsによる入力無効化フラグ
         this.vigorEffectOccurred = false;  // vigor effect発生フラグ
-        this.hadCombatThisTurn = false;  // 戦闘発生フラグを追加
 
         // 死亡したモンスターの処理キューを追加
         this.pendingMonsterDeaths = [];
@@ -379,9 +378,6 @@ class Game {
         this.turn++;
         this.totalTurns++;  // ゲーム全体のターン数をインクリメント
 
-        // 戦闘フラグをリセット
-        this.hadCombatThisTurn = false;
-
         // プレイヤーのターン処理
         this.processPlayerTurn();
 
@@ -543,11 +539,6 @@ class Game {
     }
 
     processNaturalHealing() {
-        // 戦闘があったターンは自然回復をスキップ
-        if (this.hadCombatThisTurn) {
-            return;
-        }
-
         // プレイヤーの自然回復
         this.processPlayerNaturalHealing();
 
@@ -650,9 +641,6 @@ class Game {
     }
 
     processMonsterDeath(deathInfo) {
-        // 戦闘フラグを設定
-        this.hadCombatThisTurn = true;
-
         const { monster, result, damageResult, context } = deathInfo;
 
         // 機会攻撃とキルのログを1行にまとめる

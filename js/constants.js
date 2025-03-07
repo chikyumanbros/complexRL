@@ -226,9 +226,9 @@ const GAME_CONSTANTS = {
         PADDING: 0,
         SAFE_RADIUS: 3,
         BRIGHTNESS: {
-            DIM: 3,      // 暗い部屋
-            MODERATE: 5,  // 中程度の明るさ
-            BRIGHT: 7,    // 明るい部屋
+            DIM: 4,      // 暗い部屋
+            MODERATE: 6,  // 中程度の明るさ
+            BRIGHT: 10,    // 明るい部屋
             PROBABILITIES: {
                 DIM: 0.2,      // 20%の確率
                 MODERATE: 0.4,  // 40%の確率
