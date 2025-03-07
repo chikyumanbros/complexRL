@@ -108,7 +108,13 @@ class InputHandler {
             return;
         }
         
-        // すでに押されているキーは無視（キーリピートを防止）
+        // 名前入力モードの場合は、pressedKeysのチェックを完全にスキップ
+        if (this.mode === 'name') {
+            this.handleNameInput(key, event);
+            return;  // 名前入力モードの場合は、ここで処理を終了
+        }
+        
+        // 名前入力モード以外の場合の処理
         if (this.pressedKeys.has(key)) {
             event.preventDefault();
             return;
@@ -427,6 +433,7 @@ class InputHandler {
             return;
         }
 
+        // ここで pressedKeys のチェックを行わないようにする
         if (key === 'Backspace') {
             this.nameBuffer = this.nameBuffer.slice(0, -1);
         } else if (key.length === 1 && this.nameBuffer.length < 15) {  // 15文字制限
