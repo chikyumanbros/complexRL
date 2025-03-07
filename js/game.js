@@ -1096,6 +1096,11 @@ class Game {
     }
 
     generateNewFloor() {
+        // プレイヤーが死亡している場合は新しいフロアを生成しない
+        if (this.player.hp <= 0 || this.isGameOver) {
+            return;
+        }
+
         // ポータルサウンドをフェードアウト
         this.soundManager.fadeOutPortalSound();
 
