@@ -1134,6 +1134,7 @@ class InputHandler {
             case 'n': dx = 1; dy = 1; break;
             case '.':
                 this.game.logger.add("You wait...", "playerInfo");
+                this.game.player.lastAction = 'wait';  // 待機アクションを記録
                 this.game.processTurn();
                 return;
             // REST コマンドを追加
@@ -1163,12 +1164,14 @@ class InputHandler {
 
         const monster = this.game.getMonsterAt(newX, newY);
         if (monster) {
+            player.lastAction = 'attack';  // 攻撃アクションを記録
             player.attackMonster(monster, this.game);
             this.game.processTurn();
             return;
         }
 
         if (player.move(dx, dy, this.game.map)) {
+            player.lastAction = 'move';  // 移動アクションを記録
             this.game.processTurn();
         }
     }

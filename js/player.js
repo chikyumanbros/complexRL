@@ -12,6 +12,7 @@ class Player {
         this.stats = { ...GAME_CONSTANTS.STATS.DEFAULT_VALUES };
         this.remainingStatPoints = 12;  // 追加: 残りのステータスポイント
         this.deathCause = null;  // 死亡原因を記録
+        this.lastAction = null;  // 最後の行動を記録するプロパティを追加
 
         // HPの計算
         this.maxHp = GAME_CONSTANTS.FORMULAS.MAX_HP(this.stats, this.level);

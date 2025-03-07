@@ -540,10 +540,14 @@ class Game {
 
     processNaturalHealing() {
         // プレイヤーの自然回復
-        this.processPlayerNaturalHealing();
+        if (this.player.lastAction === 'wait' || this.player.lastAction === 'move') {
+            this.processPlayerNaturalHealing();
+        }
 
         // モンスターの自然回復
-        this.processMonsterNaturalHealing();
+        if (this.player.lastAction === 'wait' || this.player.lastAction === 'move') {
+            this.processMonsterNaturalHealing();
+        }
     }
 
     processPlayerNaturalHealing() {
