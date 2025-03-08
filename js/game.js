@@ -575,8 +575,7 @@ class Game {
 
     processNaturalHealing() {
         // プレイヤーの自然回復
-        if ((this.player.lastAction === 'wait' || this.player.lastAction === 'move') && 
-            !this.hasAdjacentMonsters(this.player.x, this.player.y)) {
+        if (this.player.hp > 0 && !this.hasAdjacentMonsters(this.player.x, this.player.y)) {
             this.processPlayerNaturalHealing();
         }
 

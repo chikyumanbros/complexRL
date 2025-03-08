@@ -1790,5 +1790,17 @@ class Player {
             this.rangedCombat.energy.max,
             this.rangedCombat.energy.current + this.rangedCombat.energy.rechargeRate
         );
+
+        // エネルギー回復後に状態をチェック
+        if (this.rangedCombat.isActive) {
+            const energyCost = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_COST(this.stats);
+            
+            // エネルギーが不足している場合のみモードを解除
+            if (this.rangedCombat.energy.current < energyCost) {
+                this.game.logger.add("Not enough energy for ranged combat. Mode deactivated.", "warning");
+                this.rangedCombat.isActive = false;
+                this.rangedCombat.target = null;
+            }
+        }
     }
 } 
