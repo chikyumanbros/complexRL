@@ -1735,6 +1735,9 @@ class Player {
             return false;
         }
 
+        // 遠距離攻撃フラグを設定
+        this.rangedCombat.attackedThisTurn = true;
+
         // 遠距離攻撃の実行
         const result = CombatSystem.resolveRangedAttack(this, target, game, { isPlayer: true });
 
@@ -1777,6 +1780,12 @@ class Player {
     // エネルギー回復処理を追加
     processEnergyRecharge() {
         if (!this.rangedCombat) return;
+
+        // 遠距離攻撃を行ったターンはリチャージしない
+        if (this.rangedCombat.attackedThisTurn) {
+            this.rangedCombat.attackedThisTurn = false; // フラグをリセット
+            return;
+        }
 
         // 隣接するモンスターをチェック
         const surroundingMonsters = this.countSurroundingMonsters(this.game);

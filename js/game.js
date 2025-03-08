@@ -2120,6 +2120,7 @@ class Game {
 
         const newScore = {
             ...finalScore,
+            playerName: this.player.name || 'Unknown',  // プレイヤー名を追加
             deathInfo,
             date: new Date().toISOString()
         };
@@ -2151,6 +2152,18 @@ class Game {
     loadHighScores() {
         const savedScores = localStorage.getItem('complexRL_highScores');
         return savedScores ? JSON.parse(savedScores) : [];
+    }
+
+    // ハイスコアのクリア
+    clearHighScores() {
+        localStorage.removeItem('complexRL_highScores');
+        this.highScores = [];
+        this.logger.add("High scores have been cleared.", "important");
+        
+        // ハイスコア表示中の場合は更新
+        if (this.isShowingHighScores) {
+            this.showHighScores();
+        }
     }
 
     // ハイスコアの表示
@@ -2236,6 +2249,12 @@ class Game {
                 scoreTitle.style.fontWeight = 'bold';
                 scoreTitle.textContent = `${index + 1}. Score: ${score.totalScore}`;
                 container.appendChild(scoreTitle);
+                
+                const nameInfo = document.createElement('div');
+                nameInfo.style.color = '#E6E6FA';  // Lavender色
+                nameInfo.style.marginLeft = '10px';
+                nameInfo.textContent = `Name: ${score.playerName}`;
+                container.appendChild(nameInfo);
                 
                 const levelInfo = document.createElement('div');
                 levelInfo.style.color = '#4169E1';
