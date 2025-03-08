@@ -1523,6 +1523,14 @@ if (skill.getRange) {
             this.game.colors[door.y][door.x] = GAME_CONSTANTS.COLORS.DOOR;
             this.game.logger.add("You opened the door.", "playerInfo");
             
+            // ドアを開けた時の音を記録
+            this.game.lastDoorActionLocation = {
+                x: door.x,
+                y: door.y,
+                intensity: 60, // ドアを開ける音の基本強度
+                type: 'open'
+            };
+            
             // 扉を開けた後に視界を更新
             this.game._visibleTilesCache = null;  // キャッシュをクリア
             this.renderMap();
@@ -1547,7 +1555,9 @@ if (skill.getRange) {
                 // 位置情報を正しく記録
                 this.game.lastDoorKillLocation = { 
                     x: door.x, 
-                    y: door.y
+                    y: door.y,
+                    intensity: 120, // ドアでモンスターを倒す音の強度（通常より大きい）
+                    type: 'kill'
                 };
 
                 // タイル更新を遅延実行
@@ -1593,6 +1603,14 @@ if (skill.getRange) {
                 this.game.tiles[door.y][door.x] = GAME_CONSTANTS.TILES.DOOR.CLOSED;
                 this.game.colors[door.y][door.x] = GAME_CONSTANTS.COLORS.DOOR;
                 this.game.logger.add("You closed the door.", "playerInfo");
+                
+                // ドアを閉めた時の音を記録
+                this.game.lastDoorActionLocation = {
+                    x: door.x,
+                    y: door.y,
+                    intensity: 80, // ドアを閉める音の基本強度（開けるより大きい）
+                    type: 'close'
+                };
                 
                 // 扉を閉めた後に視界を更新
                 this.game._visibleTilesCache = null;  // キャッシュをクリア

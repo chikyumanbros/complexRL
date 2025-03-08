@@ -320,26 +320,81 @@ class Monster {
             
             let wakeupChance = 0;
             
+            // プレイヤーが隣接している場合
             if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
                 wakeupChance = 80 + this.perception * 2;
             } 
-            else if (game.lastCombatLocation && distance <= this.perception) {
-                const combatDistance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
-                    game.lastCombatLocation.x, game.lastCombatLocation.y,
-                    this.x, this.y
-                );
-                wakeupChance = Math.max(0, (this.perception - combatDistance) * 15);
+            // 音源による起床判定
+            else {
+                // 音源の確認
+                const soundSources = [];
+                
+                // 戦闘音の確認
+                if (game.lastCombatLocation) {
+                    soundSources.push({
+                        x: game.lastCombatLocation.x,
+                        y: game.lastCombatLocation.y,
+                        intensity: 100, // 戦闘は大きな音
+                        type: 'combat'
+                    });
+                }
+                
+                // 遠距離攻撃音の確認
+                if (game.lastRangedAttackLocation) {
+                    soundSources.push({
+                        x: game.lastRangedAttackLocation.x,
+                        y: game.lastRangedAttackLocation.y,
+                        intensity: 80, // 遠距離攻撃は中程度の音
+                        type: 'ranged'
+                    });
+                }
+                
+                // ドアの開閉音の確認
+                if (game.lastDoorActionLocation) {
+                    soundSources.push({
+                        x: game.lastDoorActionLocation.x,
+                        y: game.lastDoorActionLocation.y,
+                        intensity: 60, // ドアの開閉は小さめの音
+                        type: 'door'
+                    });
+                }
+                
+                // 各音源からの影響を計算
+                for (const source of soundSources) {
+                    if (this.canHearSound(game, source)) {
+                        const soundDistance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
+                            source.x, source.y,
+                            this.x, this.y
+                        );
+                        
+                        // 音の減衰を計算
+                        const attenuation = this.calculateSoundAttenuation(game, source, soundDistance);
+                        const soundIntensity = (source.intensity * attenuation) / 100;
+                        
+                        // 知覚による補正
+                        const perceptionBonus = Math.max(0, (this.perception - 10) * 5);
+                        
+                        // 最終的な起床確率を計算
+                        const sourceWakeupChance = Math.max(0, soundIntensity + perceptionBonus);
+                        
+                        // 最も高い起床確率を採用
+                        wakeupChance = Math.max(wakeupChance, sourceWakeupChance);
+                    }
+                }
             }
             
             if (wakeupChance > 0 && Math.random() * 100 < wakeupChance) {
                 this.isSleeping = false;
                 game.logger.add(`${this.name} wakes up!`, "monsterInfo");
-                game.renderer.flashLogPanel();  // ログパネルをフラッシュ
+                game.renderer.flashLogPanel();
                 game.playSound('cautionSound');
-                this.hasSpottedPlayer = true;  // 起床時に既にプレイヤーを認識している状態にする
-                this.lastKnownPlayerX = game.player.x;  // プレイヤーの位置を記憶
+                this.hasSpottedPlayer = true;
+                this.lastKnownPlayerX = game.player.x;
                 this.lastKnownPlayerY = game.player.y;
                 this.trackingTurns = this.maxTrackingTurns;
+
+                // 周囲のモンスターの起床判定
+                this.alertNearbyMonsters(game);
                 return;
             }
             return;
@@ -1072,5 +1127,85 @@ class Monster {
             
             return false; // アクション失敗
         }
+    }
+
+    // ========================== alertNearbyMonsters Method ==========================
+    // 周囲のモンスターの起床判定を行うメソッド
+    alertNearbyMonsters(game) {
+        const directions = [
+            [-1, -1], [0, -1], [1, -1],
+            [-1,  0],          [1,  0],
+            [-1,  1], [0,  1], [1,  1]
+        ];
+
+        for (const dir of directions) {
+            const newX = this.x + dir[0];
+            const newY = this.y + dir[1];
+
+            if (game.isValidPosition(newX, newY) && 
+                game.map[newY][newX] === 'floor' &&
+                game.tiles[newY][newX] !== GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                const monster = game.getMonsterAt(newX, newY);
+                if (monster && monster.isSleeping) {
+                    monster.isSleeping = false;
+                    game.logger.add(`${this.name} wakes up nearby!`, "monsterInfo");
+                    game.renderer.flashLogPanel();
+                    game.playSound('cautionSound');
+                }
+            }
+        }
+    }
+
+    // ========================== Sound System Methods ==========================
+    // 音を聞くことができるか判定するメソッド
+    canHearSound(game, source) {
+        const points = this.getLinePoints(this.x, this.y, source.x, source.y);
+        let doorCount = 0;
+        let wallCount = 0;
+        
+        // プレイヤーの位置を除く全ての点をチェック
+        for (let i = 0; i < points.length - 1; i++) {
+            const point = points[i];
+            
+            // 壁による遮断
+            if (game.map[point.y][point.x] !== 'floor') {
+                wallCount++;
+                if (wallCount >= 2) return false; // 2枚以上の壁を通過する音は聞こえない
+            }
+            
+            // ドアによる減衰
+            if (game.tiles[point.y][point.x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                doorCount++;
+                if (doorCount >= 3) return false; // 3枚以上のドアを通過する音は聞こえない
+            }
+        }
+        
+        return true;
+    }
+    
+    // 音の減衰を計算するメソッド
+    calculateSoundAttenuation(game, source, distance) {
+        const points = this.getLinePoints(this.x, this.y, source.x, source.y);
+        let attenuation = 100; // 初期値は100%
+        
+        // 距離による減衰（1マスごとに10%減衰）
+        attenuation *= Math.max(0, 1 - (distance * 0.1));
+        
+        // 障害物による減衰
+        for (let i = 0; i < points.length - 1; i++) {
+            const point = points[i];
+            
+            // 壁による減衰（50%）
+            if (game.map[point.y][point.x] !== 'floor') {
+                attenuation *= 0.5;
+            }
+            
+            // 閉じたドアによる減衰（30%）
+            if (game.tiles[point.y][point.x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                attenuation *= 0.7;
+            }
+        }
+        
+        return Math.max(0, Math.min(100, attenuation));
     }
 } 

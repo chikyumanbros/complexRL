@@ -2120,7 +2120,7 @@ class Game {
 
         const newScore = {
             ...finalScore,
-            playerName: this.player.name || 'Unknown',  // プレイヤー名を追加
+            playerName: this.player.name || 'Unknown',
             deathInfo,
             date: new Date().toISOString()
         };
@@ -2128,24 +2128,34 @@ class Game {
         // 既存のスコアを読み込む
         let allScores = this.loadHighScores();
         
-        // 新しいスコアを追加
-        allScores.push(newScore);
-        
-        // スコアでソート（降順）
-        allScores.sort((a, b) => {
-            // まずtotalScoreで比較
-            if (b.totalScore !== a.totalScore) {
-                return b.totalScore - a.totalScore;
-            }
-            // totalScoreが同じ場合は、より新しい日付を優先
-            return new Date(b.date) - new Date(a.date);
+        // 重複チェック - 同じプレイヤー名、スコア、死亡時間（1分以内）のスコアは追加しない
+        const isDuplicate = allScores.some(score => {
+            const timeDiff = Math.abs(new Date(score.date) - new Date(newScore.date));
+            return score.playerName === newScore.playerName &&
+                   score.totalScore === newScore.totalScore &&
+                   timeDiff < 60000; // 1分以内
         });
-        
-        // 上位5件のみを保持
-        this.highScores = allScores.slice(0, 5);
 
-        // ローカルストレージに保存
-        localStorage.setItem('complexRL_highScores', JSON.stringify(this.highScores));
+        if (!isDuplicate) {
+            // 新しいスコアを追加
+            allScores.push(newScore);
+            
+            // スコアでソート（降順）
+            allScores.sort((a, b) => {
+                // まずtotalScoreで比較
+                if (b.totalScore !== a.totalScore) {
+                    return b.totalScore - a.totalScore;
+                }
+                // totalScoreが同じ場合は、より新しい日付を優先
+                return new Date(b.date) - new Date(a.date);
+            });
+            
+            // 上位5件のみを保持
+            this.highScores = allScores.slice(0, 5);
+
+            // ローカルストレージに保存
+            localStorage.setItem('complexRL_highScores', JSON.stringify(this.highScores));
+        }
     }
 
     // ハイスコアの読み込み
@@ -2261,12 +2271,6 @@ class Game {
                 levelInfo.style.marginLeft = '10px';
                 levelInfo.textContent = `Level: ${score.deathInfo.level}`;
                 container.appendChild(levelInfo);
-                
-                const codexInfo = document.createElement('div');
-                codexInfo.style.color = '#98FB98';
-                codexInfo.style.marginLeft = '10px';
-                codexInfo.textContent = `Codex: ${score.codexPoints}`;
-                container.appendChild(codexInfo);
                 
                 const turnsInfo = document.createElement('div');
                 turnsInfo.style.color = '#DEB887';

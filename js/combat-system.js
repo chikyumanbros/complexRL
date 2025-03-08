@@ -280,6 +280,15 @@ class CombatSystem {
         }
 
         if (!result.evaded) {
+            // 戦闘音の発生と伝播
+            const combatNoiseIntensity = this.calculateCombatNoiseIntensity(result, context);
+            game.lastCombatLocation = {
+                x: defender.x,
+                y: defender.y,
+                intensity: combatNoiseIntensity,
+                type: context.isRangedAttack ? 'ranged' : 'melee'
+            };
+
             // killed フラグが true の場合は即座に死亡処理を実行
             if (result.killed) {
                 game.processMonsterDeath({
@@ -328,6 +337,27 @@ class CombatSystem {
                 game.playSound('damageSound');
             }
         }
+    }
+
+    // 戦闘音の強度を計算する新しいメソッド
+    static calculateCombatNoiseIntensity(result, context) {
+        let baseIntensity = 100; // 基本の音量
+
+        // クリティカルヒットの場合は音が大きくなる
+        if (context.isCritical) {
+            baseIntensity *= 1.5;
+        }
+
+        // ダメージ量に応じて音量が変化
+        const damageScale = Math.min(2.0, 1.0 + (result.damage / 20));
+        baseIntensity *= damageScale;
+
+        // 遠距離攻撃は近接攻撃より音が小さい
+        if (context.isRangedAttack) {
+            baseIntensity *= 0.8;
+        }
+
+        return Math.floor(baseIntensity);
     }
 
     static preparePlayerAttackContext(attacker, defender, game, baseContext) {
