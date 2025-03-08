@@ -1298,6 +1298,7 @@ class InputHandler {
             case 'b': dx = -1; dy = 1; break;
             case 'n': dx = 1; dy = 1; break;
             case 'escape':
+            case ';':  // ;キーでも解除できるように追加
                 this.endLookMode();
                 return;
         }
