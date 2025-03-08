@@ -1531,114 +1531,114 @@ createRangedCombatStats(player) {
         let rightColumn = '';
 
         // 左列：コントロール
-        leftColumn += `<div style="color: #ffd700; font-size: 15px; margin-bottom: 8px;">■ CONTROLS</div>\n`;
+        leftColumn += `<div class="help-section-title">■ CONTROLS</div>\n`;
         const categories = Object.entries(GAME_CONSTANTS.CONTROLS);
         categories.forEach(([category, data]) => {
-            leftColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● ${data.title}</div>\n`;
+            leftColumn += `<div class="help-category">● ${data.title}</div>\n`;
             data.keys.forEach(keyInfo => {
                 leftColumn += `<div style="margin-left: 8px;">`;
-                leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[${keyInfo.key}]</span>`;  // 幅を広げて、説明と分離
-                leftColumn += `<span style="color: #ecf0f1;">${keyInfo.desc}</span>`; // 説明をspanで囲む
+                leftColumn += `<span class="help-key">[${keyInfo.key}]</span>`;
+                leftColumn += `<span class="help-text">${keyInfo.desc}</span>`;
                 leftColumn += `</div>\n`;
             });
         });
         
         // 休息コマンドの説明を追加
-        leftColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● RESTING</div>\n`;
+        leftColumn += `<div class="help-category">● RESTING</div>\n`;
         leftColumn += `<div style="margin-left: 8px;">`;
-        leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[^]</span>`;
-        leftColumn += `<span style="color: #ecf0f1;">Rest for 10 turns</span>`;
+        leftColumn += `<span class="help-key">[^]</span>`;
+        leftColumn += `<span class="help-text">Rest for 10 turns</span>`;
         leftColumn += `</div>\n`;
         leftColumn += `<div style="margin-left: 8px;">`;
-        leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[~]</span>`;
-        leftColumn += `<span style="color: #ecf0f1;">Rest until fully healed</span>`;
+        leftColumn += `<span class="help-key">[~]</span>`;
+        leftColumn += `<span class="help-text">Rest until fully healed</span>`;
         leftColumn += `</div>\n`;
         
         // 遠距離攻撃の操作説明を追加
-        leftColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● RANGED COMBAT</div>\n`;
+        leftColumn += `<div class="help-category">● RANGED COMBAT</div>\n`;
         leftColumn += `<div style="margin-left: 8px;">`;
-        leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[F]</span>`;
-        leftColumn += `<span style="color: #ecf0f1;">Toggle ranged mode</span>`;
+        leftColumn += `<span class="help-key">[F]</span>`;
+        leftColumn += `<span class="help-text">Toggle ranged mode</span>`;
         leftColumn += `</div>\n`;
         leftColumn += `<div style="margin-left: 8px;">`;
-        leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[Tab]</span>`;
-        leftColumn += `<span style="color: #ecf0f1;">Next target</span>`;
+        leftColumn += `<span class="help-key">[Tab]</span>`;
+        leftColumn += `<span class="help-text">Next target</span>`;
         leftColumn += `</div>\n`;
         leftColumn += `<div style="margin-left: 8px;">`;
-        leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[Shift+Tab]</span>`;
-        leftColumn += `<span style="color: #ecf0f1;">Previous target</span>`;
+        leftColumn += `<span class="help-key">[Shift+Tab]</span>`;
+        leftColumn += `<span class="help-text">Previous target</span>`;
         leftColumn += `</div>\n`;
         leftColumn += `<div style="margin-left: 8px;">`;
-        leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[Enter]</span>`;
-        leftColumn += `<span style="color: #ecf0f1;">Fire at target</span>`;
+        leftColumn += `<span class="help-key">[Enter]</span>`;
+        leftColumn += `<span class="help-text">Fire at target</span>`;
         leftColumn += `</div>\n`;
         leftColumn += `<div style="margin-left: 8px;">`;
-        leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[Esc]</span>`;
-        leftColumn += `<span style="color: #ecf0f1;">Exit ranged mode</span>`;
+        leftColumn += `<span class="help-key">[Esc]</span>`;
+        leftColumn += `<span class="help-text">Exit ranged mode</span>`;
         leftColumn += `</div>\n`;
         
         // スキルスロット並べ替え機能の説明を追加
-        leftColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● SKILL MANAGEMENT</div>\n`;
+        leftColumn += `<div class="help-category">● SKILL MANAGEMENT</div>\n`;
         leftColumn += `<div style="margin-left: 8px;">`;
-        leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[1-9]</span>`;
-        leftColumn += `<span style="color: #ecf0f1;">Use skill in slot</span>`;
+        leftColumn += `<span class="help-key">[1-9]</span>`;
+        leftColumn += `<span class="help-text">Use skill in slot</span>`;
         leftColumn += `</div>\n`;
         leftColumn += `<div style="margin-left: 8px;">`;
-        leftColumn += `<span style="color: #2ecc71; display: inline-block; width: 100px;">[Ctrl/Alt+1-9]</span>`;
-        leftColumn += `<span style="color: #ecf0f1;">Rearrange skills between slots</span>`;
+        leftColumn += `<span class="help-key">[Ctrl/Alt+1-9]</span>`;
+        leftColumn += `<span class="help-text">Rearrange skills between slots</span>`;
         leftColumn += `</div>\n`;
 
         // 右列：ステータスと戦闘システム
-        rightColumn += `<div style="color: #ffd700; font-size: 15px; margin-bottom: 8px;">■ STATUS SYSTEM</div>\n`;
+        rightColumn += `<div class="help-section-title">■ STATUS SYSTEM</div>\n`;
 
         // Health Status の説明
-        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● HEALTH STATUS</div>\n`;
+        rightColumn += `<div class="help-category">● HEALTH STATUS</div>\n`;
         rightColumn += `<div style="margin-left: 8px;">`;
-        rightColumn += `<span style="color: #2ecc71;">Healthy</span>: 75-100% HP<br>`;
-        rightColumn += `<span style="color: #f1c40f;">Wounded</span>: 50-75% HP<br>`;
-        rightColumn += `<span style="color: #e67e22;">Badly Wounded</span>: 25-50% HP<br>`;
-        rightColumn += `<span style="color: #e74c3c;">Near Death</span>: 0-25% HP`;
+        rightColumn += `<span class="health-status healthy">Healthy</span>: 75-100% HP<br>`;
+        rightColumn += `<span class="health-status wounded">Wounded</span>: 50-75% HP<br>`;
+        rightColumn += `<span class="health-status badly-wounded">Badly Wounded</span>: 25-50% HP<br>`;
+        rightColumn += `<span class="health-status near-death">Near Death</span>: 0-25% HP`;
         rightColumn += `</div>\n`;
 
         // Vigor の説明
-        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● VIGOR SYSTEM</div>\n`;
+        rightColumn += `<div class="help-category">● VIGOR SYSTEM</div>\n`;
         rightColumn += `<div style="margin-left: 8px;">`;
-        rightColumn += `<span style="color: #2ecc71;">High</span>: 75-100% - Full potential<br>`;
-        rightColumn += `<span style="color: #f1c40f;">Moderate</span>: 50-75% - Slight penalties<br>`;
-        rightColumn += `<span style="color: #e67e22;">Low</span>: 25-50% - Moderate penalties<br>`;
-        rightColumn += `<span style="color: #e74c3c;">Critical</span>: 0-25% - Severe penalties<br><br>`;
-        rightColumn += `Vigor affects accuracy and evasion.<br>`;
+        rightColumn += `<span class="vigor-status high">High</span>: 75-100% - Full potential<br>`;
+        rightColumn += `<span class="vigor-status moderate">Moderate</span>: 50-75% - Slight penalties<br>`;
+        rightColumn += `<span class="vigor-status low">Low</span>: 25-50% - Moderate penalties<br>`;
+        rightColumn += `<span class="vigor-status critical">Critical</span>: 0-25% - Severe penalties<br><br>`;
+        rightColumn += `<span class="help-text">Vigor affects accuracy and evasion.<br>`;
         rightColumn += `Recovers through meditation or combat victories.<br>`;
-        rightColumn += `Meditation: d(Level+WIS) recovery, but risk -d(WIS) on low roll.`;
+        rightColumn += `<div class="help-text">Meditation: d(Level+WIS) recovery, but risk -d(WIS) on low roll.</span>`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div style="color: #ffd700; font-size: 15px; margin-top: 12px;">■ COMBAT SYSTEM</div>\n`;
+        rightColumn += `<div class="combat-section-title">■ COMBAT SYSTEM</div>\n`;
 
         // 戦闘システムの説明
-        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● BASE STATS</div>\n`;
-        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
+        rightColumn += `<div class="combat-category">● BASE STATS</div>\n`;
+        rightColumn += `<div class="combat-text">`;
         rightColumn += `HP: (CON×2 + STR/4) × Size Mod × Level<br>`;
         rightColumn += `ATK: (STR×0.7 - DEX/4) × Size Mod + Dice<br>`;
         rightColumn += `DEF: (CON×0.5 - INT/5) × Size Mod + Dice<br>`;
         rightColumn += `Size Mod: 0.9~1.3 (by STR+CON)`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● DAMAGE ROLLS</div>\n`;
-        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
+        rightColumn += `<div class="combat-category">● DAMAGE ROLLS</div>\n`;
+        rightColumn += `<div class="combat-text">`;
         rightColumn += `ATK: √(DEX/2) × 1d(√STR×2)<br>`;
         rightColumn += `DEF: √(CON/3) × 1d(√CON×1.5)`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● COMBAT STATS</div>\n`;
-        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
+        rightColumn += `<div class="combat-category">● COMBAT STATS</div>\n`;
+        rightColumn += `<div class="combat-text">`;
         rightColumn += `ACC: 50 + DEX×0.8 + WIS×0.4 - CON/4<br>`;
         rightColumn += `EVA: 8 + DEX×0.6 + WIS×0.3 - STR/5<br>`;
         rightColumn += `CRIT: 3% + (DEX-10)×0.15 + (INT-10)×0.1<br>`;
         rightColumn += `(Critical hits ignore EVA & DEF)`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● SIZE & SPEED</div>\n`;
-        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
+        rightColumn += `<div class="combat-category">● SIZE & SPEED</div>\n`;
+        rightColumn += `<div class="combat-text">`;
         rightColumn += `Size: Based on CON×0.7 + STR×0.3<br>`;
         rightColumn += `Tiny ≤7, Small ≤10, Medium ≤14<br>`;
         rightColumn += `Large ≤18, Huge >18<br><br>`;
@@ -1647,8 +1647,8 @@ createRangedCombatStats(player) {
         rightColumn += `Normal: ≤2, Fast: ≤4, Very Fast: >4`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● COMBAT FLOW</div>\n`;
-        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
+        rightColumn += `<div class="combat-category">● COMBAT FLOW</div>\n`;
+        rightColumn += `<div class="combat-text">`;
         rightColumn += `1. Speed Check<br>`;
         rightColumn += `2. Roll(100) vs ACC for hit<br>`;
         rightColumn += `3. Roll(100) vs EVA if not crit<br>`;
@@ -1656,8 +1656,8 @@ createRangedCombatStats(player) {
         rightColumn += `5. DMG = ATK (if critical hit)`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● RANGED COMBAT</div>\n`;
-        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
+        rightColumn += `<div class="combat-category">● RANGED COMBAT</div>\n`;
+        rightColumn += `<div class="combat-text">`;
         rightColumn += `[F] Toggle ranged mode<br>`;
         rightColumn += `[Tab/Shift+Tab] Cycle targets<br>`;
         rightColumn += `[ENTER] Fire at target<br>`;
@@ -1672,8 +1672,8 @@ createRangedCombatStats(player) {
         rightColumn += `Size Bonus: ±5% per size diff`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div style="color: #66ccff; font-size: 15px; margin-top: 6px;">● COMBAT PENALTIES</div>\n`;
-        rightColumn += `<div style="margin-left: 8px; color: #ecf0f1;">`;
+        rightColumn += `<div class="combat-category">● COMBAT PENALTIES</div>\n`;
+        rightColumn += `<div class="combat-text">`;
         rightColumn += `Surrounded: -15% ACC/EVA per enemy<br>`;
         rightColumn += `(Max: -60%)<br><br>`;
         rightColumn += `Opportunity Attack:<br>`;

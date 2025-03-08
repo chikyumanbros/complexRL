@@ -29,6 +29,50 @@ body {
     overflow: hidden;
 }
 
+/* ステータス表示用の色定義 */
+:root {
+    --text-primary: #66ccff;
+    --text-secondary: #b1b1b1;
+    --text-accent: #ffd32a;
+    --text-positive: #2ed573;
+    --text-negative: #ff4757;
+    --text-warning: #ff6b6b;
+    --text-info: #4ecdc4;
+    --border-color: #233023;
+    --help-section-title: #ffd700;
+    --help-category: #66ccff;
+    --help-key: #2ecc71;
+    --help-text: #ecf0f1;
+    --help-link: #66ccff;
+    --status-healthy: #2ecc71;
+    --status-wounded: #f1c40f;
+    --status-badly-wounded: #e67e22;
+    --status-near-death: #e74c3c;
+    --vigor-high: #2ecc71;
+    --vigor-moderate: #f1c40f;
+    --vigor-low: #e67e22;
+    --vigor-critical: #e74c3c;
+    
+    /* スクロールバーの色 */
+    --scrollbar-track: #222;
+    --scrollbar-thumb: #444;
+    --scrollbar-thumb-hover: #555;
+    
+    /* バーの色 */
+    --bar-background: #222;
+    --bar-border: #233023;
+    --hp-bar-color: #2ecc71;
+    
+    /* コントロールとタイトルの色 */
+    --control-color: #66ccff;
+    --title-color: #66ccff;
+    
+    /* 戦闘システムの色 */
+    --combat-section-title: var(--help-section-title);
+    --combat-category: var(--help-category);
+    --combat-text: var(--help-text);
+}
+
 .container {
     position: relative;
     display: flex;
@@ -56,13 +100,13 @@ body {
 #game {
     white-space: pre;
     padding: 10px;
-    color: #cfcfcf;
+    color: #cfcac0;
     width: 1055px;
     font-size: 15px;
     font-family: 'IBM EGA 9x8', monospace;
     justify-content: center;
-    border: 1px solid #233023;
-    background: #0b0f0b;
+    border: 1px solid var(--border-color);
+    background: #0f0d0b;
 }
 
 /* ステータスパネル */
@@ -70,12 +114,12 @@ body {
     padding: 10px;
     width: 270px;
     height: 580px;
-    color: rgb(207, 207, 207);
+    color: rgb(207, 200, 190);
     display: flex;
     flex-direction: column;
     gap: 12px;
-    border: 1px solid #233023;
-    background: #0b0f0b;
+    border: 1px solid var(--border-color);
+    background: #0f0d0b;
 }
 
 /* スキルパネル */
@@ -85,9 +129,9 @@ body {
     min-width: 480px;
     max-width: 800px;
     height: 580px;
-    color: rgb(207, 207, 207);
-    border: 1px solid #233023;
-    background: #0b0f0b;
+    color: rgb(207, 200, 190);
+    border: 1px solid var(--border-color);
+    background: #0f0d0b;
 }
 
 /* 下部パネル */
@@ -106,8 +150,8 @@ body {
     flex-direction: column;
     min-width: 975px;
     max-width: 1055px;
-    border: 1px solid #233023;
-    background: #0b0f0b;
+    border: 1px solid var(--border-color);
+    background: #0f0d0b;
 }
 
 /* メッセージログ */
@@ -130,24 +174,24 @@ body {
 }
 
 /* メッセージタイプごとの色分け */
-#message-log .info { color: #b1b1b1; }
-#message-log .warning { color: #ff6b6b; }
-#message-log .playerInfo { color: #4ecdc4; }
+#message-log .info { color: var(--text-secondary); }
+#message-log .warning { color: var(--text-warning); }
+#message-log .playerInfo { color: var(--text-info); }
 #message-log .playerHit { color: #45b7d1; }
 #message-log .playerCrit { color: #45d1ae; }
 #message-log .playerMiss { color: #888; }
 #message-log .playerEvade { color: #45d1ae; }
-#message-log .heal { color: #2ed573; }
+#message-log .heal { color: var(--text-positive); }
 #message-log .monsterInfo { color: #ff9f43; }
-#message-log .monsterHit { color: #ff6b6b; }
-#message-log .monsterCrit { color: #ff4757; }
+#message-log .monsterHit { color: var(--text-warning); }
+#message-log .monsterCrit { color: var(--text-negative); }
 #message-log .monsterMiss { color: #888; }
 #message-log .monsterEvade { color: #ff9f43; }
-#message-log .important { color: #ffd32a; }
-#message-log .question { color: #ffd32a; }
-#message-log .death { color: #ff4757; }
-#message-log .kill { color: #2ed573; }
-#message-log .playerAction { color: #4ecdc4; }
+#message-log .important { color: var(--text-accent); }
+#message-log .question { color: var(--text-accent); }
+#message-log .death { color: var(--text-negative); }
+#message-log .kill { color: var(--text-positive); }
+#message-log .playerAction { color: var(--text-info); }
 
 /* メッセージログ スクロールバー */
 #message-log::-webkit-scrollbar {
@@ -155,16 +199,16 @@ body {
 }
 
 #message-log::-webkit-scrollbar-track {
-    background: #222;
+    background: var(--scrollbar-track);
 }
 
 #message-log::-webkit-scrollbar-thumb {
-    background: #444;
+    background: var(--scrollbar-thumb);
     border-radius: 4px;
 }
 
 #message-log::-webkit-scrollbar-thumb:hover {
-    background: #555;
+    background: var(--scrollbar-thumb-hover);
 }
 
 /* タイプライターエフェクト無効化 */
@@ -197,8 +241,8 @@ body {
     padding: 10px;
     display: flex;
     flex-direction: column;
-    border: 1px solid #233023;
-    background: #0b0f0b;
+    border: 1px solid var(--border-color);
+    background: #0f0d0b;
 }
 
 /* 利用可能スキル */
@@ -216,16 +260,16 @@ body {
 }
 
 #available-skills::-webkit-scrollbar-track {
-    background: #333;
+    background: var(--scrollbar-track);
 }
 
 #available-skills::-webkit-scrollbar-thumb {
-    background-color: #666;
+    background: var(--scrollbar-thumb);
     border-radius: 4px;
 }
 
 #available-skills::-webkit-scrollbar-thumb:hover {
-    background-color: #888;
+    background: var(--scrollbar-thumb-hover);
 }
 
 /* ステータス */
@@ -242,7 +286,7 @@ body {
 }
 
 .stat .value {
-    color: #6cf;
+    color: var(--text-primary);
 }
 
 /* コーデックス */
@@ -253,7 +297,7 @@ body {
 /* コントロール */
 .controls {
     margin: 10px 0;
-    color: #6cf;
+    color: var(--control-color);
     text-align: center;
 }
 
@@ -263,8 +307,8 @@ body {
 
 /* 見出し */
 .section-title {
-    color: #6cf;
-    border-bottom: 1px solid #233023;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
     padding-bottom: 5px;
     margin-top: 0px;
     margin-bottom: 10px;
@@ -273,7 +317,7 @@ body {
 
 /* スキル */
 #skills {
-    color: rgb(207, 207, 207);
+    color: var(--text-info);
 }
 
 /* コーデックスヘッダー */
@@ -291,7 +335,7 @@ body {
 }
 
 .title h1 {
-    color: #66ccff;
+    color: var(--title-color);
     margin: 0;
     letter-spacing: 2px;
     text-transform: uppercase;
@@ -321,19 +365,19 @@ body {
 
 /* 体力状態に応じたHPバーの色 */
 .healthy {
-    color: #2ecc71;
+    color: var(--status-healthy);
 }
 
 .wounded {
-    color: #f1c40f;
+    color: var(--status-wounded);
 }
 
 .badly-wounded {
-    color: #e74c3c;
+    color: var(--status-badly-wounded);
 }
 
 .near-death {
-    color: #8e44ad;
+    color: var(--status-near-death);
 }
 
 .value {
@@ -344,8 +388,8 @@ body {
 .bar-container {
     flex-grow: 1;
     height: 12px;
-    background: #222;
-    border: 1px solid #233023;
+    background: var(--bar-background);
+    border: 1px solid var(--border-color);
 }
 
 .bar {
@@ -584,8 +628,7 @@ body.help-mode #codex-panel {
     padding: 10px;
     overflow-y: auto;
     z-index: 1000;
-    background: #0b0f0b;
-    border: 1px solid #233023;
+    border: 1px solid var(--border-color);
     transform-origin: bottom;
     animation: codexExpandUp 0.3s ease-out forwards;
 }
@@ -1259,7 +1302,7 @@ body::before {
 
 /* 基本情報セクション */
 .basic-info {
-    border-bottom: 1px solid #233023;
+    border-bottom: 1px solid var(--border-color);
     padding-bottom: 5px;
 }
 
@@ -1268,7 +1311,7 @@ body::before {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    border-bottom: 1px solid #233023;
+    border-bottom: 1px solid var(--border-color);  
     padding-bottom: 5px;
 }
 
@@ -1277,7 +1320,7 @@ body::before {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
-    border-bottom: 1px solid #233023;
+    border-bottom: 1px solid var(--border-color);
     padding-bottom: 6px;
     align-items: center;
 }
@@ -1302,7 +1345,7 @@ body::before {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 5px 10px;
-    border-bottom: 1px solid #233023;
+    border-bottom: 1px solid var(--border-color);
     padding-bottom: 5px;
 }
 
@@ -1311,8 +1354,6 @@ body::before {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 5px 15px;
-    border-bottom: 1px solid #233023;
-    padding-bottom: 5px;
 }
 
 /* ポータルアニメーション */
@@ -1560,7 +1601,7 @@ body::before {
 
 /* 敵情報 */
 .enemy-info {
-    padding-top: 10px;
+    padding-top: 5px;
     display: flex;
     flex-direction: column;
     height: 250px; /* 固定高さを維持 */
@@ -1761,14 +1802,14 @@ body::before {
 .energy-numbers {
     min-width: 45px;
     text-align: right;
-    color: #6cf;
+    color: var(--text-primary);
 }
 
 .bar-container {
     flex-grow: 1;
     height: 12px;
-    background: #222;
-    border: 1px solid #233023;
+    background: var(--bar-background);
+    border: 1px solid var(--border-color);
     position: relative;
     overflow: hidden;
 }
@@ -1798,3 +1839,52 @@ body::before {
     grid-template-columns: repeat(2, 1fr);
     gap: 5px 10px;
 }
+
+/* ステータスパネルのスタイル */
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.info-row .label {
+    color: var(--text-secondary);
+}
+
+.info-row .value {
+    color: var(--text-info);
+}
+
+.danger-level {
+    color: var(--text-accent);
+}
+
+/* ヘルプ表示のスタイル */
+.help-section-title {
+    color: var(--combat-section-title);
+    font-size: 15px;
+    margin-bottom: 8px;
+}
+
+.combat-category {
+    color: var(--combat-category);
+    font-size: 15px;
+    margin-top: 6px;
+}
+
+.combat-text {
+    color: var(--combat-text);
+    margin-left: 8px;
+}
+
+/* 健康状態の色 */
+.health-status.healthy { color: var(--status-healthy); }
+.health-status.wounded { color: var(--status-wounded); }
+.health-status.badly-wounded { color: var(--status-badly-wounded); }
+.health-status.near-death { color: var(--status-near-death); }
+
+/* Vigor状態の色 */
+.vigor-status.high { color: var(--vigor-high); }
+.vigor-status.moderate { color: var(--vigor-moderate); }
+.vigor-status.low { color: var(--vigor-low); }
+.vigor-status.critical { color: var(--vigor-critical); }
