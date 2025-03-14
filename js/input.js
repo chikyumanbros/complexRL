@@ -232,7 +232,10 @@ class InputHandler {
                 return;
             }
             if (this.game.player.rangedCombat.isActive) {
-                this.toggleRangedCombatMode();
+                this.game.player.rangedCombat.isActive = false;
+                this.game.player.rangedCombat.target = null;
+                this.game.logger.add("Exited ranged attack mode.", "playerInfo");
+                this.game.renderer.render();
                 return;
             }
             if (this.game.mode === GAME_CONSTANTS.MODES.WIKI) {
@@ -395,44 +398,7 @@ class InputHandler {
             return;
         }
 
-        // 遠距離攻撃モード中の処理
-        if (this.game.player.rangedCombat.isActive) {
-            // ターゲット切り替え
-            if (key === 'Tab') {
-                const direction = event.shiftKey ? 'prev' : 'next';
-                this.game.player.cycleTarget(direction);
-                this.game.renderer.render();
-                return;
-            }
-
-            // 攻撃実行
-            if (key === 'enter') {
-                const target = this.game.player.rangedCombat.target;
-                if (!target) {
-                    this.game.logger.add("No target selected!", "warning");
-                    return;
-                }
-
-                const monster = this.game.getMonsterAt(target.x, target.y);
-                if (!monster) {
-                    this.game.logger.add("No monster at target location!", "warning");
-                    return;
-                }
-
-                if (this.game.player.performRangedAttack(monster, this.game)) {
-                    this.game.processTurn();
-                }
-                return;
-            }
-
-            // ESCで遠距離攻撃モードを解除
-            if (key === 'Escape') {
-                this.game.player.rangedCombat.isActive = false;
-                this.game.player.rangedCombat.target = null;
-                this.game.renderer.render();
-                return;
-            }
-        }
+        // 遠距離攻撃モード中の処理は handleGameModeInput に移動したので削除
     }
 
     handleNameInput(key, event) {
@@ -529,15 +495,21 @@ class InputHandler {
     // Targeting Mode Methods
     // ----------------------
     startTargeting(skillId) {
-        const player = this.game.player;
-        this.targetingMode = skillId;
-        // カーソルの初期位置をプレイヤーの現在位置に設定
-        this.targetX = player.x;
-        this.targetY = player.y;
-        // 即座にハイライトを表示
-        this.game.renderer.highlightTarget(this.targetX, this.targetY);
-        // ターゲットモードに入ったことをプレイヤーに通知
-        this.game.logger.add("Select target location. (ENTER to confirm, ESC to cancel)", "info");
+        // 標準アクションとして残されたスキルのターゲット選択
+        if (skillId === 'jump') {
+            const jumpSkill = SKILLS.acrobatics.skills.find(skill => skill.id === 'jump');
+            if (jumpSkill) {
+                this.targetingMode = 'jump';
+                this.targetX = this.game.player.x;
+                this.targetY = this.game.player.y;
+                this.game.logger.add("Select a destination to jump to. (Press direction keys, Enter to confirm, Esc to cancel)", "info");
+                this.game.renderer.highlightTarget(this.targetX, this.targetY);
+            }
+            return;
+        }
+        
+        // その他のスキルは無効化
+        this.game.logger.add("This skill has been disabled.", "warning");
     }
 
     // ----------------------
@@ -606,7 +578,72 @@ class InputHandler {
         
         // スキルスロット並べ替えモードの処理
         if (this.skillSlotSwapMode) {
-            this.handleSkillSlotSwapMode(key);
+            // スキルスロット入れ替え機能は無効化されました
+            this.cancelSkillSlotSwap();
+            return;
+        }
+
+        // 遠距離攻撃モード中の処理を追加
+        if (this.game.player.rangedCombat.isActive) {
+            // 遠距離攻撃モード中は移動や待機などの通常操作を無効化
+            if (this.isMovementKey(key) || key === '.') {
+                // 方向キーの場合はターゲット切り替えに使用
+                const direction = this.getDirectionFromKey(key);
+                if (direction) {
+                    // 左右方向キーはターゲット切り替え
+                    if (direction.dx !== 0 && direction.dy === 0) {
+                        const cycleDirection = direction.dx > 0 ? 'next' : 'prev';
+                        this.game.player.cycleTarget(cycleDirection);
+                        this.game.renderer.render();
+                        return;
+                    } else {
+                        // その他の方向キーは移動禁止メッセージ
+                        this.game.logger.add("Cannot move while in ranged attack mode. Press ESC to exit.", "warning");
+                        return;
+                    }
+                }
+                this.game.logger.add("Cannot move while in ranged attack mode. Press ESC to exit.", "warning");
+                return;
+            }
+            
+            // Tab キーでもターゲット切り替え
+            if (key === 'tab') {
+                const cycleDirection = event && event.shiftKey ? 'prev' : 'next';
+                this.game.player.cycleTarget(cycleDirection);
+                this.game.renderer.render();
+                return;
+            }
+            
+            // 攻撃実行（Enterキー）
+            if (key === 'enter' || key === ' ') {
+                const target = this.game.player.rangedCombat.target;
+                if (!target) {
+                    this.game.logger.add("No target selected!", "warning");
+                    return;
+                }
+
+                const monster = this.game.getMonsterAt(target.x, target.y);
+                if (!monster) {
+                    this.game.logger.add("No monster at target location!", "warning");
+                    return;
+                }
+
+                if (this.game.player.performRangedAttack(monster, this.game)) {
+                    this.game.processTurn();
+                }
+                return;
+            }
+            
+            // ESCで遠距離攻撃モードを解除
+            if (key === 'escape') {
+                this.game.player.rangedCombat.isActive = false;
+                this.game.player.rangedCombat.target = null;
+                this.game.logger.add("Exited ranged attack mode.", "playerInfo");
+                this.game.renderer.render();
+                return;
+            }
+            
+            // その他のキーは無視
             return;
         }
 
@@ -1063,74 +1100,41 @@ class InputHandler {
 
         // --- Skill Usage via Number Keys ---
         if (/^[1-9]$/.test(key)) {
-            // デバッグ: 修飾キーの状態を詳細に確認
-            //console.log('Number key pressed:', key, 
-            //    'Ctrl state tracking:', this.ctrlPressed, 
-            //    'Direct event.ctrlKey:', event ? event.ctrlKey : 'event is null',
-            //    'Alt key:', event ? event.altKey : 'event is null',
-            //    'Meta key:', event ? event.metaKey : 'event is null');
-            
-            // Ctrlキーまたはevent.ctrlKeyが有効か確認（より頑健に）
-            // MacではmetaKeyがCommandキーを表すため、それも確認
-            const isModifierPressed = 
-                this.ctrlPressed || 
-                (event && (event.ctrlKey || event.altKey));
-            
-            if (isModifierPressed) {
-                //console.log('Modifier+Number detected! Starting skill swap for slot:', key);
-                this.startSkillSlotSwap(key);
-                return;
-            }
-
-            const skillData = player.skills.get(key);
-            if (!skillData) {
-                this.game.logger.add("No skill assigned to this slot!", "warning");
-                return;
-            }
-
-            // Check for cooldown before skill activation
-            if (skillData.remainingCooldown > 0) {
-                this.game.logger.add(
-                    `Skill is on cooldown! (${skillData.remainingCooldown} turns remaining)`,
-                    "warning"
-                );
-                return;
-            }
-
-            // スキルシステムを削除したため、スキルは使用できません
-            this.game.logger.add("Skill system has been removed.", "warning");
+            // スキルスロットからのスキル使用は無効化されていますが、
+            // 標準アクションとして一部のスキルは使用可能です
+            this.game.logger.add("Skill slots have been removed. Use standard action keys instead.", "warning");
             return;
         }
 
-            // 遠距離攻撃モードの処理を最初に行う
-        if (player.rangedCombat.isActive) {
-            // ターゲット移動
-            if (this.isMovementKey(key)) {
-                const direction = this.getDirectionFromKey(key);
-                if (direction) {
-                    player.cycleTarget(direction);
-                    this.game.renderer.render();
+        // ... existing code ...
+        
+        // --- Meditation (Standard Action) ---
+        if (key === 'm') {
+            // meditationスキルを標準アクションとして使用
+            const meditationSkill = SKILLS.mind.skills.find(skill => skill.id === 'meditation');
+            if (meditationSkill) {
+                const result = meditationSkill.effect(this.game, this.game.player);
+                if (result && result.success) {
+                    if (!result.skipTurnProcess) {
+                        this.game.processTurn();
+                    }
+                    this.renderMap();
                 }
-                return;
             }
-
-            // 射撃実行
-            if (key === 'enter' && player.rangedCombat.target) {
-                // 射撃処理は後で実装
-                return;
-            }
-
-            // キャンセル
-            if (key === 'escape') {
-                player.rangedCombat.isActive = false;
-                player.rangedCombat.target = null;
-                this.game.renderer.render();
-                return;
-            }
-
-            // モード中は他の入力を無視
             return;
         }
+
+        // --- Jump (Standard Action) ---
+        if (key === 'j' && this.ctrlPressed) {
+            // jumpスキルを標準アクションとして使用（Ctrl+j）
+            const jumpSkill = SKILLS.acrobatics.skills.find(skill => skill.id === 'jump');
+            if (jumpSkill) {
+                this.startTargeting('jump');
+            }
+            return;
+        }
+
+        // ... existing code ...
 
         // --- Movement Handling ---
         let dx = 0;
@@ -1849,177 +1853,106 @@ class InputHandler {
 
     // スキルスロット並べ替えモードを開始するメソッド
     startSkillSlotSwap(slotKey) {
-        //console.log('Starting skill slot swap for slot:', slotKey);
-        const player = this.game.player;
-        
-        // スロットが存在するか確認
-        //console.log('Player skills:', [...player.skills.entries()]);
-        
-        // スロットが空の場合、並べ替えを開始しない
-        if (!player.skills.has(slotKey)) {
-            //console.log('No skill found in slot:', slotKey);
-            this.game.logger.add("No skill in slot " + slotKey + " to swap!", "warning");
-            return;
-        }
-        
-        this.skillSlotSwapMode = true;
-        this.firstSlot = slotKey;
-        const skillData = player.skills.get(slotKey);
-        //console.log('Selected skill data:', skillData);
-        
-        // const skill = this.game.codexSystem.findSkillById(skillData.id);
-        //console.log('Found skill:', skill);
-        
-        this.game.logger.add(`Select another skill slot to swap with skill in Slot ${slotKey}`, "info");
+        // スキルスロット入れ替え機能は無効化されました
+        this.game.logger.add("Skill slot swap has been disabled.", "warning");
+        return;
     }
     
     // スキルスロット並べ替えモードの処理メソッド
     handleSkillSlotSwapMode(key) {
-        if (key.match(/^\d$/)) {
-            // 数字キーが押された場合
-            const slot = parseInt(key);
-            
-            if (this.firstSlot === null) {
-                // 最初のスロットを選択した場合
-                this.firstSlot = slot;
-                this.game.logger.add(`Selected skill in slot ${slot}. Select another slot to swap with.`, "info");
-            } else {
-                // 2つ目のスロットを選択した場合、スワップを実行
-                // 同じスロットが選択された場合はキャンセル
-                if (this.firstSlot === slot) {
-                    this.cancelSkillSlotSwap();
-                    return;
-                }
-                this.completeSkillSlotSwap(slot);
-            }
-        } else if (key === 'escape') {
-            // キャンセル
-            this.cancelSkillSlotSwap();
-        }
+        // スキルスロット入れ替え機能は無効化されました
+        this.cancelSkillSlotSwap();
+        return;
     }
     
     // スキルスロット並べ替えを完了するメソッド
     completeSkillSlotSwap(secondSlot) {
-        // firstSlotがnullの場合は何もしない
-        if (this.firstSlot === null) {
-            this.cancelSkillSlotSwap();
-            return;
-        }
-
-        const player = this.game.player;
-        const firstSkill = player.skills.get(this.firstSlot.toString());
-        const secondSkill = player.skills.get(secondSlot.toString());
-
-        // スキルの入れ替えを実行
-        if (secondSkill) {
-            player.skills.set(this.firstSlot.toString(), secondSkill);
-        } else {
-            player.skills.delete(this.firstSlot.toString());
-        }
-
-        if (firstSkill) {
-            player.skills.set(secondSlot.toString(), firstSkill);
-        } else {
-            player.skills.delete(secondSlot.toString());
-        }
-
-        // 完了メッセージを表示
-        this.game.logger.add(`Swapped skills between slots ${this.firstSlot} and ${secondSlot}`, "playerInfo");
-
-        // モードを解除
-        this.skillSlotSwapMode = false;
-        this.firstSlot = null;
-
-        // スキルパネルを更新
-        this.game.renderer.renderStatus();
-
-        // 変更を画面に反映するためにrenderも呼び出す
-        this.renderMap();
+        // スキルスロット入れ替え機能は無効化されました
+        this.cancelSkillSlotSwap();
+        return;
     }
     
     // スキルスロット並べ替えをキャンセルするメソッド
     cancelSkillSlotSwap() {
-        //console.log('Cancelling skill slot swap');
         this.skillSlotSwapMode = false;
         this.firstSlot = null;
         this.game.logger.add("Skill swap cancelled", "info");
     }
     
-    // Shiftキーが押されているかをチェックするメソッド
-    isShiftPressed(event) {
-        return event && event.shiftKey;
+    // ターゲット選択モードを開始するメソッド
+    startTargeting(skillId) {
+        // 標準アクションとして残されたスキルのターゲット選択
+        if (skillId === 'jump') {
+            const jumpSkill = SKILLS.acrobatics.skills.find(skill => skill.id === 'jump');
+            if (jumpSkill) {
+                this.targetingMode = 'jump';
+                this.targetX = this.game.player.x;
+                this.targetY = this.game.player.y;
+                this.game.logger.add("Select a destination to jump to. (Press direction keys, Enter to confirm, Esc to cancel)", "info");
+                this.game.renderer.highlightTarget(this.targetX, this.targetY);
+            }
+            return;
+        }
+        
+        // その他のスキルは無効化
+        this.game.logger.add("This skill has been disabled.", "warning");
     }
-
-    // ニューラルオベリスクに触れる処理
-    touchNeuralObelisk(x, y) {
-        // オベリスクの情報を取得
-        const obelisk = this.game.neuralObelisks && 
-                        this.game.neuralObelisks.find(o => o.x === x && o.y === y);
+    
+    // ターゲット選択モードの処理メソッド
+    handleTargetingMode(key) {
+        // ... existing code ...
         
-        let level = 3; // デフォルトはレベル3
-        let colorName = "yellow";
-        
-        if (obelisk) {
-            level = obelisk.level;
+        // 標準アクションとして残されたスキルのターゲット選択処理
+        if (this.targetingMode === 'jump') {
+            // ... existing code for jump targeting ...
             
-            // 色の名前を設定
-            switch(level) {
-                case 1: colorName = "blue"; break;
-                case 2: colorName = "green"; break;
-                case 3: colorName = "yellow"; break;
-                case 4: colorName = "orange"; break;
-                case 5: colorName = "purple"; break;
+            // Enterキーが押された場合、ターゲットを確定
+            if (key === 'enter') {
+                this.confirmTarget();
+                return;
+            }
+            
+            // 方向キーでターゲットを移動
+            const direction = this.getDirectionFromKey(key);
+            if (direction) {
+                this.targetX += direction.dx;
+                this.targetY += direction.dy;
+                this.game.renderer.highlightTarget(this.targetX, this.targetY);
+            }
+            
+            return;
+        }
+        
+        // ... existing code ...
+    }
+    
+    // ターゲット選択を確定するメソッド
+    confirmTarget() {
+        if (!this.targetingMode) return;
+        
+        // 標準アクションとして残されたスキルのターゲット確定処理
+        if (this.targetingMode === 'jump') {
+            const jumpSkill = SKILLS.acrobatics.skills.find(skill => skill.id === 'jump');
+            if (jumpSkill) {
+                const target = { x: this.targetX, y: this.targetY };
+                const result = jumpSkill.effect(this.game, this.game.player, target);
+                
+                if (result && result.success) {
+                    if (!result.skipTurnProcess) {
+                        this.game.processTurn();
+                    }
+                    this.game.renderer.clearHighlight();
+                    this.targetingMode = null;
+                    this.targetX = null;
+                    this.targetY = null;
+                    this.renderMap();
+                    return;
+                }
             }
         }
         
-        this.game.logger.add(`You touch the ${colorName} Neural Obelisk...`, "playerInfo");
-        
-        // HP回復量を計算（最大HPの割合）
-        const player = this.game.player;
-        const healPercent = GAME_CONSTANTS.NEURAL_OBELISK.LEVELS[level].HEAL_PERCENT;
-        const hpHealAmount = Math.floor(player.maxHp * (healPercent / 100));
-        const oldHp = player.hp;
-        player.hp = Math.min(player.maxHp, player.hp + hpHealAmount);
-        const actualHpHealed = player.hp - oldHp;
-        
-        // Vigor回復量を計算（最大Vigorの割合）
-        const vigorHealAmount = Math.floor(GAME_CONSTANTS.VIGOR.MAX * (healPercent / 100));
-        const oldVigor = player.vigor;
-        player.vigor = Math.min(GAME_CONSTANTS.VIGOR.MAX, player.vigor + vigorHealAmount);
-        const actualVigorHealed = player.vigor - oldVigor;
-        
-        // Vigorの増減を表現する言葉を選択
-        let vigorChangeDesc;
-        if (actualVigorHealed > 0) {
-            if (level >= 4) {
-                vigorChangeDesc = "significantly increased";
-            } else if (level >= 2) {
-                vigorChangeDesc = "moderately increased";
-            } else {
-                vigorChangeDesc = "slightly increased";
-            }
-        } else {
-            vigorChangeDesc = "unchanged";
-        }
-        
-        // 回復メッセージを表示（Vigorの具体的な数値は隠す）
-        this.game.logger.add(`A surge of energy flows through you! Recovered ${actualHpHealed} HP. Your Vigor is ${vigorChangeDesc}.`, "important");
-        
-        // オベリスクを消去
-        this.removeNeuralObelisk(x, y);
-        
-        // levelUpSoundを再生
-        if (this.game.soundManager && this.game.soundManager.playSound) {
-            this.game.soundManager.playSound('levelUpSound');
-        }
-        
-        // 光の柱エフェクトを表示
-        if (this.game.renderer && this.game.renderer.showLightPillarEffect) {
-            this.game.renderer.showLightPillarEffect(x, y);
-        }
-        
-        // ターンを進める
-        this.game.processTurn();
+        // ターゲット選択モードをキャンセル
+        this.cancelTargeting();
     }
 
     // オベリスクを消去するメソッド
@@ -2111,19 +2044,19 @@ class InputHandler {
 
     // input.js に追加
     getDirectionFromKey(key) {
-        switch (key) {
-            case 'ArrowLeft':
-            case 'h': return 'prev';
-            case 'ArrowRight':
-            case 'l': return 'next';
-            case 'ArrowUp':
-            case 'k': return 'prev';
-            case 'ArrowDown':
-            case 'j': return 'next';
-            case 'y': return 'prev';
-            case 'u': return 'next';
-            case 'b': return 'prev';
-            case 'n': return 'next';
+        switch (key.toLowerCase()) {
+            case 'arrowleft':
+            case 'h': return { dx: -1, dy: 0 };
+            case 'arrowright':
+            case 'l': return { dx: 1, dy: 0 };
+            case 'arrowup':
+            case 'k': return { dx: 0, dy: -1 };
+            case 'arrowdown':
+            case 'j': return { dx: 0, dy: 1 };
+            case 'y': return { dx: -1, dy: -1 };
+            case 'u': return { dx: 1, dy: -1 };
+            case 'b': return { dx: -1, dy: 1 };
+            case 'n': return { dx: 1, dy: 1 };
             default: return null;
         }
     }

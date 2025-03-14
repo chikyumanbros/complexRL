@@ -21,44 +21,8 @@ class CombatSystem {
             game.logger.add("Opportunity Attack!", "playerInfo");
         }
 
-        // 攻撃修飾子のチェック（プレイヤーの場合）
-        if (context.isPlayer && attacker.nextAttackModifiers && attacker.nextAttackModifiers.length > 0) {
-            const mods = attacker.nextAttackModifiers;
-            
-            // 速度修正の適用
-            const speedMod = mods.find(mod => mod.speedTier);
-            if (speedMod) {
-                context.speedTier = speedMod.speedTier;
-            }
-            
-            // 攻撃タイプの設定
-            context.attackType = mods.map(mod => mod.name).join(' + ');
-            
-            // 攻撃修飾子の効果をログに表示
-            if (mods.length > 1) {
-                game.logger.add("Combined Attack!", "playerInfo");
-            }
-            
-            // 修飾子の効果を適用（乗算的なダメージ修正、加算的な命中修正）
-            context.accuracyMod = mods.reduce((total, mod) => total + (mod.accuracyMod || 0), 0);
-            context.damageMod = mods.reduce((total, mod) => total * (mod.damageMod || 1), 1);
-            
-            // 効果の説明をログに表示
-            const effects = [];
-            if (context.damageMod !== 1) effects.push(`DMG: ${((context.damageMod - 1) * 100).toFixed(0)}%`);
-            if (context.accuracyMod) effects.push(`ACC: ${(context.accuracyMod * 100).toFixed(0)}%`);
-            if (context.speedTier) effects.push(`Speed Tier: ${context.speedTier}`);
-            
-            if (effects.length > 0) {
-                game.logger.add(`Attack modifiers: [${effects.join(', ')}]`, "playerInfo");
-            }
-
-            // 攻撃修飾子をクリア（ログ出力なし）
-            attacker.nextAttackModifiers = [];
-        } else {
-            // 通常攻撃として処理
-            context.attackType = "attack";
-        }
+        // 通常の攻撃として処理
+        context.attackType = "attack";
 
         // 攻撃コンテキストの準備
         const attackContext = this.prepareAttackContext(attacker, defender, game, context);
@@ -384,7 +348,6 @@ class CombatSystem {
             ...baseContext,
             hitChance: baseContext.isOpportunityAttack ? modifiedAccuracy : finalAccuracy,
             damageMultiplier: baseContext.damageMod || 1,
-            speedTier: baseContext.speedTier,
             effectDesc: baseContext.effectDesc || ""
         };
     }

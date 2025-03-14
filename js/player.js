@@ -24,8 +24,7 @@ class Player {
         this.accuracy = GAME_CONSTANTS.FORMULAS.ACCURACY(this.stats);
         this.evasion = GAME_CONSTANTS.FORMULAS.EVASION(this.stats);
 
-        this.skills = new Map();  // スキルマップの初期化
-        this.nextAttackModifiers = [];  // 攻撃修飾効果の初期化
+        this.skills = new Map();  // スキルマップは空のままにしておきます（スキルシステム削除のため）
         this.meditation = null;  // メディテーション状態を追加
 
         // Vigorの初期化を条件付きで行う
@@ -413,25 +412,53 @@ class Player {
 
     // ===== Skill Management Methods =====
     hasEmptySkillSlot() {
-        return Array.from(this.skills.keys()).length < 10;
+        // スキルスロットシステムは無効化されていますが、
+        // モンスターや標準アクション用にメソッドは残しています
+        return false;
     }
-
+    
     getEmptySlot() {
-        for (let i = 0; i < 10; i++) {
-            if (!this.skills.has(i)) return i;
-        }
+        // スキルスロットシステムは無効化されていますが、
+        // モンスターや標準アクション用にメソッドは残しています
         return null;
     }
 
     assignSkill(skillId, slot) {
-        this.skills.set(slot, {
-            id: skillId,
-            remainingCooldown: 0
-        });
+        // スキルスロットシステムは無効化されていますが、
+        // モンスターや標準アクション用にメソッドは残しています
+        return;
     }
 
     removeSkill(slot) {
-        this.skills.delete(slot);
+        // スキルスロットシステムは無効化されていますが、
+        // モンスターや標準アクション用にメソッドは残しています
+        return;
+    }
+    
+    // スキル使用メソッドを復活させる
+    useSkill(skillId, target, game) {
+        // 標準アクションとして残されたスキルのみ使用可能
+        let skill = null;
+        
+        // スキルを検索
+        for (const category of Object.values(SKILLS)) {
+            for (const s of category.skills) {
+                if (s.id === skillId) {
+                    skill = s;
+                    break;
+                }
+            }
+            if (skill) break;
+        }
+        
+        if (!skill) {
+            game.logger.add(`Skill ${skillId} not found.`, "warning");
+            return false;
+        }
+        
+        // スキル使用
+        const result = skill.effect(game, this, target);
+        return result;
     }
 
     // ===== Damage Handling Methods =====
@@ -609,13 +636,11 @@ class Player {
     resolvePlayerAttack(monster, game) {
         const result = CombatSystem.resolveCombatAction(this, monster, game, {
             isPlayer: true,
-            isOpportunityAttack: monster.hasStartedFleeing && monster.checkEscapeRoute(game),
-            nextAttackModifiers: this.nextAttackModifiers
+            isOpportunityAttack: monster.hasStartedFleeing && monster.checkEscapeRoute(game)
         });
         
         if (result.hit) {
             game.lastAttackHit = true;
-            // nextAttackModifiersのクリアはCombatSystemで行われるため、ここでは不要
         }
         
         return result;
@@ -624,61 +649,6 @@ class Player {
     // ===== Utility and Status Methods =====
     getHealthStatus(currentHp, maxHp) {
         return GAME_CONSTANTS.HEALTH_STATUS.getStatus(currentHp, maxHp, this.stats);
-    }
-
-    useSkill(skillId, target, game) {
-        // 蜘蛛の巣に捕まっている場合、まず脱出を試みる
-        if (this.caughtInWeb) {
-            if (!this.tryToBreakFreeFromWeb()) {
-                // 脱出失敗時はターンを消費して終了
-                game.processTurn();
-                return false;
-            }
-            // 脱出成功の場合は通常のスキル処理を続行
-        }
-
-        // スキルスロットを見つける
-        let skillSlot = null;
-        for (const [slot, skill] of this.skills.entries()) {
-            if (skill.id === skillId) {
-                skillSlot = slot;
-                break;
-            }
-        }
-
-        if (skillSlot === null) {
-            game.logger.add("You do not have that skill!", "warning");
-            return false;
-        }
-
-        const skillData = this.skills.get(skillSlot);
-        if (skillData.remainingCooldown > 0) {
-            game.logger.add(`The skill is on cooldown! (${skillData.remainingCooldown} turns left)`, "warning");
-            return false;
-        }
-
-        // const skill = game.codexSystem.findSkillById(skillId);
-        // if (!skill) return false;
-
-        // スキル効果の実行と結果の取得
-        // const effectResult = skill.effect(game, this, target);
-        
-        // // スキルの実行が成功した場合のみ、以降の処理を行う
-        // if (effectResult === true || (typeof effectResult === 'object' && effectResult.success)) {
-        //     // クールダウンの設定
-        //     // フリーアクションの場合は+1しない
-        //     skillData.remainingCooldown = skill.isFreeAction ? skill.cooldown : skill.cooldown + 1;
-
-        //     // スキルがフリーアクションでない場合、かつ
-        //     // effectResult.skipTurnProcess が true でない場合のみターンを消費
-        //     if (!skill.isFreeAction && !(typeof effectResult === 'object' && effectResult.skipTurnProcess)) {
-        //         game.processTurn();
-        //     }
-        //     game.renderer.renderStatus();
-        //     return true;
-        // }
-
-        return false;
     }
 
     updateDerivedStats() {
@@ -947,29 +917,11 @@ class Player {
 
     // ステータス表示用のメソッドを追加
     getModifiedStats() {
-        const stats = {
+        return {
             damage: this.attackPower.base,
             accuracy: this.accuracy,
             speed: this.speed
         };
-
-        if (this.nextAttackModifiers && this.nextAttackModifiers.length > 0) {
-            let totalDamageMod = 1;
-            let totalAccuracyMod = 0;
-            let totalSpeedMod = 0;
-
-            for (const modifier of this.nextAttackModifiers) {
-                if (modifier.damageMod) totalDamageMod *= modifier.damageMod;
-                if (modifier.accuracyMod) totalAccuracyMod += modifier.accuracyMod;
-                if (modifier.speedMod) totalSpeedMod += modifier.speedMod;
-            }
-
-            stats.damage *= totalDamageMod;
-            stats.accuracy += totalAccuracyMod;
-            stats.speed += totalSpeedMod;
-        }
-
-        return stats;
     }
 
 

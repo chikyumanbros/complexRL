@@ -1012,17 +1012,19 @@ renderStatus() {
     statusPanel.innerHTML = `
         <div class="basic-info">
             <div class="section-title">STATUS</div>
-            <div class="info-row">
+            <div class="info-row" style="justify-content: flex-start; gap: 10px;">
                 <span class="label">Name:</span>
-                <span id="player-name">${player.name || 'Unknown'}</span>
+                <span id="player-name" style="text-align: left; width: auto;">${player.name || 'Unknown'}</span>
             </div>
-            <div class="info-row">
+            <div class="info-row" style="justify-content: flex-start; gap: 10px;">
                 <span class="label">Floor:</span>
-                <span id="floor-level">${floorDisplay} <span style="color: ${dangerInfo.color}">[${dangerInfo.name}]</span></span>
+                <span id="floor-level" style="text-align: left; width: auto;">${floorDisplay} <span style="color: ${dangerInfo.color}">[${dangerInfo.name}]</span></span>
             </div>
-            <div class="info-row">
+            <div class="info-row" style="justify-content: flex-start; gap: 10px;">
                 <span class="label">Level:</span>
-                <span id="level">${player.level}</span>
+                <span id="level" style="text-align: left; width: auto;">${player.level}</span>
+                <span class="label" style="margin-left: 20px;">XP:</span>
+                <span id="xp" style="text-align: left; width: auto;">${player.xp}/${player.xpToNextLevel}</span>
             </div>
         </div>
 
@@ -1048,17 +1050,6 @@ renderStatus() {
             </div>
         </div>
 
-        <div class="progress-section">
-            <div class="xp-row">
-                <span class="label">XP:</span>
-                <span id="xp">${player.xp}/${player.xpToNextLevel}</span>
-            </div>
-            <!-- <div class="codex-row">
-                <span class="label">CODEX:</span>
-                <span id="codexPoints">${player.codexPoints}</span>
-            </div> -->
-        </div>
-
         ${combatStatsHTML}
 
         <div class="enemy-info">
@@ -1068,6 +1059,8 @@ renderStatus() {
     `;
 
     // スキルリストの更新
+    // スキルパネルが削除されたため、この処理は不要になりました
+    /*
     const skillsElement = document.getElementById('skills');
     if (skillsElement) {
         const skillsDisplay = player.skills.size > 0
@@ -1103,6 +1096,7 @@ renderStatus() {
             : 'NO SKILLS';
         skillsElement.innerHTML = skillsDisplay;
     }
+    */
 }
 
 // 通常戦闘ステータスセクションの作成（新規メソッド）
@@ -1580,15 +1574,15 @@ createRangedCombatStats(player) {
         leftColumn += `<span class="help-text">Exit ranged mode</span>`;
         leftColumn += `</div>\n`;
         
-        // スキルスロット並べ替え機能の説明を追加
-        leftColumn += `<div class="help-category">● SKILL MANAGEMENT</div>\n`;
+        // 標準アクションの説明を追加
+        leftColumn += `<div class="help-category">● STANDARD ACTIONS</div>\n`;
         leftColumn += `<div style="margin-left: 8px;">`;
-        leftColumn += `<span class="help-key">[1-9]</span>`;
-        leftColumn += `<span class="help-text">Use skill in slot</span>`;
+        leftColumn += `<span class="help-key">[m]</span>`;
+        leftColumn += `<span class="help-text">Meditate to recover HP and Vigor</span>`;
         leftColumn += `</div>\n`;
         leftColumn += `<div style="margin-left: 8px;">`;
-        leftColumn += `<span class="help-key">[Ctrl/Alt+1-9]</span>`;
-        leftColumn += `<span class="help-text">Rearrange skills between slots</span>`;
+        leftColumn += `<span class="help-key">[Ctrl+j]</span>`;
+        leftColumn += `<span class="help-text">Jump to a nearby location</span>`;
         leftColumn += `</div>\n`;
 
         // 右列：ステータスと戦闘システム

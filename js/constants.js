@@ -206,7 +206,7 @@ const GAME_CONSTANTS = {
 
     // ディメンション関連
     DIMENSIONS: {
-        WIDTH: 65,
+        WIDTH: 96,
         HEIGHT: 35
     },
 

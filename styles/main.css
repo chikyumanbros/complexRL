@@ -101,7 +101,7 @@ body {
     white-space: pre;
     padding: 10px;
     color: #cfcac0;
-    width: 1055px;
+    width: 1555px;
     font-size: 15px;
     font-family: 'IBM EGA 9x8', monospace;
     justify-content: center;
@@ -112,24 +112,12 @@ body {
 /* ステータスパネル */
 #status-panel {
     padding: 10px;
-    width: 270px;
+    width: 250px;
     height: 580px;
     color: rgb(207, 200, 190);
     display: flex;
     flex-direction: column;
     gap: 12px;
-    border: 1px solid var(--border-color);
-    background: #0f0d0b;
-}
-
-/* スキルパネル */
-#skills-panel {
-    padding: 10px;
-    width: calc(100vw - 1320px);
-    min-width: 480px;
-    max-width: 800px;
-    height: 580px;
-    color: rgb(207, 200, 190);
     border: 1px solid var(--border-color);
     background: #0f0d0b;
 }
@@ -315,11 +303,6 @@ body {
     font-size: 15px;
 }
 
-/* スキル */
-#skills {
-    color: var(--text-info);
-}
-
 /* コーデックスヘッダー */
 .codex-header {
     display: flex;
@@ -381,8 +364,8 @@ body {
 }
 
 .value {
-    width: 60px;
-    text-align: right;
+    /* width: 60px; */
+    /* text-align: right; */
 }
 
 .bar-container {
@@ -962,8 +945,8 @@ body.help-mode #codex-panel {
         linear-gradient(90deg, transparent 97%, rgba(0, 255, 0, 0.15) 97%, rgba(0, 255, 0, 0.15) 100%),
         linear-gradient(180deg, transparent 97%, rgba(0, 255, 0, 0.15) 97%, rgba(0, 255, 0, 0.15) 100%),
         /* 黄緑のアクセント - 控えめに */
-        linear-gradient(90deg, rgba(160, 220, 50, 0.03) 0%, rgba(160, 220, 50, 0.03) 1%, transparent 1%, transparent 99%, rgba(160, 220, 50, 0.03) 99%, rgba(160, 220, 50, 0.03) 100%),
-        linear-gradient(180deg, rgba(160, 220, 50, 0.03) 0%, rgba(160, 220, 50, 0.03) 1%, transparent 1%, transparent 99%, rgba(160, 220, 50, 0.03) 99%, rgba(160, 220, 50, 0.03) 100%);
+        linear-gradient(90deg, rgba(160, 220, 50, 0.03) 0%, rgba(160, 220, 50, 0.03) 1%, transparent 1%, transparent 99%, rgba(160, 220, 50, 0.03) 99%),
+        linear-gradient(180deg, rgba(160, 220, 50, 0.03) 0%, rgba(160, 220, 50, 0.03) 1%, transparent 1%, transparent 99%, rgba(160, 220, 50, 0.03) 99%);
     background-size: 80px 100%, 100% 80px, 100% 100%, 100% 100%;
     background-position: 
         calc(var(--random-corner-x, 0) * 1.2%) calc(var(--random-corner-y, 0) * 1.2%),
@@ -1317,12 +1300,12 @@ body::before {
 
 /* XPとCodexセクション */
 .progress-section {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 6px;
-    align-items: center;
+}
+
+.progress-section .info-row span {
+    text-align: left;
 }
 
 .xp-row, .codex-row {
@@ -1810,8 +1793,6 @@ body::before {
     height: 12px;
     background: var(--bar-background);
     border: 1px solid var(--border-color);
-    position: relative;
-    overflow: hidden;
 }
 
 .bar-container::after {
@@ -1849,10 +1830,18 @@ body::before {
 
 .info-row .label {
     color: var(--text-secondary);
+    text-align: left;
+}
+
+.info-row span:last-child {
+    text-align: left;
+    width: auto;
 }
 
 .info-row .value {
     color: var(--text-info);
+    text-align: left;
+    width: auto;
 }
 
 .danger-level {
