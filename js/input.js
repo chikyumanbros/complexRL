@@ -1109,7 +1109,7 @@ class InputHandler {
         // ... existing code ...
         
         // --- Meditation (Standard Action) ---
-        if (key === 'm') {
+        if (key === 'm' && (event.ctrlKey || event.altKey)) {
             // meditationスキルを標準アクションとして使用
             const meditationSkill = SKILLS.mind.skills.find(skill => skill.id === 'meditation');
             if (meditationSkill) {
@@ -1125,8 +1125,8 @@ class InputHandler {
         }
 
         // --- Jump (Standard Action) ---
-        if (key === 'j' && this.ctrlPressed) {
-            // jumpスキルを標準アクションとして使用（Ctrl+j）
+        if (key === 'j' && (event.ctrlKey || event.altKey)) {
+            // jumpスキルを標準アクションとして使用（Ctrl+j または Alt+j）
             const jumpSkill = SKILLS.acrobatics.skills.find(skill => skill.id === 'jump');
             if (jumpSkill) {
                 this.startTargeting('jump');
