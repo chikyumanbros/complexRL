@@ -1512,6 +1512,21 @@ class InputHandler {
                     type: 'kill'
                 };
 
+                // 経験値の計算と獲得処理
+                const levelDiff = monster.level - this.game.player.level;
+                const baseXP = Math.floor(monster.baseXP || monster.level);
+                const levelMultiplier = levelDiff > 0
+                    ? 1 + (levelDiff * 0.2)
+                    : Math.max(0.1, 1 + (levelDiff * 0.1));
+                const intBonus = 1 + Math.max(0, (this.game.player.stats.int - 10) * 0.03);
+                const xpGained = Math.max(1, Math.floor(baseXP * levelMultiplier * intBonus));
+
+                // 経験値獲得ログ
+                this.game.logger.add(`Gained ${xpGained} XP!`, "playerInfo");
+
+                // 経験値の付与
+                this.game.player.addExperience(xpGained);
+
                 // タイル更新を遅延実行
                 setTimeout(() => {
                     // 床タイルに変更
@@ -1524,7 +1539,6 @@ class InputHandler {
                     this.game.lastDoorKillLocation = null;
 
                     if (result.killed) {
-                        this.game.logger.add(`The door has destroyed ${monster.name}!`, "kill");
                         
                         // 部屋の情報更新
                         const currentRoom = this.game.getCurrentRoom();

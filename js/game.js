@@ -937,8 +937,8 @@ class Game {
 
     spawnInitialMonsters() {
         const dangerData = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
-        const baseCount = Math.floor(5 + this.floorLevel * 1.5);
-        const monsterCount = Math.max(3, baseCount + dangerData.levelModifier);
+        const baseCount = Math.floor(10 + this.floorLevel * 1.5);
+        const monsterCount = Math.max(6, baseCount + dangerData.levelModifier);
 
         //console.log(`Attempting to spawn ${monsterCount} monsters on floor ${this.floorLevel} (${this.dangerLevel})`);
         //console.log(`Base count: ${baseCount}, Danger modifier: ${dangerData.levelModifier}`);
@@ -977,7 +977,7 @@ class Game {
             if (availableRooms.length === 0) continue;
 
             const room = availableRooms[Math.floor(Math.random() * availableRooms.length)];
-            let attempts = 100;
+            let attempts = 50;
             let monster = null;
 
             while (attempts > 0 && !monster) {
@@ -1204,7 +1204,6 @@ class Game {
         
         // モンスターの初期配置
         this.spawnInitialMonsters();
-
         // Initialize and display information
         const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
         this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);
@@ -2304,3 +2303,4 @@ class Game {
 
 // Start the game.
 const game = new Game();
+

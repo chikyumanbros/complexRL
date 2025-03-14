@@ -363,10 +363,6 @@ body {
     color: var(--status-near-death);
 }
 
-.value {
-    /* width: 60px; */
-    /* text-align: right; */
-}
 
 .bar-container {
     flex-grow: 1;
@@ -1587,7 +1583,7 @@ body::before {
     padding-top: 5px;
     display: flex;
     flex-direction: column;
-    height: 250px; /* 固定高さを維持 */
+    height: 215px; /* 固定高さを維持 */
     overflow: hidden; /* スクロールを無効化し、超過分を非表示に */
 }
 
