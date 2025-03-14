@@ -1154,6 +1154,9 @@ class RendererEffects {
         // ポータル遷移開始フラグを設定
         this.renderer.game.isPortalTransitioning = true;
 
+        // 変更されたタイルを追跡する配列
+        const changedTiles = [];
+
         const animate = () => {
             if (currentStep >= steps) {
                 // ポータル遷移終了フラグをリセット
@@ -1171,19 +1174,35 @@ class RendererEffects {
                 return;
             }
 
-            // マップ全体のタイルを宇宙空間のタイルと色に変更
-            for (let y = 0; y < this.renderer.game.height; y++) {
-                for (let x = 0; x < this.renderer.game.width; x++) {
-                    // ポータルからの距離を計算
-                    const distanceFromPortal = Math.sqrt(
-                        Math.pow(x - this.renderer.game.player.x, 2) +
-                        Math.pow(y - this.renderer.game.player.y, 2)
-                    );
+            // 各ステップで処理するタイルの数を制限
+            const maxTilesToProcess = 100;
+            let tilesProcessed = 0;
 
-                    // 距離に応じて変化の確率を調整
-                    const changeThreshold = (currentStep / steps) * 15 - distanceFromPortal;
+            // プレイヤーの位置
+            const playerX = this.renderer.game.player.x;
+            const playerY = this.renderer.game.player.y;
 
-                    if (Math.random() < Math.max(0, changeThreshold / 15)) {
+            // 現在のステップに基づいて変化の半径を計算
+            const radius = Math.floor((currentStep / steps) * 15);
+
+            // 半径内のタイルをランダムに選択して処理
+            for (let attempt = 0; attempt < maxTilesToProcess * 2 && tilesProcessed < maxTilesToProcess; attempt++) {
+                // ランダムな角度と距離を選択
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * radius;
+                
+                // 極座標から直交座標に変換
+                const offsetX = Math.round(Math.cos(angle) * distance);
+                const offsetY = Math.round(Math.sin(angle) * distance);
+                
+                const x = playerX + offsetX;
+                const y = playerY + offsetY;
+                
+                // マップの範囲内かチェック
+                if (x >= 0 && x < this.renderer.game.width && y >= 0 && y < this.renderer.game.height) {
+                    // タイルをまだ変更していない場合のみ処理
+                    const tileKey = `${x},${y}`;
+                    if (!changedTiles.includes(tileKey)) {
                         // SPACE配列からランダムにタイルを選択
                         this.renderer.game.tiles[y][x] = GAME_CONSTANTS.TILES.SPACE[
                             Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE.length)
@@ -1193,6 +1212,10 @@ class RendererEffects {
                         this.renderer.game.colors[y][x] = GAME_CONSTANTS.TILES.SPACE_COLORS[
                             Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE_COLORS.length)
                         ];
+                        
+                        // 変更したタイルを記録
+                        changedTiles.push(tileKey);
+                        tilesProcessed++;
                     }
                 }
             }
@@ -1210,7 +1233,7 @@ class RendererEffects {
      * @param {Function} callback - 遷移完了時に呼び出すコールバック関数
      */
     startPortalTransition(callback) {
-        this.animatePortal(1000, 120, callback);
+        this.animatePortal(1000, 30, callback);
     }
 
     /**
@@ -1218,7 +1241,7 @@ class RendererEffects {
      * @param {Function} callback - 遷移完了時に呼び出すコールバック関数
      */
     startShortPortalTransition(callback) {
-        this.animatePortal(200, 5, callback);
+        this.animatePortal(200, 3, callback);
     }
 
     /**
