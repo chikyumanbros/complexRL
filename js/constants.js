@@ -334,11 +334,11 @@ const GAME_CONSTANTS = {
             wis: 'Wisdom'
         },
         DEFAULT_VALUES: {
-            str: 8,
-            dex: 8,
-            con: 8,
-            int: 8,
-            wis: 8
+            str: 6,
+            dex: 6,
+            con: 6,
+            int: 6,
+            wis: 6
         },
         DESCRIPTIONS: {
             str: 'Increases physical attack damage and slightly affects max HP.',
@@ -395,7 +395,7 @@ const GAME_CONSTANTS = {
             const speedMod = (speed.value - 3) * 5;  // Normal(3)を基準に ±5%
             const size = GAME_CONSTANTS.FORMULAS.SIZE(stats);
             const sizeMod = (3 - size.value) * 3;    // Medium(3)を基準に ±3%
-            const acc = 50 + Math.floor(stats.dex * 0.8) + Math.floor(stats.wis * 0.4)
+            const acc = 60 + Math.floor(stats.dex * 0.8) + Math.floor(stats.wis * 0.4)
                 - Math.floor(stats.con / 4) + speedMod + sizeMod;
             return Math.min(85, Math.max(20, acc));
         },

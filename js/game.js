@@ -219,7 +219,7 @@ class Game {
         this.player = new Player(0, 0, this);
         // 初期ステータスをすべて8に設定
         Object.keys(this.player.stats).forEach(stat => {
-            this.player.stats[stat] = 8;
+            this.player.stats[stat] = 6;
         });
         this.player.remainingStatPoints = 12;  // 割り振り可能なポイント
         
@@ -977,7 +977,7 @@ class Game {
             if (availableRooms.length === 0) continue;
 
             const room = availableRooms[Math.floor(Math.random() * availableRooms.length)];
-            let attempts = 50;
+            let attempts = 100;
             let monster = null;
 
             while (attempts > 0 && !monster) {
