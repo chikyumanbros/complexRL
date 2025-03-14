@@ -438,12 +438,12 @@ class Player {
     takeDamage(amount, context = {}) {
         // mindカテゴリのスキルをチェック
         if (this.meditation && this.meditation.active) {
-            const meditationSkill = this.game.codexSystem.findSkillById('meditation');
-            if (meditationSkill && meditationSkill.cancelOnDamage) {
+            // const meditationSkill = this.game.codexSystem.findSkillById('meditation');
+            // if (meditationSkill && meditationSkill.cancelOnDamage) {
                 this.game.logger.add(`Meditation cancelled. (Total healed: ${this.meditation.totalHealed})`, "playerInfo");
                 this.game.stopSound('meditationSound');
                 this.meditation = null;
-            }
+            // }
         }
 
         // 休憩状態もキャンセル
@@ -657,26 +657,26 @@ class Player {
             return false;
         }
 
-        const skill = game.codexSystem.findSkillById(skillId);
-        if (!skill) return false;
+        // const skill = game.codexSystem.findSkillById(skillId);
+        // if (!skill) return false;
 
         // スキル効果の実行と結果の取得
-        const effectResult = skill.effect(game, this, target);
+        // const effectResult = skill.effect(game, this, target);
         
-        // スキルの実行が成功した場合のみ、以降の処理を行う
-        if (effectResult === true || (typeof effectResult === 'object' && effectResult.success)) {
-            // クールダウンの設定
-            // フリーアクションの場合は+1しない
-            skillData.remainingCooldown = skill.isFreeAction ? skill.cooldown : skill.cooldown + 1;
+        // // スキルの実行が成功した場合のみ、以降の処理を行う
+        // if (effectResult === true || (typeof effectResult === 'object' && effectResult.success)) {
+        //     // クールダウンの設定
+        //     // フリーアクションの場合は+1しない
+        //     skillData.remainingCooldown = skill.isFreeAction ? skill.cooldown : skill.cooldown + 1;
 
-            // スキルがフリーアクションでない場合、かつ
-            // effectResult.skipTurnProcess が true でない場合のみターンを消費
-            if (!skill.isFreeAction && !(typeof effectResult === 'object' && effectResult.skipTurnProcess)) {
-                game.processTurn();
-            }
-            game.renderer.renderStatus();
-            return true;
-        }
+        //     // スキルがフリーアクションでない場合、かつ
+        //     // effectResult.skipTurnProcess が true でない場合のみターンを消費
+        //     if (!skill.isFreeAction && !(typeof effectResult === 'object' && effectResult.skipTurnProcess)) {
+        //         game.processTurn();
+        //     }
+        //     game.renderer.renderStatus();
+        //     return true;
+        // }
 
         return false;
     }

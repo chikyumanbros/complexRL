@@ -14,7 +14,6 @@ class Game {
         // Game state
         this.player = new Player(0, 0, this);
         this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;  // 明示的に設定
-        this.codexSystem = new CodexSystem();
         this.logger = new Logger(this);
         this.mode = GAME_CONSTANTS.MODES.GAME;
         this.turn = 0;
@@ -88,7 +87,6 @@ class Game {
         this.tiles = [];
         this.colors = [];
         this.player = new Player(0, 0, this);
-        this.codexSystem = new CodexSystem();
         this.logger = new Logger(this);
         this.turn = 0;
         this.totalTurns = 0;  // ゲーム全体のターン数をリセット
@@ -234,7 +232,7 @@ class Game {
             }
         }
         
-        this.codexSystem = new CodexSystem();
+        // this.codexSystem = new CodexSystem(); // codexSystem を削除
         this.logger = new Logger(this);
         this.isGameOver = false;
 
@@ -922,9 +920,10 @@ class Game {
 
     toggleMode() {
         if (this.mode === GAME_CONSTANTS.MODES.GAME) {
-            this.mode = GAME_CONSTANTS.MODES.CODEX;
-            document.body.classList.add('codex-mode');
-            this.renderer.renderCodexMenu();
+            // this.mode = GAME_CONSTANTS.MODES.CODEX; // CODEX モードへの切り替えを削除
+            // document.body.classList.add('codex-mode');
+            // this.renderer.renderCodexMenu();
+            // 何もしない
         } else if (this.mode === GAME_CONSTANTS.MODES.HELP) {
             this.mode = GAME_CONSTANTS.MODES.GAME;
             document.body.classList.remove('help-mode');

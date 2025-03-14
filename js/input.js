@@ -129,10 +129,17 @@ class InputHandler {
             this.handleLogScroll(key.toLowerCase());
             
             // ヘルプモードやCodexモードの場合はスクロールのみ許可して他の処理は行わない
-            if (this.game.mode === GAME_CONSTANTS.MODES.HELP || 
-                this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
+            if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
                 return;
             }
+            
+            // if (codexPanel && this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
+            //     codexPanel.scrollTop -= scrollAmount;
+            // }
+            
+            // if (codexPanel && this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
+            //     codexPanel.scrollTop += scrollAmount;
+            // }
         }
         
         // 数字キーが押されたときの処理を修正
@@ -205,39 +212,39 @@ class InputHandler {
                 this.cancelTargeting();
                 return;
             }
-            // restモードの解除を追加
-            if (this.game.player.resting?.active) {
-                this.game.cancelRest("Cancelled by player");
-                return;
-            }
-            // 自動移動・自動探索の解除を追加
-            if (this.game.player.autoExploring || 
-                this.game.player.autoMovingToStairs || 
-                this.game.player.autoMovingToLandmark) {
-                this.game.player.stopAllAutoMovement();
-                return;
-            }
-            // スキルスロット並べ替えモードの解除を追加
             if (this.skillSlotSwapMode) {
                 this.cancelSkillSlotSwap();
                 return;
             }
-            // Wikiモードの解除を追加
+            if (this.game.player.autoExploring) {
+                this.game.player.stopAutoExplore();
+                this.game.logger.add("Auto-explore cancelled.", "info");
+                return;
+            }
+            if (this.game.player.autoMovingToStairs) {
+                this.game.player.stopAutoMoveToStairs();
+                this.game.logger.add("Auto-move to stairs cancelled.", "info");
+                return;
+            }
+            if (this.game.player.autoMovingToLandmark) {
+                this.game.player.stopAutoMoveToLandmark();
+                this.game.logger.add("Auto-move to landmark cancelled.", "info");
+                return;
+            }
+            if (this.game.player.rangedCombat.isActive) {
+                this.toggleRangedCombatMode();
+                return;
+            }
             if (this.game.mode === GAME_CONSTANTS.MODES.WIKI) {
                 this.closeWikiMode();
                 return;
             }
-            // ヘルプモードの解除を追加
-            if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
-                if (document.body.classList.contains('codex-mode')) {
-                    document.body.classList.remove('codex-mode');  // Codexモードのクラスを削除
-                }
-                this.game.toggleMode();
-                return;
-            }
-            // Codexモードの解除を追加
-            if (this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
-                this.game.toggleMode();
+            // if (this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
+            //     this.game.toggleMode();
+            //     return;
+            // }
+            if (this.game.resting) {
+                this.game.cancelRest("Rest cancelled by player.");
                 return;
             }
             return;
@@ -296,8 +303,6 @@ class InputHandler {
             return;
         }
 
-        
-
         // 通常のゲーム入力の処理
         if (this.game.player.isDead) {
             // ... existing dead player code ...
@@ -326,28 +331,40 @@ class InputHandler {
         }
 
         // --- Help Mode Cancellation (First Block) ---
-        if (this.game.mode === GAME_CONSTANTS.MODES.HELP && !document.body.classList.contains('codex-mode')) {
+        if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
             if (key === 'escape') {
                 this.game.toggleMode();  // 変更: toggleModeを使用
-            } else if (key === 'tab') {
-                if (event) event.preventDefault();
-                this.game.toggleMode();  // ヘルプモードを解除
-                this.toggleCodexMode();  // Codexモードを有効化
-                this.game.mode = GAME_CONSTANTS.MODES.CODEX;  // モードをCodexに設定
-                this.game.renderer.renderCodexMenu();  // Codexメニューを表示
             }
+            // else if (key === 'tab') {
+            //     if (event) event.preventDefault();
+            //     this.game.toggleMode();  // ヘルプモードを解除
+            //     this.toggleCodexMode();  // Codexモードを有効化
+            //     this.game.mode = GAME_CONSTANTS.MODES.CODEX;  // モードをCodexに設定
+            //     this.game.renderer.renderCodexMenu();  // Codexメニューを表示
+            // }
             return;
         }
 
         // --- Tab Key Handling for Codex & Mode Toggle ---
-        if (key === 'tab') {
-            if (event) event.preventDefault();
-            // lookモードが有効な場合は解除
-            if (this.lookMode) {
-                this.endLookMode();
-            }
-            this.toggleCodexMode();
-            this.game.toggleMode();
+        // if (key === 'tab') {
+        //     if (event) event.preventDefault();
+        //     // lookモードが有効な場合は解除
+        //     if (this.lookMode) {
+        //         this.endLookMode();
+        //     }
+        //     this.toggleCodexMode();
+        //     this.game.toggleMode();
+        //     return;
+        // }
+
+        // --- Mode-Specific Input Handling ---
+        // if (this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
+        //     this.handleCodexModeInput(key);
+        //     return;
+        // }
+        
+        if (this.game.mode === GAME_CONSTANTS.MODES.WIKI) {
+            this.handleWikiModeInput(key);
             return;
         }
 
@@ -1080,16 +1097,8 @@ class InputHandler {
                 return;
             }
 
-            const skill = this.game.codexSystem.findSkillById(skillData.id);
-            if (skill.requiresTarget) {
-                this.startTargeting(skillData.id);
-            } else {
-                // Use the skill and process turn if it's not a free action
-                const result = player.useSkill(skillData.id, null, this.game);
-                if (result && !skill.isFreeAction) {
-                    this.game.processTurn();
-                }
-            }
+            // スキルシステムを削除したため、スキルは使用できません
+            this.game.logger.add("Skill system has been removed.", "warning");
             return;
         }
 
@@ -1201,71 +1210,7 @@ class InputHandler {
     // ----------------------
     // Codex Mode Input Handling
     // ----------------------
-    handleCodexModeInput(key) {
-        // 現在のコードセクションで使用する変数
-        const codex = this.game.codexSystem;
-        const keyLower = key.toLowerCase();
-
-        // スペースキーの処理を追加
-        if (key === ' ') {
-            codex.toggleInputMode();
-            this.game.renderer.renderCodexMenu();
-            return;
-        }
-
-        // ↓↓↓ Codexモードの実装 ↓↓↓
-        if (this.skillSlotSwapMode && key.match(/^\d$/)) {
-            // スキル入れ替えモード中の数字キー押下
-
-            const slotNum = parseInt(key);
-            if (slotNum >= 0 && slotNum <= 9 && this.game.player.skills.has(slotNum)) {
-                if (codex.replaceSkill(slotNum, this.game.player)) {
-                    this.renderMap();
-                    this.game.renderer.renderCodexMenu();
-                }
-                return;
-            }
-            return;
-        }
-
-        if (codex.inputMode === 'category') {
-            // --- Category Selection Mode ---
-            for (let cat in codex.categories) {
-                if (keyLower === codex.categories[cat].key) {
-                    codex.currentCategory = cat;
-                    this.game.renderer.renderCodexMenu();
-                    return;
-                }
-            }
-        } else {
-            // --- Skill Input Mode ---
-            if (key === 'backspace') {
-                codex.updateInputBuffer(codex.inputBuffer.slice(0, -1));
-                this.game.renderer.renderCodexMenu();
-                return;
-            }
-
-            if (key === 'enter' && codex.suggestions.length > 0) {
-                const result = codex.tryLearnSkill(codex.suggestions[0].id, this.game.player);
-                if (result === true) {
-                    this.game.logger.add(`Learned skill: ${codex.suggestions[0].name}`, "important");
-                    codex.clearInput();
-                } else if (result === 'replace') {
-                    this.game.logger.add("Select slot to replace", "warning");
-                } else {
-                    this.game.logger.add(result, "warning");
-                }
-                this.renderMap();
-                this.game.renderer.renderCodexMenu();
-                return;
-            }
-
-            if (key.length === 1 && /[a-zA-Z]/.test(key)) {
-                codex.updateInputBuffer(codex.inputBuffer + key);
-                this.game.renderer.renderCodexMenu();
-            }
-        }
-    }
+    // handleCodexModeInputメソッドを削除
 
     // ----------------------
     // Look Mode Methods
@@ -1413,17 +1358,16 @@ class InputHandler {
         }
 
         // --- Acquire Skill Information ---
-        // --- Acquire Skill Information ---
-const skill = this.game.codexSystem.findSkillById(this.targetingMode);
-let range = 3; // デフォルトの範囲
+        // const skill = this.game.codexSystem.findSkillById(this.targetingMode);
+        let range = 3; // デフォルトの範囲
 
-// スキルにgetRangeメソッドがある場合はそれを使用
-if (skill.getRange) {
-    range = skill.getRange(player);
-} else if (skill.range) {
-    // 従来のrangeプロパティがある場合はそれを使用
-    range = skill.range;
-}
+        // // スキルにgetRangeメソッドがある場合はそれを使用
+        // if (skill.getRange) {
+        //     range = skill.getRange(player);
+        // } else if (skill.range) {
+        //     // 従来のrangeプロパティがある場合はそれを使用
+        //     range = skill.range;
+        // }
 
         // --- Validate Target Distance and Tile ---
         const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(this.targetX, this.targetY, player.x, player.y);
@@ -1435,14 +1379,17 @@ if (skill.getRange) {
             return;
         }
 
-        const result = player.useSkill(this.targetingMode, targetPos, this.game);
+        // const result = player.useSkill(this.targetingMode, targetPos, this.game);
         this.targetingMode = null;
         this.game.renderer.clearHighlight();
 
         // --- Process Turn if Skill Use is Successful ---
-        if (result) {
-            this.game.processTurn();
-        }
+        // if (result) {
+        //     this.game.processTurn();
+        // }
+        
+        // スキルシステムを削除したため、スキルは使用できません
+        this.game.logger.add("Skill system has been removed.", "warning");
     }
 
     cancelTargeting() {
@@ -1626,14 +1573,7 @@ if (skill.getRange) {
     // ----------------------
     // Misc: Toggle Codex Mode
     // ----------------------
-    toggleCodexMode() {
-        document.body.classList.toggle('codex-mode');
-        const gameModeElem = document.getElementById('game-mode');
-        if (!gameModeElem) {
-            //console.warn("'game-mode' element not found. Please add <div id=\"game-mode\"></div> to your HTML.");
-            return;
-        }
-    }
+    // toggleCodexModeメソッドを削除
 
     // ----------------------
     // Utility Methods
@@ -1787,9 +1727,16 @@ if (skill.getRange) {
             if (helpPanel && this.game.mode === GAME_CONSTANTS.MODES.HELP) {
                 helpPanel.scrollTop -= scrollAmount;
             }
-            if (codexPanel && this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
-                codexPanel.scrollTop -= scrollAmount;
+            // if (codexPanel && this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
+            //     codexPanel.scrollTop -= scrollAmount;
+            // }
+            
+            if (helpPanel && this.game.mode === GAME_CONSTANTS.MODES.HELP) {
+                helpPanel.scrollTop += scrollAmount;
             }
+            // if (codexPanel && this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
+            //     codexPanel.scrollTop += scrollAmount;
+            // }
         } else if (key === ']') {
             // 下方向スクロール
             if (logPanel) {
@@ -1801,9 +1748,9 @@ if (skill.getRange) {
             if (helpPanel && this.game.mode === GAME_CONSTANTS.MODES.HELP) {
                 helpPanel.scrollTop += scrollAmount;
             }
-            if (codexPanel && this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
-                codexPanel.scrollTop += scrollAmount;
-            }
+            // if (codexPanel && this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
+            //     codexPanel.scrollTop += scrollAmount;
+            // }
         }
     }
 
@@ -1920,10 +1867,10 @@ if (skill.getRange) {
         const skillData = player.skills.get(slotKey);
         //console.log('Selected skill data:', skillData);
         
-        const skill = this.game.codexSystem.findSkillById(skillData.id);
+        // const skill = this.game.codexSystem.findSkillById(skillData.id);
         //console.log('Found skill:', skill);
         
-        this.game.logger.add(`Select another skill slot to swap with ${skill.name} (Slot ${slotKey})`, "info");
+        this.game.logger.add(`Select another skill slot to swap with skill in Slot ${slotKey}`, "info");
     }
     
     // スキルスロット並べ替えモードの処理メソッド

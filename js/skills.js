@@ -35,23 +35,23 @@ const SKILLS = {
                         player.nextAttackModifiers = [];
                     }
 
+                    // 次の攻撃に修飾効果を追加
                     player.nextAttackModifiers.push({
-                        name: 'Power Strike',
-                        damageMod: 1 + damageBonus,
-                        accuracyMod: accuracyPenalty,
-                        duration: 1
+                        type: 'powerStrike',
+                        damageMultiplier: 1.0 + (0.3 * strRatio),
+                        accuracyModifier: -30 * (1 / strRatio),
+                        message: (player) => 
+                        // `You prepare a powerful strike! ${game.codexSystem.findSkillById('powerStrike').getEffectText(player)}`,
+                        `You prepare a powerful strike! (DMG +${Math.floor((strRatio * 0.3) * 100)}%, ACC -${Math.floor(30 * (1 / strRatio))}%)`,
                     });
-                    
-                    game.logger.add(
-                        `You prepare a powerful strike! ${game.codexSystem.findSkillById('powerStrike').getEffectText(player)}`, 
-                        "playerInfo"
-                    );
-                    game.renderer.render();
-                    game.renderer.showNextAttackModifierEffect(player.x, player.y);
 
                     // 効果音を再生
-                    game.playSound('nextAttackModifierSound');
-
+                    game.playSound('powerStrikeSound');
+                    
+                    // 視覚効果を表示
+                    game.renderer.showNextAttackModifierEffect(player.x, player.y);
+                    
+                    game.logger.add(`You prepare a powerful strike! (DMG +${Math.floor((strRatio * 0.3) * 100)}%, ACC -${Math.floor(30 * (1 / strRatio))}%)`, "important");
                     return true;
                 }
             },
@@ -83,15 +83,17 @@ const SKILLS = {
                     const speedBoost = Math.min(5, currentSpeed.value + 1);
 
                     player.nextAttackModifiers.push({
-                        name: 'Quick Slash',
-                        damageMod: 1,
-                        accuracyMod: 0.2,
-                        speedTier: speedBoost,
-                        duration: 1
+                        type: 'quick',
+                        damageMultiplier: 1.0 - (0.2 * (1 / dexRatio)),
+                        accuracyModifier: 40 * dexRatio,
+                        message: (player) => 
+                        // `You prepare a quick strike! ${game.codexSystem.findSkillById('quick').getEffectText(player)}`,
+                        `You prepare a quick strike! (DMG -${Math.floor(20 * (1 / dexRatio))}%, ACC +${Math.floor((dexRatio * 0.4) * 100)}%)`,
                     });
                     
                     game.logger.add(
-                        `You prepare a quick strike! ${game.codexSystem.findSkillById('quick').getEffectText(player)}`, 
+                        // `You prepare a quick strike! ${game.codexSystem.findSkillById('quick').getEffectText(player)}`, 
+                        `You prepare a quick strike! (DMG -${Math.floor(20 * (1 / dexRatio))}%, ACC +${Math.floor((dexRatio * 0.4) * 100)}%)`,
                         "playerInfo"
                     );
                     game.renderer.render();

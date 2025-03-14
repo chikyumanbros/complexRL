@@ -169,7 +169,6 @@ class DebugUtils {
         
         if (e.key === 'c') {
             this.currentStatMode = 'codex';
-            this.game.logger.add(`Now Editing: CODEX (Codex Points)`, "important");
             this.updateDebugPanel();
             return;
         }
@@ -267,7 +266,6 @@ class DebugUtils {
         this.game.logger.add("5: WIS (Wisdom)", "important");
         this.game.logger.add("x: XP (Experience)", "important");
         this.game.logger.add("l: LEVEL", "important");
-        this.game.logger.add("c: CODEX", "important");
         this.game.logger.add("+/-: Increase/Decrease value", "important");
         this.game.logger.add("ESC: Exit Edit Mode", "important");
         this.game.logger.add(`Currently Editing: ${this.currentStatMode ? this.currentStatMode.toUpperCase() : 'None'}`, "important");
@@ -399,9 +397,6 @@ class DebugUtils {
             </div>
             <div ${isLevelActive ? 'style="color: yellow;"' : ''}>
                 <strong>LEVEL:</strong> ${player.level}
-            </div>
-            <div ${isCodexActive ? 'style="color: yellow;"' : ''}>
-                <strong>CODEX:</strong> ${player.codexPoints}
             </div>
         `;
         

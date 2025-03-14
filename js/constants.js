@@ -193,18 +193,11 @@ const GAME_CONSTANTS = {
             4: { color: '#e67e22', name: 'Large' },
             5: { color: '#e74c3c', name: 'Huge' }
         },
-        CODEX_CATEGORY: {
-            combat: '#e74c3c',     // 赤 - 戦闘
-            acrobatics: '#3498db',    // 青 - 移動
-            defense: '#f1c40f',     // 黄 - 防御
-            mind: '#2ecc71'         // 緑 - 精神
-        }
     },
 
     // モード関連
     MODES: {
         GAME: 'game',
-        CODEX: 'codex',
         GAME_OVER: 'game_over',
         HELP: 'help',
         TITLE: 'title',

@@ -211,11 +211,7 @@ class Logger {
     // Update panel display
     updatePanel(game) {
         this.game = game;
-        if (game.mode === GAME_CONSTANTS.MODES.CODEX) {
-            game.renderer.renderCodexMenu();
-        } else {
-            this.renderLookPanel();
-        }
+        this.renderLookPanel();
     }
 
     // Update room information

@@ -668,10 +668,11 @@ class Renderer {
                             backgroundColor = `linear-gradient(${backgroundColor || 'transparent'}, rgba(255, 255, 255, 1))`;
                         } else {
                             const skillId = this.game.inputHandler.targetingMode;
-                            const skill = this.game.codexSystem.findSkillById(skillId);
-                            const range = skill && skill.getRange 
-                                ? skill.getRange(this.game.player) 
-                                : (skill ? skill.range : 1);
+                            // const skill = this.game.codexSystem.findSkillById(skillId);
+                            // const range = skill && skill.getRange 
+                            //     ? skill.getRange(this.game.player) 
+                            //     : (skill ? skill.range : 1);
+                            const range = 3; // デフォルト値
                             const highlightColor = targetDistance <= range &&
                                 !GAME_CONSTANTS.TILES.WALL.includes(this.game.tiles[y][x]) &&
                                 !GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.game.tiles[y][x]) &&
@@ -1052,10 +1053,10 @@ renderStatus() {
                 <span class="label">XP:</span>
                 <span id="xp">${player.xp}/${player.xpToNextLevel}</span>
             </div>
-            <div class="codex-row">
+            <!-- <div class="codex-row">
                 <span class="label">CODEX:</span>
                 <span id="codexPoints">${player.codexPoints}</span>
-            </div>
+            </div> -->
         </div>
 
         ${combatStatsHTML}
@@ -1073,20 +1074,22 @@ renderStatus() {
             ? Array.from(player.skills.entries())
                 .filter(([slot]) => /^[1-9]$/.test(slot))
                 .map(([slot, skillData]) => {
-                    const skill = this.game.codexSystem.findSkillById(skillData.id);
+                    // const skill = this.game.codexSystem.findSkillById(skillData.id);
                     const cooldownText = skillData.remainingCooldown > 0
                         ? ` (CD: ${skillData.remainingCooldown})`
                         : '';
-                    const effectText = skill.getEffectText(player);
+                    // const effectText = skill.getEffectText(player);
+                    const effectText = '';
 
                     // スキルカテゴリーの色を取得
-                    let categoryColor;
-                    for (let cat in this.game.codexSystem.categories) {
-                        if (this.game.codexSystem.categories[cat].skills.some(s => s.id === skill.id)) {
-                            categoryColor = GAME_CONSTANTS.COLORS.CODEX_CATEGORY[cat];
-                            break;
-                        }
-                    }
+                    // let categoryColor;
+                    // for (let cat in this.game.codexSystem.categories) {
+                    //     if (this.game.codexSystem.categories[cat].skills.some(s => s.id === skill.id)) {
+                    //         categoryColor = GAME_CONSTANTS.COLORS.CODEX_CATEGORY[cat];
+                    //         break;
+                    //     }
+                    // }
+                    const categoryColor = '#FFFFFF';
 
                     // スロットの使用可否判定
                     const isAvailable = skillData.remainingCooldown === 0 &&
@@ -1367,8 +1370,8 @@ createRangedCombatStats(player) {
     }
 
     renderCodexMenu() {
-        const display = this.game.codexSystem.getMenuDisplay(this.game.player);  // Pass the player object
-        document.getElementById('available-skills').innerHTML = display.replace(/\n/g, '<br>');
+        // Codexシステムが削除されたため、何も表示しない
+        document.getElementById('available-skills').innerHTML = "Codex system has been removed.";
     }
 
     // New: Method to clean up effects
