@@ -167,70 +167,39 @@ class Game {
         this.tiles = mapData.tiles;
         this.colors = mapData.colors;
         this.rooms = mapData.rooms;
-        
-        // ニューラルオベリスク情報を Game クラスに保存
-        this.neuralObelisks = mapGenerator.neuralObelisks || [];
-        
-        // デバッグログ
-        if (this.neuralObelisks.length > 0) {
-            //console.log('Neural Obelisks saved to Game:', this.neuralObelisks);
-        }
-        
-        // 高さと幅を定数から再設定して一貫性を保つ
-        this.width = GAME_CONSTANTS.DIMENSIONS.WIDTH;
-        this.height = GAME_CONSTANTS.DIMENSIONS.HEIGHT;
 
-        this.monsters = [];
-        this.totalMonstersSpawned = 0;
-        this.explored = this.initializeExplored();
-        this.turn = 0;  // フロアごとのターン数をリセット
-        
-        // 蜘蛛の巣情報をリセット
-        this.webs = [];
-        
-        // マップ生成時に設置された蜘蛛の巣をゲームオブジェクトに追加
-        if (mapGenerator.initialWebs && mapGenerator.initialWebs.length > 0) {
-            //console.log(`マップ生成時に ${mapGenerator.initialWebs.length} 個の蜘蛛の巣を配置しました。`);
-            
-            // 初期化されていなければ初期化
-            if (!this.webs) {
-                this.webs = [];
-            }
-            
-            // マップ生成時の蜘蛛の巣を追加
-            this.webs.push(...mapGenerator.initialWebs);
-        } else {
-            //console.warn('マップ生成時に蜘蛛の巣が生成されませんでした');
-        }
-        
-        // Home Floorモードのために、階段の位置を記録
-        if (this.homeFloorData) {
-            this.homeFloorData.stairsPos = this.findStairsPosition();
-        }
-
-        // プレイヤーを配置
+        // Reposition the player
         this.placePlayerInRoom();
-        this.player.autoExploring = false;
-        
-        // モンスターの初期配置
+
+        // Create a new input handler
+        this.inputHandler = new InputHandler(this);
+
+        // Reposition monsters
         this.spawnInitialMonsters();
-        // Initialize and display information
-        const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
-        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);
-        this.updateRoomInfo();
 
-        // プレイヤーの初期位置周辺を探索済みにマーク
-        this.updateExplored();
+        // Reinitialize the renderer
+        this.renderer = new Renderer(this);
 
-        // Setup input handling and rendering
+        // Display initial message
+        this.logger.add("Welcome to complexRL!", "important");
+
+        // Set mode to GAME mode
+        this.mode = GAME_CONSTANTS.MODES.GAME;
+
+        // Update the screen (display the look panel)
         this.renderer.render();
-        this.inputHandler.bindKeys();
+        this.logger.renderLookPanel();  // Display look panel
+        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);  // Update floor info in Logger
+        this.updateRoomInfo();  // Update surrounding room information
+        this.updateExplored();  // Update explored information
+        this.saveGame();
 
         // プレイヤー名入力画面を表示
         this.renderer.renderNamePrompt('');
         this.inputHandler.setMode('name');
 
-        // BGMの初期化はSoundManagerに任せる
+        // リセット時にBGMも更新
+        this.soundManager.updateBGM(); // soundManager経由で呼び出し
     }
 
     init() {
@@ -699,14 +668,8 @@ class Game {
             this.logger.updateLookInfo(target.x, target.y);
         }
 
-        // ホームフロアでのステータス更新は、プレイヤーのステータスが変化した時のみ実行
         if (this.floorLevel === 0) {
-            // HPが最大値未満、Vigorが最大値未満、またはスキルのクールダウンがある場合のみ更新
-            if (this.player.hp < this.player.maxHp || 
-                this.player.vigor < GAME_CONSTANTS.VIGOR.MAX ||
-                (this.player.skills && Array.from(this.player.skills.values()).some(skill => skill.remainingCooldown > 0))) {
-                this.updateHomeFloorStatus();
-            }
+            this.updateHomeFloorStatus();
         }
     }
 
@@ -733,61 +696,6 @@ class Game {
                 skill.remainingCooldown = 0;
             }
         }
-
-        // サイバー風の壁タイルをGAME_CONSTANTSから使用
-        const cyberWallTiles = GAME_CONSTANTS.TILES.CYBER_WALL;
-
-        // 毎ターン床タイルと壁タイルをランダムに変更
-        const centerRoom = this.rooms[0];  // ホームフロアは1つの部屋のみ
-
-        // 初回のみ宇宙空間を生成するためのフラグ
-        const isFirstUpdate = !this.lastHomeFloorUpdate;
-
-        // 宇宙空間は初回のみ設定し、その後は更新しない
-        if (isFirstUpdate) {
-            // 初回のみ全マップを処理
-            for (let y = 0; y < GAME_CONSTANTS.DIMENSIONS.HEIGHT; y++) {
-                for (let x = 0; x < this.width; x++) {
-                    // 階段タイルはスキップ
-                    if (this.tiles[y][x] === GAME_CONSTANTS.STAIRS.CHAR) {
-                        continue;
-                    }
-
-                    // 部屋の外側の宇宙空間
-                    if (x < centerRoom.x - 1 || x >= centerRoom.x + centerRoom.width + 1 ||
-                        y < centerRoom.y - 1 || y >= centerRoom.y + centerRoom.height + 1) {
-                        this.map[y][x] = 'space';
-                        this.tiles[y][x] = GAME_CONSTANTS.TILES.SPACE[
-                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE.length)
-                        ];
-                        this.colors[y][x] = GAME_CONSTANTS.TILES.SPACE_COLORS[
-                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE_COLORS.length)
-                        ];
-                    }
-                }
-            }
-        }
-
-        // 部屋の中のタイルのみを更新（毎回）
-        for (let y = Math.max(0, centerRoom.y - 1); y <= Math.min(GAME_CONSTANTS.DIMENSIONS.HEIGHT - 1, centerRoom.y + centerRoom.height); y++) {
-            for (let x = Math.max(0, centerRoom.x - 1); x <= Math.min(this.width - 1, centerRoom.x + centerRoom.width); x++) {
-                // 階段タイルはスキップ
-                if (this.tiles[y][x] === GAME_CONSTANTS.STAIRS.CHAR) {
-                    continue;
-                }
-
-                // 部屋の中のタイルを更新
-                if (this.map[y][x] === 'wall') {
-                    this.tiles[y][x] = cyberWallTiles[
-                        Math.floor(Math.random() * cyberWallTiles.length)
-                    ];
-                } else if (this.map[y][x] === 'floor') {
-                    this.tiles[y][x] = Math.random() < 0.5 ? '0' : '1';
-                }
-            }
-        }
-
-        this.lastHomeFloorUpdate = this.turn;
     }
 
     processMonsterDeath(deathInfo) {
@@ -1768,14 +1676,89 @@ class Game {
 
     // Game クラス内に追加するメソッド：指定座標が指定部屋から range 内にあるかを判定する
     isNearRoom(x, y, room, range = 1) {
-        return (
-            x >= room.x - range && x <= room.x + room.width + range &&
-            y >= room.y - range && y <= room.y + room.height + range
-        );
+        for (let dy = -range; dy <= range; dy++) {
+            for (let dx = -range; dx <= range; dx++) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx >= room.x && nx < room.x + room.width &&
+                    ny >= room.y && ny < room.y + room.height) {
+                    return true;
+                }
+            }
+        }
+                return false;
+            }
+
+    updateHomeFloor() {
+        // ホームフロアでのみ実行
+        if (this.floorLevel !== 0) return;
+
+        // HPを全回復
+        if (this.player.hp < this.player.maxHp) {
+            const healAmount = this.player.maxHp - this.player.hp;
+            this.player.hp = this.player.maxHp;
+        }
+
+        // Vigorを全回復
+        if (this.player.vigor < GAME_CONSTANTS.VIGOR.MAX) {
+            this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
+            this.player.validateVigor();  // Add validation after setting vigor
+        }
+
+        // スキルのクールダウンをリセット
+        if (this.player.skills) {
+            for (const skill of this.player.skills.values()) {
+                skill.remainingCooldown = 0;
+            }
+        }
+
+        // サイバー風の壁タイルをGAME_CONSTANTSから使用
+        const cyberWallTiles = GAME_CONSTANTS.TILES.CYBER_WALL;
+
+        // 毎ターン床タイルと壁タイルをランダムに変更
+        const centerRoom = this.rooms[0];  // ホームフロアは1つの部屋のみ
+
+        // 初回のみ宇宙空間を生成するためのフラグ
+        const isFirstUpdate = !this.lastHomeFloorUpdate;
+
+        for (let y = 0; y < GAME_CONSTANTS.DIMENSIONS.HEIGHT; y++) {
+            for (let x = 0; x < this.width; x++) {
+                // 階段タイルはスキップ
+                if (this.tiles[y][x] === GAME_CONSTANTS.STAIRS.CHAR) {
+                    continue;
+                }
+
+                // 部屋の外側の宇宙空間
+                if (x < centerRoom.x - 1 || x >= centerRoom.x + centerRoom.width + 1 ||
+                    y < centerRoom.y - 1 || y >= centerRoom.y + centerRoom.height + 1) {
+                    this.map[y][x] = 'space';
+                    
+                    // 宇宙空間のアニメーションを停止するため、初回のみタイルと色を設定
+                    if (isFirstUpdate || !this.map[y][x] || this.map[y][x] !== 'space') {
+                        this.tiles[y][x] = GAME_CONSTANTS.TILES.SPACE[
+                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE.length)
+                        ];
+                        this.colors[y][x] = GAME_CONSTANTS.TILES.SPACE_COLORS[
+                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE_COLORS.length)
+                        ];
+                    }
+                } else {
+                    // 部屋の中のタイルを更新
+                    if (this.map[y][x] === 'wall') {
+                        this.tiles[y][x] = cyberWallTiles[
+                            Math.floor(Math.random() * cyberWallTiles.length)
+                        ];
+                    } else if (this.map[y][x] === 'floor') {
+                        this.tiles[y][x] = Math.random() < 0.5 ? '0' : '1';
+                    }
+                }
+            }
+        }
+        this.lastHomeFloorUpdate = this.turn;
     }
 
     playSound(audioName) {  // 引数を変更
-        this.soundManager.playSound(audioName);
+        this.soundManager.playSound(audioName);  // SoundManagerのplaySoundを呼び出す
     }
 
     stopSound(audioName) {
@@ -2315,67 +2298,6 @@ class Game {
         this.isShowingHighScores = true;
         
         console.log('ハイスコア表示完了:', codexPanelElement.innerHTML.substring(0, 100) + '...');
-    }
-
-    // ホームフロアの初期化を行うメソッド
-    updateHomeFloor() {
-        // ホームフロアでのみ実行
-        if (this.floorLevel !== 0) return;
-
-        // サイバー風の壁タイルをGAME_CONSTANTSから使用
-        const cyberWallTiles = GAME_CONSTANTS.TILES.CYBER_WALL;
-
-        // 毎ターン床タイルと壁タイルをランダムに変更
-        const centerRoom = this.rooms[0];  // ホームフロアは1つの部屋のみ
-
-        // 初回のみ宇宙空間を生成するためのフラグ
-        const isFirstUpdate = !this.lastHomeFloorUpdate;
-
-        // 宇宙空間は初回のみ設定し、その後は更新しない
-        if (isFirstUpdate) {
-            // 初回のみ全マップを処理
-            for (let y = 0; y < GAME_CONSTANTS.DIMENSIONS.HEIGHT; y++) {
-                for (let x = 0; x < this.width; x++) {
-                    // 階段タイルはスキップ
-                    if (this.tiles[y][x] === GAME_CONSTANTS.STAIRS.CHAR) {
-                        continue;
-                    }
-
-                    // 部屋の外側の宇宙空間
-                    if (x < centerRoom.x - 1 || x >= centerRoom.x + centerRoom.width + 1 ||
-                        y < centerRoom.y - 1 || y >= centerRoom.y + centerRoom.height + 1) {
-                        this.map[y][x] = 'space';
-                        this.tiles[y][x] = GAME_CONSTANTS.TILES.SPACE[
-                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE.length)
-                        ];
-                        this.colors[y][x] = GAME_CONSTANTS.TILES.SPACE_COLORS[
-                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE_COLORS.length)
-                        ];
-                    }
-                }
-            }
-        }
-
-        // 部屋の中のタイルのみを更新（毎回）
-        for (let y = Math.max(0, centerRoom.y - 1); y <= Math.min(GAME_CONSTANTS.DIMENSIONS.HEIGHT - 1, centerRoom.y + centerRoom.height); y++) {
-            for (let x = Math.max(0, centerRoom.x - 1); x <= Math.min(this.width - 1, centerRoom.x + centerRoom.width); x++) {
-                // 階段タイルはスキップ
-                if (this.tiles[y][x] === GAME_CONSTANTS.STAIRS.CHAR) {
-                    continue;
-                }
-
-                // 部屋の中のタイルを更新
-                if (this.map[y][x] === 'wall') {
-                    this.tiles[y][x] = cyberWallTiles[
-                        Math.floor(Math.random() * cyberWallTiles.length)
-                    ];
-                } else if (this.map[y][x] === 'floor') {
-                    this.tiles[y][x] = Math.random() < 0.5 ? '0' : '1';
-                }
-            }
-        }
-
-        this.lastHomeFloorUpdate = this.turn;
     }
 }
 
