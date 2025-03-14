@@ -128,7 +128,8 @@ const SKILLS = {
                 isFreeAction: false,
                 requiresTarget: true,
                 getRange: (player) => {
-                    return Math.floor((player.stats.dex - player.stats.con) / 3) + 3;
+                    const jumpRange = Math.floor((player.stats.dex - player.stats.con) / 3) + 3;
+                    return jumpRange;
                 },
                 getEffectText: (player) => {
                     const jumpRange = Math.floor((player.stats.dex - player.stats.con) / 3) + 3;
@@ -147,12 +148,14 @@ const SKILLS = {
                     }
 
                     // ---- Distance Check ----
-                    const isInJumpRange = visibleTiles.some(tile => 
-                        tile.x === target.x && tile.y === target.y
+                    const jumpRange = Math.floor((player.stats.dex - player.stats.con) / 3) + 3;
+                    const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
+                        player.x, player.y,
+                        target.x, target.y
                     );
-
-                    if (!isInJumpRange) {
-                        game.logger.add("Too far to jump!", "warning");
+                    
+                    if (distance > jumpRange) {
+                        game.logger.add(`Too far to jump! (Range: ${jumpRange})`, "warning");
                         return false;
                     }
 
@@ -195,7 +198,8 @@ const SKILLS = {
                     // ジャンプの効果音を再生
                     game.playSound('jumpSound');
 
-                    return { success: true, skipTurnProcess: true };  // ターン処理をスキップするフラグを追加
+                    // ターンを消費
+                    return { success: true, skipTurnProcess: false };  // skipTurnProcessをfalseに変更
                 }
             }
         ]
@@ -266,15 +270,20 @@ const SKILLS = {
                         return false;
                     }
 
+                    const healPerTurn = Math.floor(player.stats.wis / 3);
+                    const turnsRemaining = Math.floor(player.stats.wis / 2);
+                    const maxVigorRoll = player.level + player.stats.wis;
+
                     player.meditation = {
                         active: true,
                         soundStarted: false,
-                        healPerTurn: Math.floor(player.stats.wis / 3),
-                        turnsRemaining: Math.floor(player.stats.wis / 2),
-                        totalHealed: 0
+                        healPerTurn: healPerTurn,
+                        turnsRemaining: turnsRemaining,
+                        totalHealed: 0,
+                        maxVigorRoll: maxVigorRoll
                     };
 
-                    game.logger.add("Started meditating...", "playerInfo");
+                    game.logger.add(`Started meditating... (HP: ${healPerTurn}/turn, Max turns: ${turnsRemaining})`, "playerInfo");
                     game.renderer.render();
 
                     // 瞑想開始時に効果音をループ再生

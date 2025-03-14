@@ -668,11 +668,13 @@ class Renderer {
                             backgroundColor = `linear-gradient(${backgroundColor || 'transparent'}, rgba(255, 255, 255, 1))`;
                         } else {
                             const skillId = this.game.inputHandler.targetingMode;
-                            // const skill = this.game.codexSystem.findSkillById(skillId);
-                            // const range = skill && skill.getRange 
-                            //     ? skill.getRange(this.game.player) 
-                            //     : (skill ? skill.range : 1);
-                            const range = 3; // デフォルト値
+                            const skill = SKILLS[Object.keys(SKILLS).find(category => 
+                                SKILLS[category].skills.some(s => s.id === skillId)
+                            )]?.skills.find(s => s.id === skillId);
+                            
+                            const range = skill && skill.getRange 
+                                ? skill.getRange(this.game.player) 
+                                : 3; // デフォルト値
                             const highlightColor = targetDistance <= range &&
                                 !GAME_CONSTANTS.TILES.WALL.includes(this.game.tiles[y][x]) &&
                                 !GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.game.tiles[y][x]) &&
