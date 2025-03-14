@@ -402,6 +402,12 @@ class InputHandler {
     }
 
     handleNameInput(key, event) {
+        // 名前入力時はタイプライターエフェクトを完全に無効化
+        const messageLogElement = document.getElementById('message-log');
+        if (messageLogElement) {
+            messageLogElement.classList.add('no-typewriter');
+        }
+
         if (key === 'Enter' && this.nameBuffer.trim().length > 0) {
             this.game.player.name = this.nameBuffer.trim();
             this.game.renderer.renderStatus();
@@ -432,6 +438,12 @@ class InputHandler {
 
     // 新規: キャラクター作成モードの入力処理
     handleCharacterCreation(key) {
+        // キャラクター作成時もタイプライターエフェクトを無効化
+        const messageLogElement = document.getElementById('message-log');
+        if (messageLogElement) {
+            messageLogElement.classList.add('no-typewriter');
+        }
+
         const statMap = {
             's': 'str',
             'd': 'dex',
@@ -453,6 +465,11 @@ class InputHandler {
             this.game.mode = GAME_CONSTANTS.MODES.GAME;  // ゲームモードに設定
             this.game.processTurn();  // 最初のターンを処理
             this.renderMap();  // 画面を更新
+
+            // ゲーム開始時にタイプライターエフェクトを再有効化
+            if (messageLogElement) {
+                messageLogElement.classList.remove('no-typewriter');
+            }
             return;
         }
 
@@ -466,7 +483,8 @@ class InputHandler {
             this.game.player.updateDerivedStats();
             // HPを最大値に設定
             this.game.player.hp = this.game.player.maxHp;
-            this.game.renderer.renderStatus();
+            // 軽量な更新方法を使用
+            this.game.renderer.updateStatusPanel(this.game.player.getStatus());
         }
     }
 

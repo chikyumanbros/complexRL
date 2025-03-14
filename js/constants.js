@@ -206,8 +206,8 @@ const GAME_CONSTANTS = {
 
     // ディメンション関連
     DIMENSIONS: {
-        WIDTH: 96,
-        HEIGHT: 35
+        WIDTH: 97,
+        HEIGHT: 38
     },
 
     // 部屋生成関連

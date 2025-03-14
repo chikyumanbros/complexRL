@@ -61,6 +61,9 @@ class Renderer {
 
     // 明るさの更新のみを行うメソッドを追加
     updateLightingOnly() {
+        // ホームフロアでは照明更新をスキップ
+        if (this.game.floorLevel === 0) return;
+        
         // 視界内のタイルを取得
         const visibleTiles = new Set(
             this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
@@ -231,6 +234,9 @@ class Renderer {
         const container = document.getElementById('game');
         if (!container) return;
         
+        // ホームフロアかどうかを判定
+        const isHomeFloor = this.game.floorLevel === 0;
+        
         // プレイヤーとその周辺のタイルのみを更新
         const px = this.game.player.x;
         const py = this.game.player.y;
@@ -288,6 +294,19 @@ class Renderer {
             if (isVisible) {
                 content = this.game.tiles[y][x];
                 style = `color: ${this.game.colors[y][x]}`;
+                
+                // ホームフロアでは照明エフェクトを省略
+                if (!isHomeFloor && !isPlayerTile && !monster) {
+                    const distance = Math.max(Math.abs(x - px), Math.abs(y - py));
+                    let baseOpacity = distance <= 1 ? 1.0 : 
+                                     distance <= 3 ? 0.9 : 
+                                     distance <= 5 ? 0.7 : 0.5;
+                    
+                    // 灯りエフェクトの計算（高速版）
+                    const { opacity: tileOpacity, color: flickerColor } = this.calculateFlicker(baseOpacity, x, y);
+                    opacity = tileOpacity;
+                    backgroundColor = flickerColor;
+                }
                 
                 if (isPlayerTile) {
                     content = this.game.player.char;
@@ -415,6 +434,9 @@ class Renderer {
         container.style.gridTemplateRows = `repeat(${GAME_CONSTANTS.DIMENSIONS.HEIGHT}, 1fr)`;
         container.style.gridTemplateColumns = `repeat(${GAME_CONSTANTS.DIMENSIONS.WIDTH}, 1fr)`;
         container.style.gap = '0';
+        
+        // ホームフロアかどうかを判定
+        const isHomeFloor = this.game.floorLevel === 0;
         
         // 可視タイルを取得（キャッシュ化の候補）
         const visibleTiles = new Set(
@@ -588,10 +610,16 @@ class Renderer {
                         baseOpacity = 0.5;
                     }
 
-                    // 灯りエフェクトの計算
-                    const { opacity: tileOpacity, color: flickerColor } = this.calculateFlicker(baseOpacity, x, y);
-                    opacity = tileOpacity;
-                    backgroundColor = flickerColor;
+                    // ホームフロアでは照明エフェクトを省略
+                    if (isHomeFloor) {
+                        opacity = baseOpacity;
+                        backgroundColor = 'transparent';
+                    } else {
+                        // 灯りエフェクトの計算
+                        const { opacity: tileOpacity, color: flickerColor } = this.calculateFlicker(baseOpacity, x, y);
+                        opacity = tileOpacity;
+                        backgroundColor = flickerColor;
+                    }
 
                     content = this.game.tiles[y][x];
                     style = `color: ${this.game.colors[y][x]}`;
@@ -2066,109 +2094,121 @@ createRangedCombatStats(player) {
         const messageLogElement = document.getElementById('message-log');
         if (!messageLogElement) return;
 
-        // ログパネルをクリア
-        messageLogElement.innerHTML = '';
+        // タイプライターエフェクトを完全に無効化
+        messageLogElement.classList.add('no-typewriter');
 
-        // タイトルアートの後に追加するクレジット情報
-        const credits = [
-            "",
-            "",
-            "v0.1.0 alpha ©︎chikyuman-bros.",
-            "",
-            "",
-            "Font: IBM EGA 9x8 & IBM VGA 8x16 || Source: The Ultimate Oldschool PC Font Pack by VileR",
-            "Licensed under CC BY-SA 4.0",
-            "https://int10h.org/oldschool-pc-fonts/",
-        ];
-
-        // バージョン表記とタイトルアートを表示
-        const titleArt = [
-            "  ▄████▄   ▒█████   ███▄ ▄███▓ ██▓███   ██▓    ▓█████ ▒██   ██▒",
-            " ▒██▀ ▀█  ▒██▒  ██▒▓██▒▀█▀ ██▒▓██░  ██▒▓██▒    ▓█   ▀ ▒▒ █ █ ▒░",
-            " ▒▓█    ▄ ▒██░  ██▒▓██    ▓██░▓██░ ██▓▒▒██░    ▒███   ░░  █   ░",
-            " ▒▓▓▄ ▄██▒▒██   ██░▒██    ▒██ ▒██▄█▓▒ ▒▒██░    ▒▓█  ▄  ░ █ █ ▒ ",
-            " ▒ ▓███▀ ░░ ████▓▒░▒██▒   ░██▒▒██▒ ░  ░░██████▒░▒████▒▒██▒ ▒██▒",
-            " ░ ░▒ ▒  ░░ ▒░▒░▒░ ░ ▒░   ░  ░▒▓▒░ ░  ░░ ▒░▓  ░░░ ▒░ ░▒▒ ░ ░▓ ░",
-            "   ░  ▒     ░ ▒ ▒░ ░  ░      ░░▒ ░     ░ ░ ▒  ░ ░ ░  ░░░   ░▒ ░",
-            " ░        ░ ░ ░ ▒  ░      ░   ░░         ░ ░      ░    ░    ░  ",
-            " ░ ░          ░ ░         ░                ░  ░   ░  ░ ░    ░  ",
-        ];
-
-        // 静的コンテンツ（タイトルアートとクレジット）用の別のコンテナを作成
-        const staticContainer = document.createElement('div');
-        staticContainer.style.animation = 'none';
-        staticContainer.style.transition = 'none';
-        staticContainer.className = 'static-content';
-        staticContainer.style.display = 'block';
-        staticContainer.style.visibility = 'visible';
-        staticContainer.style.opacity = '1';
-        messageLogElement.appendChild(staticContainer);
+        // 静的コンテンツが既に描画されているか確認
+        let staticContainer = document.getElementById('static-title-container');
+        let dynamicContainer = document.getElementById('dynamic-name-input-container');
         
-        // タイトルアート用のコンテナを作成
-        const titleArtContainer = document.createElement('div');
-        titleArtContainer.className = 'title-art-container';
-        titleArtContainer.style.animation = 'none';
-        titleArtContainer.style.transition = 'none';
-        titleArtContainer.style.lineHeight = '0.5';
-        titleArtContainer.style.margin = '5px';
-        titleArtContainer.style.padding = '0';
-        titleArtContainer.style.display = 'block';
-        titleArtContainer.style.visibility = 'visible';
-        titleArtContainer.style.opacity = '1';
-        staticContainer.appendChild(titleArtContainer);
-        
-        // タイトルアートを表示
-        titleArt.forEach(line => {
-            const div = document.createElement('div');
-            div.textContent = line;
-            div.className = 'message title';
-            div.style.animation = 'none';
-            div.style.transition = 'none';
-            div.style.whiteSpace = 'pre';
-            div.style.lineHeight = '0.8';
-            div.style.margin = '0';
-            div.style.padding = '0';
-            div.style.display = 'block';
-            div.style.visibility = 'visible';
-            div.style.opacity = '1';
-            div.style.color = '#fffdd0'; // クリーム色で確実に表示
-            div.style.fontSize = '20px';
-            titleArtContainer.appendChild(div);
-        });
-        
-        // 空行とクレジットを表示
-        ['', ...credits].forEach(line => {
-            const div = document.createElement('div');
+        // 初回描画時のみ静的コンテンツを作成
+        if (!staticContainer) {
+            // ログパネルをクリア
+            messageLogElement.innerHTML = '';
             
-            // URLを含む行の場合はアンカータグにする
-            if (line.includes('http')) {
-                div.innerHTML = line.replace(
-                    /(https?:\/\/[^\s]+)/g, 
-                    '<a href="$1" target="_blank" style="color: #66ccff; text-decoration: underline;">$1</a>'
-                );
-            } else {
+            // 静的コンテンツ用のコンテナを作成
+            staticContainer = document.createElement('div');
+            staticContainer.id = 'static-title-container';
+            staticContainer.className = 'static-content';
+            messageLogElement.appendChild(staticContainer);
+
+            // タイトルアートの後に追加するクレジット情報
+            const credits = [
+                "",
+                "",
+                "v0.1.0 alpha ©︎chikyuman-bros.",
+                "",
+                "",
+                "Font: IBM EGA 9x8 & IBM VGA 8x16 || Source: The Ultimate Oldschool PC Font Pack by VileR",
+                "Licensed under CC BY-SA 4.0",
+                "https://int10h.org/oldschool-pc-fonts/",
+            ];
+
+            // バージョン表記とタイトルアートを表示
+            const titleArt = [
+                "  ▄████▄   ▒█████   ███▄ ▄███▓ ██▓███   ██▓    ▓█████ ▒██   ██▒",
+                " ▒██▀ ▀█  ▒██▒  ██▒▓██▒▀█▀ ██▒▓██░  ██▒▓██▒    ▓█   ▀ ▒▒ █ █ ▒░",
+                " ▒▓█    ▄ ▒██░  ██▒▓██    ▓██░▓██░ ██▓▒▒██░    ▒███   ░░  █   ░",
+                " ▒▓▓▄ ▄██▒▒██   ██░▒██    ▒██ ▒██▄█▓▒ ▒▒██░    ▒▓█  ▄  ░ █ █ ▒ ",
+                " ▒ ▓███▀ ░░ ████▓▒░▒██▒   ░██▒▒██▒ ░  ░░██████▒░▒████▒▒██▒ ▒██▒",
+                " ░ ░▒ ▒  ░░ ▒░▒░▒░ ░ ▒░   ░  ░▒▓▒░ ░  ░░ ▒░▓  ░░░ ▒░ ░▒▒ ░ ░▓ ░",
+                "   ░  ▒     ░ ▒ ▒░ ░  ░      ░░▒ ░     ░ ░ ▒  ░ ░ ░  ░░░   ░▒ ░",
+                " ░        ░ ░ ░ ▒  ░      ░   ░░         ░ ░      ░    ░    ░  ",
+                " ░ ░          ░ ░         ░               ░  ░   ░  ░   ░      ",
+            ];
+            
+            // タイトルアート用のコンテナを作成
+            const titleArtContainer = document.createElement('div');
+            titleArtContainer.className = 'title-art-container';
+            titleArtContainer.style.animation = 'none';
+            titleArtContainer.style.transition = 'none';
+            titleArtContainer.style.lineHeight = '0.5';
+            titleArtContainer.style.margin = '5px';
+            titleArtContainer.style.padding = '0';
+            titleArtContainer.style.display = 'block';
+            titleArtContainer.style.visibility = 'visible';
+            titleArtContainer.style.opacity = '1';
+            staticContainer.appendChild(titleArtContainer);
+            
+            // タイトルアートを表示
+            titleArt.forEach(line => {
+                const div = document.createElement('div');
                 div.textContent = line;
-            }
+                div.className = 'message title';
+                div.style.animation = 'none';
+                div.style.transition = 'none';
+                div.style.whiteSpace = 'pre';
+                div.style.lineHeight = '0.8';
+                div.style.margin = '0';
+                div.style.padding = '0';
+                div.style.display = 'block';
+                div.style.visibility = 'visible';
+                div.style.opacity = '1';
+                div.style.color = '#fffdd0'; // クリーム色で確実に表示
+                div.style.fontSize = '20px';
+                titleArtContainer.appendChild(div);
+            });
             
-            div.className = 'message title';
-            div.style.animation = 'none';
-            div.style.transition = 'none';
-            div.style.whiteSpace = 'pre';
-            div.style.display = 'block';
-            div.style.visibility = 'visible';
-            div.style.color = '#fffdd0'; // クリーム色で確実に表示
-            div.style.fontSize = '15px';
-            div.style.opacity = '0.8';
-            div.style.lineHeight = '0.8'; // 行間をさらに詰める
-            div.style.margin = '5px'; // マージンを0に
-            div.style.padding = '0.5px'; // パディングを0に
-            staticContainer.appendChild(div);
-        });
-
-        // プロンプトメッセージ用の別のコンテナを作成
-        const dynamicContainer = document.createElement('div');
-        dynamicContainer.className = 'dynamic-content';
-        messageLogElement.appendChild(dynamicContainer);
+            // 空行とクレジットを表示
+            ['', ...credits].forEach(line => {
+                const div = document.createElement('div');
+                
+                // URLを含む行の場合はアンカータグにする
+                if (line.includes('http')) {
+                    div.innerHTML = line.replace(
+                        /(https?:\/\/[^\s]+)/g, 
+                        '<a href="$1" target="_blank" style="color: #66ccff; text-decoration: underline;">$1</a>'
+                    );
+                } else {
+                    div.textContent = line;
+                }
+                
+                div.className = 'message title';
+                div.style.animation = 'none';
+                div.style.transition = 'none';
+                div.style.whiteSpace = 'pre';
+                div.style.display = 'block';
+                div.style.visibility = 'visible';
+                div.style.color = '#fffdd0'; // クリーム色で確実に表示
+                div.style.fontSize = '15px';
+                div.style.opacity = '0.8';
+                div.style.lineHeight = '0.8'; // 行間をさらに詰める
+                div.style.margin = '5px'; // マージンを0に
+                div.style.padding = '0.5px'; // パディングを0に
+                staticContainer.appendChild(div);
+            });
+        }
+        
+        // 動的コンテンツ（名前入力部分）の更新
+        if (!dynamicContainer) {
+            dynamicContainer = document.createElement('div');
+            dynamicContainer.id = 'dynamic-name-input-container';
+            dynamicContainer.className = 'dynamic-content';
+            messageLogElement.appendChild(dynamicContainer);
+        } else {
+            // 既存のコンテナをクリア
+            dynamicContainer.innerHTML = '';
+        }
 
         // プロンプトメッセージを追加
         const messages = [
@@ -2177,9 +2217,6 @@ createRangedCombatStats(player) {
             { text: '(Press Enter to confirm)', style: 'hint' }
         ];
 
-        // タイプライターエフェクトを一時的に無効化
-        dynamicContainer.classList.add('no-typewriter');
-
         messages.forEach(msg => {
             const div = document.createElement('div');
             div.textContent = msg.text;
@@ -2187,75 +2224,8 @@ createRangedCombatStats(player) {
             dynamicContainer.appendChild(div);
         });
 
-        // タイプライターエフェクトを再有効化
-        setTimeout(() => {
-            dynamicContainer.classList.remove('no-typewriter');
-        }, 10);
-
         // 最新のメッセージが見えるようにスクロール
         messageLogElement.scrollTop = messageLogElement.scrollHeight;
-    }
-
-    animatePortal(duration, steps, callback) {
-        let currentStep = 0;
-
-        // オリジナルのマップ状態をバックアップ
-        const originalTiles = this.game.tiles.map(row => [...row]);
-        const originalColors = this.game.colors.map(row => [...row]);
-
-        // ポータル遷移開始フラグを設定
-        this.game.isPortalTransitioning = true;
-
-        const animate = () => {
-            if (currentStep >= steps) {
-                // ポータル遷移終了フラグをリセット
-                this.game.isPortalTransitioning = false;
-                // サウンドのフェードアウトを開始
-                this.game.soundManager.fadeOutPortalSound();
-
-                // マップを元の状態に戻す
-                this.game.tiles = originalTiles.map(row => [...row]);
-                this.game.colors = originalColors.map(row => [...row]);
-
-                callback();
-                // 通常のレンダリングを再開
-                this.render();
-                return;
-            }
-
-            // マップ全体のタイルを宇宙空間のタイルと色に変更
-            for (let y = 0; y < this.game.height; y++) {
-                for (let x = 0; x < this.game.width; x++) {
-                    // ポータルからの距離を計算
-                    const distanceFromPortal = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
-                        x, y,
-                        this.game.player.x,
-                        this.game.player.y
-                    );
-
-                    // 距離に応じて変化の確率を調整
-                    const changeThreshold = (currentStep / steps) * 15 - distanceFromPortal;
-
-                    if (Math.random() < Math.max(0, changeThreshold / 15)) {
-                        // SPACE配列からランダムにタイルを選択
-                        this.game.tiles[y][x] = GAME_CONSTANTS.TILES.SPACE[
-                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE.length)
-                        ];
-
-                        // SPACE_COLORSからランダムに色を選択
-                        this.game.colors[y][x] = GAME_CONSTANTS.TILES.SPACE_COLORS[
-                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE_COLORS.length)
-                        ];
-                    }
-                }
-            }
-
-            currentStep++;
-            this.render();
-            setTimeout(() => requestAnimationFrame(animate), duration / steps);
-        };
-
-        animate();
     }
 
     startPortalTransition(callback) {

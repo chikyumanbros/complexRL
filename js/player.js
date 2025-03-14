@@ -721,6 +721,11 @@ class Player {
             return original;
         };
 
+        // 速度情報を取得
+        const speedInfo = GAME_CONSTANTS.FORMULAS.SPEED(this.stats);
+        const speedColor = GAME_CONSTANTS.COLORS.SPEED[speedInfo.value].color;
+        const speedText = `<span style="color: ${speedColor}">${speedInfo.name}</span>`;
+
         return {
             name: "Player",
             level: this.level,
@@ -730,7 +735,7 @@ class Player {
             derived: {
                 attack: `${this.attackPower.base}+${this.attackPower.diceCount}d${this.attackPower.diceSides}`,
                 defense: `${this.defense.base}+${this.defense.diceCount}d${this.defense.diceSides}`,
-                speed: `${GAME_CONSTANTS.FORMULAS.SPEED(this.stats)}`,
+                speed: speedText,
                 accuracy: formatStat(this.accuracy, penalizedAccuracy),
                 evasion: formatStat(this.evasion, penalizedEvasion),
                 perception: this.perception,

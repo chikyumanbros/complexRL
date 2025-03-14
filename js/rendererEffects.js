@@ -51,7 +51,7 @@ class RendererEffects {
      * @returns {Object} - 計算された不透明度と色
      */
     calculateFlicker(baseOpacity, x, y) {
-        // ホームフロアでは灯りのエフェクトを無効化
+        // ホームフロアでは灯りのエフェクトを無効化し、計算を省略
         if (this.renderer.game.floorLevel === 0) {
             return {
                 opacity: baseOpacity,
@@ -71,19 +71,30 @@ class RendererEffects {
         );
 
         // 近隣タイルをチェックして影効果を追加する
+        // パフォーマンス改善のため、プレイヤーから一定距離内のタイルのみ詳細な影計算を行う
         let shadowAdjustment = 0;
-        const neighborOffsets = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-        neighborOffsets.forEach(offset => {
-            const nx = x + offset[0], ny = y + offset[1];
-            if (this.renderer.game.map[ny] && this.renderer.game.map[ny][nx]) {
-                // 壁や遮蔽物に隣接していれば、影として明るさを少し下げる
-                if (this.renderer.game.map[ny][nx] === 'wall' ||
-                    (this.renderer.game.map[ny][nx] === 'obstacle' &&
-                        GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.renderer.game.tiles[ny][nx]))) {
-                    shadowAdjustment -= 0.05;
+        const px = this.renderer.game.player.x;
+        const py = this.renderer.game.player.y;
+        const distance = Math.max(Math.abs(x - px), Math.abs(y - py));
+        
+        // プレイヤーから近い場合のみ詳細な影計算を行う（距離10以内）
+        if (distance <= 10) {
+            const neighborOffsets = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+            neighborOffsets.forEach(offset => {
+                const nx = x + offset[0], ny = y + offset[1];
+                if (this.renderer.game.map[ny] && this.renderer.game.map[ny][nx]) {
+                    // 壁や遮蔽物に隣接していれば、影として明るさを少し下げる
+                    if (this.renderer.game.map[ny][nx] === 'wall' ||
+                        (this.renderer.game.map[ny][nx] === 'obstacle' &&
+                            GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.renderer.game.tiles[ny][nx]))) {
+                        shadowAdjustment -= 0.05;
+                    }
                 }
-            }
-        });
+            });
+        } else {
+            // 遠いタイルは簡易計算（距離に応じて暗くする）
+            shadowAdjustment = -0.05 * (distance / 20);
+        }
 
         // 最終的なタイルの明るさ（影効果を加味）
         const opacity = Math.max(0.4, Math.min(0.8, baseOpacity + flicker * 0.3 + shadowAdjustment));
@@ -1154,8 +1165,8 @@ class RendererEffects {
         // ポータル遷移開始フラグを設定
         this.renderer.game.isPortalTransitioning = true;
 
-        // 変更されたタイルを追跡する配列
-        const changedTiles = [];
+        // 変更されたタイルを追跡する配列（ステップごとにリセット）
+        let changedTiles = [];
 
         const animate = () => {
             if (currentStep >= steps) {
@@ -1184,6 +1195,9 @@ class RendererEffects {
 
             // 現在のステップに基づいて変化の半径を計算
             const radius = Math.floor((currentStep / steps) * 15);
+            
+            // 各ステップで新しいタイルを変更できるように、changedTilesをリセット
+            changedTiles = [];
 
             // 半径内のタイルをランダムに選択して処理
             for (let attempt = 0; attempt < maxTilesToProcess * 2 && tilesProcessed < maxTilesToProcess; attempt++) {
@@ -1200,7 +1214,7 @@ class RendererEffects {
                 
                 // マップの範囲内かチェック
                 if (x >= 0 && x < this.renderer.game.width && y >= 0 && y < this.renderer.game.height) {
-                    // タイルをまだ変更していない場合のみ処理
+                    // タイルをまだ変更していない場合のみ処理（現在のステップ内で）
                     const tileKey = `${x},${y}`;
                     if (!changedTiles.includes(tileKey)) {
                         // SPACE配列からランダムにタイルを選択

@@ -696,6 +696,55 @@ class Game {
                 skill.remainingCooldown = 0;
             }
         }
+
+        // キャラクター作成モード中は宇宙空間のタイルを更新しない
+        if (this.inputHandler && (this.inputHandler.mode === 'characterCreation' || this.inputHandler.mode === 'name')) {
+            return;
+        }
+
+        // サイバー風の壁タイルをGAME_CONSTANTSから使用
+        const cyberWallTiles = GAME_CONSTANTS.TILES.CYBER_WALL;
+
+        // 毎ターン床タイルと壁タイルをランダムに変更
+        const centerRoom = this.rooms[0];  // ホームフロアは1つの部屋のみ
+
+        // 初回のみ宇宙空間を生成するためのフラグ
+        const isFirstUpdate = !this.lastHomeFloorUpdate;
+
+        for (let y = 0; y < GAME_CONSTANTS.DIMENSIONS.HEIGHT; y++) {
+            for (let x = 0; x < this.width; x++) {
+                // 階段タイルはスキップ
+                if (this.tiles[y][x] === GAME_CONSTANTS.STAIRS.CHAR) {
+                    continue;
+                }
+
+                // 部屋の外側の宇宙空間
+                if (x < centerRoom.x - 1 || x >= centerRoom.x + centerRoom.width + 1 ||
+                    y < centerRoom.y - 1 || y >= centerRoom.y + centerRoom.height + 1) {
+                    this.map[y][x] = 'space';
+                    
+                    // 宇宙空間のアニメーションを停止するため、初回のみタイルと色を設定
+                    if (isFirstUpdate || !this.map[y][x] || this.map[y][x] !== 'space') {
+                        this.tiles[y][x] = GAME_CONSTANTS.TILES.SPACE[
+                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE.length)
+                        ];
+                        this.colors[y][x] = GAME_CONSTANTS.TILES.SPACE_COLORS[
+                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE_COLORS.length)
+                        ];
+                    }
+                } else {
+                    // 部屋の中のタイルを更新
+                    if (this.map[y][x] === 'wall') {
+                        this.tiles[y][x] = cyberWallTiles[
+                            Math.floor(Math.random() * cyberWallTiles.length)
+                        ];
+                    } else if (this.map[y][x] === 'floor') {
+                        this.tiles[y][x] = Math.random() < 0.5 ? '0' : '1';
+                    }
+                }
+            }
+        }
+        this.lastHomeFloorUpdate = this.turn;
     }
 
     processMonsterDeath(deathInfo) {
@@ -1710,6 +1759,11 @@ class Game {
             for (const skill of this.player.skills.values()) {
                 skill.remainingCooldown = 0;
             }
+        }
+
+        // キャラクター作成モード中は宇宙空間のタイルを更新しない
+        if (this.inputHandler && (this.inputHandler.mode === 'characterCreation' || this.inputHandler.mode === 'name')) {
+            return;
         }
 
         // サイバー風の壁タイルをGAME_CONSTANTSから使用
