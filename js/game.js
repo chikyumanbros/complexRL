@@ -77,7 +77,7 @@ class Game {
 
         // モードをリセット
         this.mode = GAME_CONSTANTS.MODES.GAME;
-        document.body.classList.remove('codex-mode');
+
         document.body.classList.remove('help-mode');
 
         // スキルのクールダウンをリセット部分は削除
@@ -137,7 +137,6 @@ class Game {
         // Clear the DOM
         const gameElement = document.getElementById('game');
         const messageLogElement = document.getElementById('message-log');
-        const codexMenuElement = document.getElementById('codex-menu');
         const availableSkillsElement = document.getElementById('available-skills');
         const statusElement = document.getElementById('status');
 
@@ -148,7 +147,6 @@ class Game {
             gameElement.style.whiteSpace = 'pre';
         }
         if (messageLogElement) messageLogElement.innerHTML = '';
-        if (codexMenuElement) codexMenuElement.innerHTML = '';
         if (availableSkillsElement) availableSkillsElement.innerHTML = '';
         if (statusElement) {
             // Reset status display
@@ -803,16 +801,12 @@ class Game {
 
         // 経験値とCodexポイントの獲得ログ
         let rewardText = `Gained ${xpGained} XP!`;
-        if (monster.codexPoints) {
-            rewardText += ` and ${monster.codexPoints} codex points!`;
-        }
+       
         this.logger.add(rewardText, "playerInfo");
 
         // 経験値とCodexポイントの付与
         this.player.addExperience(xpGained);
-        if (monster.codexPoints) {
-            this.player.codexPoints += monster.codexPoints;
-        }
+        
 
         if (deathInfo.killedByPlayer) {
             this.monsterKillCount++;  // プレイヤーが倒した場合のみカウント
@@ -927,10 +921,6 @@ class Game {
         } else if (this.mode === GAME_CONSTANTS.MODES.HELP) {
             this.mode = GAME_CONSTANTS.MODES.GAME;
             document.body.classList.remove('help-mode');
-            this.logger.renderLookPanel();
-        } else {
-            this.mode = GAME_CONSTANTS.MODES.GAME;
-            document.body.classList.remove('codex-mode');
             this.logger.renderLookPanel();
         }
 
@@ -1095,9 +1085,8 @@ class Game {
         // Calculate final score.
         const totalXP = this.player.xp;
         const finalScore = {
-            codexPoints: this.player.codexPoints,
             turns: this.totalTurns,  // 全体のターン数を使用
-            totalScore: Math.floor((totalXP * 1.5) + (this.player.codexPoints / Math.max(1, this.totalTurns * 0.01)))  // 全体のターン数を使用
+            totalScore: Math.floor((totalXP * 1.5) / Math.max(1, this.totalTurns * 0.01))  // 全体のターン数を使用
         };
 
         // 死因が設定されていない場合は、最後の戦闘情報から推測
@@ -1504,7 +1493,6 @@ class Game {
                 level: this.player.level,
                 xp: this.player.xp,
                 xpToNextLevel: this.player.xpToNextLevel,
-                codexPoints: this.player.codexPoints,
                 stats: this.player.stats,
                 skills: Array.from(this.player.skills).map(([slot, skill]) => ({
                     slot,
@@ -1594,7 +1582,6 @@ class Game {
             this.player.level = data.player.level ?? 1;
             this.player.xp = data.player.xp ?? 0;
             this.player.xpToNextLevel = data.player.xpToNextLevel ?? 100;
-            this.player.codexPoints = data.player.codexPoints ?? 0;
             this.player.stats = data.player.stats ?? this.player.stats;
             this.player.vigor = (typeof data.player.vigor === 'number' && !isNaN(data.player.vigor)) ? data.player.vigor : GAME_CONSTANTS.VIGOR.MAX;
             this.player.name = data.player.name ?? ''; // プレイヤー名を復元

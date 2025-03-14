@@ -55,7 +55,6 @@ class Monster {
         const basePoints = 1;
         const wisBonus = 1 + Math.max(0, (this.stats.wis - 10) * 0.125);
         const levelBonus = 1 + ((this.level - 1) * 0.5);
-        this.codexPoints = Math.max(1, Math.floor(basePoints * wisBonus * levelBonus));
         
         // --- Derived Parameters ---
         // maxHpを先に計算
@@ -163,7 +162,6 @@ class Monster {
             damage: damage,
             killed: this.hp <= 0,
             evaded: false,
-            codexPoints: this.hp <= 0 ? this.codexPoints : 0,
             newlyFled: false
         };
 

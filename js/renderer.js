@@ -1506,11 +1506,6 @@ createRangedCombatStats(player) {
             xpElement.textContent = status.xp;
         }
 
-        // Update Codex points display
-        const codexElement = document.getElementById('codexPoints');
-        if (codexElement) {
-            codexElement.textContent = this.game.player.codexPoints;
-        }
 
         if (this.statusPanelFlashing) {
             panel.classList.add('flash');

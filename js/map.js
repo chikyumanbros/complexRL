@@ -27,7 +27,7 @@ class MapGenerator {
             this.connectRooms(rooms);
             this.placeDoors(rooms);
             this.placeStairs(rooms);
-            this.placeVoidPortal(); // VOIDポータルを追加
+            this.placeVoidPortal(); // VOIDポータルを追加（現在凍結中）
             this.placeWebsInRooms(rooms);
             this.placeWebsInCorridors();
         }
@@ -1170,6 +1170,10 @@ class MapGenerator {
     }
 
     placeVoidPortal() {
+        // VOIDポータルの生成は現在凍結されています
+        return;
+        
+        /* 以下の処理は凍結中
         // 危険度に基づいて生成確率を決定
         const spawnChances = {
             'SAFE': 0.1,      // 安全な場所には10%の確率で出現
@@ -1223,6 +1227,7 @@ class MapGenerator {
         this.map[pos.y][pos.x] = 'void';  // 'portal'から'void'に変更
         this.tiles[pos.y][pos.x] = GAME_CONSTANTS.PORTAL.VOID.CHAR;
         this.colors[pos.y][pos.x] = GAME_CONSTANTS.PORTAL.VOID.COLORS[0];
+        */
     }
 
     // 部屋内に蜘蛛の巣を配置するメソッド
