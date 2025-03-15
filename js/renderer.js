@@ -25,6 +25,10 @@ class Renderer {
         this.pendingRender = false;   // レンダリングがスケジュールされているか
         this.fastRenderMode = false;  // 高速レンダリングモードかどうか
         this.forceFullRender = false; // 完全な再描画を強制するフラグ
+        
+        // レンダリングスロットリング用の変数
+        this.lastRenderTime = 0;      // 最後のレンダリング時間
+        this.renderThrottleDelay = 50; // 最小レンダリング間隔（ミリ秒）
 
         // エフェクトシステムを初期化
         this.effects = new RendererEffects(this);
@@ -138,51 +142,57 @@ class Renderer {
         // 既にレンダリングがスケジュールされている場合は重複しない
         if (this.pendingRender) return;
         
-        // レンダリングをブラウザの描画サイクルに同期させる
+        // スロットリングを適用（前回のレンダリングから一定時間経過していない場合はスケジュールのみ）
+        const now = performance.now();
+        const timeSinceLastRender = now - this.lastRenderTime;
+        
+        if (timeSinceLastRender < this.renderThrottleDelay) {
+            // 短時間に連続して呼ばれた場合は、最新の1回だけをスケジュール
+            this.pendingRender = true;
+            setTimeout(() => {
+                this._performRender();
+            }, this.renderThrottleDelay - timeSinceLastRender);
+            return;
+        }
+        
+        // 通常のレンダリングをスケジュール
         this.pendingRender = true;
         requestAnimationFrame(() => {
-            // exploredStateのハッシュをチェック（タイル忘却などの検出用）
-            const currentHash = this.effects.calculateExploredHash();
-            if (currentHash !== this.exploredStateHash) {
-                //console.log('Detected change in explored state. Performing full redraw.');
-                this.forceFullRender = true;
-                this.exploredStateHash = currentHash;
-            }
-            
-            this.renderMap();
-            this.renderStatus();
-
-            // Apply meditation effect
-            if (this.game.player.meditation && this.game.player.meditation.active) {
-                this.showMeditationEffect(this.game.player.x, this.game.player.y);
-            }
-
-            // Apply next attack modifier effect if needed
-            if (this.game.player.nextAttackModifiers && this.game.player.nextAttackModifiers.length > 0) {
-                this.showNextAttackModifierEffect(this.game.player.x, this.game.player.y);
-            }
-
-            // Apply movement effects
-            this.movementEffects.forEach(effect => {
-                const tile = document.querySelector(`#game span[data-x="${effect.x}"][data-y="${effect.y}"]`);
-                if (tile) {
-                    tile.classList.add('movement-trail');
-                }
-            });
-
-            // 遠距離攻撃モード中は再度ハイライトを表示
-            if (keepHighlight && currentHighlight) {
-                this.highlightTarget(currentHighlight.x, currentHighlight.y);
-            }
-            
-            // レンダリング完了フラグをリセット
-            this.pendingRender = false;
-            this.fastRenderMode = false;
-            this.forceFullRender = false;
+            this._performRender();
         });
     }
 
-    // 高速レンダリングメソッド - 移動やシンプルな更新用
+    // 実際のレンダリング処理を行うプライベートメソッド
+    _performRender() {
+        // exploredStateのハッシュをチェック（タイル忘却などの検出用）
+        const currentHash = this.effects.calculateExploredHash();
+        if (currentHash !== this.exploredStateHash) {
+            this.forceFullRender = true;
+            this.exploredStateHash = currentHash;
+        }
+        
+        this.renderMap();
+        this.renderStatus();
+
+        // Apply meditation effect
+        if (this.game.player.meditation && this.game.player.meditation.active) {
+            this.showMeditationEffect(this.game.player.x, this.game.player.y);
+        }
+
+        // Apply next attack modifier effect if needed
+        if (this.game.player.nextAttackModifiers && this.game.player.nextAttackModifiers.length > 0) {
+            this.showNextAttackModifierEffect(this.game.player.x, this.game.player.y);
+        }
+
+        // レンダリング完了フラグをリセット
+        this.pendingRender = false;
+        this.forceFullRender = false;
+        
+        // 最後のレンダリング時間を更新
+        this.lastRenderTime = performance.now();
+    }
+
+    // 高速レンダリングメソッドも同様に最適化
     renderFast() {
         // 既にレンダリングがスケジュールされている場合は高速モードに設定して重複しない
         if (this.pendingRender) {
@@ -196,37 +206,58 @@ class Renderer {
             return;
         }
         
+        // スロットリングを適用
+        const now = performance.now();
+        const timeSinceLastRender = now - this.lastRenderTime;
+        
+        if (timeSinceLastRender < this.renderThrottleDelay) {
+            // 短時間に連続して呼ばれた場合は、最新の1回だけをスケジュール
+            this.fastRenderMode = true;
+            this.pendingRender = true;
+            setTimeout(() => {
+                this._performFastRender();
+            }, this.renderThrottleDelay - timeSinceLastRender);
+            return;
+        }
+        
         this.fastRenderMode = true;
         this.pendingRender = true;
         
         // 高優先度でレンダリングをスケジュール
         requestAnimationFrame(() => {
-            // 現在のフロアレベルが変わっていないか確認
-            if (this.lastFloorLevel !== this.game.floorLevel) {
-                console.log('Detected floor level change. Switching to normal rendering.');
-                this.forceFullRender = true;
-                this.renderMap();
-            } else {
-                this.renderMapFast();
-            }
-            
-            this.renderStatus();
-            
-            // Apply meditation effect
-            if (this.game.player.meditation && this.game.player.meditation.active) {
-                this.showMeditationEffect(this.game.player.x, this.game.player.y);
-            }
-
-            // Apply next attack modifier effect if needed
-            if (this.game.player.nextAttackModifiers && this.game.player.nextAttackModifiers.length > 0) {
-                this.showNextAttackModifierEffect(this.game.player.x, this.game.player.y);
-            }
-            
-            // レンダリング完了フラグをリセット
-            this.pendingRender = false;
-            this.fastRenderMode = false;
-            this.forceFullRender = false;
+            this._performFastRender();
         });
+    }
+
+    // 実際の高速レンダリング処理を行うプライベートメソッド
+    _performFastRender() {
+        // 現在のフロアレベルが変わっていないか確認
+        if (this.lastFloorLevel !== this.game.floorLevel) {
+            this.forceFullRender = true;
+            this.renderMap();
+        } else {
+            this.renderMapFast();
+        }
+        
+        this.renderStatus();
+        
+        // Apply meditation effect
+        if (this.game.player.meditation && this.game.player.meditation.active) {
+            this.showMeditationEffect(this.game.player.x, this.game.player.y);
+        }
+
+        // Apply next attack modifier effect if needed
+        if (this.game.player.nextAttackModifiers && this.game.player.nextAttackModifiers.length > 0) {
+            this.showNextAttackModifierEffect(this.game.player.x, this.game.player.y);
+        }
+        
+        // レンダリング完了フラグをリセット
+        this.pendingRender = false;
+        this.fastRenderMode = false;
+        this.forceFullRender = false;
+        
+        // 最後のレンダリング時間を更新
+        this.lastRenderTime = performance.now();
     }
 
     // 高速レンダリング用マップ描画 - プレイヤーとその周辺のみ更新
@@ -240,22 +271,38 @@ class Renderer {
         // プレイヤーとその周辺のタイルのみを更新
         const px = this.game.player.x;
         const py = this.game.player.y;
-        const updateRadius = 8; // プレイヤーの周囲20マスを更新
+        const updateRadius = 6; // 更新範囲を縮小（8→6）
         
         // 更新範囲内のタイルとそのキーを収集
         const tilesToUpdate = [];
         for (let y = Math.max(0, py - updateRadius); y <= Math.min(this.game.height - 1, py + updateRadius); y++) {
             for (let x = Math.max(0, px - updateRadius); x <= Math.min(this.game.width - 1, px + updateRadius); x++) {
-                tilesToUpdate.push({x, y, key: `${x},${y}`});
+                // チェビシェフ距離を使用して円形の更新範囲にする（パフォーマンス向上）
+                const distance = Math.max(Math.abs(x - px), Math.abs(y - py));
+                if (distance <= updateRadius) {
+                    tilesToUpdate.push({x, y, key: `${x},${y}`});
+                }
             }
         }
         
         // 可視タイルを取得（更新範囲内のみ）
-        const visibleTiles = new Set(
-            this.game.getVisibleTiles()
-                .filter(tile => Math.abs(tile.x - px) <= updateRadius && Math.abs(tile.y - py) <= updateRadius)
-                .map(({x, y}) => `${x},${y}`)
-        );
+        // 可視タイルの計算を最適化（毎回計算せず、キャッシュを使用）
+        let visibleTiles;
+        if (this.game.visibleTilesCache) {
+            visibleTiles = new Set(
+                this.game.visibleTilesCache
+                    .filter(tile => Math.abs(tile.x - px) <= updateRadius && Math.abs(tile.y - py) <= updateRadius)
+                    .map(({x, y}) => `${x},${y}`)
+            );
+        } else {
+            visibleTiles = new Set(
+                this.game.getVisibleTiles()
+                    .filter(tile => Math.abs(tile.x - px) <= updateRadius && Math.abs(tile.y - py) <= updateRadius)
+                    .map(({x, y}) => `${x},${y}`)
+            );
+            // キャッシュを保存
+            this.game.visibleTilesCache = this.game.getVisibleTiles();
+        }
         
         // 既存の要素を取得
         const existingTiles = {};
@@ -269,6 +316,10 @@ class Renderer {
         // 高速更新用のタイル状態を構築
         const tileState = {};
         const updatesToDo = [];
+        
+        // バッチ処理のためのグループ化
+        const visibleUpdates = [];
+        const exploredUpdates = [];
         
         // 重要なタイルのみ状態を構築
         tilesToUpdate.forEach(({x, y, key}) => {
@@ -303,44 +354,46 @@ class Renderer {
                                      distance <= 5 ? 0.7 : 0.5;
                     
                     // 灯りエフェクトの計算（高速版）
-                    const { opacity: tileOpacity, color: flickerColor } = this.calculateFlicker(baseOpacity, x, y);
-                    opacity = tileOpacity;
-                    backgroundColor = flickerColor;
+                    // 距離が遠いタイルは簡易計算
+                    if (distance > 3) {
+                        opacity = Math.max(0.4, Math.min(0.8, baseOpacity - (distance / 40)));
+                        backgroundColor = 'rgba(255, 200, 150, 0.1)';
+                    } else {
+                        const { opacity: tileOpacity, color: flickerColor } = this.effects.calculateFlicker(baseOpacity, x, y);
+                        opacity = tileOpacity;
+                        backgroundColor = flickerColor;
+                    }
                 }
                 
-                if (isPlayerTile) {
-                    content = this.game.player.char;
-                    const healthStatus = this.game.player.getHealthStatus(this.game.player.hp, this.game.player.maxHp);
-                    style = `color: ${healthStatus.color}; opacity: 1;`;
-                    
-                    // プレイヤーがポータル上にいる場合、特別なクラスを追加
-                    if (this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
-                        classes.push('player-on-portal');
-                    } else if (this.game.tiles[y][x] === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
-                        classes.push('player-on-void');
-                    }
-                } else if (monster) {
-                    // モンスタータイル
-                    let displayChar = monster.char;
-                    style = `color: ${GAME_CONSTANTS.COLORS.MONSTER[monster.type]}; opacity: 1;`;
-                    
-                    if (monster.hasStartedFleeing) {
-                        classes.push('fleeing-monster');
-                        style += `; --char: '${monster.char}'`;
-                    }
-                    
-                    if (monster.isSleeping) {
-                        style += '; animation: sleeping-monster 1s infinite';
-                    }
-                    content = displayChar;
+                // 瞑想効果の適用（サイケデリックエフェクト）
+                if (this.game.player.meditation?.active) {
+                    const { char, color } = this.effects.calculatePsychedelicEffect(x, y, content, this.game.colors[y][x]);
+                    content = char;
+                    style = `color: ${color}`;
                 }
                 
-                // 必要なスタイルと位置情報を追加
-                style += `; grid-row: ${y + 1}; grid-column: ${x + 1};`;
+                // スタイル文字列を構築
+                style = `color: ${this.game.colors[y][x]}; opacity: ${opacity}; grid-row: ${y + 1}; grid-column: ${x + 1};`;
+                if (backgroundColor) {
+                    style += ` background-color: ${backgroundColor};`;
+                }
                 
-                // キャッシュと比較して変更があるか確認
-                const existingTile = existingTiles[key];
-                const previousState = this.tileStateCache[key];
+                // ハイライト状態を適用
+                if (isHighlighted) {
+                    classes.push('highlighted');
+                    const highlightColor = this.getHighlightColor(x, y);
+                    style += ` color: ${highlightColor};`;
+                }
+                
+                // 移動残像エフェクトを適用
+                if (this.movementEffects) {
+                    for (const effect of this.movementEffects) {
+                        if (effect.x === x && effect.y === y) {
+                            classes.push('movement-trail');
+                            break;
+                        }
+                    }
+                }
                 
                 // キャッシュに現在の状態を保存
                 tileState[key] = {
@@ -350,12 +403,16 @@ class Renderer {
                     isVisible: true
                 };
                 
+                // キャッシュと比較
+                const existingTile = existingTiles[key];
+                const previousState = this.tileStateCache[key];
+                
                 // 前回の状態と比較して変更があれば更新リストに追加
                 if (existingTile) {
                     if (!previousState || 
                         previousState.content !== content || 
                         previousState.classes.join(' ') !== classes.join(' ')) {
-                        updatesToDo.push({
+                        visibleUpdates.push({
                             element: existingTile,
                             content,
                             classes,
@@ -384,7 +441,7 @@ class Renderer {
                 if (existingTile) {
                     // 探索済みタイルも更新
                     if (!previousState || previousState.content !== content) {
-                        updatesToDo.push({
+                        exploredUpdates.push({
                             element: existingTile,
                             content,
                             classes,
@@ -396,9 +453,22 @@ class Renderer {
         });
         
         // 更新が必要なタイルだけをバッチ処理で更新
-        if (updatesToDo.length > 0) {
+        // 可視タイルを優先的に更新
+        if (visibleUpdates.length > 0) {
             // DOMの更新を一度に行う
-            updatesToDo.forEach(update => {
+            visibleUpdates.forEach(update => {
+                update.element.textContent = update.content;
+                update.element.className = update.classes.join(' ');
+                // スタイルは変更がある場合のみ更新（コストが高い）
+                if (update.style !== update.element.getAttribute('style')) {
+                    update.element.setAttribute('style', update.style);
+                }
+            });
+        }
+        
+        // 探索済みタイルを更新（可視タイルの後に処理）
+        if (exploredUpdates.length > 0) {
+            exploredUpdates.forEach(update => {
                 update.element.textContent = update.content;
                 update.element.className = update.classes.join(' ');
                 // スタイルは変更がある場合のみ更新（コストが高い）
@@ -410,6 +480,15 @@ class Renderer {
         
         // キャッシュを部分的に更新
         Object.assign(this.tileStateCache, tileState);
+        
+        // 一定時間後にキャッシュをクリア（メモリリーク防止）
+        if (!this.cacheCleanupScheduled) {
+            this.cacheCleanupScheduled = true;
+            setTimeout(() => {
+                this.game.visibleTilesCache = null;
+                this.cacheCleanupScheduled = false;
+            }, 5000); // 5秒後にキャッシュをクリア
+        }
     }
 
     renderMap() {
