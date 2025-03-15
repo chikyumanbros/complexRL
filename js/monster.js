@@ -566,9 +566,21 @@ class Monster {
         // プレイヤーの位置を除く全ての点をチェック
         for (let i = 0; i < points.length - 1; i++) {
             const point = points[i];
-            // 壁または閉じた扉があれば視線が通らない
-            if (game.map[point.y][point.x] !== 'floor' || 
-                game.tiles[point.y][point.x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+            const tile = game.tiles[point.y][point.x];
+            
+            // 床でない場合、障害物の種類をチェック
+            if (game.map[point.y][point.x] !== 'floor') {
+                // 透明な障害物、void portal、obeliskは視線を通す
+                const isTransparentObstacle = GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tile);
+                const isVoidPortal = tile === GAME_CONSTANTS.PORTAL.VOID.CHAR;
+                const isObelisk = tile === GAME_CONSTANTS.NEURAL_OBELISK.CHAR;
+                if (!isTransparentObstacle && !isVoidPortal && !isObelisk) {
+                    return false;
+                }
+            }
+            
+            // 閉じたドアは視線を遮る
+            if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
                 return false;
             }
         }
