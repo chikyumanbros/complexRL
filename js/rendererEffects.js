@@ -77,7 +77,7 @@ class RendererEffects {
         // 通常フロアの場合は既存の処理（近い場所のみ詳細計算）
         const index1 = ((x * 3 + y * 2 + this.flickerTime) % this.flickerValues.length);
         const index2 = ((x * 7 + y * 5 + this.flickerTime * 3) % this.flickerValues.length);
-        
+
         // 計算を簡略化（3つのインデックスから2つに減らす）
         const flicker = (
             this.flickerValues[index1] * 0.6 +
@@ -395,40 +395,40 @@ class RendererEffects {
             const chars = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
             
             // グリッチらしいテキストパターン（簡略化）
-            const glitchTexts = [
+        const glitchTexts = [
                 "ERROR", "SYSTEM FAILURE", "BUFFER OVERFLOW", "SEGFAULT",
                 "DUKKHA", "ANATTA", "ANICCA", "SAMSARA", "NIRVANA"
             ];
             
             for (let i = 0; i < textCount && effectCount < maxEffects; i++) {
-                const x = Math.floor(Math.random() * width);
-                const y = Math.floor(Math.random() * height);
+            const x = Math.floor(Math.random() * width);
+            const y = Math.floor(Math.random() * height);
                 const fontSize = Math.floor(Math.random() * 10) + 8;
-                
-                let text = '';
+            
+            let text = '';
                 
                 // テキスト選択を簡略化
                 if (Math.random() < 0.7) {
-                    text = glitchTexts[Math.floor(Math.random() * glitchTexts.length)];
+                text = glitchTexts[Math.floor(Math.random() * glitchTexts.length)];
                 } else {
                     // 完全にランダムな文字列（短く）
                     const textLength = Math.floor(Math.random() * 4) + 3;
-                    for (let j = 0; j < textLength; j++) {
-                        text += chars.charAt(Math.floor(Math.random() * chars.length));
-                    }
+                for (let j = 0; j < textLength; j++) {
+                    text += chars.charAt(Math.floor(Math.random() * chars.length));
                 }
-                
-                ctx.font = `${fontSize}px 'IBM EGA 9x8', monospace`;
-                
+            }
+            
+            ctx.font = `${fontSize}px 'IBM EGA 9x8', monospace`;
+            
                 // 色のパレットを簡略化
-                const textColors = [
-                    'rgba(0, 255, 0, 0.8)',       // 放射性緑
-                    'rgba(117, 0, 156, 0.7)',     // 暗い紫
-                ];
-                ctx.fillStyle = textColors[Math.floor(Math.random() * textColors.length)];
-                
+            const textColors = [
+                'rgba(0, 255, 0, 0.8)',       // 放射性緑
+                'rgba(117, 0, 156, 0.7)',     // 暗い紫
+            ];
+            ctx.fillStyle = textColors[Math.floor(Math.random() * textColors.length)];
+            
                 // 通常のテキスト描画
-                ctx.fillText(text, x, y);
+                    ctx.fillText(text, x, y);
                 
                 effectCount++;
             }
