@@ -1682,7 +1682,7 @@ createRangedCombatStats(player) {
         // 標準アクションの説明を追加
         leftColumn += `<div class="help-category">● STANDARD ACTIONS</div>\n`;
         leftColumn += `<div style="margin-left: 8px;">`;
-        leftColumn += `<span class="help-key">[m]</span>`;
+        leftColumn += `<span class="help-key">[Ctrl+m]</span>`;
         leftColumn += `<span class="help-text">Meditate to recover HP and Vigor</span>`;
         leftColumn += `</div>\n`;
         leftColumn += `<div style="margin-left: 8px;">`;
@@ -1711,56 +1711,56 @@ createRangedCombatStats(player) {
         rightColumn += `<span class="vigor-status critical">Critical</span>: 0-25% - Severe penalties<br><br>`;
         rightColumn += `<span class="help-text">Vigor affects accuracy and evasion.<br>`;
         rightColumn += `Recovers through meditation or combat victories.<br>`;
-        rightColumn += `<div class="help-text">Meditation: d(Level+WIS) recovery, but risk -d(WIS) on low roll.</span>`;
+        rightColumn += `Meditation: d(Level+WIS) recovery, but risk -d(WIS) on low roll.</span>`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div class="combat-section-title">■ COMBAT SYSTEM</div>\n`;
+        rightColumn += `<div class="help-section-title">■ COMBAT SYSTEM</div>\n`;
 
         // 戦闘システムの説明
-        rightColumn += `<div class="combat-category">● BASE STATS</div>\n`;
-        rightColumn += `<div class="combat-text">`;
-        rightColumn += `HP: (CON×2 + STR/4) × Size Mod × Level<br>`;
+        rightColumn += `<div class="help-category">● BASE STATS</div>\n`;
+        rightColumn += `<div style="margin-left: 8px;">`;
+        rightColumn += `<span class="help-text">HP: (CON×2 + STR/4) × Size Mod × Level<br>`;
         rightColumn += `ATK: (STR×0.7 - DEX/4) × Size Mod + Dice<br>`;
         rightColumn += `DEF: (CON×0.5 - INT/5) × Size Mod + Dice<br>`;
-        rightColumn += `Size Mod: 0.9~1.3 (by STR+CON)`;
+        rightColumn += `Size Mod: 0.9~1.3 (by STR+CON)</span>`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div class="combat-category">● DAMAGE ROLLS</div>\n`;
-        rightColumn += `<div class="combat-text">`;
-        rightColumn += `ATK: √(DEX/2) × 1d(√STR×2)<br>`;
-        rightColumn += `DEF: √(CON/3) × 1d(√CON×1.5)`;
+        rightColumn += `<div class="help-category">● DAMAGE ROLLS</div>\n`;
+        rightColumn += `<div style="margin-left: 8px;">`;
+        rightColumn += `<span class="help-text">ATK: √(DEX/2) × 1d(√STR×2)<br>`;
+        rightColumn += `DEF: √(CON/3) × 1d(√CON×1.5)</span>`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div class="combat-category">● COMBAT STATS</div>\n`;
-        rightColumn += `<div class="combat-text">`;
-        rightColumn += `ACC: 50 + DEX×0.8 + WIS×0.4 - CON/4<br>`;
+        rightColumn += `<div class="help-category">● COMBAT STATS</div>\n`;
+        rightColumn += `<div style="margin-left: 8px;">`;
+        rightColumn += `<span class="help-text">ACC: 50 + DEX×0.8 + WIS×0.4 - CON/4<br>`;
         rightColumn += `EVA: 8 + DEX×0.6 + WIS×0.3 - STR/5<br>`;
         rightColumn += `CRIT: 3% + (DEX-10)×0.15 + (INT-10)×0.1<br>`;
-        rightColumn += `(Critical hits ignore EVA & DEF)`;
+        rightColumn += `(Critical hits ignore EVA & DEF)</span>`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div class="combat-category">● SIZE & SPEED</div>\n`;
-        rightColumn += `<div class="combat-text">`;
-        rightColumn += `Size: Based on CON×0.7 + STR×0.3<br>`;
+        rightColumn += `<div class="help-category">● SIZE & SPEED</div>\n`;
+        rightColumn += `<div style="margin-left: 8px;">`;
+        rightColumn += `<span class="help-text">Size: Based on CON×0.7 + STR×0.3<br>`;
         rightColumn += `Tiny ≤7, Small ≤10, Medium ≤14<br>`;
         rightColumn += `Large ≤18, Huge >18<br><br>`;
         rightColumn += `Speed: Based on DEX vs (STR+CON)<br>`;
         rightColumn += `Very Slow: ≤-4, Slow: ≤-2<br>`;
-        rightColumn += `Normal: ≤2, Fast: ≤4, Very Fast: >4`;
+        rightColumn += `Normal: ≤2, Fast: ≤4, Very Fast: >4</span>`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div class="combat-category">● COMBAT FLOW</div>\n`;
-        rightColumn += `<div class="combat-text">`;
-        rightColumn += `1. Speed Check<br>`;
+        rightColumn += `<div class="help-category">● COMBAT FLOW</div>\n`;
+        rightColumn += `<div style="margin-left: 8px;">`;
+        rightColumn += `<span class="help-text">1. Speed Check<br>`;
         rightColumn += `2. Roll(100) vs ACC for hit<br>`;
         rightColumn += `3. Roll(100) vs EVA if not crit<br>`;
         rightColumn += `4. DMG = ATK - DEF (if not crit)<br>`;
-        rightColumn += `5. DMG = ATK (if critical hit)`;
+        rightColumn += `5. DMG = ATK (if critical hit)</span>`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div class="combat-category">● RANGED COMBAT</div>\n`;
-        rightColumn += `<div class="combat-text">`;
-        rightColumn += `[F] Toggle ranged mode<br>`;
+        rightColumn += `<div class="help-category">● RANGED COMBAT</div>\n`;
+        rightColumn += `<div style="margin-left: 8px;">`;
+        rightColumn += `<span class="help-text">[F] Toggle ranged mode<br>`;
         rightColumn += `[Tab/Shift+Tab] Cycle targets<br>`;
         rightColumn += `[ENTER] Fire at target<br>`;
         rightColumn += `[ESC] Exit ranged mode<br><br>`;
@@ -1771,19 +1771,17 @@ createRangedCombatStats(player) {
         rightColumn += `Dice: (DEX/5)d(INT/4)<br>`;
         rightColumn += `ACC: 30 + DEX×0.8 + INT×0.4 ± Speed<br>`;
         rightColumn += `Range: 1 + INT/3<br>`;
-        rightColumn += `Size Bonus: ±5% per size diff`;
+        rightColumn += `Size Bonus: ±5% per size diff</span>`;
         rightColumn += `</div>\n`;
 
-        rightColumn += `<div class="combat-category">● COMBAT PENALTIES</div>\n`;
-        rightColumn += `<div class="combat-text">`;
-        rightColumn += `Surrounded: -15% ACC/EVA per enemy<br>`;
+        rightColumn += `<div class="help-category">● COMBAT PENALTIES</div>\n`;
+        rightColumn += `<div style="margin-left: 8px;">`;
+        rightColumn += `<span class="help-text">Surrounded: -15% ACC/EVA per enemy<br>`;
         rightColumn += `(Max: -60%)<br><br>`;
         rightColumn += `Opportunity Attack:<br>`;
         rightColumn += `-30% ACC, +50% DMG<br>`;
-        rightColumn += `No counter-attack chance`;
+        rightColumn += `No counter-attack chance</span>`;
         rightColumn += `</div>\n`;
-
-        // ランドマークターゲットモードの説明は不要なので削除
 
         // レイアウトを調整してカラムを並べて表示、gapを50pxに
         return `<div style="display: flex; gap: 50px;">
