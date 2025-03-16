@@ -1886,10 +1886,8 @@ class Game {
                 threshold = Math.floor(Math.random() * 50) + 1;
                 //console.log(`Critical Roll: ${threshold}/50 (needs 1 to trigger)`);
                 if (threshold === 1) {
-                    // 1d6で良い効果か悪い効果かを決定
-                    const effectRoll = Math.floor(Math.random() * 6) + 1;
-                    //console.log(`Effect Type Roll: ${effectRoll}/6 (1 = positive, others = severe)`);
-                    severity = effectRoll === 1 ? 'positive' : 'Critical'; // 直接文字列を使用
+                    // 良い効果の可能性を排除
+                    severity = 'Critical';
                 }
                 break;
 
@@ -1898,10 +1896,8 @@ class Game {
                 threshold = Math.floor(Math.random() * 50) + 1;
                 //console.log(`Low Roll: ${threshold}/50 (needs 1 to trigger)`);
                 if (threshold === 1) {
-                    // 1d8で良い効果か悪い効果かを決定
-                    const effectRoll = Math.floor(Math.random() * 8) + 1;
-                    //console.log(`Effect Type Roll: ${effectRoll}/8 (1 = positive, others = moderate)`);
-                    severity = effectRoll === 1 ? 'positive' : 'Low';
+                    // 良い効果の可能性を排除
+                    severity = 'Low';
                 }
                 break;
 
@@ -1910,10 +1906,8 @@ class Game {
                 threshold = Math.floor(Math.random() * 200) + 1;
                 //console.log(`Moderate Roll: ${threshold}/200 (needs 1 to trigger)`);
                 if (threshold === 1) {
-                    // 1d10で良い効果か悪い効果かを決定
-                    const effectRoll = Math.floor(Math.random() * 10) + 1;
-                    //console.log(`Effect Type Roll: ${effectRoll}/10 (1 = positive, others = critical)`);
-                    severity = effectRoll === 1 ? 'positive' : 'Moderate';
+                    // 良い効果の可能性を排除
+                    severity = 'Moderate';
                 }
                 break;
         }

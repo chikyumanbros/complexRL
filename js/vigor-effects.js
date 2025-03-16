@@ -15,11 +15,11 @@ class VigorEffects {
         if (severity === 'Exhausted') {
             const effects = {
                 'Exhausted': [
-                    { type: 'forceDescend', weight: 10 },
-                    { type: 'forgetAllTiles', weight: 15 },
-                    { type: 'randomTeleport', weight: 10 },
-                    { type: 'pauseAndShift', weight: 35},
-                    { type: 'forgetSomeTiles', weight: 30 }
+                    //{ type: 'forceDescend', weight: 10 },
+                    { type: 'forgetAllTiles', weight: 25 },
+                    //{ type: 'randomTeleport', weight: 10 },
+                    { type: 'pauseAndShift', weight: 40},
+                    { type: 'forgetSomeTiles', weight: 35 }
                 ]
             };
 
@@ -33,27 +33,22 @@ class VigorEffects {
             ],
             'Low': [
                 { type: 'forgetSomeTiles', weight: 40 },
-                { type: 'randomTeleport', weight: 10 },
+                //{ type: 'randomTeleport', weight: 10 },
                 { type: 'pauseAndShift', weight: 40 },
-                { type: 'forgetAllTiles', weight: 10 },
+                { type: 'forgetAllTiles', weight: 20 },
             ],
             'Critical': [
-                { type: 'forgetAllTiles', weight: 15 },
+                { type: 'forgetAllTiles', weight: 25 },
                 { type: 'forgetSomeTiles', weight: 35 },
-                { type: 'randomTeleport', weight: 10 },
-                { type: 'forceDescend', weight: 5},
-                { type: 'pauseAndShift', weight: 35}
-            ],
-            'positive': [
-                { type: 'revealAll', weight: 2 },
-                { type: 'fullRestore', weight: 2 },
-                { type: 'levelUp', weight: 1 }
+                //{ type: 'randomTeleport', weight: 10 },
+                //{ type: 'forceDescend', weight: 5},
+                { type: 'pauseAndShift', weight: 40}
             ]
         };
 
-        // severityが'positive'で、かつプレイヤーがexhaustedまたはcritical状態の場合は良い効果を返さない
-        if (severity === 'positive' && (playerVigorState === 'Exhausted' || playerVigorState === 'Critical')) {
-            console.log(`Player is ${playerVigorState}. No positive effects will be applied.`);
+        // severityが'positive'の場合は常にnullを返す
+        if (severity === 'positive') {
+            console.log("Positive vigor effects have been disabled.");
             return null;
         }
 
@@ -297,91 +292,8 @@ class VigorEffects {
                 }
                 break;
 
-            case 'revealAll':
-                console.log('Executing revealAll effect');
-                this.game.logger.add("A moment of clarity reveals all!", "important");
-                
-                // マップ全体を探索済みにする
-                for (let y = 0; y < GAME_CONSTANTS.DIMENSIONS.HEIGHT; y++) {
-                    for (let x = 0; x < GAME_CONSTANTS.DIMENSIONS.WIDTH; x++) {
-                        this.game.explored[y][x] = true;
-                        
-                        // 壁の外のタイルをスペースタイルに変更
-                        // 「壁」がマップの境界を形成していると仮定
-                        if (this.game.map[y][x] === 'wall' || this.game.map[y][x] === 'space') {
-                            // 部屋の外側かどうかを判定
-                            // 隣接する8マスをチェックし、全て壁または境界外ならそのタイルは外側とみなす
-                            let isOuterWall = true;
-                            const directions = [
-                                [-1, -1], [0, -1], [1, -1],
-                                [-1, 0],           [1, 0],
-                                [-1, 1],  [0, 1],  [1, 1]
-                            ];
-                            
-                            for (const [dx, dy] of directions) {
-                                const nx = x + dx;
-                                const ny = y + dy;
-                                
-                                // マップ範囲内で、かつ床タイルまたはドアが隣接していれば、外壁ではない
-                                if (nx >= 0 && nx < GAME_CONSTANTS.DIMENSIONS.WIDTH && 
-                                    ny >= 0 && ny < GAME_CONSTANTS.DIMENSIONS.HEIGHT &&
-                                    (this.game.map[ny][nx] === 'floor' || 
-                                     this.game.tiles[ny][nx] === GAME_CONSTANTS.TILES.DOOR.OPEN ||
-                                     this.game.tiles[ny][nx] === GAME_CONSTANTS.TILES.DOOR.CLOSED)) {
-                                    isOuterWall = false;
-                                    break;
-                                }
-                            }
-                            
-                            // 外側の壁なら宇宙空間タイルに変更
-                            if (isOuterWall) {
-                                // スペースタイルからランダムに選択
-                                const spaceChar = GAME_CONSTANTS.TILES.SPACE[
-                                    Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE.length)
-                                ];
-                                
-                                // スペースカラーからランダムに選択
-                                const spaceColor = GAME_CONSTANTS.TILES.SPACE_COLORS[
-                                    Math.floor(Math.random() * GAME_CONSTANTS.TILES.SPACE_COLORS.length)
-                                ];
-                                
-                                // タイルとマップ情報を更新
-                                this.game.tiles[y][x] = spaceChar;
-                                this.game.colors[y][x] = spaceColor;
-                                this.game.map[y][x] = 'space';
-                            }
-                        }
-                    }
-                }
-                this.game.playSound('vigorUpSound');
-                this.game.processTurn();
-                break;
-
-            case 'fullRestore':
-                console.log('Executing fullRestore effect');
-                this.game.logger.add("A surge of energy restores you!", "important");
-                
-                const hpRestored = this.game.player.maxHp - this.game.player.hp;
-                this.game.player.hp = this.game.player.maxHp;
-                const oldVigor = this.game.player.vigor;
-                const vigorChange = GAME_CONSTANTS.VIGOR.MAX - oldVigor;
-                const newVigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, oldVigor + vigorChange));
-                this.game.player.vigor = newVigor;
-                this.game.player.validateVigor();
-                if (hpRestored > 0) {
-                    this.game.logger.add(`Restored ${hpRestored} HP!`, "important");
-                }
-                this.game.logger.add("Vigor fully restored!", "important");
-                this.game.playSound('levelUpSound', true);
-                this.game.processTurn();
-                break;
-
-            case 'levelUp':
-                console.log('Executing levelUp effect');
-                this.game.logger.add("A mysterious force empowers you!", "important");
-                this.game.player.levelUp();
-                this.game.playSound('levelUpSound');
-                this.game.processTurn();
+            default:
+                console.warn(`Unknown vigor effect type: ${effect.type}`);
                 break;
         }
         this.game.renderer.render();
