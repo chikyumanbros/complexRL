@@ -492,6 +492,11 @@ class CombatSystem {
             isCritical || roll <= hitChance
         );
 
+        // エネルギーを消費（命中判定の結果に関係なく）
+        attacker.rangedCombat.energy.current = Math.max(0, 
+            attacker.rangedCombat.energy.current - energyCost
+        );
+
         // クリティカルヒットまたは通常命中の場合
         if (isCritical || roll <= hitChance) {
             // RANGED_COMBATの計算式を使用してダメージを計算
@@ -588,24 +593,34 @@ class CombatSystem {
                             game.logger.add("No more targets in range.", "playerInfo");
                         }
                     }
-                    
-                    // 死亡処理後は即座にreturnせず、エネルギー消費処理を行うために処理を続行
-                    game.lastAttackResult = result;
                 }
             }
 
-            if (!game.lastAttackResult) { // 死亡処理が行われなかった場合
-                game.lastAttackResult = {
-                    hit: true,
-                    evaded: false,  // 遠距離攻撃は回避不可
-                    damage: finalDamage,
-                    killed: defender.hp <= 0,
-                    isCritical: isCritical,
-                    damageResult
-                };
-            }
-            
+            game.lastAttackResult = {
+                hit: true,
+                evaded: false,  // 遠距離攻撃は回避不可
+                damage: finalDamage,
+                killed: defender.hp <= 0,
+                isCritical: isCritical,
+                damageResult
+            };
             game.lastAttackLocation = { x: defender.x, y: defender.y };
+
+            // エネルギーが次の攻撃に不足する場合はモードを解除
+            if (attacker.rangedCombat.energy.current < energyCost) {
+                game.logger.add("Not enough energy for another shot. Ranged combat mode deactivated.", "warning");
+                attacker.rangedCombat.isActive = false;
+                attacker.rangedCombat.target = null;
+            } else {
+                // エネルギーは十分あるが、ターゲットが存在しない場合もモードを解除
+                if (context.isPlayer && !attacker.findNearestTargetInRange()) {
+                    attacker.rangedCombat.isActive = false;
+                    attacker.rangedCombat.target = null;
+                    game.logger.add("No valid targets in range. Ranged combat mode deactivated.", "playerInfo");
+                }
+            }
+
+            return game.lastAttackResult;
         } else {
             // ミス時の処理
             game.lastAttackResult = {
@@ -632,11 +647,6 @@ class CombatSystem {
                 }
             }
         }
-
-        // エネルギーを消費（命中判定の結果に関係なく）
-        attacker.rangedCombat.energy.current = Math.max(0, 
-            attacker.rangedCombat.energy.current - energyCost
-        );
 
         // エネルギーが次の攻撃に不足する場合はモードを解除
         if (attacker.rangedCombat.energy.current < energyCost) {

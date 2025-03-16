@@ -284,15 +284,10 @@ const GAME_CONSTANTS = {
         INTERACTION: {
             title: 'INTERACTION',
             keys: [
-                { key: ',', desc: 'Pick up item' },
-                { key: 'd', desc: 'Drop item' },
-                { key: 'i', desc: 'Show inventory' },
-                { key: 'e', desc: 'Eat/Equip item' },
                 { key: '>', desc: 'Use stairs down' },
                 { key: 'c', desc: 'Close door' },
-                { key: 's', desc: 'Show skill tree' },
+                { key: 'o', desc: 'Open door' },
                 { key: 'z', desc: 'Cast skill (with number)' },
-                { key: 'm', desc: 'Toggle music' },
                 { key: '?', desc: 'Show help menu' },
                 //{ key: 'ctrl+s', desc: 'Show monster sprite preview' },
                 { key: '[', desc: 'Scroll message log up' },
