@@ -628,12 +628,13 @@ class RendererEffects {
             this.renderer.movementEffects.add({
                 x,
                 y,
-                opacity: 1 - (i / (trailCount + 1)) // 徐々に薄くなる
+                opacity: 1 - (i / (trailCount + 1)), // 徐々に薄くなる
+                isTrail: true // 残像であることを示すフラグを追加
             });
 
             // 各残像を時間差で消す
             setTimeout(() => {
-                this.renderer.movementEffects.delete({ x, y, opacity: 1 - (i / (trailCount + 1)) });
+                this.renderer.movementEffects.delete({ x, y, opacity: 1 - (i / (trailCount + 1)), isTrail: true });
                 this.renderer.render();
             }, 100 + (i * 50));
         }

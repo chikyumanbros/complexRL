@@ -588,21 +588,24 @@ class CombatSystem {
                             game.logger.add("No more targets in range.", "playerInfo");
                         }
                     }
-                    return result; // 死亡処理後は即座にreturn
+                    
+                    // 死亡処理後は即座にreturnせず、エネルギー消費処理を行うために処理を続行
+                    game.lastAttackResult = result;
                 }
             }
 
-            game.lastAttackResult = {
-                hit: true,
-                evaded: false,  // 遠距離攻撃は回避不可
-                damage: finalDamage,
-                killed: defender.hp <= 0,
-                isCritical: isCritical,
-                damageResult
-            };
+            if (!game.lastAttackResult) { // 死亡処理が行われなかった場合
+                game.lastAttackResult = {
+                    hit: true,
+                    evaded: false,  // 遠距離攻撃は回避不可
+                    damage: finalDamage,
+                    killed: defender.hp <= 0,
+                    isCritical: isCritical,
+                    damageResult
+                };
+            }
+            
             game.lastAttackLocation = { x: defender.x, y: defender.y };
-
-            return game.lastAttackResult;
         } else {
             // ミス時の処理
             game.lastAttackResult = {

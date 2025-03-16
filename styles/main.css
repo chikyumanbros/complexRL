@@ -521,6 +521,7 @@ body {
     z-index: 1000 !important;
     text-shadow: 0 0 5px rgba(102, 204, 255, 0.8) !important;
     animation: trailFade 0.2s ease-out forwards;
+    color: rgba(102, 204, 255, 0.8) !important;
 }
 
 @keyframes levelUpExplosion {

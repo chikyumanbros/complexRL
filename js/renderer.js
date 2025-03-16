@@ -731,7 +731,8 @@ class Renderer {
                         const trailEffect = Array.from(this.movementEffects).find(effect => effect.x === x && effect.y === y);
                         if (trailEffect) {
                             content = this.game.player.char;
-                            style = `color: ${GAME_CONSTANTS.COLORS.PLAYER}; opacity: ${trailEffect.opacity}; text-shadow: 0 0 5px ${backgroundColor}`;
+                            classes.push('movement-trail');
+                            style = `opacity: ${trailEffect.opacity};`;
                         } else {
                             const monster = this.game.getMonsterAt(x, y);
                             if (monster) {
