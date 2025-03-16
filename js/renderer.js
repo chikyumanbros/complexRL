@@ -1682,11 +1682,11 @@ createRangedCombatStats(player) {
         // 標準アクションの説明を追加
         leftColumn += `<div class="help-category">● STANDARD ACTIONS</div>\n`;
         leftColumn += `<div style="margin-left: 8px;">`;
-        leftColumn += `<span class="help-key">[Ctrl+m]</span>`;
+        leftColumn += `<span class="help-key">[Ctrl+m] or [Alt+m]</span>`;
         leftColumn += `<span class="help-text">Meditate to recover HP and Vigor</span>`;
         leftColumn += `</div>\n`;
         leftColumn += `<div style="margin-left: 8px;">`;
-        leftColumn += `<span class="help-key">[Ctrl+j]</span>`;
+        leftColumn += `<span class="help-key">[Ctrl+j] or [Alt+j]</span>`;
         leftColumn += `<span class="help-text">Jump to a nearby location</span>`;
         leftColumn += `</div>\n`;
 
