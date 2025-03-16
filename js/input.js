@@ -1775,9 +1775,10 @@ class InputHandler {
             //     codexPanel.scrollTop -= scrollAmount;
             // }
             
-            if (helpPanel && this.game.mode === GAME_CONSTANTS.MODES.HELP) {
-                helpPanel.scrollTop += scrollAmount;
-            }
+            // 誤った処理を削除（上方向スクロールなのに下方向にスクロールしていた）
+            // if (helpPanel && this.game.mode === GAME_CONSTANTS.MODES.HELP) {
+            //     helpPanel.scrollTop += scrollAmount;
+            // }
             // if (codexPanel && this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
             //     codexPanel.scrollTop += scrollAmount;
             // }
