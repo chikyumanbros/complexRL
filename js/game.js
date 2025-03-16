@@ -1548,6 +1548,16 @@ class Game {
                     remainingCooldown: skill.remainingCooldown
                 })),
                 vigor: this.player.vigor,
+                // 遠距離攻撃のエネルギー情報を保存
+                rangedCombat: {
+                    energy: {
+                        current: this.player.rangedCombat.energy.current,
+                        max: this.player.rangedCombat.energy.max,
+                        rechargeRate: this.player.rangedCombat.energy.rechargeRate,
+                        cost: this.player.rangedCombat.energy.cost
+                    },
+                    isActive: this.player.rangedCombat.isActive
+                },
                 // 派生ステータスも保存
                 attackPower: this.player.attackPower,
                 defense: this.player.defense,
@@ -1634,6 +1644,16 @@ class Game {
             this.player.vigor = (typeof data.player.vigor === 'number' && !isNaN(data.player.vigor)) ? data.player.vigor : GAME_CONSTANTS.VIGOR.MAX;
             this.player.name = data.player.name ?? ''; // プレイヤー名を復元
             this.player.validateVigor();
+
+            // 遠距離攻撃のエネルギー情報を復元
+            if (data.player.rangedCombat && data.player.rangedCombat.energy) {
+                this.player.rangedCombat.energy.current = data.player.rangedCombat.energy.current ?? this.player.rangedCombat.energy.max;
+                this.player.rangedCombat.energy.max = data.player.rangedCombat.energy.max ?? GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.player.stats);
+                this.player.rangedCombat.energy.rechargeRate = data.player.rangedCombat.energy.rechargeRate ?? GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_RECHARGE(this.player.stats);
+                this.player.rangedCombat.energy.cost = data.player.rangedCombat.energy.cost ?? GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_COST(this.player.stats);
+                this.player.rangedCombat.isActive = data.player.rangedCombat.isActive ?? false;
+            }
+
             this.player.skills = new Map();
             if (Array.isArray(data.player.skills) && data.player.skills.length > 0) {
                 data.player.skills.forEach(skillData => {
