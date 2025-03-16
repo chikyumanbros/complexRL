@@ -296,7 +296,8 @@ const GAME_CONSTANTS = {
                 { key: '?', desc: 'Show help menu' },
                 //{ key: 'ctrl+s', desc: 'Show monster sprite preview' },
                 { key: '[', desc: 'Scroll message log up' },
-                { key: ']', desc: 'Scroll message log down' }
+                { key: ']', desc: 'Scroll message log down' },
+                { key: 'Shift+L', desc: 'Toggle lighting effects' }
             ]
         },
         RESTING: {

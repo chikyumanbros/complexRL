@@ -18,6 +18,9 @@ class RendererEffects {
         this.freezeOverlay = null;
         this.glitchCanvas = null;
         
+        // 照明エフェクトの有効/無効フラグ
+        this.lightingEffectsEnabled = true;
+        
         // 初期の揺らぎ値を生成
         this.updateFlickerValues();
     }
@@ -44,6 +47,40 @@ class RendererEffects {
     }
 
     /**
+     * 照明エフェクトの有効/無効を切り替える
+     * @param {boolean} enabled - 有効にする場合はtrue、無効にする場合はfalse
+     */
+    toggleLightingEffects(enabled) {
+        this.lightingEffectsEnabled = enabled;
+        
+        // 照明エフェクトが無効化された場合、すべてのタイルの照明エフェクトをリセット
+        if (!enabled) {
+            const elements = document.querySelectorAll('#game span');
+            elements.forEach(el => {
+                // 元の不透明度を保持
+                const style = window.getComputedStyle(el);
+                const currentOpacity = parseFloat(style.opacity);
+                if (!isNaN(currentOpacity)) {
+                    // 照明エフェクトをリセット（テキストシャドウを削除）
+                    el.style.textShadow = 'none';
+                }
+            });
+        } else {
+            // 照明エフェクトが再有効化された場合、レンダリングを強制更新
+            this.renderer.forceFullRender = true;
+            this.renderer.render();
+        }
+        
+        // ステータスメッセージを表示
+        if (this.renderer.game && this.renderer.game.logger) {
+            const message = enabled ? 
+                "Lighting effects have been enabled." : 
+                "Lighting effects have been disabled.";
+            this.renderer.game.logger.add(message, "info");
+        }
+    }
+
+    /**
      * 揺らぎ効果を計算する関数（明るさと色用）
      * @param {number} baseOpacity - 基本の不透明度
      * @param {number} x - タイルのX座標
@@ -51,8 +88,9 @@ class RendererEffects {
      * @returns {Object} - 計算された不透明度と色
      */
     calculateFlicker(baseOpacity, x, y) {
+        // 照明エフェクトが無効化されている場合、または
         // ホームフロアでは灯りのエフェクトを無効化し、計算を省略
-        if (this.renderer.game.floorLevel === 0) {
+        if (!this.lightingEffectsEnabled || this.renderer.game.floorLevel === 0) {
             return {
                 opacity: baseOpacity,
                 color: 'transparent'  // 灯りの色も無効化

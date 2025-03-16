@@ -65,8 +65,8 @@ class Renderer {
 
     // 明るさの更新のみを行うメソッドを追加
     updateLightingOnly() {
-        // ホームフロアでは照明更新をスキップ
-        if (this.game.floorLevel === 0) return;
+        // ホームフロアでは照明更新をスキップ、または照明エフェクトが無効の場合もスキップ
+        if (this.game.floorLevel === 0 || !this.effects.lightingEffectsEnabled) return;
         
         // 視界内のタイルを取得
         const visibleTiles = new Set(
@@ -2350,5 +2350,10 @@ createRangedCombatStats(player) {
     // 蜘蛛の巣を除去するエフェクトを表示するメソッド
     showWebRemoveEffect(x, y) {
         this.effects.showWebRemoveEffect(x, y);
+    }
+
+    // 照明エフェクトの有効/無効を切り替えるメソッド
+    toggleLightingEffects(enabled) {
+        this.effects.toggleLightingEffects(enabled);
     }
 }

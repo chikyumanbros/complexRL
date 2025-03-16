@@ -558,6 +558,14 @@ class InputHandler {
             return;
         }
 
+        // 照明エフェクトの切り替え（Lキー + Shift）
+        if (key === 'l' && event && event.shiftKey) {
+            // 現在の状態を取得して反転
+            const currentState = this.game.renderer.effects.lightingEffectsEnabled;
+            this.game.renderer.toggleLightingEffects(!currentState);
+            return;
+        }
+
         // Wikiモードを開く（wキー）
         if (key === 'w') {
             this.openWikiMode();
