@@ -314,11 +314,10 @@ class InputHandler {
 
         // --- Game Over Input Handling ---
         if (this.game.isGameOver) {
-            if (key === 'enter') {
-                this.game.reset();  // ゲームをリセット
-            }
-            if (key === ' ') {
-                this.game.reset();
+            if (key === 'enter' || key === ' ') {
+                // 完全に新しいゲームを開始するために、ページをリロード
+                window.location.reload();
+                return;
             }
             return;  // その他のキー入力を無視
         }
