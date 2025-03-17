@@ -1711,11 +1711,12 @@ body::before {
 /* 捕まったモンスター用の点滅アニメーション */
 .monster-caught-web {
     animation: web-blink 0.5s infinite alternate;
+    color: #ff0000 !important; /* 赤色に変更 */
 }
 
 @keyframes web-blink {
-    0% { opacity: 0.2; }
-    100% { opacity: 1.0; }
+    0% { opacity: 0.2; color: #ff0000; }
+    100% { opacity: 1.0; color: #ff5555; }
 }
 
 /* プレイヤーが捕まっている場合のアニメーション（既存のものと区別） */
