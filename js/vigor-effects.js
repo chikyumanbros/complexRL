@@ -133,7 +133,8 @@ class VigorEffects {
                     turnsRemaining: 1,  // 1ターンだけ
                     totalHealed: 0,
                     vigorEffectMeditation: true,  // vigorエフェクトによる瞑想であることを示すフラグ
-                    cannotCancelByInput: true     // 入力によるキャンセルを防止するフラグ
+                    cannotCancelByInput: true,    // 入力によるキャンセルを防止するフラグ
+                    skipSound: true                // 瞑想サウンドをスキップするフラグ（vigor effectsで独自に再生するため）
                 };
                 
                 this.game.logger.add("You enter a brief meditative state.", "warning");
