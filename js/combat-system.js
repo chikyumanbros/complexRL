@@ -214,9 +214,16 @@ class CombatSystem {
         
         // 蜘蛛の巣に捕まっている場合は回避率0
         let baseEvadeChance;
+        let webBonusMessage = "";
+        let hasWebBonus = false;
         if (defender instanceof Player) {
             baseEvadeChance = defender.caughtInWeb ? 0 : defender.evasion;
         } else {
+            // Giant Spiderが蜘蛛の巣の上にいる場合のボーナスメッセージを取得
+            if (defender.type === 'G_SPIDER' && defender.isOnWeb(game)) {
+                webBonusMessage = " The spider moves gracefully on its web! (+50% EVA)";
+                hasWebBonus = true;
+            }
             baseEvadeChance = defender.getEffectiveEvasion();
         }
         
@@ -225,11 +232,11 @@ class CombatSystem {
         
         if (evadeRoll < penalizedEvadeChance) {
             const logMessage = context.isPlayer
-                ? `${defender.name} dodges your ${context.attackType}!`
+                ? `${defender.name} dodges your ${context.attackType}!${webBonusMessage}`
                 : `You dodge ${attacker.name}'s ${context.attackType}!`;
             
             game.logger.add(
-                `${logMessage} (EVA: ${penalizedEvadeChance}% | Roll: ${evadeRoll})`,
+                `${logMessage} (EVA: ${penalizedEvadeChance}%${hasWebBonus ? " [Web bonus]" : ""} | Roll: ${evadeRoll})`,
                 context.isPlayer ? "monsterEvade" : "playerEvade"
             );
             game.renderer.showMissEffect(defender.x, defender.y, 'evade');
@@ -281,7 +288,14 @@ class CombatSystem {
             
             // 攻撃修飾子の効果を表示に含める
             const modifierText = context.effectDesc || "";
-            const damageText = `${logPrefix}hits ${logTarget}${modifierText} for ${result.damage} damage!`;
+            
+            // Giant Spiderの蜘蛛の巣ボーナスの詳細を追加
+            let bonusDetails = "";
+            if (!context.isPlayer && attacker.type === 'G_SPIDER' && attacker.isOnWeb(game) && modifierText) {
+                bonusDetails = " (+20% ACC, +25% DMG)";
+            }
+            
+            const damageText = `${logPrefix}hits ${logTarget}${modifierText}${bonusDetails} for ${result.damage} damage!`;
             
             // 攻撃計算の詳細を表示
             const attackCalc = `ATK: ${attacker.attackPower.base}+[${damageResult.attackRolls.join(',')}]` +
