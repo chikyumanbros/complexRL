@@ -146,7 +146,14 @@ class Monster {
             const wakeupChance = 80;
             if (Math.random() * 100 < wakeupChance) {
                 this.isSleeping = false;
-                game.logger.add(`${this.name} wakes up!`, "monsterInfo");
+                
+                // プレイヤーの視界内にいる場合のみメッセージを表示
+                const isVisibleToPlayer = game.getVisibleTiles()
+                    .some(tile => tile.x === this.x && tile.y === this.y);
+                
+                if (isVisibleToPlayer) {
+                    game.logger.add(`${this.name} wakes up!`, "monsterInfo");
+                }
             }
         }
 
