@@ -212,8 +212,15 @@ class CombatSystem {
             surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
         }
         
+        // 蜘蛛の巣に捕まっている場合は回避率0
+        let baseEvadeChance;
+        if (defender instanceof Player) {
+            baseEvadeChance = defender.caughtInWeb ? 0 : defender.evasion;
+        } else {
+            baseEvadeChance = defender.getEffectiveEvasion();
+        }
+        
         // ペナルティを適用した回避率を計算
-        const baseEvadeChance = defender.evasion;
         const penalizedEvadeChance = Math.floor(baseEvadeChance * (1 - surroundingPenalty));
         
         if (evadeRoll < penalizedEvadeChance) {

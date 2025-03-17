@@ -435,11 +435,22 @@ class Monster {
                     const isVisual = Distance <= (this.perception + sizeBonus) && this.hasLineOfSight(game);
                     const isAuditory = pathDistance <= effectiveSoundRange;
                     
-                    // 視覚優先 (視覚的に検出できる場合は「spots」、そうでない場合は「hears」)
-                    const spotType = isVisual ? "spots" : "hears";
-                    game.logger.add(`${this.name} ${spotType} you!`, "monsterInfo");
-                    game.renderer.flashLogPanel();
-                    game.soundManager.playSound('cautionSound');
+                    // 視覚と聴覚の両方を考慮して判定
+                    let spotType;
+                    if (isVisual) {
+                        spotType = "spots";
+                    } else if (isAuditory) {
+                        spotType = "hears";
+                    } else {
+                        spotType = "detects"; // フォールバック
+                    }
+                    
+                    // プレイヤーの視界内にいる場合のみメッセージとサウンドを表示
+                    if (isVisibleToPlayer) {
+                        game.logger.add(`${this.name} ${spotType} you!`, "monsterInfo");
+                        game.renderer.flashLogPanel();
+                        game.soundManager.playSound('cautionSound');
+                    }
                 }
                 
                 this.hasSpottedPlayer = true;
@@ -523,7 +534,6 @@ class Monster {
         
         // 蜘蛛の巣に捕まっている場合は攻撃できない
         if (this.caughtInWeb) {
-            // プレイヤーの視界内にいる場合のみメッセージを表示
             const isVisibleToPlayer = game.getVisibleTiles()
                 .some(tile => tile.x === this.x && tile.y === this.y);
             
@@ -535,10 +545,19 @@ class Monster {
         
         game.lastCombatMonster = this;
         game.renderer.examineTarget(this.x, this.y);
+
+        // Giant Spiderが蜘蛛の巣の上にいる場合の攻撃ボーナス
+        let context = { isPlayer: false };
+        if (this.type === 'G_SPIDER' && this.isOnWeb(game)) {
+            context = {
+                ...context,
+                accuracyMod: 0.2,      // 命中率20%増加
+                damageMod: 1.25,       // ダメージ25%増加
+                effectDesc: " with web-enhanced precision"
+            };
+        }
         
-        return CombatSystem.resolveCombatAction(this, player, game, {
-            isPlayer: false
-        });
+        return CombatSystem.resolveCombatAction(this, player, game, context);
     }
 
     // ========================== getStatus Method ==========================
@@ -622,6 +641,47 @@ class Monster {
     // ========================== pursueTarget Method ==========================
     // 目標に向かって移動するメソッド
     pursueTarget(game, targetX, targetY) {
+        // Giant Spider専用の処理を追加
+        if (this.type === 'G_SPIDER') {
+            const distanceToPlayer = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
+                this.x, this.y,
+                game.player.x, game.player.y
+            );
+
+            // 現在蜘蛛の巣の上にいる場合
+            if (this.isOnWeb(game)) {
+                // プレイヤーが隣接している場合のみ攻撃
+                if (distanceToPlayer <= 1) {
+                    this.attackPlayer(game.player, game);
+                    return;
+                }
+                
+                // プレイヤーが遠い場合は巣の上で待機（80%の確率）
+                if (Math.random() < 0.8) {
+                    // プレイヤーの視界内にいる場合のみメッセージを表示
+                    const isVisibleToPlayer = game.getVisibleTiles()
+                        .some(tile => tile.x === this.x && tile.y === this.y);
+                    
+                    if (isVisibleToPlayer) {
+                        game.logger.add(`${this.name} waits patiently on its web.`, "monsterInfo");
+                    }
+                    return;
+                }
+            } 
+            // 巣の上にいない場合
+            else {
+                const nearbyWeb = this.findNearestWeb(game, targetX, targetY);
+                if (nearbyWeb) {
+                    // プレイヤーとの距離が近すぎない場合、蜘蛛の巣に向かう
+                    if (distanceToPlayer > 1) {
+                        const moved = this.moveTowardsWeb(game, nearbyWeb);
+                        if (moved) return;
+                    }
+                }
+            }
+        }
+
+        // 以下、通常の追跡処理（巣がない場合や特別な状況の場合のフォールバック）
         const dx = targetX - this.x;
         const dy = targetY - this.y;
 
@@ -686,7 +746,7 @@ class Monster {
                     const isSpider = this.type === 'G_SPIDER';
                     
                     if (isSpider) {
-                        // 蜘蛛は通常移動
+                        // 蜘蛛は通常移動（蜘蛛の巣に引っかからない）
                         this.x = newX;
                         this.y = newY;
                     } else {
@@ -1158,9 +1218,16 @@ class Monster {
                 const monster = game.getMonsterAt(newX, newY);
                 if (monster && monster.isSleeping) {
                     monster.isSleeping = false;
-                    game.logger.add(`${this.name} wakes up nearby!`, "monsterInfo");
-                    game.renderer.flashLogPanel();
-                    game.playSound('cautionSound');
+                    
+                    // プレイヤーの視界内にいる場合のみメッセージとサウンドを表示
+                    const isVisibleToPlayer = game.getVisibleTiles()
+                        .some(tile => tile.x === monster.x && tile.y === monster.y);
+                    
+                    if (isVisibleToPlayer) {
+                        game.logger.add(`${monster.name} wakes up nearby!`, "monsterInfo");
+                        game.renderer.flashLogPanel();
+                        game.playSound('cautionSound');
+                    }
                 }
             }
         }
@@ -1217,5 +1284,126 @@ class Monster {
         }
         
         return Math.max(0, Math.min(100, attenuation));
+    }
+
+    // CombatSystemのresolveEvadeCheckメソッドで使用するための回避率取得メソッドを追加
+    getEffectiveEvasion() {
+        // 蜘蛛の巣に捕まっている場合は回避率0
+        if (this.caughtInWeb) {
+            return 0;
+        }
+
+        // Giant Spiderが蜘蛛の巣の上にいる場合のボーナス
+        if (this.type === 'G_SPIDER' && this.isOnWeb(this.game)) {
+            const webBonus = {
+                evasion: Math.floor(this.evasion * 1.5),  // 回避率50%増加
+                message: "The spider moves gracefully on its web!"
+            };
+            return webBonus.evasion;
+        }
+
+        return this.evasion;
+    }
+
+    // Monsterクラスに新しいメソッドを追加
+    isOnWeb(game) {
+        return game.webs && game.webs.some(web => web.x === this.x && web.y === this.y);
+    }
+
+    // 新規: 最も近い蜘蛛の巣を探すメソッド
+    findNearestWeb(game, targetX, targetY) {
+        if (!game.webs || game.webs.length === 0) return null;
+
+        let nearestWeb = null;
+        let bestScore = Infinity;
+
+        for (const web of game.webs) {
+            // 自分から蜘蛛の巣までの距離
+            const distanceToWeb = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
+                this.x, this.y,
+                web.x, web.y
+            );
+
+            // 蜘蛛の巣からプレイヤーまでの距離
+            const webToTarget = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
+                web.x, web.y,
+                targetX, targetY
+            );
+
+            // プレイヤーが近すぎる蜘蛛の巣は避ける
+            if (webToTarget <= 1) continue;
+
+            // スコアの計算（距離が近く、かつプレイヤーから適度な距離にある蜘蛛の巣を優先）
+            // プレイヤーからの理想的な距離は2-3マス
+            const idealPlayerDistance = Math.abs(webToTarget - 2.5);
+            const score = distanceToWeb + (idealPlayerDistance * 2);
+
+            if (score < bestScore) {
+                bestScore = score;
+                nearestWeb = web;
+            }
+        }
+
+        return nearestWeb;
+    }
+
+    // 新規: 蜘蛛の巣に向かって移動するメソッド
+    moveTowardsWeb(game, web) {
+        const dx = web.x - this.x;
+        const dy = web.y - this.y;
+
+        // 可能な移動方向を生成
+        const possibleMoves = [];
+        
+        // 水平・垂直移動
+        if (dx > 0) possibleMoves.push({ x: 1, y: 0 });
+        if (dx < 0) possibleMoves.push({ x: -1, y: 0 });
+        if (dy > 0) possibleMoves.push({ x: 0, y: 1 });
+        if (dy < 0) possibleMoves.push({ x: 0, y: -1 });
+        
+        // 斜め移動
+        if (dx > 0 && dy > 0) possibleMoves.push({ x: 1, y: 1 });
+        if (dx < 0 && dy > 0) possibleMoves.push({ x: -1, y: 1 });
+        if (dx > 0 && dy < 0) possibleMoves.push({ x: 1, y: -1 });
+        if (dx < 0 && dy < 0) possibleMoves.push({ x: -1, y: -1 });
+
+        // 移動可能な方向をフィルタリング
+        const validMoves = possibleMoves.filter(move => {
+            const newX = this.x + move.x;
+            const newY = this.y + move.y;
+            return this.canMoveTo(newX, newY, game) && !game.getMonsterAt(newX, newY);
+        });
+
+        if (validMoves.length > 0) {
+            // 蜘蛛の巣に最も近づく移動を選択
+            const bestMove = validMoves.reduce((best, move) => {
+                const newX = this.x + move.x;
+                const newY = this.y + move.y;
+                const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
+                    newX, newY,
+                    web.x, web.y
+                );
+                if (!best || distance < best.distance) {
+                    return { move, distance };
+                }
+                return best;
+            }, null);
+
+            if (bestMove) {
+                this.x += bestMove.move.x;
+                this.y += bestMove.move.y;
+
+                // プレイヤーの視界内にいる場合のみメッセージを表示
+                const isVisibleToPlayer = game.getVisibleTiles()
+                    .some(tile => tile.x === this.x && tile.y === this.y);
+                
+                if (isVisibleToPlayer) {
+                    game.logger.add(`${this.name} moves strategically towards its web.`, "monsterInfo");
+                }
+                return true;
+            }
+        }
+
+        return false;
     }
 } 
