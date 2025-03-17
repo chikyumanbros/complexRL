@@ -13,11 +13,6 @@ class RendererEffects {
         this.flickerTime = 0;
         this.flickerValues = new Array(20).fill(0);
         
-        // 画面フリーズエフェクト用の変数
-        this.isScreenFrozen = false;
-        this.freezeOverlay = null;
-        this.glitchCanvas = null;
-        
         // 照明エフェクトの有効/無効フラグ
         this.lightingEffectsEnabled = true;
         
@@ -205,309 +200,6 @@ class RendererEffects {
         }
 
         return { char: baseChar, color: baseColor };
-    }
-
-    /**
-     * 画面をフリーズさせる関数
-     */
-    freezeScreen() {
-        //console.log('Freezing screen for vigor effect');
-        this.isScreenFrozen = true;
-        
-        // フリーズオーバーレイを作成または再利用
-        if (!this.freezeOverlay) {
-            this.freezeOverlay = document.createElement('div');
-            this.freezeOverlay.className = 'freeze-overlay';
-            this.freezeOverlay.style.position = 'fixed';
-            this.freezeOverlay.style.left = '0';
-            this.freezeOverlay.style.width = '100%';
-            this.freezeOverlay.style.height = '100%';
-            this.freezeOverlay.style.backgroundColor = 'rgba(11, 15, 11, 0.1)'; // ゲームの背景色に合わせた色
-            this.freezeOverlay.style.pointerEvents = 'none';
-            this.freezeOverlay.style.zIndex = '9999';
-            document.body.appendChild(this.freezeOverlay);
-            
-            // グリッチキャンバスを作成
-            this.glitchCanvas = document.createElement('canvas');
-            this.glitchCanvas.style.position = 'fixed';
-            this.glitchCanvas.style.top = '0';
-            this.glitchCanvas.style.left = '0';
-            this.glitchCanvas.style.width = '100%';
-            this.glitchCanvas.style.height = '100%';
-            this.glitchCanvas.style.pointerEvents = 'none';
-            this.glitchCanvas.style.zIndex = '10000';
-            this.glitchCanvas.style.mixBlendMode = 'screen'; // ブレンドモードを追加
-            document.body.appendChild(this.glitchCanvas);
-        }
-        
-        // 既存のオーバーレイとキャンバスを表示状態に設定
-        this.freezeOverlay.style.display = 'block';
-        this.freezeOverlay.style.opacity = '1';
-        this.glitchCanvas.style.display = 'block';
-        
-        // キャンバスサイズを更新（ウィンドウサイズが変わっている可能性があるため）
-        this.glitchCanvas.width = window.innerWidth;
-        this.glitchCanvas.height = window.innerHeight;
-        
-        // グリッチエフェクトを描画
-        this._drawGlitchEffect();
-        
-        // 画面を少し揺らす効果を追加（揺れを抑える）
-        document.body.classList.remove('screen-shake'); // 一度クラスを削除して再適用
-        void document.body.offsetWidth; // リフロー強制
-        
-        // CSSアニメーションではなく、軽微な変形を適用
-        const gameContainer = document.getElementById('game-container');
-        if (gameContainer) {
-            gameContainer.style.transition = 'transform 0.1s ease-in-out';
-            gameContainer.style.transform = `translate(${Math.random() * 4 - 2}px, ${Math.random() * 4 - 2}px)`;
-            
-            // 短時間で元に戻す
-            setTimeout(() => {
-                gameContainer.style.transform = '';
-            }, 150);
-        }
-        
-        // 効果音を再生（オプション）
-        if (this.renderer.game.playSound) {
-            this.renderer.game.playSound('vigorEffectSound');
-        }
-    }
-    
-    /**
-     * フリーズを解除する関数
-     */
-    unfreezeScreen() {
-        //console.log('Unfreezing screen');
-        this.isScreenFrozen = false;
-        
-        // グリッチキャンバスをクリア
-        if (this.glitchCanvas) {
-            const ctx = this.glitchCanvas.getContext('2d');
-            ctx.clearRect(0, 0, this.glitchCanvas.width, this.glitchCanvas.height);
-            
-            // フェードアウト効果を追加
-            this.glitchCanvas.style.transition = 'opacity 0.3s ease-out';
-            this.glitchCanvas.style.opacity = '0';
-            
-            // 完全に非表示にする前に少し待つ
-            setTimeout(() => {
-                this.glitchCanvas.style.display = 'none';
-                this.glitchCanvas.style.opacity = '1'; // 次回のために戻しておく
-                this.glitchCanvas.style.transition = '';
-            }, 300);
-        }
-        
-        // オーバーレイを非表示
-        if (this.freezeOverlay) {
-            this.freezeOverlay.style.transition = 'opacity 0.3s ease-out';
-            this.freezeOverlay.style.opacity = '0';
-            
-            // 完全に非表示にする前に少し待つ
-            setTimeout(() => {
-                this.freezeOverlay.style.display = 'none';
-                this.freezeOverlay.style.opacity = '1'; // 次回のために戻しておく
-                this.freezeOverlay.style.transition = '';
-            }, 300);
-        }
-        
-        // 揺れ効果を解除
-        document.body.classList.remove('screen-shake');
-        
-        // ゲームコンテナの変形をリセット
-        const gameContainer = document.getElementById('game-container');
-        if (gameContainer) {
-            gameContainer.style.transform = '';
-        }
-        
-        // vigor effectsによる瞑想がキャンセルされた場合、音を停止
-        if (this.renderer.game.player.meditation && this.renderer.game.player.meditation.vigorEffectMeditation) {
-            // 瞑想状態がキャンセルされた場合に音を停止
-            if (this.renderer.game.player.meditation.soundStarted) {
-                this.renderer.game.stopSound('meditationSound');
-                //console.log('Stopping meditation sound due to vigor effect cancellation');
-            }
-        }
-    }
-    
-    /**
-     * グリッチエフェクトを描画する関数
-     * @private
-     */
-    // グリッチエフェクトを描画する関数
-    _drawGlitchEffect() {
-        if (!this.glitchCanvas) return;
-        
-        const ctx = this.glitchCanvas.getContext('2d');
-        const width = this.glitchCanvas.width;
-        const height = this.glitchCanvas.height;
-        
-        // キャンバスをクリア
-        ctx.clearRect(0, 0, width, height);
-        
-        // パフォーマンス向上のため、エフェクト数を制限
-        const maxEffects = 20; // 最大エフェクト数
-        let effectCount = 0;
-        
-        // 水平グリッチライン（より角張った形状に）
-        const horizontalGlitchCount = Math.min(3, Math.floor(Math.random() * 4) + 1);
-        for (let i = 0; i < horizontalGlitchCount && effectCount < maxEffects; i++) {
-            const y = Math.floor(Math.random() * height);
-            const glitchHeight = Math.floor(Math.random() * 3) + 1;
-            
-            // 線を分断して不規則にする
-            const segmentCount = Math.min(2, Math.floor(Math.random() * 3) + 1);
-            for (let j = 0; j < segmentCount && effectCount < maxEffects; j++) {
-                const segmentWidth = Math.floor(Math.random() * (width / 4)) + 20;
-                const startX = Math.floor(Math.random() * (width - segmentWidth));
-                
-                // より毒々しい色のパレットに変更（色数を減らす）
-                const colors = [
-                    'rgba(0, 255, 0, 0.25)',      // 放射性緑
-                    'rgba(117, 0, 156, 0.3)',     // 暗い紫
-                    'rgba(226, 17, 0, 0.2)',      // 血のような赤
-                ];
-                const color = colors[Math.floor(Math.random() * colors.length)];
-                
-                ctx.fillStyle = color;
-                
-                // 単純な矩形描画に簡略化
-                if (Math.random() < 0.7) {
-                    // 基本の矩形
-                    ctx.fillRect(startX, y, segmentWidth, glitchHeight);
-                } else {
-                    // ギザギザパターン（簡略化）
-                    ctx.beginPath();
-                    const zigHeight = Math.max(1, Math.floor(Math.random() * 4));
-                    const zigCount = Math.min(4, Math.floor(segmentWidth / 4));
-                    ctx.moveTo(startX, y);
-                    
-                    for (let k = 0; k < zigCount; k++) {
-                        const zigX = startX + (k + 1) * (segmentWidth / zigCount);
-                        const zigY = y + ((k % 2) ? zigHeight : -zigHeight);
-                        ctx.lineTo(zigX, zigY);
-                    }
-                    
-                    ctx.lineTo(startX + segmentWidth, y);
-                    ctx.closePath();
-                    ctx.fill();
-                }
-                
-                effectCount++;
-            }
-        }
-        
-        // 垂直グリッチライン（簡略化）
-        const verticalGlitchCount = Math.min(2, Math.floor(Math.random() * 3) + 1);
-        for (let i = 0; i < verticalGlitchCount && effectCount < maxEffects; i++) {
-            const x = Math.floor(Math.random() * width);
-            const glitchWidth = Math.floor(Math.random() * 2) + 1;
-            
-            // 線を分断して不規則にする
-            const segmentCount = Math.min(2, Math.floor(Math.random() * 2) + 1);
-            for (let j = 0; j < segmentCount && effectCount < maxEffects; j++) {
-                const segmentHeight = Math.floor(Math.random() * (height / 4)) + 20;
-                const startY = Math.floor(Math.random() * (height - segmentHeight));
-                
-                // 色のパレットを簡略化
-                const colors = [
-                    'rgba(0, 255, 0, 0.2)',       // 放射性緑
-                    'rgba(117, 0, 156, 0.25)',    // 暗い紫
-                ];
-                const color = colors[Math.floor(Math.random() * colors.length)];
-                
-                ctx.fillStyle = color;
-                
-                // 単純な矩形描画
-                ctx.fillRect(x, startY, glitchWidth, segmentHeight);
-                
-                effectCount++;
-            }
-        }
-        
-        // テキストのグリッチエフェクト（簡略化）
-        if (effectCount < maxEffects && Math.random() < 0.5) {
-            const textCount = Math.min(2, Math.floor(Math.random() * 2) + 1);
-            
-            // 提供された文字セットから選択（簡略化）
-            const chars = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
-            
-            // グリッチらしいテキストパターン（簡略化）
-        const glitchTexts = [
-                "ERROR", "SYSTEM FAILURE", "BUFFER OVERFLOW", "SEGFAULT",
-                "DUKKHA", "ANATTA", "ANICCA", "SAMSARA", "NIRVANA"
-            ];
-            
-            for (let i = 0; i < textCount && effectCount < maxEffects; i++) {
-            const x = Math.floor(Math.random() * width);
-            const y = Math.floor(Math.random() * height);
-                const fontSize = Math.floor(Math.random() * 10) + 8;
-            
-            let text = '';
-                
-                // テキスト選択を簡略化
-                if (Math.random() < 0.7) {
-                text = glitchTexts[Math.floor(Math.random() * glitchTexts.length)];
-                } else {
-                    // 完全にランダムな文字列（短く）
-                    const textLength = Math.floor(Math.random() * 4) + 3;
-                for (let j = 0; j < textLength; j++) {
-                    text += chars.charAt(Math.floor(Math.random() * chars.length));
-                }
-            }
-            
-            ctx.font = `${fontSize}px 'IBM EGA 9x8', monospace`;
-            
-                // 色のパレットを簡略化
-            const textColors = [
-                'rgba(0, 255, 0, 0.8)',       // 放射性緑
-                'rgba(117, 0, 156, 0.7)',     // 暗い紫
-            ];
-            ctx.fillStyle = textColors[Math.floor(Math.random() * textColors.length)];
-            
-                // 通常のテキスト描画
-                    ctx.fillText(text, x, y);
-                
-                effectCount++;
-            }
-        }
-        
-        // ピクセルノイズ（簡略化）
-        if (effectCount < maxEffects && Math.random() < 0.5) {
-            const noiseClusters = Math.min(2, Math.floor(Math.random() * 2) + 1);
-            for (let c = 0; c < noiseClusters && effectCount < maxEffects; c++) {
-                const clusterX = Math.floor(Math.random() * width);
-                const clusterY = Math.floor(Math.random() * height);
-                const clusterRadius = Math.floor(Math.random() * 30) + 10;
-                const noiseCount = Math.min(10, Math.floor(Math.random() * 15) + 5);
-                
-                // 色のパレットを簡略化
-                const colors = [
-                    'rgba(0, 255, 0, 0.3)',       // 放射性緑
-                    'rgba(117, 0, 156, 0.35)',    // 暗い紫
-                ];
-                const color = colors[Math.floor(Math.random() * colors.length)];
-                ctx.fillStyle = color;
-                
-                for (let i = 0; i < noiseCount && effectCount < maxEffects; i++) {
-                    const angle = Math.random() * Math.PI * 2;
-                    const distance = Math.random() * clusterRadius;
-                    const x = clusterX + Math.cos(angle) * distance;
-                    const y = clusterY + Math.sin(angle) * distance;
-                    
-                    // 単純な四角形のノイズ
-                    const size = Math.floor(Math.random() * 3) + 1;
-                    ctx.fillRect(x, y, size, size);
-                    
-                    effectCount++;
-                }
-            }
-        }
-        
-        // アニメーションを継続（ちらつきを多めに、更新頻度を下げる）
-        if (this.isScreenFrozen) {
-            setTimeout(() => this._drawGlitchEffect(), Math.floor(Math.random() * 200) + 200);
-        }
     }
 
     /**
@@ -1058,6 +750,155 @@ class RendererEffects {
                 }
             }, index * stepDelay);
         });
+    }
+
+    /**
+     * 瞑想エフェクトを表示する
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     */
+    showMeditationEffect(x, y) {
+        const particleLayer = document.getElementById('particle-layer');
+        if (!particleLayer) {
+            console.error('particle-layer element not found');
+            // パーティクルレイヤーが見つからない場合は作成を試みる
+            if (this.renderer && this.renderer.game) {
+                console.log('Attempting to create particle layer from rendererEffects');
+                this.renderer.game.ensureParticleLayer();
+                // 再度取得を試みる
+                const newParticleLayer = document.getElementById('particle-layer');
+                if (!newParticleLayer) {
+                    console.error('Failed to create particle-layer element');
+                    return;
+                }
+                console.log('Successfully created particle layer');
+            } else {
+                return;
+            }
+        }
+
+        const pos = this.renderer.getTilePosition(x, y);
+        if (!pos) {
+            console.error('Could not get tile position for', x, y);
+            return;
+        }
+
+        console.log('Showing meditation effect at', x, y, 'position:', pos);
+
+        const centerX = pos.x;
+        const centerY = pos.y;
+
+        // サイケデリックエフェクトを強化
+        this.renderer.psychedelicTurn += 5;
+        
+        // プレイヤーの周囲のタイルを一時的に変更
+        const effectRange = Math.max(1, Math.min(8,
+            Math.floor(this.renderer.game.player.stats.wis - Math.floor(this.renderer.game.player.stats.int / 2)) * 2
+        ));
+        
+        // 瞑想エフェクト用のコンテナを作成
+        const meditationContainer = document.createElement('div');
+        meditationContainer.className = 'meditation-effect-container';
+        meditationContainer.style.position = 'absolute';
+        meditationContainer.style.left = centerX + 'px';
+        meditationContainer.style.top = centerY + 'px';
+        meditationContainer.style.width = '40px';
+        meditationContainer.style.height = '40px';
+        meditationContainer.style.transform = 'translate(-50%, -50%)';
+        meditationContainer.style.zIndex = '100';
+
+        // 円形のオーラエフェクトを作成
+        const aura = document.createElement('div');
+        aura.className = 'meditation-aura';
+        aura.style.position = 'absolute';
+        aura.style.width = '100%';
+        aura.style.height = '100%';
+        aura.style.borderRadius = '50%';
+        aura.style.background = 'radial-gradient(circle, rgba(100, 200, 255, 0.6) 0%, rgba(100, 200, 255, 0) 70%)';
+        aura.style.animation = 'pulse 2s infinite ease-in-out';
+
+        // 粒子エフェクトを追加
+        for (let i = 0; i < 12; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'meditation-particle';
+            particle.style.position = 'absolute';
+            particle.style.width = '4px';
+            particle.style.height = '4px';
+            particle.style.borderRadius = '50%';
+            particle.style.backgroundColor = 'rgba(150, 220, 255, 0.8)';
+            
+            // 粒子の位置と動きをランダムに設定
+            const angle = (i / 12) * Math.PI * 2;
+            const distance = 15;
+            const x = Math.cos(angle) * distance;
+            const y = Math.sin(angle) * distance;
+            
+            particle.style.left = '50%';
+            particle.style.top = '50%';
+            particle.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+            particle.style.animation = `float 3s infinite ease-in-out ${i * 0.25}s`;
+            
+            meditationContainer.appendChild(particle);
+        }
+
+        // 宇宙のような背景エフェクトを追加
+        const spaceBackground = document.createElement('div');
+        spaceBackground.className = 'space-background';
+        spaceBackground.style.position = 'absolute';
+        spaceBackground.style.width = `${effectRange * 40}px`;
+        spaceBackground.style.height = `${effectRange * 40}px`;
+        spaceBackground.style.borderRadius = '50%';
+        spaceBackground.style.left = '50%';
+        spaceBackground.style.top = '50%';
+        spaceBackground.style.transform = 'translate(-50%, -50%)';
+        spaceBackground.style.background = 'radial-gradient(circle, rgba(0, 0, 30, 0.3) 0%, rgba(0, 0, 0, 0) 70%)';
+        spaceBackground.style.zIndex = '-1';
+        
+        // 星のような点を追加
+        for (let i = 0; i < 20; i++) {
+            const star = document.createElement('div');
+            star.className = 'meditation-star';
+            star.style.position = 'absolute';
+            star.style.width = '2px';
+            star.style.height = '2px';
+            star.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+            star.style.borderRadius = '50%';
+            
+            // ランダムな位置
+            const angle = Math.random() * Math.PI * 2;
+            const dist = Math.random() * effectRange * 15;
+            star.style.left = `calc(50% + ${Math.cos(angle) * dist}px)`;
+            star.style.top = `calc(50% + ${Math.sin(angle) * dist}px)`;
+            
+            // 明滅アニメーション
+            star.style.animation = `pulse 1.5s infinite ease-in-out ${Math.random() * 2}s`;
+            
+            spaceBackground.appendChild(star);
+        }
+        
+        meditationContainer.appendChild(spaceBackground);
+        meditationContainer.appendChild(aura);
+        particleLayer.appendChild(meditationContainer);
+
+        console.log('Meditation effect container added to particle layer');
+
+        // エフェクトの表示時間を延長（5秒→10秒）
+        setTimeout(() => {
+            if (particleLayer.contains(meditationContainer)) {
+                meditationContainer.style.opacity = '0';
+                meditationContainer.style.transition = 'opacity 1s';
+                
+                setTimeout(() => {
+                    if (particleLayer.contains(meditationContainer)) {
+                        particleLayer.removeChild(meditationContainer);
+                        console.log('Meditation effect container removed');
+                    }
+                }, 1000);
+            }
+        }, 10000);
+        
+        // 強制的に再描画を行い、サイケデリックエフェクトを適用
+        this.renderer.render();
     }
 }
 

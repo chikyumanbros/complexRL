@@ -102,20 +102,10 @@ class VigorEffects {
         // エフェクト発動前に1秒のフリーズを追加
         this.game.logger.add("A strange sensation washes over you...", "warning");
         
-        // 画面をフリーズさせる視覚効果を追加（オプション）
-        if (this.game.renderer.freezeScreen) {
-            this.game.renderer.freezeScreen();
-        }
-        
         // 1秒後にエフェクトを実際に適用
         setTimeout(() => {
             // 入力を再度有効化
             this.game.inputDisabled = false;
-            
-            // フリーズ効果を解除（オプション）
-            if (this.game.renderer.unfreezeScreen) {
-                this.game.renderer.unfreezeScreen();
-            }
             
             // 実際のエフェクト処理を実行
             this._executeVigorEffect(effect);
@@ -129,8 +119,11 @@ class VigorEffects {
                 console.log('Executing pauseAndShift effect');
                 this.game.logger.add("Your exhaustion forces you to pause, and the world shifts...", "warning");
                 
-                // 幻覚エフェクトを適用
-                this.game.renderer.psychedelicTurn += 7;
+                // パーティクルレイヤーを確実に作成
+                this.game.ensureParticleLayer();
+                
+                // 幻覚エフェクトを強化して適用
+                this.game.renderer.psychedelicTurn += 15;
                 
                 // 一時的な瞑想状態
                 this.game.player.meditation = {
@@ -144,6 +137,16 @@ class VigorEffects {
                 };
                 
                 this.game.logger.add("You enter a brief meditative state.", "warning");
+                
+                // パーティクルレイヤーが存在することを再確認
+                this.game.ensureParticleLayer();
+                console.log('Particle layer check before showing meditation effect:', document.getElementById('particle-layer'));
+                
+                // 瞑想エフェクトを表示（直接呼び出し）
+                this.game.renderer.showMeditationEffect(this.game.player.x, this.game.player.y);
+                
+                // 強制的に再描画を行い、サイケデリックエフェクトを適用
+                this.game.renderer.render();
                 
                 // 瞑想処理を呼び出す
                 this.game.processMeditation();

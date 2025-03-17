@@ -12,10 +12,6 @@ class Renderer {
         // 幻覚エフェクト用の変数
         this.psychedelicTurn = 0;  // サイケデリックエフェクトのターンカウンター
 
-        // 画面フリーズエフェクト用の変数
-        this.isScreenFrozen = false;
-        this.freezeOverlay = null;
-
         // マップレンダリングのためのキャッシュを追加
         this.lastFloorLevel = null;   // 前回描画時のフロアレベル
         this.tileStateCache = {};     // タイル状態のキャッシュ
@@ -1518,10 +1514,18 @@ createRangedCombatStats(player) {
     }
     // New method for meditation effect
     showMeditationEffect(x, y) {
+        // プレイヤーキャラクターに瞑想エフェクトクラスを追加
         const playerChar = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
         if (playerChar && this.game.player.meditation && this.game.player.meditation.active) {
             playerChar.classList.add('meditation-effect');
         }
+        
+        // パーティクルレイヤーを確実に作成
+        this.game.ensureParticleLayer();
+        console.log('Particle layer check in renderer.showMeditationEffect:', document.getElementById('particle-layer'));
+        
+        // 新しいパーティクルエフェクトを表示
+        this.effects.showMeditationEffect(x, y);
     }
     // New method for movement trail effect
     showMovementTrailEffect(fromX, fromY, toX, toY) {
@@ -2318,23 +2322,9 @@ createRangedCombatStats(player) {
         this.effects.showDamageFlash();
     }
 
-    // 画面をフリーズさせる関数
-    freezeScreen() {
-        this.effects.freezeScreen();
-    }
-    
-    // フリーズを解除する関数
-    unfreezeScreen() {
-        this.effects.unfreezeScreen();
-    }
-
-    // 完全な再描画を強制する（VigorEffectsなど特殊効果後に呼び出す）
     forceRefresh() {
-        console.log('Forcing full redraw...');
         this.forceFullRender = true;
-        this.tileStateCache = {}; // キャッシュをクリア
-        this.exploredStateHash = this.effects.calculateExploredHash(); // 新しいハッシュを計算
-        this.render(); // 再描画を実行
+        this.render();
     }
 
     /**
