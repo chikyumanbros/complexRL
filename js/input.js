@@ -39,7 +39,9 @@ class InputHandler {
         document.removeEventListener('keyup', this.boundHandleKeyUp);
     }
 
-    // キーが離された時の処理
+    // ----------------------
+    // Key Event Handlers
+    // ----------------------
     handleKeyUp(event) {
         const key = event.key.toLowerCase();
         
@@ -54,7 +56,6 @@ class InputHandler {
         this.pressedKeys.delete(event.key.toLowerCase());
     }
 
-    // キーが押された時の処理
     handleKeyDown(event) {
         // デバッグログを追加（MetaキーはMacのCommandキー）
         //console.log('Key pressed:', event.key, 'Ctrl:', event.ctrlKey, 'Meta:', event.metaKey, 'Key code:', event.keyCode);
@@ -161,7 +162,6 @@ class InputHandler {
     // ----------------------
     // Utility Methods
     // ----------------------
-    // 移動キーかどうかを判定するメソッド
     isMovementKey(key) {
         const movementKeys = [
             'arrowup', 'arrowdown', 'arrowleft', 'arrowright',
@@ -240,6 +240,10 @@ class InputHandler {
             }
             if (this.game.mode === GAME_CONSTANTS.MODES.WIKI) {
                 this.closeWikiMode();
+                return;
+            }
+            if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
+                this.game.toggleMode();
                 return;
             }
             // if (this.game.mode === GAME_CONSTANTS.MODES.CODEX) {
@@ -336,6 +340,7 @@ class InputHandler {
         if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
             if (key === 'escape') {
                 this.game.toggleMode();  // 変更: toggleModeを使用
+                return;
             }
             // else if (key === 'tab') {
             //     if (event) event.preventDefault();
@@ -400,6 +405,9 @@ class InputHandler {
         // 遠距離攻撃モード中の処理は handleGameModeInput に移動したので削除
     }
 
+    // ----------------------
+    // Character Creation Methods
+    // ----------------------
     handleNameInput(key, event) {
         // 名前入力時はタイプライターエフェクトを完全に無効化
         const messageLogElement = document.getElementById('message-log');
@@ -435,7 +443,6 @@ class InputHandler {
         this.game.renderer.renderNamePrompt(this.nameBuffer);
     }
 
-    // 新規: キャラクター作成モードの入力処理
     handleCharacterCreation(key) {
         // キャラクター作成時もタイプライターエフェクトを無効化
         const messageLogElement = document.getElementById('message-log');
@@ -487,7 +494,6 @@ class InputHandler {
         }
     }
 
-    // 新規: 現在のステータスを表示
     showCurrentStats() {
         const player = this.game.player;
         
@@ -1119,7 +1125,11 @@ class InputHandler {
 
         // --- Initiate Look Mode ---
         if (key === ';') {
-            this.startLookMode();
+            if (this.lookMode) {
+                this.endLookMode();
+            } else {
+                this.startLookMode();
+            }
             return;
         }
 
@@ -1255,64 +1265,65 @@ class InputHandler {
     }
 
     handleLookMode(key) {
-        let dx = 0;
-        let dy = 0;
-
-        switch (key) {
-            case 'arrowleft':
-            case 'h': dx = -1; break;
-            case 'arrowright':
-            case 'l': dx = 1; break;
-            case 'arrowup':
-            case 'k': dy = -1; break;
-            case 'arrowdown':
-            case 'j': dy = 1; break;
-            case 'y': dx = -1; dy = -1; break;
-            case 'u': dx = 1; dy = -1; break;
-            case 'b': dx = -1; dy = 1; break;
-            case 'n': dx = 1; dy = 1; break;
-            case 'escape':
-            case ';':  // ;キーでも解除できるように追加
-                this.endLookMode();
-                return;
+        // Handle look mode exit
+        if (key === 'escape' || key === ';') {
+            this.endLookMode();
+            return;
         }
 
-        if (dx !== 0 || dy !== 0) {
+        // Get direction from key
+        const direction = this.getDirectionFromKey(key);
+        if (!direction) {
+            return; // Not a direction key
+        }
+
+        // Calculate new target position
+        const newX = this.targetX + direction.dx;
+        const newY = this.targetY + direction.dy;
+
+        // Check if the new position is within map bounds
+        if (newX >= 0 && newX < this.game.width && newY >= 0 && newY < this.game.height) {
+            // Get visible tiles
             const visibleTiles = new Set(
                 this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
             );
-
-            // 新しい座標を計算
-            let newX = this.targetX + dx;
-            let newY = this.targetY + dy;
-
-            // マップ範囲内かチェック
-            if (newX >= 0 && newX < this.game.width && newY >= 0 && newY < this.game.height) {
-                // 視界内のタイルを探す
-                while (!visibleTiles.has(`${newX},${newY}`)) {
-                    newX += dx;
-                    newY += dy;
-                    
-                    // マップ範囲外に出たら中止
-                    if (newX < 0 || newX >= this.game.width || newY < 0 || newY >= this.game.height) {
-                        return;
-                    }
-                    
-                    // 次の視界内タイルが見つかった場合
-                    if (visibleTiles.has(`${newX},${newY}`)) {
-                        this.targetX = newX;
-                        this.targetY = newY;
-                        this.game.renderer.highlightTarget(this.targetX, this.targetY);
-                        this.game.renderer.examineTarget(this.targetX, this.targetY, true);
-                        return;
-                    }
-                }
-
-                // 隣接タイルが視界内の場合は通常通り移動
+            
+            // Check if the new position is visible
+            if (visibleTiles.has(`${newX},${newY}`)) {
                 this.targetX = newX;
                 this.targetY = newY;
                 this.game.renderer.highlightTarget(this.targetX, this.targetY);
                 this.game.renderer.examineTarget(this.targetX, this.targetY, true);
+                return;
+            }
+        }
+
+        // If the new position is not visible, try to move in that direction
+        // until we find a visible tile or hit the map boundary
+        let currentX = this.targetX;
+        let currentY = this.targetY;
+        
+        while (true) {
+            currentX += direction.dx;
+            currentY += direction.dy;
+            
+            // Stop if we hit the map boundary
+            if (currentX < 0 || currentX >= this.game.width || currentY < 0 || currentY >= this.game.height) {
+                break;
+            }
+            
+            // Check if the current position is visible
+            const visibleTiles = new Set(
+                this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
+            );
+            
+            // If the current position is visible, update the target
+            if (visibleTiles.has(`${currentX},${currentY}`)) {
+                this.targetX = currentX;
+                this.targetY = currentY;
+                this.game.renderer.highlightTarget(this.targetX, this.targetY);
+                this.game.renderer.examineTarget(this.targetX, this.targetY, true);
+                return;
             }
         }
     }
@@ -1328,52 +1339,47 @@ class InputHandler {
     // Targeting Mode Navigation
     // ----------------------
     handleTargetingMode(key) {
-        let dx = 0;
-        let dy = 0;
-
-        switch (key) {
-            case 'y': dx = -1; dy = -1; break;
-            case 'u': dx = 1; dy = -1; break;
-            case 'b': dx = -1; dy = 1; break;
-            case 'n': dx = 1; dy = 1; break;
-            case 'h': dx = -1; break;
-            case 'l': dx = 1; break;
-            case 'k': dy = -1; break;
-            case 'j': dy = 1; break;
-            case 'enter':
-            case ' ':
-                this.confirmTarget();
-                return;
-            case 'escape':
-                this.cancelTargeting();
-                return;
+        // Handle confirmation and cancellation
+        if (key === 'enter' || key === ' ') {
+            this.confirmTarget();
+            return;
+        }
+        
+        if (key === 'escape') {
+            this.cancelTargeting();
+            return;
         }
 
-        if (dx !== 0 || dy !== 0) {
-            // 新しい座標を計算
-            let newX = this.targetX + dx;
-            let newY = this.targetY + dy;
+        // Get direction from key
+        const direction = this.getDirectionFromKey(key);
+        if (!direction) {
+            return; // Not a direction key
+        }
 
-            // マップ範囲内かチェック
-            if (newX >= 0 && newX < this.game.width && newY >= 0 && newY < this.game.height) {
-                // ↓↓↓ 変更箇所: ランドマークターゲットモードかどうかで処理を分岐 ↓↓↓
-                if (this.landmarkTargetMode) {
-                    // ランドマークターゲットモードの場合は視界外も許可
+        // Calculate new target position
+        const newX = this.targetX + direction.dx;
+        const newY = this.targetY + direction.dy;
+
+        // Check if the new position is within map bounds
+        if (newX >= 0 && newX < this.game.width && newY >= 0 && newY < this.game.height) {
+            // Handle different targeting modes
+            if (this.landmarkTargetMode) {
+                // Landmark target mode allows targeting outside of visible area
+                this.targetX = newX;
+                this.targetY = newY;
+            } else {
+                // Normal targeting mode only allows targeting visible tiles
+                const visibleTiles = new Set(
+                    this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
+                );
+                if (visibleTiles.has(`${newX},${newY}`)) {
                     this.targetX = newX;
                     this.targetY = newY;
-                } else {
-                    // 通常のターゲティングモードの場合は視界内のみ
-                    const visibleTiles = new Set(
-                        this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
-                    );
-                    if (visibleTiles.has(`${newX},${newY}`)) {
-                        this.targetX = newX;
-                        this.targetY = newY;
-                    }
                 }
-                // ↑↑↑ 変更箇所: ランドマークターゲットモードかどうかで処理を分岐 ↑↑↑
-                this.game.renderer.highlightTarget(this.targetX, this.targetY);
             }
+            
+            // Highlight the current target
+            this.game.renderer.highlightTarget(this.targetX, this.targetY);
         }
     }
 
@@ -1428,7 +1434,7 @@ class InputHandler {
     }
 
     // ----------------------
-    // Stat Selection Handling
+    // Stat Selection Methods
     // ----------------------
     handleStatSelection(key) {
         const statMap = {
@@ -1448,7 +1454,9 @@ class InputHandler {
         }
     }
 
-    // --- Set Mode and associated callbacks (e.g., statSelect) ---
+    // ----------------------
+    // Mode Management Methods
+    // ----------------------
     setMode(mode, options = {}) {
         this.mode = mode;
         if (mode === 'statSelect') {
@@ -1492,7 +1500,7 @@ class InputHandler {
     }
 
     // ----------------------
-    // Door Operation Implementation
+    // Door Operation Methods
     // ----------------------
     operateDoor(door, operation) {
         if (operation === 'o' && door.tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
@@ -1614,12 +1622,7 @@ class InputHandler {
     }
 
     // ----------------------
-    // Misc: Toggle Codex Mode
-    // ----------------------
-    // toggleCodexModeメソッドを削除
-
-    // ----------------------
-    // Utility Methods
+    // Landmark Navigation Methods
     // ----------------------
     findExploredStairs() {
         for (let y = 0; y < this.game.height; y++) {
@@ -1643,9 +1646,6 @@ class InputHandler {
         }
     }
 
-    // ----------------------
-    // Landmark Navigation Methods
-    // ----------------------
     startLandmarkNavigation() {
         // ホームフロア（floorLevel = 0）ではランドマークターゲットを無効にする
         if (this.game.floorLevel === 0) {
@@ -1671,43 +1671,85 @@ class InputHandler {
     }
 
     handleLandmarkTargetMode(key) {
+        // Check if landmarks exist
         if (!this.currentLandmarks || this.currentLandmarks.length === 0) {
             this.endLandmarkTargetMode();
             return;
         }
-
-        switch (key) {
-            case 'h':
-                this.cycleLandmark(-1);
-                break;
-            case 'l':
-                this.cycleLandmark(1);
-                break;
-            case 'enter':
-            case ' ':
-                this.startAutoMoveToLandmark();
-                break;
-            case 'escape':
-            case 'backspace':  // backspaceでも解除可能に
-                this.endLandmarkTargetMode();
-                break;
+        
+        // Handle landmark target mode exit
+        if (key === 'escape' || key === 'backspace') {
+            this.endLandmarkTargetMode();
+            return;
+        }
+        
+        // Handle landmark cycling with h/l keys
+        if (key === 'h') {
+            this.cycleLandmark(-1);
+            return;
+        }
+        
+        if (key === 'l') {
+            this.cycleLandmark(1);
+            return;
+        }
+        
+        // Handle landmark selection with Tab key
+        if (key === 'tab') {
+            const direction = event && event.shiftKey ? 'prev' : 'next';
+            this.cycleLandmark(direction);
+            return;
+        }
+        
+        // Handle landmark auto-move with Enter key
+        if (key === 'enter' || key === ' ') {
+            this.startAutoMoveToLandmark();
+            return;
+        }
+        
+        // Get direction from key for manual targeting
+        const direction = this.getDirectionFromKey(key);
+        if (!direction) {
+            return; // Not a direction key
+        }
+        
+        // Calculate new target position
+        const newX = this.targetX + direction.dx;
+        const newY = this.targetY + direction.dy;
+        
+        // Check if the new position is within map bounds
+        if (newX >= 0 && newX < this.game.width && newY >= 0 && newY < this.game.height) {
+            this.targetX = newX;
+            this.targetY = newY;
+            this.game.renderer.highlightTarget(this.targetX, this.targetY);
         }
     }
 
+    // Cycle through landmarks in the specified direction
     cycleLandmark(direction) {
         if (!this.currentLandmarks || this.currentLandmarks.length === 0) {
             return;
         }
-
-        // 現在のインデックスを基に、次のインデックスを計算（ローテーション）
-        this.currentLandmarkIndex = (this.currentLandmarkIndex + direction + this.currentLandmarks.length) % this.currentLandmarks.length;
-
+        
+        // Convert string direction to numeric value
+        let step = 0;
+        if (typeof direction === 'string') {
+            step = direction === 'next' ? 1 : -1;
+        } else {
+            step = direction;
+        }
+        
+        // Calculate new index with wrapping
+        this.currentLandmarkIndex = (this.currentLandmarkIndex + step + this.currentLandmarks.length) % this.currentLandmarks.length;
+        
+        // Update target position
         const landmark = this.currentLandmarks[this.currentLandmarkIndex];
         this.targetX = landmark.x;
         this.targetY = landmark.y;
-        // 視界外でもハイライト
-        this.game.renderer.highlightTarget(this.targetX, this.targetY, true);
-        this.game.renderer.examineTarget(this.targetX, this.targetY, true);
+        
+        // Update UI
+        this.game.renderer.highlightTarget(this.targetX, this.targetY);
+        this.game.logger.add(`Landmark ${this.currentLandmarkIndex + 1}/${this.currentLandmarks.length}: ${landmark.name || 'Unknown'}`, "info");
     }
 
     findExploredLandmarks() {
@@ -1751,7 +1793,9 @@ class InputHandler {
         this.game.logger.add("Exited landmark navigation mode.", "info");
     }
 
-    // メッセージログのスクロール制御
+    // ----------------------
+    // Message Log Methods
+    // ----------------------
     handleLogScroll(key) {
         const logPanel = document.getElementById('message-log');
         const enemyInfo = document.querySelector('.enemy-info');
@@ -1799,7 +1843,7 @@ class InputHandler {
     }
 
     // ----------------------
-    // Utility Methods
+    // Wiki Mode Methods
     // ----------------------
     openWikiMode() {
         // 既存のゲームモードを保存
@@ -1891,28 +1935,27 @@ class InputHandler {
         this.game.logger.add('Wiki screen closed.', 'system');
     }
 
-    // スキルスロット並べ替えモードを開始するメソッド
+    // ----------------------
+    // Skill Slot Management Methods
+    // ----------------------
     startSkillSlotSwap(slotKey) {
         // スキルスロット入れ替え機能は無効化されました
         this.game.logger.add("Skill slot swap has been disabled.", "warning");
         return;
     }
     
-    // スキルスロット並べ替えモードの処理メソッド
     handleSkillSlotSwapMode(key) {
         // スキルスロット入れ替え機能は無効化されました
         this.cancelSkillSlotSwap();
         return;
     }
     
-    // スキルスロット並べ替えを完了するメソッド
     completeSkillSlotSwap(secondSlot) {
         // スキルスロット入れ替え機能は無効化されました
         this.cancelSkillSlotSwap();
         return;
     }
     
-    // スキルスロット並べ替えをキャンセルするメソッド
     cancelSkillSlotSwap() {
         this.skillSlotSwapMode = false;
         this.firstSlot = null;
@@ -2005,12 +2048,10 @@ class InputHandler {
         this.removeMapObject(x, y, 'web');
     }
 
-    // マップを再描画するヘルパーメソッド
     renderMap() {
         this.game.renderer.render();
     }
 
-    // マップオブジェクトを除去する共通メソッド
     removeMapObject(x, y, type, options = {}) {
         switch (type) {
             case 'web':
@@ -2082,23 +2123,28 @@ class InputHandler {
         this.game.renderer.render();
     }
 
-    // input.js に追加
+    // ----------------------
+    // Direction Handling Methods
+    // ----------------------
     getDirectionFromKey(key) {
-        switch (key.toLowerCase()) {
-            case 'arrowleft':
-            case 'h': return { dx: -1, dy: 0 };
-            case 'arrowright':
-            case 'l': return { dx: 1, dy: 0 };
-            case 'arrowup':
-            case 'k': return { dx: 0, dy: -1 };
-            case 'arrowdown':
-            case 'j': return { dx: 0, dy: 1 };
-            case 'y': return { dx: -1, dy: -1 };
-            case 'u': return { dx: 1, dy: -1 };
-            case 'b': return { dx: -1, dy: 1 };
-            case 'n': return { dx: 1, dy: 1 };
-            default: return null;
-        }
+        // Create a mapping of keys to directions
+        const directionMap = {
+            'arrowup': { dx: 0, dy: -1 },
+            'arrowdown': { dx: 0, dy: 1 },
+            'arrowleft': { dx: -1, dy: 0 },
+            'arrowright': { dx: 1, dy: 0 },
+            'h': { dx: -1, dy: 0 },
+            'j': { dx: 0, dy: 1 },
+            'k': { dx: 0, dy: -1 },
+            'l': { dx: 1, dy: 0 },
+            'y': { dx: -1, dy: -1 },
+            'u': { dx: 1, dy: -1 },
+            'b': { dx: -1, dy: 1 },
+            'n': { dx: 1, dy: 1 }
+        };
+        
+        // Return the direction if the key is valid, otherwise null
+        return directionMap[key.toLowerCase()] || null;
     }
 
     renderSpritePreview() {
