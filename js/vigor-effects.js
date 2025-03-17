@@ -148,6 +148,12 @@ class VigorEffects {
                     // パーティクルレイヤーを再確認
                     this.game.ensureParticleLayer();
                     
+                    // 必要なCSSアニメーションを追加
+                    if (this.game.renderer && this.game.renderer.effects && 
+                        typeof this.game.renderer.effects.ensureCSSAnimations === 'function') {
+                        this.game.renderer.effects.ensureCSSAnimations();
+                    }
+                    
                     // 瞑想エフェクトを表示（直接呼び出し）
                     if (this.game.renderer && this.game.renderer.effects) {
                         console.log('Directly calling showMeditationEffect from effects');
@@ -158,7 +164,7 @@ class VigorEffects {
                     
                     // 強制的に再描画を行い、サイケデリックエフェクトを適用
                     this.game.renderer.render();
-                }, 100);
+                }, 300); // 遅延時間を300msに増加
                 
                 // 瞑想処理を呼び出す
                 this.game.processMeditation();

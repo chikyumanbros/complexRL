@@ -2122,23 +2122,51 @@ createRangedCombatStats(player) {
 
     // 共通の位置計算ロジックを追加
     getTilePosition(x, y) {
+        // ゲーム画面の要素を取得
+        const gameElement = document.getElementById('game');
+        if (!gameElement) {
+            console.error('Game element not found');
+            return null;
+        }
+        
+        // タイル要素を取得
         const tileElement = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
-        if (!tileElement) return null;
-
-        // スケール比を取得
-        const scale = parseFloat(getComputedStyle(document.documentElement)
-            .getPropertyValue('--scale-ratio')) || 1;
-
-        const gameContainer = document.getElementById('game-container');
-        const containerRect = gameContainer ? gameContainer.getBoundingClientRect() : { left: 0, top: 0 };
-        const tileRect = tileElement.getBoundingClientRect();
-
-        // スケールを考慮した実際の位置を計算（タイルの中央を取得）
+        if (!tileElement) {
+            console.error(`Tile element not found at ${x},${y}`);
+            
+            // タイル要素が見つからない場合は推定位置を計算
+            const tileWidth = 18; // 標準的なタイル幅
+            const tileHeight = 18; // 標準的なタイル高さ
+            
+            // ゲーム要素の位置を取得
+            const gameRect = gameElement.getBoundingClientRect();
+            
+            // 推定位置を計算
+            const estimatedX = gameRect.left + (x * tileWidth) + (tileWidth / 2);
+            const estimatedY = gameRect.top + (y * tileHeight) + (tileHeight / 2);
+            
+            console.log(`Estimated position for ${x},${y}: ${estimatedX}, ${estimatedY}`);
+            
+            return {
+                x: estimatedX,
+                y: estimatedY,
+                width: tileWidth,
+                height: tileHeight
+            };
+        }
+        
+        // タイル要素の位置とサイズを取得
+        const rect = tileElement.getBoundingClientRect();
+        
+        // 中心位置を計算
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        
         return {
-            x: (tileRect.left - containerRect.left + tileRect.width / 8) / scale,
-            y: (tileRect.top - containerRect.top + tileRect.height / 9) / scale,
-            width: tileRect.width / scale,
-            height: tileRect.height / scale
+            x: centerX,
+            y: centerY,
+            width: rect.width,
+            height: rect.height
         };
     }
 

@@ -791,10 +791,32 @@ class RendererEffects {
             }
         }
 
+        // タイル位置を取得
         const pos = this.renderer.getTilePosition(x, y);
         if (!pos) {
             console.error('Could not get tile position for', x, y);
-            return;
+            
+            // 位置が取得できない場合は、ゲーム要素の中央を使用
+            const gameElement = document.getElementById('game');
+            if (gameElement) {
+                const rect = gameElement.getBoundingClientRect();
+                pos = {
+                    x: rect.left + rect.width / 2,
+                    y: rect.top + rect.height / 2,
+                    width: 18,
+                    height: 18
+                };
+                console.log('Using game element center as fallback position:', pos);
+            } else {
+                // 最終手段として画面中央を使用
+                pos = {
+                    x: window.innerWidth / 2,
+                    y: window.innerHeight / 2,
+                    width: 18,
+                    height: 18
+                };
+                console.log('Using window center as fallback position:', pos);
+            }
         }
 
         console.log('Showing meditation effect at', x, y, 'position:', pos);
@@ -892,11 +914,15 @@ class RendererEffects {
         
         meditationContainer.appendChild(spaceBackground);
         meditationContainer.appendChild(aura);
+        
+        // パーティクルレイヤーにエフェクトを追加
         particleLayer.appendChild(meditationContainer);
-
         console.log('Meditation effect container added to particle layer');
+        
+        // CSSアニメーションを追加（存在しない場合）
+        this.ensureCSSAnimations();
 
-        // エフェクトの表示時間を延長（5秒→10秒）
+        // エフェクトの表示時間を設定
         setTimeout(() => {
             if (particleLayer.contains(meditationContainer)) {
                 meditationContainer.style.opacity = '0';
@@ -913,6 +939,46 @@ class RendererEffects {
         
         // 強制的に再描画を行い、サイケデリックエフェクトを適用
         this.renderer.render();
+    }
+    
+    /**
+     * 必要なCSSアニメーションを確保する
+     */
+    ensureCSSAnimations() {
+        // すでにスタイルが存在するか確認
+        if (document.getElementById('meditation-animations')) {
+            return;
+        }
+        
+        // アニメーション用のスタイル要素を作成
+        const style = document.createElement('style');
+        style.id = 'meditation-animations';
+        style.textContent = `
+            @keyframes pulse {
+                0% { transform: scale(1); opacity: 0.7; }
+                50% { transform: scale(1.2); opacity: 1; }
+                100% { transform: scale(1); opacity: 0.7; }
+            }
+            
+            @keyframes float {
+                0% { transform: translate(-50%, -50%) translate(var(--x), var(--y)); }
+                50% { transform: translate(-50%, -50%) translate(calc(var(--x) * 1.3), calc(var(--y) * 1.3)); }
+                100% { transform: translate(-50%, -50%) translate(var(--x), var(--y)); }
+            }
+            
+            .meditation-effect-container {
+                pointer-events: none;
+                z-index: 1000;
+            }
+            
+            .meditation-particle {
+                pointer-events: none;
+            }
+        `;
+        
+        // ドキュメントのヘッドに追加
+        document.head.appendChild(style);
+        console.log('Added meditation CSS animations');
     }
 }
 
