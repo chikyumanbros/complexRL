@@ -8,47 +8,43 @@ class Game {
         this.inputHandler = new InputHandler(this);
         this.vigorEffects = new VigorEffects(this);
         this.highScoreManager = new HighScoreManager(this);
+        this.visionSystem = new VisionSystem(this);
+        this.saveSystem = new SaveSystem(this);  // 追加
 
         // デバッグユーティリティの初期化
         this.debugUtils = new DebugUtils(this);
 
         // Game state
         this.player = new Player(0, 0, this);
-        this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;  // 明示的に設定
+        this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
         this.logger = new Logger(this);
         this.mode = GAME_CONSTANTS.MODES.GAME;
         this.turn = 0;
-        this.totalTurns = 0;  // ゲーム全体のターン数を追跡
+        this.totalTurns = 0;
         this.monsters = [];
         this.totalMonstersSpawned = 0;
         this.maxTotalMonsters = 100;
-        this.rooms = [];  // Stores room information
+        this.rooms = [];
         this.isGameOver = false;
-        this.floorLevel = 0;  // Changed from 1 to 0 for starting at home floor
-        this.dangerLevel = 'NORMAL';  // Added danger level
-        this.explored = this.initializeExplored();  // Added explored information
-        this.lastAttackLocation = null;  // Added property to track last attack location
-        this.hasDisplayedPresenceWarning = false;  // Added hasDisplayedPresenceWarning property
-        this.lastHomeFloorUpdate = 0;  // ホームフロアの最終更新ターン
-        this.inputDisabled = false;  // vigor effectsによる入力無効化フラグ
-        this.vigorEffectOccurred = false;  // vigor effect発生フラグ
-
-        // 死亡したモンスターの処理キューを追加
+        this.floorLevel = 0;
+        this.dangerLevel = 'NORMAL';
+        this.explored = this.initializeExplored();
+        this.lastAttackLocation = null;
+        this.hasDisplayedPresenceWarning = false;
+        this.lastHomeFloorUpdate = 0;
+        this.inputDisabled = false;
+        this.vigorEffectOccurred = false;
         this.pendingMonsterDeaths = [];
+        this.neuralObelisks = [];
+        this.webs = [];
 
         this.init();
 
         // 保存されたデータがあれば読み込む
-        this.loadGame();
+        this.saveSystem.loadGame();
 
         // Set up initial panel
         this.logger.renderLookPanel();
-
-        // Game クラスに neuralObelisks プロパティを追加
-        this.neuralObelisks = [];
-        
-        // 蜘蛛の巣の情報を保存する配列
-        this.webs = [];
     }
 
     initializeExplored() {
@@ -60,70 +56,7 @@ class Game {
     }
 
     reset() {
-        // Reset game state
-        this.player = new Player(0, 0, this);
-        this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;  // 明示的に設定
-        this.logger = new Logger(this);
-        this.mode = GAME_CONSTANTS.MODES.GAME;
-        this.turn = 0;
-        this.totalTurns = 0;
-        this.monsters = [];
-        this.totalMonstersSpawned = 0;
-        this.rooms = [];
-        this.isGameOver = false;
-        this.floorLevel = 0;  // Changed from 1 to 0 for starting at home floor
-        this.dangerLevel = 'NORMAL';
-        this.explored = this.initializeExplored();
-        this.lastAttackLocation = null;
-        this.hasDisplayedPresenceWarning = false;
-        this.lastHomeFloorUpdate = 0;
-        this.inputDisabled = false;
-        this.vigorEffectOccurred = false;
-        this.pendingMonsterDeaths = [];
-        this.neuralObelisks = [];
-        this.webs = [];
-        this.monsterKillCount = 0;
-
-        // Initialize the map
-        const mapGenerator = new MapGenerator(this.width, this.height);
-        const mapData = mapGenerator.generateHomeFloor();
-        this.map = mapData.map;
-        this.tiles = mapData.tiles;
-        this.colors = mapData.colors;
-        this.rooms = mapData.rooms;
-
-        // Reposition the player
-        this.placePlayerInRoom();
-
-        // Create a new input handler
-        this.inputHandler = new InputHandler(this);
-
-        // Reposition monsters
-        this.spawnInitialMonsters();
-
-        // Reinitialize the renderer
-        this.renderer = new Renderer(this);
-
-        // Display initial message
-        this.logger.add("Welcome to complexRL!", "important");
-
-        // Set mode to GAME mode
-        this.mode = GAME_CONSTANTS.MODES.GAME;
-
-        // Update the screen (display the look panel)
-        this.renderer.render();
-        this.logger.renderLookPanel();  // Display look panel
-        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);  // Update floor info in Logger
-        this.updateRoomInfo();  // Update surrounding room information
-        this.updateExplored();  // Update explored information
-        this.saveGame();
-
-        // プレイヤー名入力画面を表示
-        this.renderer.renderNamePrompt('');
-        this.inputHandler.setMode('name');
-
-        // リセット時にBGMも更新
-        this.soundManager.updateBGM(); // soundManager経由で呼び出し
+        this.saveSystem.reset();
     }
 
     init() {
@@ -1213,7 +1146,7 @@ class Game {
 
     // Mark tiles within the player's visible range as explored.
     updateExplored() {
-        const visibleTiles = this.getVisibleTiles();
+        const visibleTiles = this.visionSystem.getVisibleTiles();
         visibleTiles.forEach(({ x, y }) => {
             this.explored[y][x] = true;
 
@@ -1226,129 +1159,19 @@ class Game {
         });
     }
 
-    // Check if there is a clear line of sight.
-    hasLineOfSight(x1, y1, x2, y2) {
-        const points = this.getLinePoints(x1, y1, x2, y2);
-        
-        // プレイヤーの位置を除く全ての点をチェック
-        for (let i = 0; i < points.length - 1; i++) {
-            const point = points[i];
-            const tile = this.tiles[point.y][point.x];
-            
-            // 床でない場合、障害物の種類をチェック
-            if (this.map[point.y][point.x] !== 'floor') {
-                // 透明な障害物、void portal、obeliskは視線を通す
-                const isTransparentObstacle = GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tile);
-                const isVoidPortal = tile === GAME_CONSTANTS.PORTAL.VOID.CHAR;
-                const isObelisk = tile === GAME_CONSTANTS.NEURAL_OBELISK.CHAR;
-                if (!isTransparentObstacle && !isVoidPortal && !isObelisk) {
-                    return false;
-                }
-            }
-            
-            // 閉じたドアは視線を遮る
-            if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    // Get coordinates along the line between two points (Bresenham's algorithm).
-    getLinePoints(x1, y1, x2, y2) {
-        const points = [];
-        const dx = Math.abs(x2 - x1);
-        const dy = Math.abs(y2 - y1);
-        const sx = x1 < x2 ? 1 : -1;
-        const sy = y1 < y2 ? 1 : -1;
-        let err = dx - dy;
-
-        let x = x1;
-        let y = y1;
-
-        while (true) {
-            points.push({ x, y });
-            if (x === x2 && y === y2) break;
-            const e2 = 2 * err;
-            if (e2 > -dy) {
-                err -= dy;
-                x += sx;
-            }
-            if (e2 < dx) {
-                err += dx;
-                y += sy;
-            }
-        }
-        return points;
-    }
-
-    // Retrieve all tiles visible to the player.
+    // getVisibleTilesメソッドを追加
     getVisibleTiles() {
-        const visibleTiles = new Set();
+        return this.visionSystem.getVisibleTiles();
+    }
 
-        // ホームフロア（floor0）の場合は全タイルを表示
-        if (this.floorLevel === 0) {
-            for (let y = 0; y < GAME_CONSTANTS.DIMENSIONS.HEIGHT; y++) {
-                for (let x = 0; x < GAME_CONSTANTS.DIMENSIONS.WIDTH; x++) {
-                    visibleTiles.add(`${x},${y}`);
-                }
-            }
-            return Array.from(visibleTiles).map(coord => {
-                const [x, y] = coord.split(',').map(Number);
-                return { x, y };
-            });
-        }
+    // getLinePointsメソッドを追加
+    getLinePoints(x1, y1, x2, y2) {
+        return this.visionSystem.getLinePoints(x1, y1, x2, y2);
+    }
 
-        // 通常フロアの場合は既存の視界計算ロジックを使用
-        const currentRoom = this.getCurrentRoom();
-        const CORRIDOR_VISIBILITY = 3;
-
-        // プレイヤーのperceptionに基づく最大視界範囲
-        const maxVisibilityRange = this.player.perception;
-
-        for (let y = 0; y < GAME_CONSTANTS.DIMENSIONS.HEIGHT; y++) {
-            for (let x = 0; x < GAME_CONSTANTS.DIMENSIONS.WIDTH; x++) {
-                const dx = x - this.player.x;
-                const dy = y - this.player.y;
-                const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(x, y, this.player.x, this.player.y);
-
-                // 最大視界範囲を超えている場合はスキップ
-                if (distance > maxVisibilityRange) continue;
-
-                // 対象タイルが属する部屋を検出
-                const roomAtTile = this.getRoomAt(x, y);
-
-                let tileVisibility;
-                if (roomAtTile) {
-                    // タイルが部屋に属している場合、その部屋の明るさと最大視界範囲の小さい方を使用
-                    tileVisibility = Math.min(roomAtTile.brightness, maxVisibilityRange);
-                } else if (currentRoom && this.isNearRoom(x, y, currentRoom)) {
-                    // プレイヤーがいる部屋の隣接タイルの場合も同様
-                    tileVisibility = Math.min(currentRoom.brightness, maxVisibilityRange);
-                } else {
-                    // それ以外（通路など）は基本の視界範囲と最大視界範囲の小さい方を使用
-                    tileVisibility = Math.min(CORRIDOR_VISIBILITY, maxVisibilityRange);
-                }
-
-                // 壁や障害物の場合は、より広い範囲で視認可能に（ただし最大視界範囲は超えない）
-                if (this.map[y][x] === 'wall' ||
-                    this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
-                    (this.map[y][x] === 'obstacle' &&
-                        GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][x]))) {
-                    tileVisibility = Math.min(tileVisibility + 1, maxVisibilityRange);
-                }
-
-                if (distance <= tileVisibility) {
-                    if (this.hasLineOfSight(this.player.x, this.player.y, x, y)) {
-                        visibleTiles.add(`${x},${y}`);
-                    }
-                }
-            }
-        }
-        return Array.from(visibleTiles).map(coord => {
-            const [x, y] = coord.split(',').map(Number);
-            return { x, y };
-        });
+    // hasLineOfSightメソッドを追加
+    hasLineOfSight(x1, y1, x2, y2) {
+        return this.visionSystem.hasLineOfSight(x1, y1, x2, y2);
     }
 
     updateRoomInfo() {
@@ -1451,223 +1274,12 @@ class Game {
 
     // セーブデータを保存
     saveGame() {
-        if (this.isGameOver) return;
-
-        const currentState = {
-            playerPos: `${this.player.x},${this.player.y}`,
-            playerHp: this.player.hp,
-            playerVigor: this.player.vigor,
-            monstersState: this.monsters.map(m => `${m.x},${m.y},${m.hp}`).join('|'),
-            turn: this.turn,
-            totalTurns: this.totalTurns,  // 全体のターン数を保存
-            floorLevel: this.floorLevel
-        };
-
-        // フロアレベルが変化した場合は必ずセーブする
-        if (this._lastSaveState?.floorLevel !== this.floorLevel) {
-            this._lastSaveState = null;  // フロア変更時は前回のセーブ状態を無効化
-        }
-
-        const saveData = {
-            player: {
-                name: this.player.name,
-                x: this.player.x,
-                y: this.player.y,
-                maxHp: this.player.maxHp,
-                hp: this.player.hp,
-                level: this.player.level,
-                xp: this.player.xp,
-                xpToNextLevel: this.player.xpToNextLevel,
-                stats: this.player.stats,
-                skills: Array.from(this.player.skills).map(([slot, skill]) => ({
-                    slot,
-                    skillId: skill.id,
-                    remainingCooldown: skill.remainingCooldown
-                })),
-                vigor: this.player.vigor,
-                // 遠距離攻撃のエネルギー情報を保存
-                rangedCombat: {
-                    energy: {
-                        current: this.player.rangedCombat.energy.current,
-                        max: this.player.rangedCombat.energy.max,
-                        rechargeRate: this.player.rangedCombat.energy.rechargeRate,
-                        cost: this.player.rangedCombat.energy.cost
-                    },
-                    isActive: this.player.rangedCombat.isActive
-                },
-                // 派生ステータスも保存
-                attackPower: this.player.attackPower,
-                defense: this.player.defense,
-                accuracy: this.player.accuracy,
-                evasion: this.player.evasion,
-                perception: this.player.perception
-            },
-            gameState: {
-                floorLevel: this.floorLevel,  // フロアレベルも変更チェックに追加
-                dangerLevel: this.dangerLevel,
-                turn: this.turn,
-                totalTurns: this.totalTurns  // 全体のターン数を保存
-            },
-            mapData: {
-                map: this.map,
-                tiles: this.tiles,
-                colors: this.colors,
-                rooms: this.rooms,
-                explored: this.explored
-            },
-            monsters: this.monsters.map(monster => ({
-                type: monster.type,
-                x: monster.x,
-                y: monster.y,
-                hp: monster.hp,
-                isSleeping: monster.isSleeping,
-                hasStartedFleeing: monster.hasStartedFleeing
-            })),
-            webs: this.webs // 蜘蛛の巣データを保存
-        };
-
-        try {
-            localStorage.setItem('complexRL_saveData', JSON.stringify(saveData));
-            this._lastSaveState = currentState;
-        } catch (e) {
-            console.error('Failed to save game data:', e);
-        }
+        this.saveSystem.saveGame();
     }
 
     // セーブデータを読み込む
     loadGame() {
-        try {
-            const savedData = localStorage.getItem('complexRL_saveData');
-            if (!savedData) {
-                this.init();
-                return;
-            }
-
-            const data = JSON.parse(savedData);
-
-            // データの検証
-            if (!data || !data.player || !data.gameState || !data.mapData) {
-                console.error('Invalid save data format');
-                this.init();
-                return;
-            }
-
-            // 初期化を先に行う
-            this.init();
-
-            // ゲーム状態の復元（floorLevelを先に設定）
-            this.floorLevel = data.gameState.floorLevel ?? 0;
-            this.dangerLevel = data.gameState.dangerLevel ?? 'SAFE';
-            this.turn = data.gameState.turn ?? 0;
-            this.totalTurns = data.gameState.totalTurns ?? 0;  // 全体のターン数を復元
-
-            // プレイヤー名が保存されている場合
-            if (data.player.name) {
-                this.renderer.renderNamePrompt('');
-                this.inputHandler.mode = 'game';
-                this.logger.clearTitle();
-                this.logger.add(`Welcome back, ${data.player.name}!`, "important");
-            }
-
-            // プレイヤーデータの復元
-            this.player.x = data.player.x;
-            this.player.y = data.player.y;
-            this.player.hp = data.player.hp;
-            this.player.maxHp = data.player.maxHp;
-            this.player.level = data.player.level ?? 1;
-            this.player.xp = data.player.xp ?? 0;
-            this.player.xpToNextLevel = data.player.xpToNextLevel ?? 100;
-            this.player.stats = data.player.stats ?? this.player.stats;
-            this.player.vigor = (typeof data.player.vigor === 'number' && !isNaN(data.player.vigor)) ? data.player.vigor : GAME_CONSTANTS.VIGOR.MAX;
-            this.player.name = data.player.name ?? ''; // プレイヤー名を復元
-            this.player.validateVigor();
-
-            // 遠距離攻撃のエネルギー情報を復元
-            if (data.player.rangedCombat && data.player.rangedCombat.energy) {
-                this.player.rangedCombat.energy.current = data.player.rangedCombat.energy.current ?? this.player.rangedCombat.energy.max;
-                this.player.rangedCombat.energy.max = data.player.rangedCombat.energy.max ?? GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.player.stats);
-                this.player.rangedCombat.energy.rechargeRate = data.player.rangedCombat.energy.rechargeRate ?? GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_RECHARGE(this.player.stats);
-                this.player.rangedCombat.energy.cost = data.player.rangedCombat.energy.cost ?? GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_COST(this.player.stats);
-                this.player.rangedCombat.isActive = data.player.rangedCombat.isActive ?? false;
-            }
-
-            this.player.skills = new Map();
-            if (Array.isArray(data.player.skills) && data.player.skills.length > 0) {
-                data.player.skills.forEach(skillData => {
-                    if (skillData?.slot && skillData?.skillId) {
-                        this.player.skills.set(skillData.slot, {
-                            id: skillData.skillId,
-                            remainingCooldown: skillData.remainingCooldown ?? 0
-                        });
-                    }
-                });
-            } else {
-                // 新規ゲーム開始時（スキルが存在しない場合）にはクールダウンをリセットする
-                // 既存のゲームロード時は、スキルのクールダウンはそのまま保持する
-            }
-
-            // 派生ステータスの復元
-            if (data.player.attackPower) this.player.attackPower = data.player.attackPower;
-            if (data.player.defense) this.player.defense = data.player.defense;
-            if (data.player.accuracy) this.player.accuracy = data.player.accuracy;
-            if (data.player.evasion) this.player.evasion = data.player.evasion;
-            if (data.player.perception) this.player.perception = data.player.perception;
-
-            // マップデータの復元
-            this.map = data.mapData.map ?? this.map;
-            this.tiles = data.mapData.tiles ?? this.tiles;
-            this.colors = data.mapData.colors ?? this.colors;
-            this.rooms = data.mapData.rooms ?? [];
-            this.explored = data.mapData.explored ?? this.initializeExplored();
-
-            // モンスターの復元
-            if (Array.isArray(data.monsters)) {
-                this.monsters = data.monsters
-                    .filter(monsterData => monsterData?.type)
-                    .map(monsterData => {
-                        const monster = new Monster(
-                            monsterData.type,
-                            monsterData.x ?? 0,
-                            monsterData.y ?? 0,
-                            this
-                        );
-                        monster.hp = Math.min(monsterData.hp ?? monster.hp, monster.maxHp);
-                        monster.isSleeping = monsterData.isSleeping ?? false;
-                        monster.hasStartedFleeing = monsterData.hasStartedFleeing ?? false;
-                        return monster;
-                    });
-            }
-            
-            // 蜘蛛の巣情報をリセットしてから復元
-            this.webs = [];
-            if (Array.isArray(data.webs)) {
-                // 有効な位置にあるwebだけを復元（壁の上にはwebを置かない）
-                this.webs = data.webs.filter(web => {
-                    if (!web || typeof web.x !== 'number' || typeof web.y !== 'number') {
-                        return false;
-                    }
-                    // 範囲チェック
-                    if (web.x < 0 || web.x >= this.width || web.y < 0 || web.y >= this.height) {
-                        return false;
-                    }
-                    // 床タイルの上にあるものだけ復元
-                    return this.map[web.y][web.x] === 'floor';
-                });
-            }
-
-            this.renderer.render();
-            this.logger.add("Previous save data loaded", "important");
-
-            // ステータスパネルの更新
-            this.renderer.renderStatus();
-
-            // BGMの更新処理を最後に実行し、強制的に再生を試みる
-            this.soundManager.userInteracted = true;  // ユーザーインタラクションフラグを強制的に有効化
-            this.soundManager.updateBGM();
-        } catch (e) {
-            console.error('Failed to load save data:', e);
-            this.init();
-        }
+        this.saveSystem.loadGame();
     }
 
     getRoomAt(x, y) {
