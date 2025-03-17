@@ -174,6 +174,22 @@ class Monster {
             // 死亡時の処理
             this.isSleeping = false;
             this.hasStartedFleeing = false;
+
+            // 蜘蛛の巣に捕まっていた場合、蜘蛛の巣を除去
+            if (this.caughtInWeb) {
+                const webX = this.caughtInWeb.x;
+                const webY = this.caughtInWeb.y;
+                game.webs = game.webs.filter(w => !(w.x === webX && w.y === webY));
+                
+                // プレイヤーの視界内にいる場合のみメッセージを表示
+                const isVisibleToPlayer = game.getVisibleTiles()
+                    .some(tile => tile.x === this.x && tile.y === this.y);
+                
+                if (isVisibleToPlayer) {
+                    game.logger.add(`The web breaks as ${this.name} dies.`, "monsterInfo");
+                }
+            }
+
             game.removeMonster(this);
         }
 
