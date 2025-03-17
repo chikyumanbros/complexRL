@@ -119,11 +119,8 @@ class VigorEffects {
                 console.log('Executing pauseAndShift effect');
                 this.game.logger.add("Your exhaustion forces you to pause, and the world shifts...", "warning");
                 
-                // パーティクルレイヤーを確実に作成
-                this.game.ensureParticleLayer();
-                
-                // 幻覚エフェクトを強化して適用
-                this.game.renderer.psychedelicTurn += 15;
+                // 幻覚エフェクトを適用
+                this.game.renderer.psychedelicTurn += 7;
                 
                 // 一時的な瞑想状態
                 this.game.player.meditation = {
@@ -133,38 +130,10 @@ class VigorEffects {
                     turnsRemaining: 1,  // 1ターンだけ
                     totalHealed: 0,
                     vigorEffectMeditation: true,  // vigorエフェクトによる瞑想であることを示すフラグ
-                    cannotCancelByInput: true,    // 入力によるキャンセルを防止するフラグ
-                    skipSound: true                // 瞑想サウンドをスキップするフラグ（vigor effectsで独自に再生するため）
+                    cannotCancelByInput: true     // 入力によるキャンセルを防止するフラグ
                 };
                 
                 this.game.logger.add("You enter a brief meditative state.", "warning");
-                
-                // パーティクルレイヤーが存在することを再確認
-                this.game.ensureParticleLayer();
-                console.log('Particle layer check before showing meditation effect:', document.getElementById('particle-layer'));
-                
-                // 少し遅延させてから瞑想エフェクトを表示
-                setTimeout(() => {
-                    // パーティクルレイヤーを再確認
-                    this.game.ensureParticleLayer();
-                    
-                    // 必要なCSSアニメーションを追加
-                    if (this.game.renderer && this.game.renderer.effects && 
-                        typeof this.game.renderer.effects.ensureCSSAnimations === 'function') {
-                        this.game.renderer.effects.ensureCSSAnimations();
-                    }
-                    
-                    // 瞑想エフェクトを表示（直接呼び出し）
-                    if (this.game.renderer && this.game.renderer.effects) {
-                        console.log('Directly calling showMeditationEffect from effects');
-                        this.game.renderer.effects.showMeditationEffect(this.game.player.x, this.game.player.y);
-                    } else {
-                        console.error('Cannot show meditation effect: renderer.effects is not available');
-                    }
-                    
-                    // 強制的に再描画を行い、サイケデリックエフェクトを適用
-                    this.game.renderer.render();
-                }, 300); // 遅延時間を300msに増加
                 
                 // 瞑想処理を呼び出す
                 this.game.processMeditation();
