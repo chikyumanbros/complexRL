@@ -1370,7 +1370,10 @@ class Game {
 
         // 通常フロアの場合は既存の視界計算ロジックを使用
         const currentRoom = this.getCurrentRoom();
-        const CORRIDOR_VISIBILITY = 3; // 部屋に属さない床（通路）の視界範囲
+        const CORRIDOR_VISIBILITY = 3;
+
+        // プレイヤーのperceptionに基づく最大視界範囲
+        const maxVisibilityRange = this.player.perception;
 
         for (let y = 0; y < GAME_CONSTANTS.DIMENSIONS.HEIGHT; y++) {
             for (let x = 0; x < GAME_CONSTANTS.DIMENSIONS.WIDTH; x++) {
@@ -1378,27 +1381,30 @@ class Game {
                 const dy = y - this.player.y;
                 const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(x, y, this.player.x, this.player.y);
 
+                // 最大視界範囲を超えている場合はスキップ
+                if (distance > maxVisibilityRange) continue;
+
                 // 対象タイルが属する部屋を検出
                 const roomAtTile = this.getRoomAt(x, y);
 
                 let tileVisibility;
                 if (roomAtTile) {
-                    // タイルが部屋に属している場合、その部屋の明るさに余分な範囲を追加
-                    tileVisibility = roomAtTile.brightness;
+                    // タイルが部屋に属している場合、その部屋の明るさと最大視界範囲の小さい方を使用
+                    tileVisibility = Math.min(roomAtTile.brightness, maxVisibilityRange);
                 } else if (currentRoom && this.isNearRoom(x, y, currentRoom)) {
-                    // プレイヤーがいる部屋の隣接タイルの場合、その部屋の明るさに余分な範囲を追加
-                    tileVisibility = currentRoom.brightness;
+                    // プレイヤーがいる部屋の隣接タイルの場合も同様
+                    tileVisibility = Math.min(currentRoom.brightness, maxVisibilityRange);
                 } else {
-                    // それ以外（通路など）は基本の視界範囲を使用
-                    tileVisibility = CORRIDOR_VISIBILITY;
+                    // それ以外（通路など）は基本の視界範囲と最大視界範囲の小さい方を使用
+                    tileVisibility = Math.min(CORRIDOR_VISIBILITY, maxVisibilityRange);
                 }
 
-                // 壁や障害物の場合は、より広い範囲で視認可能に
+                // 壁や障害物の場合は、より広い範囲で視認可能に（ただし最大視界範囲は超えない）
                 if (this.map[y][x] === 'wall' ||
                     this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
                     (this.map[y][x] === 'obstacle' &&
                         GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][x]))) {
-                    tileVisibility += 1;  // 視界を遮る要素は通常の視界範囲より1マス広く見える
+                    tileVisibility = Math.min(tileVisibility + 1, maxVisibilityRange);
                 }
 
                 if (distance <= tileVisibility) {

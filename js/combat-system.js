@@ -308,6 +308,24 @@ class CombatSystem {
                 game.playSound('damageSound');
             }
         }
+
+        // ミス時でも目覚める可能性をチェック
+        if (defender.isSleeping) {
+            const wakeupChance = 80; 
+            if (Math.random() * 100 < wakeupChance) {
+                defender.isSleeping = false;
+                
+                // プレイヤーの視界内にいる場合のみメッセージを表示
+                const isVisibleToPlayer = game.getVisibleTiles()
+                    .some(tile => tile.x === defender.x && tile.y === defender.y);
+                
+                if (isVisibleToPlayer) {
+                    game.logger.add(`${defender.name} wakes up from the noise!`, "monsterInfo");
+                    game.renderer.flashLogPanel();
+                    game.playSound('cautionSound');
+                }
+            }
+        }
     }
 
     // 戦闘音の強度を計算する新しいメソッド
@@ -648,9 +666,16 @@ class CombatSystem {
                 const wakeupChance = 80; 
                 if (Math.random() * 100 < wakeupChance) {
                     defender.isSleeping = false;
-                    game.logger.add(`${defender.name} wakes up from the noise!`, "monsterInfo");
-                    game.renderer.flashLogPanel();
-                    game.playSound('cautionSound');
+                    
+                    // プレイヤーの視界内にいる場合のみメッセージを表示
+                    const isVisibleToPlayer = game.getVisibleTiles()
+                        .some(tile => tile.x === defender.x && tile.y === defender.y);
+                    
+                    if (isVisibleToPlayer) {
+                        game.logger.add(`${defender.name} wakes up from the noise!`, "monsterInfo");
+                        game.renderer.flashLogPanel();
+                        game.playSound('cautionSound');
+                    }
                 }
             }
         }

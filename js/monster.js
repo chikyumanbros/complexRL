@@ -406,9 +406,17 @@ class Monster {
             
             if (wakeupChance > 0 && Math.random() * 100 < wakeupChance) {
                 this.isSleeping = false;
-                game.logger.add(`${this.name} wakes up!`, "monsterInfo");
-                game.renderer.flashLogPanel();
-                game.playSound('cautionSound');
+
+                // プレイヤーの視界内にいる場合のみメッセージを表示
+                const isVisibleToPlayer = game.getVisibleTiles()
+                    .some(tile => tile.x === this.x && tile.y === this.y);
+                
+                if (isVisibleToPlayer) {
+                    game.logger.add(`${this.name} wakes up!`, "monsterInfo");
+                    game.renderer.flashLogPanel();
+                    game.playSound('cautionSound');
+                }
+
                 this.hasSpottedPlayer = true;
                 this.lastKnownPlayerX = game.player.x;
                 this.lastKnownPlayerY = game.player.y;
