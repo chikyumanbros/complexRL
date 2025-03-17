@@ -137,6 +137,9 @@ const SKILLS = {
                         maxVigorRoll: maxVigorRoll
                     };
 
+                    // サイケデリックエフェクトを追加
+                    game.renderer.psychedelicTurn += 5;
+
                     game.logger.add(`Started meditating... (HP: ${healPerTurn}/turn, Max turns: ${turnsRemaining})`, "playerInfo");
                     game.renderer.render();
 

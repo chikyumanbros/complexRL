@@ -167,7 +167,8 @@ class RendererEffects {
      * @returns {Object} - 計算された文字と色
      */
     calculatePsychedelicEffect(x, y, baseChar, baseColor, forceOpacity = false) {
-        if (!this.renderer.game.player.meditation?.active) {
+        // 瞑想状態またはpsychedelicTurnが0より大きい場合にエフェクトを適用
+        if (!this.renderer.game.player.meditation?.active && this.renderer.psychedelicTurn <= 0) {
             return { char: baseChar, color: baseColor };
         }
 
@@ -176,16 +177,20 @@ class RendererEffects {
             this.renderer.game.player.x, this.renderer.game.player.y
         );
 
-        const effectRange = Math.max(1, Math.min(8,
-            Math.floor(this.renderer.game.player.stats.wis - Math.floor(this.renderer.game.player.stats.int / 2)) * 2
-        ));
+        // 瞑想状態の場合は知恵と知性に基づいた範囲、それ以外の場合は固定範囲
+        const effectRange = this.renderer.game.player.meditation?.active 
+            ? Math.max(1, Math.min(8, Math.floor(this.renderer.game.player.stats.wis - Math.floor(this.renderer.game.player.stats.int / 2)) * 2))
+            : 8; // vigor効果の場合は広い範囲に適用
 
         if (distance <= effectRange) {
             // ターンカウンターを使用してシード値を生成
             const seed = this.renderer.psychedelicTurn * 1000 + x * 100 + y;
             const rand = Math.abs(Math.sin(seed));
 
-            if (rand < 0.5) {
+            // vigor効果の場合はエフェクト発生確率を上げる
+            const threshold = this.renderer.game.player.meditation?.active ? 0.5 : 0.7;
+            
+            if (rand < threshold) {
                 const possibleChars = GAME_CONSTANTS.TILES.SPACE;
                 const possibleColors = GAME_CONSTANTS.TILES.SPACE_COLORS;
 

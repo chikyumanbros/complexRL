@@ -99,17 +99,17 @@ class VigorEffects {
         // 入力を無効化するフラグを設定
         this.game.inputDisabled = true;
         
-        // エフェクト発動前に1秒のフリーズを追加
+        // エフェクト発動前に0.5秒のフリーズを追加（1秒から短縮）
         this.game.logger.add("A strange sensation washes over you...", "warning");
         
-        // 1秒後にエフェクトを実際に適用
+        // 0.5秒後にエフェクトを実際に適用
         setTimeout(() => {
             // 入力を再度有効化
             this.game.inputDisabled = false;
             
             // 実際のエフェクト処理を実行
             this._executeVigorEffect(effect);
-        }, 1000);
+        }, 500);
     }
     
     // 実際のエフェクト処理を別メソッドに分離
@@ -119,7 +119,7 @@ class VigorEffects {
                 console.log('Executing pauseAndShift effect');
                 this.game.logger.add("Your exhaustion forces you to pause, and the world shifts...", "warning");
                 
-                // 幻覚エフェクトを適用
+                // 幻覚エフェクトを適用（より強いエフェクト）
                 this.game.renderer.psychedelicTurn += 7;
                 
                 // 一時的な瞑想状態
@@ -146,7 +146,7 @@ class VigorEffects {
                     // 再生開始時刻を記録
                     const soundStartTime = Date.now();
                     
-                    // 2秒後に瞑想サウンドを停止する
+                    // 1秒後に瞑想サウンドを停止する（2秒から短縮）
                     setTimeout(() => {
                         // 実際の経過時間を計算
                         const elapsedTime = (Date.now() - soundStartTime) / 1000;
@@ -154,7 +154,7 @@ class VigorEffects {
                         
                         // 瞑想状態が終了していない場合でも、サウンドを停止する
                         this.game.soundManager.stopSound('meditationSound');
-                        console.log('Stopping meditation sound after pauseAndShift effect (2 seconds)');
+                        console.log('Stopping meditation sound after pauseAndShift effect (1 second)');
                         
                         // 瞑想状態が残っている場合は明示的にnullに設定
                         if (this.game.player.meditation && this.game.player.meditation.vigorEffectMeditation) {
@@ -162,7 +162,7 @@ class VigorEffects {
                             this.game.logger.add("The strange sensation passes.", "playerInfo");
                             this.game.renderer.render();
                         }
-                    }, 2000); // 2秒後に確実に停止
+                    }, 1000); // 1秒後に確実に停止
                 }, 100); // サウンド再生前に100ms遅延
                 this.game.processTurn();
                 break;
@@ -242,6 +242,9 @@ class VigorEffects {
                 console.log('Executing forgetAllTiles effect');
                 this.game.logger.add("Your memory fades completely...", "warning");
                 
+                // 幻覚エフェクトを適用
+                this.game.renderer.psychedelicTurn += 6;
+                
                 for (let y = 0; y < this.game.height; y++) {
                     for (let x = 0; x < this.game.width; x++) {
                         if (!this.game.getVisibleTiles().some(({ x: visibleX, y: visibleY }) => visibleX === x && visibleY === y)) {
@@ -259,6 +262,9 @@ class VigorEffects {
             case 'forgetSomeTiles':
                 console.log('Executing forgetSomeTiles effect');
                 this.game.logger.add("Your memory becomes hazy...", "warning");
+                
+                // 幻覚エフェクトを適用
+                this.game.renderer.psychedelicTurn += 4;
                 
                 const exploredTiles = [];
                 for (let y = 0; y < this.game.height; y++) {

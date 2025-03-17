@@ -657,7 +657,8 @@ class Game {
     processEndTurnUpdates() {
         this.updateExplored();
         this.updateRoomInfo();
-        this.renderer.psychedelicTurn++;
+        // サイケデリックエフェクトの値を減少させる
+        this.renderer.psychedelicTurn = Math.max(0, this.renderer.psychedelicTurn - 1);
         this.renderer.updateFlickerValues();  // フリッカー効果の更新を追加
         this.updateWebs();
         this.renderer.render();
@@ -931,6 +932,12 @@ class Game {
 
         this.player.meditation.turnsRemaining--;
 
+        // 瞑想中はサイケデリックエフェクトを維持
+        if (!this.player.meditation.vigorEffectMeditation) {
+            // vigor効果による瞑想でない場合のみ、サイケデリックエフェクトを維持
+            this.renderer.psychedelicTurn = Math.max(this.renderer.psychedelicTurn, 3);
+        }
+
         // 瞑想終了条件のチェック
         if ((this.player.hp >= this.player.maxHp && this.player.vigor >= GAME_CONSTANTS.VIGOR.MAX) ||
             this.player.meditation.turnsRemaining <= 0) {
@@ -957,7 +964,7 @@ class Game {
         }
 
         // サイケデリックエフェクトのターンカウンターを更新
-        this.renderer.psychedelicTurn++;
+        // this.renderer.psychedelicTurn++;
         this.renderer.render();
     }
 

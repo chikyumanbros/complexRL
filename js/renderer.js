@@ -123,8 +123,8 @@ class Renderer {
     }
 
     render() {
-        // ターンカウンターを更新
-        this.psychedelicTurn = (this.psychedelicTurn + 1) % 1000;
+        // ターンカウンターを更新（毎回減少させるのではなく、ゲームのターン処理で減少させる）
+        // this.psychedelicTurn = Math.max(0, this.psychedelicTurn - 0.1); // 時間経過で徐々に減少
 
         // Initialize movement effects state
         if (!this.movementEffects) {
@@ -698,6 +698,13 @@ class Renderer {
 
                     content = this.game.tiles[y][x];
                     style = `color: ${this.game.colors[y][x]}`;
+
+                    // サイケデリックエフェクトの適用（psychedelicTurnが0より大きい場合）
+                    if (this.psychedelicTurn > 0) {
+                        const { char: psychChar, color: psychColor } = this.calculatePsychedelicEffect(x, y, content, this.game.colors[y][x]);
+                        content = psychChar;
+                        style = `color: ${psychColor}`;
+                    }
 
                     // プレイヤー、モンスター、エフェクトの場合は常に最大の明るさを使用
                     if (x === this.game.player.x && y === this.game.player.y ||
