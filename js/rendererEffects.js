@@ -758,22 +758,36 @@ class RendererEffects {
      * @param {number} y - Y座標
      */
     showMeditationEffect(x, y) {
-        const particleLayer = document.getElementById('particle-layer');
+        console.log('RendererEffects.showMeditationEffect called for', x, y);
+        
+        // パーティクルレイヤーを確実に作成
+        if (this.renderer && this.renderer.game) {
+            this.renderer.game.ensureParticleLayer();
+        }
+        
+        // パーティクルレイヤーを取得
+        let particleLayer = document.getElementById('particle-layer');
         if (!particleLayer) {
-            console.error('particle-layer element not found');
-            // パーティクルレイヤーが見つからない場合は作成を試みる
-            if (this.renderer && this.renderer.game) {
-                console.log('Attempting to create particle layer from rendererEffects');
-                this.renderer.game.ensureParticleLayer();
-                // 再度取得を試みる
-                const newParticleLayer = document.getElementById('particle-layer');
-                if (!newParticleLayer) {
-                    console.error('Failed to create particle-layer element');
-                    return;
-                }
-                console.log('Successfully created particle layer');
+            console.error('particle-layer element not found after ensureParticleLayer');
+            
+            // 最後の手段としてパーティクルレイヤーを直接作成
+            particleLayer = document.createElement('div');
+            particleLayer.id = 'particle-layer';
+            particleLayer.style.position = 'absolute';
+            particleLayer.style.top = '0';
+            particleLayer.style.left = '0';
+            particleLayer.style.width = '100%';
+            particleLayer.style.height = '100%';
+            particleLayer.style.pointerEvents = 'none';
+            particleLayer.style.zIndex = '1000';
+            
+            const gameContainer = document.getElementById('game-container');
+            if (gameContainer) {
+                gameContainer.appendChild(particleLayer);
+                console.log('particle-layer created and added to game-container');
             } else {
-                return;
+                document.body.appendChild(particleLayer);
+                console.log('particle-layer created and added to body');
             }
         }
 
@@ -895,7 +909,7 @@ class RendererEffects {
                     }
                 }, 1000);
             }
-        }, 10000);
+        }, 5000);
         
         // 強制的に再描画を行い、サイケデリックエフェクトを適用
         this.renderer.render();

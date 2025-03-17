@@ -143,11 +143,22 @@ class VigorEffects {
                 this.game.ensureParticleLayer();
                 console.log('Particle layer check before showing meditation effect:', document.getElementById('particle-layer'));
                 
-                // 瞑想エフェクトを表示（直接呼び出し）
-                this.game.renderer.showMeditationEffect(this.game.player.x, this.game.player.y);
-                
-                // 強制的に再描画を行い、サイケデリックエフェクトを適用
-                this.game.renderer.render();
+                // 少し遅延させてから瞑想エフェクトを表示
+                setTimeout(() => {
+                    // パーティクルレイヤーを再確認
+                    this.game.ensureParticleLayer();
+                    
+                    // 瞑想エフェクトを表示（直接呼び出し）
+                    if (this.game.renderer && this.game.renderer.effects) {
+                        console.log('Directly calling showMeditationEffect from effects');
+                        this.game.renderer.effects.showMeditationEffect(this.game.player.x, this.game.player.y);
+                    } else {
+                        console.error('Cannot show meditation effect: renderer.effects is not available');
+                    }
+                    
+                    // 強制的に再描画を行い、サイケデリックエフェクトを適用
+                    this.game.renderer.render();
+                }, 100);
                 
                 // 瞑想処理を呼び出す
                 this.game.processMeditation();
