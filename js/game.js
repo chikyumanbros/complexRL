@@ -550,6 +550,11 @@ class Game {
             this.player.validateVigor();  // Add validation after setting vigor
         }
 
+        // エネルギーを全回復
+        if (this.player.energy < this.player.maxEnergy) {
+            this.player.energy = this.player.maxEnergy;
+        }
+
         // スキルのクールダウンをリセット
         if (this.player.skills) {
             for (const skill of this.player.skills.values()) {
@@ -1323,6 +1328,11 @@ class Game {
         if (this.player.vigor < GAME_CONSTANTS.VIGOR.MAX) {
             this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
             this.player.validateVigor();  // Add validation after setting vigor
+        }
+
+        // エネルギーを全回復
+        if (this.player.energy < this.player.maxEnergy) {
+            this.player.energy = this.player.maxEnergy;
         }
 
         // スキルのクールダウンをリセット
