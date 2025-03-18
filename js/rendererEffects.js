@@ -271,7 +271,7 @@ class RendererEffects {
      * ログパネルをフラッシュさせるメソッド
      */
     flashLogPanel() {
-        const logPanel = document.getElementById('status-panel');
+        const logPanel = document.getElementById('log-panel');
         if (logPanel) {
             // クラスを追加する前に既存のアニメーションを削除
             logPanel.classList.remove('log-panel-flash');
