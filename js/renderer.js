@@ -1149,6 +1149,11 @@ class Renderer {
         this.effects.showCritEffect(x, y, isMonster);
     }
 
+    // 遠距離攻撃エフェクトを表示するメソッド
+    showRangedAttackEffect(fromX, fromY, toX, toY, color = '#00FFFF') {
+        this.effects.showRangedAttackEffect(fromX, fromY, toX, toY, color);
+    }
+
     updateStatusPanel(status) {
         const panel = document.getElementById('status-panel');
 

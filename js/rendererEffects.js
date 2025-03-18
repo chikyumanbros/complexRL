@@ -756,6 +756,42 @@ class RendererEffects {
             }, index * stepDelay);
         });
     }
+
+    // エネルギービームの遠距離攻撃エフェクトを表示するメソッド
+    showRangedAttackEffect(fromX, fromY, toX, toY, color = '#00FFFF') {
+        const points = this.renderer.game.getLinePoints(fromX, fromY, toX, toY);
+        const duration = 200; // エフェクトの総時間（ミリ秒）
+        const stepDelay = duration / points.length; // 各ポイント間の遅延
+
+        // 前のハイライトをクリア
+        this.renderer.clearHighlight();
+
+        // すべてのポイントを一度に表示（ビームエフェクト）
+        points.forEach((point, index) => {
+            setTimeout(() => {
+                const tile = document.querySelector(`#game span[data-x="${point.x}"][data-y="${point.y}"]`);
+                if (tile) {
+                    tile.classList.add('highlighted');
+                    tile.style.color = color;
+                    tile.style.textShadow = `0 0 10px ${color}, 0 0 15px ${color}`;
+                    
+                    // 各ポイントのエフェクトを少し時間差で消す
+                    setTimeout(() => {
+                        if (tile.classList.contains('highlighted')) {
+                            tile.classList.remove('highlighted');
+                            tile.style.color = '';
+                            tile.style.textShadow = '';
+                        }
+                    }, 150);
+                }
+            }, index * (stepDelay / 2)); // ビームなので速く表示
+        });
+
+        // 全体のエフェクトを一定時間後にクリア
+        setTimeout(() => {
+            this.renderer.clearHighlight();
+        }, duration + 150);
+    }
 }
 
 // グローバルスコープでクラスを利用可能にする

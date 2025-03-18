@@ -46,6 +46,11 @@ class Monster {
             if (this.abilities.canCreateWeb) {
                 this.webCooldownRemaining = 0; // 初期状態ではクールダウンなし
             }
+            
+            // 遠距離攻撃能力の初期化
+            if (this.abilities.canUseRangedAttack) {
+                this.rangedAttackCooldownRemaining = 0; // 初期状態ではクールダウンなし
+            }
         } else {
             this.abilities = {}; // 空のオブジェクトを作成
         }
@@ -489,6 +494,17 @@ class Monster {
             this.lastKnownPlayerX = game.player.x;
             this.lastKnownPlayerY = game.player.y;
             this.trackingTurns = this.maxTrackingTurns;
+            
+            // 遠距離攻撃能力を持つモンスターの場合、遠距離攻撃を試みる
+            if (this.abilities && this.abilities.canUseRangedAttack) {
+                // 遠距離攻撃を試みる
+                const attacked = this.tryRangedAttack(game);
+                
+                // 遠距離攻撃に成功した場合は、このターンの行動を終了
+                if (attacked) {
+                    return;
+                }
+            }
             
             // ジャンプ能力を持つモンスターの場合、ジャンプを試みる
             if (this.abilities && this.abilities.canJump) {
@@ -1436,5 +1452,110 @@ class Monster {
         }
 
         return false;
+    }
+
+    // ========================== tryRangedAttack Method ==========================
+    // 新規: 遠距離攻撃を試みるメソッド
+    tryRangedAttack(game) {
+        // 遠距離攻撃能力がない場合は何もしない
+        if (!this.abilities || !this.abilities.canUseRangedAttack) {
+            return false;
+        }
+        
+        // クールダウン中の場合は何もしない
+        if (this.rangedAttackCooldownRemaining > 0) {
+            this.rangedAttackCooldownRemaining--;
+            return false;
+        }
+        
+        // 遠距離攻撃を試みる確率チェック
+        if (Math.random() > this.abilities.rangedAttackChance) {
+            return false;
+        }
+        
+        // プレイヤーとの距離を計算
+        const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
+            game.player.x, game.player.y,
+            this.x, this.y
+        );
+        
+        // 射程距離を超えている場合は攻撃しない
+        if (distance > this.abilities.rangedAttackRange) {
+            return false;
+        }
+        
+        // 近すぎる場合は通常攻撃を優先
+        if (distance <= 1) {
+            return false;
+        }
+        
+        // プレイヤーが見えない場合は攻撃しない
+        if (!this.hasLineOfSight(game)) {
+            return false;
+        }
+        
+        // 命中判定
+        const hitRoll = Math.random() * 100;
+        const isHit = hitRoll < this.abilities.rangedAttackAccuracy;
+        
+        // プレイヤーの視界内にいる場合のみメッセージとエフェクトを表示
+        const isVisibleToPlayer = game.getVisibleTiles()
+            .some(tile => tile.x === this.x && tile.y === this.y);
+        
+        if (isVisibleToPlayer) {
+            game.logger.add(`${this.name} fires an energy beam at you!`, "monsterInfo");
+            
+            // 射撃エフェクト（視覚効果）
+            game.renderer.showRangedAttackEffect(this.x, this.y, game.player.x, game.player.y, '#00FFFF');
+            
+            // 効果音を再生
+            game.playSound('rangedAttackSound');
+        }
+        
+        // 命中した場合はダメージを与える
+        if (isHit) {
+            // ダメージ計算
+            const damage = this.calculateRangedDamage();
+            
+            // プレイヤーにダメージを与える
+            const result = game.player.takeDamage(damage, game);
+            
+            if (isVisibleToPlayer) {
+                game.logger.add(`The energy beam hits you for ${result.damage} damage!`, "combat");
+                
+                // ダメージを受けた場合にエフェクトを表示
+                if (result.damage > 0) {
+                    game.renderer.showDamageFlash();
+                }
+            }
+        } else {
+            if (isVisibleToPlayer) {
+                game.logger.add(`The energy beam misses you!`, "combat");
+                
+                // ミスエフェクトを表示
+                game.renderer.showMissEffect(game.player.x, game.player.y, 'miss');
+            }
+        }
+        
+        // 遠距離攻撃の位置を記録（音源として）
+        game.lastRangedAttackLocation = { x: this.x, y: this.y };
+        
+        // クールダウンを設定
+        this.rangedAttackCooldownRemaining = this.abilities.rangedAttackCooldown;
+        
+        return true;
+    }
+    
+    // 遠距離攻撃のダメージを計算するメソッド
+    calculateRangedDamage() {
+        const damageData = this.abilities.rangedAttackDamage;
+        let damage = damageData.base;
+        
+        // ダイスロール
+        for (let i = 0; i < damageData.diceCount; i++) {
+            damage += Math.floor(Math.random() * damageData.diceSides) + 1;
+        }
+        
+        return damage;
     }
 } 

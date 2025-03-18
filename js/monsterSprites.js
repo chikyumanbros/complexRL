@@ -521,6 +521,65 @@ const MONSTER_SPRITES = {
             " KK         KK  "
         ]
     ],
+    MECH_DRONE: [  // サイバー/メカ風ドローン
+        // フレーム1
+        [
+            "                ",
+            "                ",
+            "        MM      ",
+            "       MMMM     ",
+            "      MSMMSM    ",
+            "     MMMMMMM    ",
+            "    DMDNNDMD    ",
+            "    MNNNNNNM    ",
+            "   NNNSNNSNNN   ",
+            "  MMMMMNNMMMMM  ",
+            "  MDDMMMMMMDDM  ",
+            "  M DMMMMMMD M  ",
+            "     D    D     ",
+            "     D    D     ",
+            "                ",
+            "                "
+        ],
+        // フレーム2
+        [
+            "                ",
+            "                ",
+            "        MM      ",
+            "       MMMM     ",
+            "      MSMMSM    ",
+            "     MMMMMMM    ",
+            "    DMDNNDMD    ",
+            "    MNNNNNNM    ",
+            "   NNNSNNSNNN   ",
+            "  MMMMMNNMMMMM  ",
+            "  MDDMMMMMMDDM  ",
+            "  M DMMMMMMD M  ",
+            "    D      D    ",
+            "   D        D   ",
+            "                ",
+            "                "
+        ],
+        // フレーム3
+        [
+            "                ",
+            "                ",
+            "        MM      ",
+            "       MMMM     ",
+            "      MSMMSM    ",
+            "     MMMMMMM    ",
+            "    DMDNNDMD    ",
+            "    MNNNNNNM    ",
+            "   NNNSNNSNNN   ",
+            "  MMMMMNNMMMMM  ",
+            "  MDDMMMMMMDDM  ",
+            "  M DMMMMMMD M  ",
+            "      D  D      ",
+            "     D    D     ",
+            "                ",
+            "                "
+        ]
+    ],
 };
 
 // SPRITE_COLORS セクション: スプライト用の色定義（16色対応）

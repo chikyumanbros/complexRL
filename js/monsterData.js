@@ -193,4 +193,37 @@ const MONSTERS = {
             max: 3
         }
     },
+    MECH_DRONE: {
+        char: 'Ω',
+        name: 'Mech Drone',
+        get color() {
+            return GAME_CONSTANTS.SPRITE_COLORS.getMostUsedColor(GAME_CONSTANTS.MONSTER_SPRITES.MECH_DRONE);
+        },
+        stats: {
+            str: 8,    // 中程度の攻撃力
+            dex: 11,   // やや素早い
+            con: 9,    // 中程度の耐久力
+            int: 12,   // 高い知性（プログラミング）
+            wis: 10    // 優れたセンサー類
+        },
+        level: 3,
+        pack: {
+            chance: 0.4,    // 時々グループで活動
+            min: 2,
+            max: 5
+        },
+        // 遠距離攻撃能力
+        abilities: {
+            canUseRangedAttack: true,
+            rangedAttackCooldown: 3,     // 遠距離攻撃のクールダウン（ターン数）
+            rangedAttackChance: 0.7,     // 遠距離攻撃を試みる確率
+            rangedAttackRange: 5,        // 攻撃の最大距離
+            rangedAttackDamage: {        // 攻撃ダメージ
+                base: 6,
+                diceCount: 2,
+                diceSides: 3
+            },
+            rangedAttackAccuracy: 70     // 命中率（%）
+        }
+    },
 };

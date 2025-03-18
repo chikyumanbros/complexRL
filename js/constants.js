@@ -147,7 +147,8 @@ const GAME_CONSTANTS = {
             get SKELETON() { return SPRITE_COLORS.getMostUsedColor(MONSTER_SPRITES.SKELETON); },
             get ZOMBIE() { return SPRITE_COLORS.getMostUsedColor(MONSTER_SPRITES.ZOMBIE); },
             get GHOST() { return SPRITE_COLORS.getMostUsedColor(MONSTER_SPRITES.GHOST); },
-            get TROLL() { return SPRITE_COLORS.getMostUsedColor(MONSTER_SPRITES.TROLL); }
+            get TROLL() { return SPRITE_COLORS.getMostUsedColor(MONSTER_SPRITES.TROLL); },
+            get MECH_DRONE() { return SPRITE_COLORS.getMostUsedColor(MONSTER_SPRITES.MECH_DRONE); }
         },
         OBSTACLE: {
             BLOCKING: '#664433',     // 後方互換性のため
