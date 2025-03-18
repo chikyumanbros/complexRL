@@ -226,6 +226,65 @@ const MONSTER_SPRITES = {
             "                "
         ]
     ],
+    MECH_DRONE: [  // ミリタリードローン - 3色（S=シルバー、D=ダークブラウン、B=ダークグレー）で再構築
+        // フレーム1
+        [
+            "                ",
+            "                ",
+            "    D      D    ",
+            "    DD    DD    ",
+            "    DDDDDDDD    ",
+            "   DDSSSSSSDD   ",
+            "   DBSSSSSSBD   ",
+            "  DSSBBBBBBSSD  ",
+            "  DSSBBBBBBSSD  ",
+            "  DBSSSSSSSSBF  ",
+            " DBBBSSSSSSBBBD ",
+            " D BSSSSSSSB D  ",
+            "S   B SSSS B   S",
+            "SS S      S SS  ",
+            "  S        S    ",
+            " S          S   "
+        ],
+        // フレーム2
+        [
+            "                ",
+            "                ",
+            "    D      D    ",
+            "    DD    DD    ",
+            "    DDDDDDDD    ",
+            "   DDSSSSSSDD   ",
+            "   DBSSSSSSBD   ",
+            "  DSSBBBBBBSSD  ",
+            "  DSSBBBBBBSSD  ",
+            "  DBSSSSSSSSBF  ",
+            " DBBBSSSSSSBBBD ",
+            " D BSSSSSSSB D  ",
+            "S   B      B   S",
+            "SS S      S SS  ",
+            "  S        S    ",
+            "S            S  "
+        ],
+        // フレーム3
+        [
+            "                ",
+            "                ",
+            "    D      D    ",
+            "    DD    DD    ",
+            "    DDDDDDDD    ",
+            "   DDSSSSSSDD   ",
+            "   DBSSSSSSBD   ",
+            "  DSSBBBBBBSSD  ",
+            "  DSSBBBBBBSSD  ",
+            "  DBSSSSSSSSBF  ",
+            " DBBBSSSSSSBBBD ",
+            " D BSSSSSSSB D  ",
+            "S   BS    SB   S",
+            "SS S      S SS  ",
+            " S          S   ",
+            "S            S  "
+        ]
+    ],
     G_SPIDER: [  // 赤い体に黒い脚
         // フレーム1
         [
@@ -519,65 +578,6 @@ const MONSTER_SPRITES = {
             "    DD   DD     ",
             "   K       K    ",
             " KK         KK  "
-        ]
-    ],
-    MECH_DRONE: [  // サイバー/メカ風ドローン
-        // フレーム1
-        [
-            "                ",
-            "                ",
-            "        MM      ",
-            "       MMMM     ",
-            "      MSMMSM    ",
-            "     MMMMMMM    ",
-            "    DMDNNDMD    ",
-            "    MNNNNNNM    ",
-            "   NNNSNNSNNN   ",
-            "  MMMMMNNMMMMM  ",
-            "  MDDMMMMMMDDM  ",
-            "  M DMMMMMMD M  ",
-            "     D    D     ",
-            "     D    D     ",
-            "                ",
-            "                "
-        ],
-        // フレーム2
-        [
-            "                ",
-            "                ",
-            "        MM      ",
-            "       MMMM     ",
-            "      MSMMSM    ",
-            "     MMMMMMM    ",
-            "    DMDNNDMD    ",
-            "    MNNNNNNM    ",
-            "   NNNSNNSNNN   ",
-            "  MMMMMNNMMMMM  ",
-            "  MDDMMMMMMDDM  ",
-            "  M DMMMMMMD M  ",
-            "    D      D    ",
-            "   D        D   ",
-            "                ",
-            "                "
-        ],
-        // フレーム3
-        [
-            "                ",
-            "                ",
-            "        MM      ",
-            "       MMMM     ",
-            "      MSMMSM    ",
-            "     MMMMMMM    ",
-            "    DMDNNDMD    ",
-            "    MNNNNNNM    ",
-            "   NNNSNNSNNN   ",
-            "  MMMMMNNMMMMM  ",
-            "  MDDMMMMMMDDM  ",
-            "  M DMMMMMMD M  ",
-            "      D  D      ",
-            "     D    D     ",
-            "                ",
-            "                "
         ]
     ],
 };
