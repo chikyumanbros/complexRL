@@ -56,7 +56,9 @@ class Game {
     }
 
     reset() {
-        this.saveSystem.reset();
+        // セーブデータを削除してからページをリロード
+        localStorage.removeItem('complexRL_saveData');
+        window.location.reload();
     }
 
     init() {

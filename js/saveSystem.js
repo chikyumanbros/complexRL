@@ -215,6 +215,9 @@ class SaveSystem {
     }
 
     reset() {
+        // セーブデータを削除
+        localStorage.removeItem('complexRL_saveData');
+
         // Reset game state
         this.game.player = new Player(0, 0, this.game);
         this.game.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
@@ -259,7 +262,8 @@ class SaveSystem {
         // Reinitialize the renderer
         this.game.renderer = new Renderer(this.game);
 
-        // Display initial message
+        // Clear and display initial message
+        this.game.logger.clear();
         this.game.logger.add("Welcome to complexRL!", "important");
 
         // Set mode to GAME mode
@@ -271,7 +275,6 @@ class SaveSystem {
         this.game.logger.updateFloorInfo(this.game.floorLevel, this.game.dangerLevel);
         this.game.updateRoomInfo();
         this.game.updateExplored();
-        this.saveGame();
 
         // プレイヤー名入力画面を表示
         this.game.renderer.renderNamePrompt('');

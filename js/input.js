@@ -540,8 +540,22 @@ class InputHandler {
     // ----------------------
     handleGameModeInput(key) {
         // restモード中なら任意のキー入力でキャンセル（ESCキー以外の場合）
-        if (this.game.player.resting?.active && key !== 'escape') {
-            this.game.cancelRest("Cancelled by player");
+        if (this.game.mode === GAME_CONSTANTS.MODES.REST && key !== 'escape') {
+            this.game.logger.add("You stop resting.", "playerInfo");
+            this.game.mode = GAME_CONSTANTS.MODES.GAME;
+            return;
+        }
+
+        // ESCキーの処理
+        if (key === 'escape') {
+            if (this.game.mode === GAME_CONSTANTS.MODES.REST) {
+                this.game.logger.add("You stop resting.", "playerInfo");
+                this.game.mode = GAME_CONSTANTS.MODES.GAME;
+            } else if (this.game.mode === GAME_CONSTANTS.MODES.GAME) {
+                // ゲームをリセット
+                window.location.reload();
+                return;
+            }
             return;
         }
 
