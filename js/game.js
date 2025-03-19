@@ -56,9 +56,15 @@ class Game {
     }
 
     reset() {
-        // セーブデータを削除してからページをリロード
+        // セーブデータを削除
         localStorage.removeItem('complexRL_saveData');
-        window.location.reload();
+        
+        // ゲームを初期化
+        this.init();
+        
+        // BGMを更新
+        this.soundManager.userInteracted = true;
+        this.soundManager.updateBGM();
     }
 
     init() {
@@ -731,12 +737,6 @@ class Game {
     processMeditation() {
         if (!this.player.meditation || !this.player.meditation.active) return;
 
-        // 瞑想開始時にループ再生を開始（初回のみ）
-        if (!this.player.meditation.soundStarted && !this.player.meditation.skipSound) {
-            this.soundManager.playSound('meditationSound', { loop: true });
-            this.player.meditation.soundStarted = true;
-        }
-
         // 1ターンごとの回復処理
         const healAmount = this.player.meditation.healPerTurn;
 
@@ -1033,7 +1033,11 @@ class Game {
 
         // ゲームオーバー時にフェードアウト
         if (!this.soundManager.homeBGM.paused) {
-            this.soundManager.fadeOutBGM(2000);  // ゲームオーバー時は2秒かけてフェードアウト
+            this.soundManager.fadeOutBGM(2000).then(() => {
+                // フェードアウト完了後に音声状態をリセット
+                this.soundManager.userInteracted = true;
+                this.soundManager.updateBGM();
+            });
         }
     }
 
@@ -1739,6 +1743,16 @@ class Game {
     // ハイスコアの表示
     showHighScores() {
         this.highScoreManager.showHighScores();
+    }
+
+    // 遠距離攻撃の射線チェック用の新しいメソッド
+    hasRangedAttackLineOfSight(x1, y1, x2, y2) {
+        return this.visionSystem.hasRangedAttackLineOfSight(x1, y1, x2, y2);
+    }
+
+    // 元の視線チェックメソッドはそのまま維持
+    hasLineOfSight(x1, y1, x2, y2) {
+        return this.visionSystem.hasLineOfSight(x1, y1, x2, y2);
     }
 }
 

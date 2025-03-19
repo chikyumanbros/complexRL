@@ -31,6 +31,43 @@ class VisionSystem {
         return true;
     }
 
+    // 遠距離攻撃の射線チェック用のメソッド
+    hasRangedAttackLineOfSight(x1, y1, x2, y2) {
+        const points = this.getLinePoints(x1, y1, x2, y2);
+        
+        // プレイヤーの位置を除く全ての点をチェック
+        for (let i = 0; i < points.length - 1; i++) {
+            const point = points[i];
+            const tile = this.game.tiles[point.y][point.x];
+            
+            // 床でない場合、全ての障害物をチェック
+            if (this.game.map[point.y][point.x] !== 'floor') {
+                return false;
+            }
+            
+            // 閉じたドアは射線を遮る
+            if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                return false;
+            }
+
+            // 透明な障害物も射線を遮る
+            if (GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tile)) {
+                return false;
+            }
+
+            // VOIDポータルも射線を遮る
+            if (tile === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
+                return false;
+            }
+
+            // ニューラルオベリスクも射線を遮る
+            if (tile === GAME_CONSTANTS.NEURAL_OBELISK.CHAR) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     // 2点間の線上の座標を取得（Bresenhamのアルゴリズム）
     getLinePoints(x1, y1, x2, y2) {
         const points = [];

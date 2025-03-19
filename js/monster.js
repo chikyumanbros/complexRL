@@ -1490,53 +1490,70 @@ class Monster {
         }
         
         // プレイヤーが見えない場合は攻撃しない
-        if (!this.hasLineOfSight(game)) {
+        if (!this.game.visionSystem.hasRangedAttackLineOfSight(this.x, this.y, game.player.x, game.player.y)) {
             return false;
         }
         
-        // 命中判定
-        const hitRoll = Math.random() * 100;
-        const isHit = hitRoll < this.abilities.rangedAttackAccuracy;
-        
-        // プレイヤーの視界内にいる場合のみメッセージとエフェクトを表示
-        const isVisibleToPlayer = game.getVisibleTiles()
-            .some(tile => tile.x === this.x && tile.y === this.y);
-        
-        if (isVisibleToPlayer) {
-            game.logger.add(`${this.name} fires an energy beam at you!`, "monsterInfo");
+        // 射線上のモンスターをチェック
+        const linePoints = this.getLinePoints(this.x, this.y, game.player.x, game.player.y);
+        const monstersInLine = [];
+
+        // プレイヤーの位置を除く全ての点をチェック
+        for (let i = 0; i < linePoints.length - 1; i++) {
+            const point = linePoints[i];
+            const monsterAtPoint = game.getMonsterAt(point.x, point.y);
             
-            // 射撃エフェクト（視覚効果）
-            game.renderer.showRangedAttackEffect(this.x, this.y, game.player.x, game.player.y, '#00FFFF');
-            
-            // 効果音を再生
-            game.playSound('rangedAttackSound');
+            // 自分自身は除外
+            if (monsterAtPoint && monsterAtPoint.id !== this.id) {
+                monstersInLine.push({
+                    monster: monsterAtPoint,
+                    distance: GAME_CONSTANTS.DISTANCE.calculateChebyshev(
+                        this.x, this.y,
+                        monsterAtPoint.x, monsterAtPoint.y
+                    )
+                });
+            }
         }
-        
-        // 命中した場合はダメージを与える
-        if (isHit) {
-            // ダメージ計算
-            const damage = this.calculateRangedDamage();
-            
-            // プレイヤーにダメージを与える
-            const result = game.player.takeDamage(damage, game);
-            
-            if (isVisibleToPlayer) {
-                game.logger.add(`The energy beam hits you for ${result.damage} damage!`, "combat");
+
+        // 距離順にソート
+        monstersInLine.sort((a, b) => a.distance - b.distance);
+
+        // 射線上の各モンスターについて、近いものから順にチェック
+        for (const {monster} of monstersInLine) {
+            // 50%の確率で誤射判定
+            if (Math.random() < 0.5) {
+                // プレイヤーの視界内にいる場合のみメッセージとエフェクトを表示
+                const isVisibleToPlayer = game.getVisibleTiles()
+                    .some(tile => tile.x === this.x && tile.y === this.y);
                 
-                // ダメージを受けた場合にエフェクトを表示
-                if (result.damage > 0) {
-                    game.renderer.showDamageFlash();
+                if (isVisibleToPlayer) {
+                    game.logger.add(`${this.name}'s energy beam hits ${monster.name} instead!`, "monsterInfo");
+                    game.renderer.showRangedAttackEffect(this.x, this.y, monster.x, monster.y, '#00FFFF');
+                    game.playSound('rangedAttackSound');
                 }
-            }
-        } else {
-            if (isVisibleToPlayer) {
-                game.logger.add(`The energy beam misses you!`, "combat");
-                
-                // ミスエフェクトを表示
-                game.renderer.showMissEffect(game.player.x, game.player.y, 'miss');
+
+                // ダメージ計算と適用
+                const damage = this.calculateRangedDamage();
+                const result = monster.takeDamage(damage, game);
+
+                if (isVisibleToPlayer && result.damage > 0) {
+                    game.logger.add(`${monster.name} takes ${result.damage} damage!`, "combat");
+                }
+
+                // クールダウンを設定
+                this.rangedAttackCooldownRemaining = this.abilities.rangedAttackCooldown;
+                return true;
             }
         }
-        
+
+        // プレイヤーにダメージを与える
+        const damage = this.calculateRangedDamage();
+        const result = game.player.takeDamage(damage, game);
+
+        if (isVisibleToPlayer) {
+            game.logger.add(`The energy beam hits you for ${result.damage} damage!`, "combat");
+        }
+
         // 遠距離攻撃の位置を記録（音源として）
         game.lastRangedAttackLocation = { x: this.x, y: this.y };
         

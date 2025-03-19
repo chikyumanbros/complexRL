@@ -68,30 +68,36 @@ class Renderer {
 
     // 明るさの更新のみを行うメソッドを追加
     updateLightingOnly() {
-        // ホームフロアでは照明更新をスキップ、または照明エフェクトが無効の場合もスキップ
         if (this.game.floorLevel === 0 || !this.effects.lightingEffectsEnabled) return;
         
-        // 視界内のタイルを取得
-        const visibleTiles = new Set(
-            this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
-        );
-
-        const elements = document.querySelectorAll('#game span');
-        elements.forEach(el => {
+        // キャッシュされた視界データを使用する
+        const visibleTiles = this.game.visibleTilesCache 
+            ? new Set(this.game.visibleTilesCache.map(({x, y}) => `${x},${y}`))
+            : new Set(this.game.getVisibleTiles().map(({x, y}) => `${x},${y}`));
+        
+        // 一度にDOMを操作する要素をまとめる
+        const updates = [];
+        
+        document.querySelectorAll('#game span').forEach(el => {
             const x = parseInt(el.dataset.x);
             const y = parseInt(el.dataset.y);
 
-            // 視界内のタイルのみ処理
             if (visibleTiles.has(`${x},${y}`)) {
                 const style = window.getComputedStyle(el);
                 const currentOpacity = parseFloat(style.opacity);
                 if (!isNaN(currentOpacity)) {
                     const { opacity, color } = this.calculateFlicker(currentOpacity, x, y);
-                    el.style.opacity = opacity;
-                    // 既存の色に灯りの色を重ねる
-                    el.style.textShadow = `0 0 5px ${color}`;
+                    updates.push({ element: el, opacity, color });
                 }
             }
+        });
+        
+        // 一括でDOMを更新
+        requestAnimationFrame(() => {
+            updates.forEach(update => {
+                update.element.style.opacity = update.opacity;
+                update.element.style.textShadow = `0 0 5px ${update.color}`;
+            });
         });
     }
 
@@ -274,7 +280,7 @@ class Renderer {
         // プレイヤーとその周辺のタイルのみを更新
         const px = this.game.player.x;
         const py = this.game.player.y;
-        const updateRadius = 6; // 更新範囲を縮小（8→6）
+        const updateRadius = 15;
         
         // 更新範囲内のタイルとそのキーを収集
         const tilesToUpdate = [];

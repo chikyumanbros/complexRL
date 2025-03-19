@@ -1691,6 +1691,12 @@ class Player {
         // 遠距離攻撃フラグを設定
         this.rangedCombat.attackedThisTurn = true;
 
+        // 遠距離攻撃の射線チェック
+        if (!this.game.visionSystem.hasRangedAttackLineOfSight(this.x, this.y, target.x, target.y)) {
+            game.logger.add("No clear line of fire to target!", "warning");
+            return false;
+        }
+
         // 遠距離攻撃の実行
         const result = CombatSystem.resolveRangedAttack(this, target, game, { isPlayer: true });
 
