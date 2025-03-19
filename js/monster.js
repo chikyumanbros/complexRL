@@ -1534,10 +1534,31 @@ class Monster {
 
                 // ダメージ計算と適用
                 const damage = this.calculateRangedDamage();
-                const result = monster.takeDamage(damage, game);
+                
+                // モンスターの防御計算
+                const defense = monster.defense;
+                const defenseRolls = Array(defense.diceCount).fill(0)
+                    .map(() => Math.floor(Math.random() * defense.diceSides) + 1);
+                const totalDefense = defense.base + defenseRolls.reduce((sum, roll) => sum + roll, 0);
+                const finalDamage = Math.max(1, damage.total - totalDefense);
+                
+                // ダメージ適用
+                const result = monster.takeDamage(finalDamage, game);
 
-                if (isVisibleToPlayer && result.damage > 0) {
-                    game.logger.add(`${monster.name} takes ${result.damage} damage!`, "combat");
+                if (isVisibleToPlayer) {
+                    const rollsStr = damage.rolls.join(', ');
+                    const defenseRollsStr = defenseRolls.join(', ');
+                    game.logger.add(`The beam hits ${monster.name} for ${result.damage} damage! (ATK: ${damage.base}+[${rollsStr}] vs DEF: ${defense.base}+[${defenseRollsStr}]) (HP: ${monster.hp}/${monster.maxHp})`, "monsterInfo");
+                    
+                    // モンスターが死亡した場合
+                    if (result.killed) {
+                        game.logger.add(`${monster.name} is destroyed by the beam!`, "monsterInfo");
+                        game.renderer.showDeathEffect(monster.x, monster.y);
+                        game.playSound('deathSound');
+                        
+                        // ここでゲームからモンスターを削除
+                        game.monsters = game.monsters.filter(m => m.id !== monster.id);
+                    }
                 }
 
                 // クールダウンを設定
@@ -1548,10 +1569,82 @@ class Monster {
 
         // プレイヤーにダメージを与える
         const damage = this.calculateRangedDamage();
-        const result = game.player.takeDamage(damage, game);
+        const hitRoll = Math.floor(Math.random() * 100) + 1;
+        const baseHitChance = this.accuracy;
+
+        // 周囲のモンスターによるペナルティを計算
+        const surroundingMonsters = this.countSurroundingMonsters(game);
+        const penaltyPerMonster = 15;
+        const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
+
+        // ペナルティを基本命中率に適用
+        const penalizedAccuracy = Math.floor(baseHitChance * (1 - surroundingPenalty));
+
+        // サイズによる命中補正を適用
+        const sizeModifier = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.SIZE_ACCURACY_MODIFIER(game.player.stats);
+
+        // 最終的な命中率を計算（5%から95%の間に制限）
+        const hitChance = Math.min(95, Math.max(5, penalizedAccuracy + sizeModifier));
+        const isCritical = hitRoll <= GAME_CONSTANTS.FORMULAS.CRITICAL_RANGE(this.stats);
+        const hit = isCritical || hitRoll <= hitChance;
+
+        // プレイヤーの視界内にいる場合のみメッセージとエフェクトを表示
+        const isVisibleToPlayer = game.getVisibleTiles()
+            .some(tile => tile.x === this.x && tile.y === this.y);
 
         if (isVisibleToPlayer) {
-            game.logger.add(`The energy beam hits you for ${result.damage} damage!`, "combat");
+            // エフェクトを表示
+            game.renderer.showRangedAttackEffect(this.x, this.y, game.player.x, game.player.y, '#00FFFF');
+            game.playSound('rangedAttackSound');
+
+            // 命中判定結果のログ表示
+            game.logger.add(`${this.name} fires an energy beam at you! (ACC: ${Math.floor(hitChance)}% | Roll: ${hitRoll}${isCritical ? ' [CRITICAL HIT!]' : ''})`, "monsterInfo");
+            
+            if (hit) {
+                let finalDamage = 0;
+                let defenseRolls = [];
+                
+                if (isCritical) {
+                    // クリティカルヒット時は防御無視
+                    finalDamage = damage.total;
+                    game.logger.add(`Critical hit!`, "monsterCrit");
+                    
+                    // ダメージを適用
+                    const result = game.player.takeDamage(finalDamage, game);
+                    
+                    // ダメージエフェクト
+                    game.renderer.showCritEffect(game.player.x, game.player.y);
+                    game.renderer.showDamageFlash();
+                    game.playSound('critSound');
+                    
+                    // ログメッセージ
+                    const rollsStr = damage.rolls.join(', ');
+                    game.logger.add(`The beam hits for ${result.damage} damage! (ATK: ${damage.base}+[${rollsStr}] vs DEF: [IGNORED]) (HP: ${game.player.hp}/${game.player.maxHp})`, "monsterCrit");
+                } else {
+                    // 通常命中の場合は防御計算
+                    const defense = game.player.defense;
+                    defenseRolls = Array(defense.diceCount).fill(0)
+                        .map(() => Math.floor(Math.random() * defense.diceSides) + 1);
+                    const totalDefense = defense.base + defenseRolls.reduce((sum, roll) => sum + roll, 0);
+                    finalDamage = Math.max(1, damage.total - totalDefense);
+                    
+                    // ダメージを適用
+                    const result = game.player.takeDamage(finalDamage, game);
+                    
+                    // ダメージエフェクト
+                    game.renderer.showDamageFlash();
+                    game.playSound('hitSound');
+                    
+                    // ログメッセージ
+                    const rollsStr = damage.rolls.join(', ');
+                    const defenseRollsStr = defenseRolls.join(', ');
+                    game.logger.add(`The beam hits for ${result.damage} damage! (ATK: ${damage.base}+[${rollsStr}] vs DEF: ${defense.base}+[${defenseRollsStr}]) (HP: ${game.player.hp}/${game.player.maxHp})`, "monsterHit");
+                }
+            } else {
+                game.logger.add(`The beam misses you!`, "monsterMiss");
+                game.renderer.showMissEffect(game.player.x, game.player.y, 'miss');
+                game.playSound('missSound');
+            }
         }
 
         // 遠距離攻撃の位置を記録（音源として）
@@ -1569,10 +1662,46 @@ class Monster {
         let damage = damageData.base;
         
         // ダイスロール
+        let rolls = [];
         for (let i = 0; i < damageData.diceCount; i++) {
-            damage += Math.floor(Math.random() * damageData.diceSides) + 1;
+            const roll = Math.floor(Math.random() * damageData.diceSides) + 1;
+            rolls.push(roll);
+            damage += roll;
         }
         
-        return damage;
+        return {
+            total: damage,
+            base: damageData.base,
+            rolls: rolls,
+            diceCount: damageData.diceCount,
+            diceSides: damageData.diceSides
+        };
+    }
+
+    // 周囲のモンスターの数を数えるメソッド
+    countSurroundingMonsters(game) {
+        let count = 0;
+        
+        // 周囲の8方向をチェック
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                // 自身の位置はスキップ
+                if (dx === 0 && dy === 0) continue;
+                
+                const x = this.x + dx;
+                const y = this.y + dy;
+                
+                // 範囲内かつ床であることを確認
+                if (game.isValidPosition(x, y) && game.map[y][x] === 'floor') {
+                    // その位置にモンスターがいるか確認
+                    const monster = game.getMonsterAt(x, y);
+                    if (monster) {
+                        count++;
+                    }
+                }
+            }
+        }
+        
+        return count;
     }
 } 
