@@ -420,9 +420,6 @@ class Game {
             }
         });
 
-        // 生存しているモンスターのみを対象とする
-        this.monsters = this.monsters.filter(monster => monster.hp > 0);
-
         // モンスターの行動フラグをリセット
         for (const monster of this.monsters) {
             monster.hasActedThisTurn = false;
@@ -624,17 +621,22 @@ class Game {
         // 機会攻撃とキルのログを1行にまとめる
         const attackDesc = context.isOpportunityAttack ? "Opportunity attack" : context.attackType;
         const criticalText = context.isCritical ? " [CRITICAL HIT!]" : "";
-        const damageCalc = `(ATK: ${damageResult.totalAttack - damageResult.attackRolls.reduce((sum, roll) => sum + roll, 0)}+[${damageResult.attackRolls.join(',')}]` +
-            `${context.damageMultiplier !== 1 ? ` ×${context.damageMultiplier.toFixed(1)}` : ''} ` +
-            `${context.isCritical ? '[DEF IGNORED]' : `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}]`})`;
+        
+        // ドアキルの場合はダメージ計算の詳細を表示しない
+        let message;
+        if (damageResult === null || context.attackType === "Door crush") {
+            message = `${attackDesc}${criticalText} kills ${monster.name} with ${result.damage} damage!`;
+        } else {
+            const damageCalc = `(ATK: ${damageResult.totalAttack - damageResult.attackRolls.reduce((sum, roll) => sum + roll, 0)}+[${damageResult.attackRolls.join(',')}]` +
+                `${context.damageMultiplier !== 1 ? ` ×${context.damageMultiplier.toFixed(1)}` : ''} ` +
+                `${context.isCritical ? '[DEF IGNORED]' : `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}]`})`;
+            message = `${attackDesc}${criticalText} kills ${monster.name} with ${result.damage} damage! ${damageCalc}`;
+        }
 
         // クリティカルヒットの場合でも必ずkillクラスを含める
         const messageClass = context.isCritical ? "playerCrit kill" : "kill";
 
-        this.logger.add(
-            `${attackDesc}${criticalText} kills ${monster.name} with ${result.damage} damage! ${damageCalc}`,
-            messageClass
-        );
+        this.logger.add(message, messageClass);
 
         // クリティカルヒット時のエフェクトを表示
         if (context.isCritical) {

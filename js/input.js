@@ -1544,12 +1544,27 @@ class InputHandler {
                 const result = monster.takeDamage(damage, this.game);
                 this.game.logger.add(`The closing door crushes ${monster.name}!`, "playerCrit");
 
-                // モンスターを即座に削除
-                monster.isRemoved = true;
-                this.game.removeMonster(monster);
-
-                // lastCombatMonsterを確実にクリア
-                this.game.lastCombatMonster = null;
+                // モンスターは既にtakeDamageで削除されているため、死亡処理のみ適切に行う
+                this.game.processMonsterDeath({
+                    monster: monster,
+                    result: {
+                        damage: damage,
+                        killed: true,
+                        evaded: false
+                    },
+                    damageResult: {
+                        totalAttack: damage,
+                        attackRolls: [],
+                        defenseRolls: [],
+                    },
+                    context: {
+                        isPlayer: true,
+                        isCritical: false,
+                        attackType: "Door crush",
+                        damageMultiplier: 1,
+                        killedByPlayer: true
+                    }
+                });
 
                 // 位置情報を正しく記録
                 this.game.lastDoorKillLocation = { 
@@ -1558,21 +1573,6 @@ class InputHandler {
                     intensity: 120, // ドアでモンスターを倒す音の強度（通常より大きい）
                     type: 'kill'
                 };
-
-                // 経験値の計算と獲得処理
-                const levelDiff = monster.level - this.game.player.level;
-                const baseXP = Math.floor(monster.baseXP || monster.level);
-                const levelMultiplier = levelDiff > 0
-                    ? 1 + (levelDiff * 0.2)
-                    : Math.max(0.1, 1 + (levelDiff * 0.1));
-                const intBonus = 1 + Math.max(0, (this.game.player.stats.int - 10) * 0.03);
-                const xpGained = Math.max(1, Math.floor(baseXP * levelMultiplier * intBonus));
-
-                // 経験値獲得ログ
-                this.game.logger.add(`Gained ${xpGained} XP!`, "playerInfo");
-
-                // 経験値の付与
-                this.game.player.addExperience(xpGained);
 
                 // タイル更新を遅延実行
                 setTimeout(() => {
@@ -1584,16 +1584,6 @@ class InputHandler {
 
                     // lastDoorKillLocationをクリア
                     this.game.lastDoorKillLocation = null;
-
-                    if (result.killed) {
-                        
-                        // 部屋の情報更新
-                        const currentRoom = this.game.getCurrentRoom();
-                        if (currentRoom) {
-                            const monsterCount = this.game.getMonstersInRoom(currentRoom).length;
-                            this.game.logger.updateRoomInfo(currentRoom, monsterCount, true);
-                        }
-                    }
 
                     // 視界の更新を強制
                     this.game._visibleTilesCache = null;

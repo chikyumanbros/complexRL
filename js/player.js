@@ -1703,7 +1703,7 @@ class Player {
         // 攻撃が命中した場合
         if (result.hit) {
             // 死亡処理（damageResultを含めて渡す）
-            if (target.hp <= 0) {
+            if (result.killed) {
                 game.processMonsterDeath({
                     monster: target,
                     result: {

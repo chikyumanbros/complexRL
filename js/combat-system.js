@@ -269,12 +269,22 @@ class CombatSystem {
 
             // killed フラグが true の場合は即座に死亡処理を実行
             if (result.killed) {
-                game.processMonsterDeath({
-                    monster: defender,
-                    result,
-                    damageResult,
-                    context
-                });
+                // ドアによる即死の場合は、damageResultをnullに設定して詳細を表示しない
+                if (context.attackType === "Door crush") {
+                    game.processMonsterDeath({
+                        monster: defender,
+                        result,
+                        damageResult: null,
+                        context
+                    });
+                } else {
+                    game.processMonsterDeath({
+                        monster: defender,
+                        result,
+                        damageResult,
+                        context
+                    });
+                }
                 return;
             }
 
@@ -588,12 +598,15 @@ class CombatSystem {
                 ? '[DEF IGNORED]' 
                 : `vs DEF: ${defender.defense.base}+[${defenseRolls.join(',')}]`;
 
-            // ダメージログを表示
-            const healthStatus = `HP: ${Math.max(0, defender.hp)}/${defender.maxHp}`;
-            game.logger.add(
-                `The shot hits for ${finalDamage} damage! (${attackCalc} ${defenseCalc}) (${healthStatus})`,
-                isCritical ? "playerCrit" : "playerHit"
-            );
+            // モンスターが死亡した場合はprocessMonsterDeathがログを出力するため、ここではログを出力しない
+            if (!result.killed) {
+                // ダメージログを表示（モンスターが生きている場合のみ）
+                const healthStatus = `HP: ${Math.max(0, defender.hp)}/${defender.maxHp}`;
+                game.logger.add(
+                    `The shot hits for ${finalDamage} damage! (${attackCalc} ${defenseCalc}) (${healthStatus})`,
+                    isCritical ? "playerCrit" : "playerHit"
+                );
+            }
 
             // ダメージエフェクトを表示
             game.playSound('rangedAttackSound');

@@ -1535,29 +1535,67 @@ class Monster {
                 // ダメージ計算と適用
                 const damage = this.calculateRangedDamage();
                 
-                // モンスターの防御計算
-                const defense = monster.defense;
-                const defenseRolls = Array(defense.diceCount).fill(0)
-                    .map(() => Math.floor(Math.random() * defense.diceSides) + 1);
-                const totalDefense = defense.base + defenseRolls.reduce((sum, roll) => sum + roll, 0);
-                const finalDamage = Math.max(1, damage.total - totalDefense);
+                // クリティカル判定を追加
+                const isCritical = Math.random() * 100 <= GAME_CONSTANTS.FORMULAS.CRITICAL_RANGE(this.stats);
+                
+                let finalDamage;
+                if (isCritical) {
+                    // クリティカルヒットの場合は防御無視
+                    finalDamage = damage.total;
+                    if (isVisibleToPlayer) {
+                        game.logger.add(`Critical hit!`, "monsterCrit");
+                    }
+                } else {
+                    // 通常ヒットの場合は防御計算
+                    const defense = monster.defense;
+                    const defenseRolls = Array(defense.diceCount).fill(0)
+                        .map(() => Math.floor(Math.random() * defense.diceSides) + 1);
+                    const totalDefense = defense.base + defenseRolls.reduce((sum, roll) => sum + roll, 0);
+                    finalDamage = Math.max(1, damage.total - totalDefense);
+                }
                 
                 // ダメージ適用
                 const result = monster.takeDamage(finalDamage, game);
 
                 if (isVisibleToPlayer) {
                     const rollsStr = damage.rolls.join(', ');
-                    const defenseRollsStr = defenseRolls.join(', ');
-                    game.logger.add(`The beam hits ${monster.name} for ${result.damage} damage! (ATK: ${damage.base}+[${rollsStr}] vs DEF: ${defense.base}+[${defenseRollsStr}]) (HP: ${monster.hp}/${monster.maxHp})`, "monsterInfo");
+                    if (isCritical) {
+                        game.logger.add(`The beam hits ${monster.name} for ${result.damage} damage! (ATK: ${damage.base}+[${rollsStr}] vs DEF: [IGNORED]) (HP: ${monster.hp}/${monster.maxHp})`, "monsterCrit");
+                    } else {
+                        const defense = monster.defense;
+                        const defenseRolls = Array(defense.diceCount).fill(0)
+                            .map(() => Math.floor(Math.random() * defense.diceSides) + 1);
+                        const defenseRollsStr = defenseRolls.join(', ');
+                        game.logger.add(`The beam hits ${monster.name} for ${result.damage} damage! (ATK: ${damage.base}+[${rollsStr}] vs DEF: ${defense.base}+[${defenseRollsStr}]) (HP: ${monster.hp}/${monster.maxHp})`, "monsterInfo");
+                    }
                     
                     // モンスターが死亡した場合
                     if (result.killed) {
                         game.logger.add(`${monster.name} is destroyed by the beam!`, "monsterInfo");
                         game.renderer.showDeathEffect(monster.x, monster.y);
                         game.playSound('deathSound');
-                        
-                        // ここでゲームからモンスターを削除
-                        game.monsters = game.monsters.filter(m => m.id !== monster.id);
+
+                        // 死亡処理を適切に行う
+                        game.processMonsterDeath({
+                            monster: monster,
+                            result: {
+                                damage: finalDamage,
+                                killed: true,
+                                evaded: false
+                            },
+                            damageResult: {
+                                totalAttack: damage.total,
+                                attackRolls: damage.rolls,
+                                defenseRolls: isCritical ? [] : defenseRolls
+                            },
+                            context: {
+                                isPlayer: false,
+                                isCritical: isCritical,
+                                attackType: "Friendly fire",
+                                damageMultiplier: 1,
+                                killedByPlayer: false
+                            }
+                        });
                     }
                 }
 
@@ -1633,7 +1671,7 @@ class Monster {
                     
                     // ダメージエフェクト
                     game.renderer.showDamageFlash();
-                    game.playSound('hitSound');
+                    game.playSound('rangedAttackSound');
                     
                     // ログメッセージ
                     const rollsStr = damage.rolls.join(', ');
