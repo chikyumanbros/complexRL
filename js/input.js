@@ -2001,20 +2001,37 @@ class InputHandler {
         
         // 標準アクションとして残されたスキルのターゲット選択処理
         if (this.targetingMode === 'jump') {
-            // ... existing code for jump targeting ...
-            
             // Enterキーが押された場合、ターゲットを確定
             if (key === 'enter') {
                 this.confirmTarget();
                 return;
             }
             
+            // ESCキーが押された場合、キャンセル
+            if (key === 'escape') {
+                this.cancelTargeting();
+                return;
+            }
+            
             // 方向キーでターゲットを移動
             const direction = this.getDirectionFromKey(key);
             if (direction) {
-                this.targetX += direction.dx;
-                this.targetY += direction.dy;
-                this.game.renderer.highlightTarget(this.targetX, this.targetY);
+                const newX = this.targetX + direction.dx;
+                const newY = this.targetY + direction.dy;
+                
+                // マップの範囲内かチェック
+                if (newX >= 0 && newX < this.game.width && newY >= 0 && newY < this.game.height) {
+                    // 視界内のタイルのみターゲット選択可能
+                    const visibleTiles = new Set(
+                        this.game.getVisibleTiles().map(({ x, y }) => `${x},${y}`)
+                    );
+                    
+                    if (visibleTiles.has(`${newX},${newY}`)) {
+                        this.targetX = newX;
+                        this.targetY = newY;
+                        this.game.renderer.highlightTarget(this.targetX, this.targetY);
+                    }
+                }
             }
             
             return;
