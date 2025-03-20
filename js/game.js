@@ -641,42 +641,52 @@ class Game {
     }
 
     processMonsterDeath(deathInfo) {
-        const { monster, result, damageResult, context } = deathInfo;
+        const { monster, result, damageResult, context, suppressMessage } = deathInfo;
 
-        // 機会攻撃とキルのログを1行にまとめる
-        const attackDesc = context.isOpportunityAttack ? "Opportunity attack" : context.attackType;
-        const criticalText = context.isCritical ? " [CRITICAL HIT!]" : "";
-        
-        // ドアキルの場合はダメージ計算の詳細を表示しない
-        let message;
-        if (damageResult === null || context.attackType === "Door crush") {
-            message = `${attackDesc}${criticalText} kills ${monster.name} with ${result.damage} damage!`;
-        } else {
-            const damageCalc = `(ATK: ${damageResult.totalAttack - damageResult.attackRolls.reduce((sum, roll) => sum + roll, 0)}+[${damageResult.attackRolls.join(',')}]` +
-                `${context.damageMultiplier !== 1 ? ` ×${context.damageMultiplier.toFixed(1)}` : ''} ` +
-                `${context.isCritical ? '[DEF IGNORED]' : `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}]`})`;
-            message = `${attackDesc}${criticalText} kills ${monster.name} with ${result.damage} damage! ${damageCalc}`;
+        // suppressMessageフラグがtrueの場合はログメッセージを表示しない
+        if (!suppressMessage) {
+            // 機会攻撃とキルのログを1行にまとめる
+            const attackDesc = context.isOpportunityAttack ? "Opportunity attack" : context.attackType;
+            const criticalText = context.isCritical ? " [CRITICAL HIT!]" : "";
+            
+            // ドアキルの場合はダメージ計算の詳細を表示しない
+            let message;
+            if (damageResult === null || context.attackType === "Door crush") {
+                message = `${attackDesc}${criticalText} kills ${monster.name} with ${result.damage} damage!`;
+            } else if (context.source === 'bleeding') {
+                // 出血ダメージの場合は防御力を表示しない
+                message = `${attackDesc}${criticalText} kills ${monster.name} with ${result.damage} damage!`;
+            } else {
+                const damageCalc = `(ATK: ${damageResult.totalAttack - damageResult.attackRolls.reduce((sum, roll) => sum + roll, 0)}+[${damageResult.attackRolls.join(',')}]` +
+                    `${context.damageMultiplier !== 1 ? ` ×${context.damageMultiplier.toFixed(1)}` : ''} ` +
+                    `${context.isCritical ? '[DEF IGNORED]' : `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}]`})`;
+                message = `${attackDesc}${criticalText} kills ${monster.name} with ${result.damage} damage! ${damageCalc}`;
+            }
+
+            // クリティカルヒットの場合でも必ずkillクラスを含める
+            const messageClass = context.isCritical ? "playerCrit kill" : "kill";
+
+            this.logger.add(message, messageClass);
+
+            // クリティカルヒット時のエフェクトを表示
+            if (context.isCritical) {
+                this.renderer.showCritEffect(monster.x, monster.y);
+            }
+
+            // lookパネルを更新
+            this.logger.clearLookInfo();
+
+            // 新規: モンスターを倒した時の効果音を再生
+            this.playSound('killMonsterSound');
         }
 
-        // クリティカルヒットの場合でも必ずkillクラスを含める
-        const messageClass = context.isCritical ? "playerCrit kill" : "kill";
-
-        this.logger.add(message, messageClass);
-
-        // クリティカルヒット時のエフェクトを表示
-        if (context.isCritical) {
-            this.renderer.showCritEffect(monster.x, monster.y);
-        }
-
-        // モンスターを削除し、死亡エフェクトを表示
+        // モンスターを削除し、死亡エフェクトを表示（suppressMessageがtrueでも実行）
         this.removeMonster(monster);
-        this.renderer.showDeathEffect(monster.x, monster.y);
-
-        // lookパネルを更新
-        this.logger.clearLookInfo();
-
-        // 新規: モンスターを倒した時の効果音を再生
-        this.playSound('killMonsterSound');
+        // すでにmonster.jsで死亡エフェクトが表示されている可能性があるので、
+        // suppressMessageがtrueの場合は表示しない
+        if (!suppressMessage) {
+            this.renderer.showDeathEffect(monster.x, monster.y);
+        }
 
         // 経験値の計算
         const levelDiff = monster.level - this.player.level;

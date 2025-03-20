@@ -348,6 +348,7 @@ class Monster {
                     const deathInfo = {
                         monster: this,
                         killedByPlayer: true, // プレイヤーの攻撃が原因の出血なのでtrue
+                        suppressMessage: true, // メッセージはすでに表示したので抑制
                         result: {
                             damage: totalDamage,
                             killed: true,
