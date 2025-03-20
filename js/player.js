@@ -1662,31 +1662,37 @@ class Player {
         }
 
         this.rangedCombat.target = validTargets[nextIndex];
+        
+        // 新しいターゲットの情報を表示
+        const monster = this.game.getMonsterAt(this.rangedCombat.target.x, this.rangedCombat.target.y);
+        if (monster) {
+            this.game.renderer.examineTarget(this.rangedCombat.target.x, this.rangedCombat.target.y);
+        }
     }
 
     // 遠距離攻撃を実行するメソッド
     performRangedAttack(target, game) {
-        // エネルギーが不足している場合は攻撃できない
-        if (this.rangedCombat.energy.current < this.rangedCombat.energy.cost) {
+        // 必要なエネルギーをチェック
+        const energyCost = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_COST(this.stats);
+        if (this.rangedCombat.energy.current < energyCost) {
             game.logger.add("Not enough energy for ranged attack!", "warning");
             return false;
         }
 
-        // 射程範囲外の場合は攻撃できない（チェビシェフ距離を使用）
-        const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
-            this.x, this.y,
-            target.x, target.y
-        );
-        if (distance > this.rangedCombat.range) {
-            game.logger.add("Target is out of range!", "warning");
+        // ターゲットが無効になっていないことを確認
+        if (!target || target.hp <= 0 || target.isRemoved) {
+            game.logger.add("Invalid target!", "warning");
             return false;
         }
 
-        // 視線が通っているかチェック
-        if (!game.hasLineOfSight(this.x, this.y, target.x, target.y)) {
+        // 射線チェック
+        if (!game.hasRangedAttackLineOfSight(this.x, this.y, target.x, target.y)) {
             game.logger.add("No clear line of sight to target!", "warning");
             return false;
         }
+        
+        // ターゲット情報を表示
+        game.renderer.examineTarget(target.x, target.y);
 
         // 遠距離攻撃フラグを設定
         this.rangedCombat.attackedThisTurn = true;

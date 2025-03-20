@@ -2137,6 +2137,12 @@ class InputHandler {
             const nearestTarget = player.findNearestTargetInRange();
             if (nearestTarget) {
                 player.rangedCombat.target = nearestTarget;
+                
+                // ターゲットのモンスター情報を表示
+                const monster = this.game.getMonsterAt(nearestTarget.x, nearestTarget.y);
+                if (monster) {
+                    this.game.renderer.examineTarget(nearestTarget.x, nearestTarget.y);
+                }
             }
         } else {
             // 遠距離攻撃モードを無効化

@@ -590,6 +590,9 @@ class Monster {
                     game.logger.add(`${this.name} wakes up!`, "monsterInfo");
                     game.renderer.flashLogPanel();
                     game.playSound('cautionSound');
+                    
+                    // モンスターが起床したときも情報を表示
+                    game.renderer.examineTarget(this.x, this.y);
                 }
 
                 this.hasSpottedPlayer = true;
@@ -656,6 +659,9 @@ class Monster {
                         game.logger.add(`${this.name} ${spotType} you!`, "monsterInfo");
                         game.renderer.flashLogPanel();
                         game.soundManager.playSound('cautionSound');
+                        
+                        // モンスターがプレイヤーをスポットしたときも情報を表示
+                        game.renderer.examineTarget(this.x, this.y);
                     }
                 }
                 
@@ -1663,6 +1669,9 @@ class Monster {
         if (!this.game.visionSystem.hasRangedAttackLineOfSight(this.x, this.y, game.player.x, game.player.y)) {
             return false;
         }
+
+        // モンスター情報を表示
+        game.renderer.examineTarget(this.x, this.y);
         
         // 射線上のモンスターをチェック
         const linePoints = this.getLinePoints(this.x, this.y, game.player.x, game.player.y);

@@ -267,6 +267,9 @@ class Game {
         // プレイヤーのターン処理
         this.processPlayerTurn();
 
+        // 隣接するモンスターがいるか確認し、いる場合は情報表示
+        this.checkAdjacentMonsters();
+
         // モンスターのターン処理
         this.processMonsterTurn();
 
@@ -1790,6 +1793,38 @@ class Game {
     // 元の視線チェックメソッドはそのまま維持
     hasLineOfSight(x1, y1, x2, y2) {
         return this.visionSystem.hasLineOfSight(x1, y1, x2, y2);
+    }
+
+    // 隣接するモンスターをチェックして情報を表示する
+    checkAdjacentMonsters() {
+        // プレイヤーの位置を取得
+        const px = this.player.x;
+        const py = this.player.y;
+        
+        // 隣接する座標を確認（斜めも含む）
+        const adjacentCoords = [
+            {x: px-1, y: py-1}, {x: px, y: py-1}, {x: px+1, y: py-1},
+            {x: px-1, y: py},                     {x: px+1, y: py},
+            {x: px-1, y: py+1}, {x: px, y: py+1}, {x: px+1, y: py+1}
+        ];
+        
+        // 隣接座標にいるモンスターを見つける
+        for (const coord of adjacentCoords) {
+            const monster = this.getMonsterAt(coord.x, coord.y);
+            if (monster && !monster.isRemoved && monster.hp > 0) {
+                // モンスターが可視であることを確認
+                const isVisible = this.getVisibleTiles().some(tile => 
+                    tile.x === monster.x && tile.y === monster.y
+                );
+                
+                if (isVisible) {
+                    // モンスター情報を表示
+                    this.renderer.examineTarget(monster.x, monster.y);
+                    // 最初に見つけたモンスターのみ表示して終了
+                    break;
+                }
+            }
+        }
     }
 }
 
