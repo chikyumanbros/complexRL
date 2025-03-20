@@ -1631,12 +1631,9 @@ body::before {
 }
 
 @keyframes web-animation {
-    0%, 100% {
-        opacity: 0.8;
-    }
-    50% {
-        opacity: 0.6;
-    }
+    0% { opacity: 0; transform: scale(0.5); }
+    50% { opacity: 1; transform: scale(1.2); }
+    100% { opacity: 1; transform: scale(1); }
 }
 
 @keyframes web-char-animation {
@@ -1666,19 +1663,6 @@ body::before {
     width: 100%;
     height: 100%;
     color: #CCCCCC;
-}
-
-/* フォーカスの無効化 */
-*:focus {
-    outline: none;
-}
-
-*:not([tabindex]):focus {
-    outline: none;
-}
-
-[tabindex="-1"] {
-    outline: none;
 }
 
 @keyframes web-remove-animation {
@@ -1729,149 +1713,41 @@ body::before {
     100% { opacity: 1.0; }
 }
 
-/* 遠距離攻撃セクション */
-.ranged-combat-section {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+/* Bloodpool animations */
+@keyframes bloodpool-drip {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
 }
 
-/* エネルギーバーの色を調整 */
-.energy-bar .bar {
-    background: #e74c3c; /* デフォルトは赤（射撃不可能） */
-    transition: background-color 0.3s ease;
-    background-image: 
-        linear-gradient(45deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.1) 75%),
-        linear-gradient(45deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.1) 75%);
-    background-size: 8px 8px;
-    background-position: 0 0, 4px 4px;
+@keyframes bloodpool-pulse {
+    0% { opacity: var(--base-opacity, 0.6); }
+    50% { opacity: calc(var(--base-opacity, 0.6) + 0.2); }
+    100% { opacity: var(--base-opacity, 0.6); }
 }
 
-/* エネルギーが射撃可能な状態 */
-.energy-bar .bar[style*="width: 100%"] {
-    background-color: #2ecc71; /* フル充填時は緑 */
-    background-image: 
-        linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.15) 75%),
-        linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.15) 75%);
-    background-size: 8px 8px;
-    background-position: 0 0, 4px 4px;
+.bloodpool-light {
+    --base-opacity: 0.6;
+    animation: bloodpool-pulse 3s infinite;
 }
 
-/* エネルギーが射撃可能な状態（30%以上） */
-.energy-bar .bar[style*="width: 3"],
-.energy-bar .bar[style*="width: 4"],
-.energy-bar .bar[style*="width: 5"],
-.energy-bar .bar[style*="width: 6"],
-.energy-bar .bar[style*="width: 7"],
-.energy-bar .bar[style*="width: 8"],
-.energy-bar .bar[style*="width: 9"] {
-    background-color: #3498db; /* 30%以上は青 */
-    background-image: 
-        linear-gradient(45deg, rgba(255, 255, 255, 0.12) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.12) 75%),
-        linear-gradient(45deg, rgba(255, 255, 255, 0.12) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.12) 75%);
-    background-size: 8px 8px;
-    background-position: 0 0, 4px 4px;
+.bloodpool-medium {
+    --base-opacity: 0.75;
+    animation: bloodpool-pulse 2.5s infinite;
 }
 
-/* エネルギーバーのレイアウト */
-.energy-bar {
-    display: flex;
-    gap: 10px;
-    align-items: center;
+.bloodpool-heavy {
+    --base-opacity: 0.9;
+    animation: bloodpool-pulse 2s infinite, bloodpool-drip 3s infinite;
 }
 
-.energy-numbers {
-    min-width: 45px;
-    text-align: right;
-    color: var(--text-primary);
+/* Add animation effects for bloodpool creation */
+@keyframes bloodpool-create {
+    0% { opacity: 0; transform: scale(0.5); }
+    50% { opacity: 1; transform: scale(1.3); }
+    100% { opacity: var(--base-opacity, 0.6); transform: scale(1); }
 }
 
-.bar-container {
-    flex-grow: 1;
-    height: 12px;
-    background: var(--bar-background);
-    border: 1px solid var(--border-color);
+.bloodpool-effect {
+    animation: bloodpool-create 0.8s;
 }
-
-.bar-container::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: 
-        linear-gradient(45deg, rgba(0, 0, 0, 0.1) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, 0.1) 75%),
-        linear-gradient(45deg, rgba(0, 0, 0, 0.1) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, 0.1) 75%);
-    background-size: 8px 8px;
-    background-position: 0 0, 4px 4px;
-    pointer-events: none;
-}
-
-.bar {
-    height: 100%;
-    transition: width 0.2s ease, background-color 0.3s ease;
-}
-
-.ranged-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 5px 10px;
-}
-
-/* ステータスパネルのスタイル */
-.info-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 5px;
-}
-
-.info-row .label {
-    color: var(--text-secondary);
-    text-align: left;
-}
-
-.info-row span:last-child {
-    text-align: left;
-    width: auto;
-}
-
-.info-row .value {
-    color: var(--text-info);
-    text-align: left;
-    width: auto;
-}
-
-.danger-level {
-    color: var(--text-accent);
-}
-
-/* ヘルプ表示のスタイル */
-.help-section-title {
-    color: var(--combat-section-title);
-    font-size: 15px;
-    margin-bottom: 8px;
-}
-
-.combat-category {
-    color: var(--combat-category);
-    font-size: 15px;
-    margin-top: 6px;
-}
-
-.combat-text {
-    color: var(--combat-text);
-    margin-left: 8px;
-}
-
-/* 健康状態の色 */
-.health-status.healthy { color: var(--status-healthy); }
-.health-status.wounded { color: var(--status-wounded); }
-.health-status.badly-wounded { color: var(--status-badly-wounded); }
-.health-status.near-death { color: var(--status-near-death); }
-
-/* Vigor状態の色 */
-.vigor-status.high { color: var(--vigor-high); }
-.vigor-status.moderate { color: var(--vigor-moderate); }
-.vigor-status.low { color: var(--vigor-low); }
-.vigor-status.critical { color: var(--vigor-critical); }

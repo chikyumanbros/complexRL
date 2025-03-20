@@ -313,6 +313,12 @@ class Monster {
             // HPを直接減少させる（無限ループ回避のため、takeDamageを使用しない）
             this.hp = Math.max(0, this.hp - totalDamage);
             
+            // 出血の重症度を取得
+            const severity = this.getBleedingSeverity();
+            
+            // Add a bloodpool at the monster's position
+            game.addBloodpool(this.x, this.y, severity);
+            
             // ビジュアルエフェクトとメッセージは視界内の場合のみ
             if (isVisibleToPlayer) {
                 // シンプルな出血メッセージのみ表示

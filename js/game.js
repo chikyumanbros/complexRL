@@ -21,9 +21,15 @@ class Game {
         this.mode = GAME_CONSTANTS.MODES.GAME;
         this.turn = 0;
         this.totalTurns = 0;
+        this.tiles = [];
+        this.colors = [];
         this.monsters = [];
         this.totalMonstersSpawned = 0;
         this.maxTotalMonsters = 100;
+        this.webs = [];  // 蜘蛛の巣の配列
+        this.bloodpools = []; // 血痕の配列
+        this.neuralObelisks = []; // ニューラルオベリスクの配列
+        this.explored = [];
         this.rooms = [];
         this.isGameOver = false;
         this.floorLevel = 0;
@@ -35,8 +41,6 @@ class Game {
         this.inputDisabled = false;
         this.vigorEffectOccurred = false;
         this.pendingMonsterDeaths = [];
-        this.neuralObelisks = [];
-        this.webs = [];
 
         this.init();
 
@@ -426,7 +430,7 @@ class Game {
     }
 
     processMonsterTurn() {
-        // Make a copy of the array to avoid issues with monsters being removed during iteration
+        // モンスターの配列のコピーを作成（ループ中にモンスターが削除される可能性があるため）
         const monstersCopy = [...this.monsters];
         
         // For each monster, take a turn
@@ -437,6 +441,11 @@ class Game {
             // Process bleeding effects for organic monsters
             if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC)) {
                 monster.processBleedingEffects(this);
+                
+                // Add bloodpool at the monster's location if it's bleeding
+                if (monster.isBleeding()) {
+                    this.addBloodpool(monster.x, monster.y, monster.getBleedingSeverity());
+                }
             }
             
             // Skip if monster died from bleeding
@@ -545,22 +554,29 @@ class Game {
     }
 
     processEndTurnUpdates() {
+        // 罠や状態効果などを処理
+        // 蜘蛛の巣の寿命を更新
+        this.updateWebs();
+        
+        // 血痕の寿命を更新
+        this.updateBloodpools();
+        
+        // ホームフロアのステータスを更新
+        if (this.floor === 0) {
+            this.updateHomeFloorStatus();
+        }
+        
         this.updateExplored();
         this.updateRoomInfo();
         // サイケデリックエフェクトの値を減少させる
         this.renderer.psychedelicTurn = Math.max(0, this.renderer.psychedelicTurn - 1);
         this.renderer.updateFlickerValues();  // フリッカー効果の更新を追加
-        this.updateWebs();
         this.renderer.render();
         this.saveGame();
 
         if (this.inputHandler.examineTarget) {
             const target = this.inputHandler.examineTarget;
             this.logger.updateLookInfo(target.x, target.y);
-        }
-
-        if (this.floorLevel === 0) {
-            this.updateHomeFloorStatus();
         }
     }
 
@@ -1759,12 +1775,56 @@ class Game {
 
     // 蜘蛛の巣の更新処理
     updateWebs() {
-        // 蜘蛛の巣は永続的に残るため、持続時間の減少処理を削除
-        // 以前のコード:
-        // this.webs = this.webs.filter(web => {
-        //     web.duration--;
-        //     return web.duration > 0;
-        // });
+        // 持続時間が終了した蜘蛛の巣を削除
+        this.webs = this.webs.filter(web => {
+            web.remainingTurns--;
+            return web.remainingTurns > 0;
+        });
+    }
+    
+    // ========================== updateBloodpools Method ==========================
+    updateBloodpools() {
+        // 血痕は消えないようにする
+        // 元のコードはコメントアウト
+        /*
+        this.bloodpools = this.bloodpools.filter(bloodpool => {
+            bloodpool.remainingTurns--;
+            return bloodpool.remainingTurns > 0;
+        });
+        */
+    }
+    
+    // ========================== addBloodpool Method ==========================
+    addBloodpool(x, y, severity) {
+        // 既存の血痕をチェック
+        const existingBloodpool = this.bloodpools.find(b => b.x === x && b.y === y);
+        
+        if (existingBloodpool) {
+            // 既存の血痕がある場合、重症度を更新（最も高い重症度を採用）
+            if (severity > existingBloodpool.severity) {
+                existingBloodpool.severity = severity;
+                
+                // 血痕の重症度が上がったときにエフェクトを表示
+                const isVisible = this.getVisibleTiles().some(tile => tile.x === x && tile.y === y);
+                if (isVisible && this.renderer) {
+                    this.renderer.showBloodpoolEffect(x, y, severity);
+                }
+            }
+        } else {
+            // 新しい血痕を追加
+            this.bloodpools.push({
+                x: x,
+                y: y,
+                severity: severity
+                // remainingTurnsは不要なので削除
+            });
+            
+            // 新しい血痕が作成されたときにエフェクトを表示
+            const isVisible = this.getVisibleTiles().some(tile => tile.x === x && tile.y === y);
+            if (isVisible && this.renderer) {
+                this.renderer.showBloodpoolEffect(x, y, severity);
+            }
+        }
     }
 
     // ハイスコアの保存

@@ -59,6 +59,46 @@ const GAME_CONSTANTS = {
         FAIL_MESSAGE: "The web is too sticky to remove."    // 取り除けなかった時のメッセージ
     },
 
+    // 血痕関連
+    BLOODPOOL: {
+        CHAR: '≈',
+        COLOR: '#800000', // より暗い赤
+        ANIMATION_CHARS: ['≈', '∼', '≈', '∼', '≈', '∼'],
+        ANIMATION_COLORS: [
+            '#800000',  // より暗い赤色
+            '#8B0000',  // 少し明るい、しかし暗い赤色
+            '#A52A2A',  // 茶色がかった暗い赤色
+            '#B22222',  // 少し明るい赤色
+            '#A52A2A',  // 茶色がかった暗い赤色
+            '#8B0000',  // 少し明るい、しかし暗い赤色
+        ],
+        SEVERITY: {
+            LIGHT: {
+                CHAR: '∴',
+                COLOR: '#800000',
+                OPACITY: 0.6
+            },
+            MEDIUM: {
+                CHAR: '≈',
+                COLOR: '#8B0000',
+                OPACITY: 0.75
+            },
+            HEAVY: {
+                CHAR: '*',
+                COLOR: '#A52A2A',
+                OPACITY: 0.9
+            }
+        },
+        DURATION: {
+            BASE: 15,           // 基本持続ターン数
+            SEVERITY_FACTOR: {  // 重症度による持続時間の追加係数
+                LIGHT: 1,       // 軽度: 基本持続時間×1
+                MEDIUM: 1.5,    // 中度: 基本持続時間×1.5
+                HEAVY: 2        // 重度: 基本持続時間×2
+            }
+        }
+    },
+
     // 階段関連
     STAIRS: {
         CHAR: '>',

@@ -720,6 +720,56 @@ class RendererEffects {
         this.renderer.render();
     }
 
+    /**
+     * 血痕生成エフェクトを表示
+     * @param {number} x - 血痕のX座標
+     * @param {number} y - 血痕のY座標
+     * @param {number} severity - 出血の重症度 (1=軽度, 2=中度, 3=重度)
+     */
+    showBloodpoolEffect(x, y, severity) {
+        // 位置を計算
+        const position = this.renderer.getTilePosition(x, y);
+        
+        // エフェクト要素を作成
+        const effectDiv = document.createElement('div');
+        effectDiv.className = 'bloodpool-effect';
+        effectDiv.style.position = 'absolute';
+        effectDiv.style.left = `${position.x}px`;
+        effectDiv.style.top = `${position.y}px`;
+        effectDiv.style.width = '20px';
+        effectDiv.style.height = '20px';
+        effectDiv.style.zIndex = '100';
+        
+        // 重症度に基づいたスタイル設定
+        if (severity === 3) {
+            effectDiv.textContent = GAME_CONSTANTS.BLOODPOOL.SEVERITY.HEAVY.CHAR;
+            effectDiv.style.color = GAME_CONSTANTS.BLOODPOOL.SEVERITY.HEAVY.COLOR;
+            effectDiv.style.setProperty('--base-opacity', GAME_CONSTANTS.BLOODPOOL.SEVERITY.HEAVY.OPACITY);
+        } else if (severity === 2) {
+            effectDiv.textContent = GAME_CONSTANTS.BLOODPOOL.SEVERITY.MEDIUM.CHAR;
+            effectDiv.style.color = GAME_CONSTANTS.BLOODPOOL.SEVERITY.MEDIUM.COLOR;
+            effectDiv.style.setProperty('--base-opacity', GAME_CONSTANTS.BLOODPOOL.SEVERITY.MEDIUM.OPACITY);
+        } else {
+            effectDiv.textContent = GAME_CONSTANTS.BLOODPOOL.SEVERITY.LIGHT.CHAR;
+            effectDiv.style.color = GAME_CONSTANTS.BLOODPOOL.SEVERITY.LIGHT.COLOR;
+            effectDiv.style.setProperty('--base-opacity', GAME_CONSTANTS.BLOODPOOL.SEVERITY.LIGHT.OPACITY);
+        }
+        
+        // ゲームコンテナに追加
+        const gameContainer = document.getElementById('game');
+        gameContainer.appendChild(effectDiv);
+        
+        // アニメーション終了後に要素を削除
+        setTimeout(() => {
+            if (gameContainer.contains(effectDiv)) {
+                gameContainer.removeChild(effectDiv);
+            }
+        }, 800);  // bloodpool-createアニメーションの時間に合わせる
+        
+        // マップを再描画
+        this.renderer.render();
+    }
+
     // 弾道エフェクトを表示するメソッド
     showProjectileEffect(fromX, fromY, toX, toY, hit = true) {
         const points = this.renderer.game.getLinePoints(fromX, fromY, toX, toY);

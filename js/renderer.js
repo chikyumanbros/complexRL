@@ -900,6 +900,46 @@ class Renderer {
                         // グリッド位置を指定
                         style += `; grid-row: ${y + 1}; grid-column: ${x + 1};`;
                     }
+                    
+                    // 血痕の描画
+                    const bloodpool = this.game.bloodpools && this.game.bloodpools.find(bp => bp.x === x && bp.y === y);
+                    if (bloodpool) {
+                        // 重症度に基づいてクラスとスタイルを設定
+                        if (bloodpool.severity === 3) {
+                            classes.push('bloodpool-heavy');
+                            content = GAME_CONSTANTS.BLOODPOOL.SEVERITY.HEAVY.CHAR;
+                            style = `color: ${GAME_CONSTANTS.BLOODPOOL.SEVERITY.HEAVY.COLOR}; opacity: ${GAME_CONSTANTS.BLOODPOOL.SEVERITY.HEAVY.OPACITY}`;
+                        } else if (bloodpool.severity === 2) {
+                            classes.push('bloodpool-medium');
+                            content = GAME_CONSTANTS.BLOODPOOL.SEVERITY.MEDIUM.CHAR;
+                            style = `color: ${GAME_CONSTANTS.BLOODPOOL.SEVERITY.MEDIUM.COLOR}; opacity: ${GAME_CONSTANTS.BLOODPOOL.SEVERITY.MEDIUM.OPACITY}`;
+                        } else {
+                            classes.push('bloodpool-light');
+                            content = GAME_CONSTANTS.BLOODPOOL.SEVERITY.LIGHT.CHAR;
+                            style = `color: ${GAME_CONSTANTS.BLOODPOOL.SEVERITY.LIGHT.COLOR}; opacity: ${GAME_CONSTANTS.BLOODPOOL.SEVERITY.LIGHT.OPACITY}`;
+                        }
+                        
+                        // プレイヤーやモンスターが血痕の上にいる場合は、そのキャラクターを優先表示
+                        if (x === this.game.player.x && y === this.game.player.y) {
+                            content = this.game.player.char;
+                            const healthStatus = this.game.player.getHealthStatus(this.game.player.hp, this.game.player.maxHp);
+                            style = `color: ${healthStatus.color}; opacity: 1; text-shadow: 0 0 5px ${GAME_CONSTANTS.BLOODPOOL.SEVERITY.HEAVY.COLOR}`;
+                        } else {
+                            const monster = this.game.getMonsterAt(x, y);
+                            if (monster) {
+                                content = monster.char;
+                                style = `color: ${GAME_CONSTANTS.COLORS.MONSTER[monster.type]}; opacity: 1; text-shadow: 0 0 5px ${GAME_CONSTANTS.BLOODPOOL.SEVERITY.HEAVY.COLOR}`;
+                            }
+                        }
+                        
+                        // 背景があれば適用
+                        if (backgroundColor) {
+                            style += `; background: ${backgroundColor}`;
+                        }
+                        
+                        // グリッド位置を指定
+                        style += `; grid-row: ${y + 1}; grid-column: ${x + 1};`;
+                    }
                 } else if (isExplored) {
                     opacity = 0.3;
                     content = this.game.tiles[y][x];
@@ -1565,4 +1605,28 @@ class Renderer {
     toggleLightingEffects(enabled) {
         this.effects.toggleLightingEffects(enabled);
     }
+
+    /**
+     * ウェブ消滅エフェクトを表示
+     * @param {number} x - ウェブのX座標
+     * @param {number} y - ウェブのY座標
+     */
+    showWebRemoveEffect(x, y) {
+        this.effects.showWebRemoveEffect(x, y);
+    }
+    
+    /**
+     * 血痕生成エフェクトを表示
+     * @param {number} x - 血痕のX座標
+     * @param {number} y - 血痕のY座標
+     * @param {number} severity - 出血の重症度 (1=軽度, 2=中度, 3=重度)
+     */
+    showBloodpoolEffect(x, y, severity) {
+        this.effects.showBloodpoolEffect(x, y, severity);
+    }
+
+    /**
+     * 照明エフェクトの切り替え
+     * @param {boolean} enabled - 照明エフェクトが有効かどうか
+     */
 }
