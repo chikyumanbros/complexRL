@@ -423,12 +423,27 @@ class Game {
     }
 
     processMonsterTurn() {
-        // モンスターの行動
-        this.monsters.forEach(monster => {
+        // Make a copy of the array to avoid issues with monsters being removed during iteration
+        const monstersCopy = [...this.monsters];
+        
+        // For each monster, take a turn
+        for (const monster of monstersCopy) {
+            // Skip dead monsters
+            if (monster.hp <= 0) continue;
+            
+            // Process bleeding effects for organic monsters
+            if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC)) {
+                monster.processBleedingEffects(this);
+            }
+            
+            // Skip if monster died from bleeding
+            if (monster.hp <= 0) continue;
+            
+            // Normal monster turn actions
             if (!monster.hasActedThisTurn) {
                 monster.act(this);
             }
-        });
+        }
 
         // モンスターの行動フラグをリセット
         for (const monster of this.monsters) {

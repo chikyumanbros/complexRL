@@ -504,6 +504,11 @@ class Renderer {
         const container = document.getElementById('game');
         container.style.position = 'relative';
         
+        // Ensure mapContainer exists
+        if (!this.mapContainer) {
+            this.mapContainer = document.getElementById('game');
+        }
+        
         // 高速モードが有効な場合は簡易更新のみ（forceFullRenderが立っている場合を除く）
         if (this.fastRenderMode && !this.forceFullRender) {
             this.renderMapFast();
@@ -1034,6 +1039,9 @@ class Renderer {
             }
             container.innerHTML = display;
         }
+
+        // Clear bleeding indicators before re-rendering
+        // 出血インジケーターは使用しないため削除
     }
 
     getCurrentRoom(x, y) {
@@ -1158,6 +1166,12 @@ class Renderer {
     // 遠距離攻撃エフェクトを表示するメソッド
     showRangedAttackEffect(fromX, fromY, toX, toY, color = '#00FFFF') {
         this.effects.showRangedAttackEffect(fromX, fromY, toX, toY, color);
+    }
+
+    // 出血エフェクトを表示するメソッド - エフェクトなし、状態表示のみ
+    showBleedingEffect(x, y) {
+        // 実装なし - エフェクトはいらないとのこと
+        // モンスターの状態はrenderMapの出血インジケーターで表示する
     }
 
     updateStatusPanel(status) {
@@ -1289,6 +1303,32 @@ class Renderer {
             }
             if (monster.isSleeping) {
                 status.push("Sleeping");
+            }
+            
+            // 出血状態の表示を追加
+            if (monster.isBleeding && monster.isBleeding()) {
+                const severity = monster.getBleedingSeverity();
+                let bleedingText = "Bleeding";
+                
+                // 重症度に応じたテキスト
+                switch(severity) {
+                    case 3:
+                        bleedingText = "Severely Bleeding";
+                        break;
+                    case 2:
+                        bleedingText = "Moderately Bleeding";
+                        break;
+                    case 1:
+                        bleedingText = "Lightly Bleeding";
+                        break;
+                }
+                
+                // 合計ダメージを計算
+                const totalDamagePerTurn = monster.bleedingEffects.reduce((sum, effect) => sum + effect.damagePerTurn, 0);
+                const damagePercentage = ((totalDamagePerTurn / monster.maxHp) * 100).toFixed(1);
+                
+                // 出血ステータスをカラーテキストで表示
+                status.push(`<span style="color: #FF0000">${bleedingText}</span>`);
             }
 
             if (status.length > 0) {

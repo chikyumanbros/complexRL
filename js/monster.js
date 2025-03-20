@@ -130,6 +130,9 @@ class Monster {
 
         // 蜘蛛の巣関連のプロパティを追加
         this.caughtInWeb = null;  // 蜘蛛の巣に捕まっている場合、そのwebオブジェクトを保持
+        
+        // Bleeding status effects
+        this.bleedingEffects = [];  // Array to track multiple bleeding effects
     }
 
     // ========================== takeDamage Method ==========================
@@ -145,6 +148,11 @@ class Monster {
 
         const damage = Math.max(1, amount);
         this.hp -= damage;
+
+        // Check for bleeding chance if this is an organic monster
+        if (this.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC) && !context.isBleedingDamage) {
+            this.checkForBleeding(game, damage);
+        }
 
         // 睡眠状態の解除判定を追加
         if (this.isSleeping) {
@@ -186,6 +194,9 @@ class Monster {
             // 死亡時の処理
             this.isSleeping = false;
             this.hasStartedFleeing = false;
+            
+            // Clear bleeding effects on death
+            this.bleedingEffects = [];
 
             // 蜘蛛の巣に捕まっていた場合、蜘蛛の巣を除去
             if (this.caughtInWeb) {
@@ -206,6 +217,164 @@ class Monster {
         }
 
         return result;
+    }
+
+    // New method to handle bleeding chance and effect application
+    checkForBleeding(game, damage) {
+        // Get current health status
+        const healthStatus = this.getHealthStatus(this.hp, this.maxHp);
+        
+        // Base bleeding chance determined by health status
+        let bleedChance = 0;
+        
+        if (healthStatus.name === "Near Death") {
+            bleedChance = 60;  // 60% chance when near death
+        } else if (healthStatus.name === "Badly Wounded") {
+            bleedChance = 40;  // 40% chance when badly wounded
+        } else if (healthStatus.name === "Wounded") {
+            bleedChance = 20;  // 20% chance when wounded
+        } else {
+            bleedChance = 10;  // 10% base chance when healthy
+        }
+        
+        // Adjust chance based on damage relative to max HP
+        const damageRatio = damage / this.maxHp;
+        const damageFactor = Math.min(40, Math.floor(damageRatio * 100));
+        bleedChance += damageFactor;
+        
+        // Roll for bleeding
+        if (Math.random() * 100 < bleedChance) {
+            const isVisibleToPlayer = game.getVisibleTiles()
+                .some(tile => tile.x === this.x && tile.y === this.y);
+            
+            // Calculate bleeding duration based on damage and health status
+            const baseDuration = 3;
+            const healthFactor = healthStatus.name === "Near Death" ? 2 : 
+                                healthStatus.name === "Badly Wounded" ? 1.5 : 
+                                healthStatus.name === "Wounded" ? 1.2 : 1;
+            
+            const duration = Math.floor(baseDuration * healthFactor);
+            
+            // Calculate bleeding damage per turn based on max HP
+            const baseDamage = Math.max(1, Math.floor(this.maxHp * 0.05));
+            const damageFactor = Math.min(1.5, 1 + (damageRatio * 0.5));
+            const damagePerTurn = Math.max(1, Math.floor(baseDamage * damageFactor));
+            
+            // Create and add the bleeding effect
+            const bleedingEffect = {
+                id: Date.now() + Math.floor(Math.random() * 1000),  // Unique ID for this bleeding instance
+                remainingTurns: duration,
+                damagePerTurn: damagePerTurn
+            };
+            
+            this.bleedingEffects.push(bleedingEffect);
+            
+            // Show message if monster is visible to player
+            if (isVisibleToPlayer) {
+                game.logger.add(`${this.name} starts bleeding!`, "playerHit");
+            }
+        }
+    }
+
+    // Process all active bleeding effects
+    processBleedingEffects(game) {
+        if (this.bleedingEffects.length === 0) return;
+        
+        // Track total bleeding damage for this turn
+        let totalDamage = 0;
+        
+        // Process each bleeding effect
+        const remainingEffects = [];
+        for (const effect of this.bleedingEffects) {
+            if (effect.remainingTurns > 0) {
+                // Apply damage
+                totalDamage += effect.damagePerTurn;
+                effect.remainingTurns--;
+                
+                // Keep this effect if it still has turns remaining
+                if (effect.remainingTurns > 0) {
+                    remainingEffects.push(effect);
+                }
+            }
+        }
+        
+        // Update the bleeding effects array
+        this.bleedingEffects = remainingEffects;
+        
+        // If there's damage to apply
+        if (totalDamage > 0) {
+            // プレイヤーの視界内にいるかチェック
+            const isVisibleToPlayer = game.getVisibleTiles()
+                .some(tile => tile.x === this.x && tile.y === this.y);
+            
+            // 現在のHP保存
+            const oldHp = this.hp;
+            
+            // HPを直接減少させる（無限ループ回避のため、takeDamageを使用しない）
+            this.hp = Math.max(0, this.hp - totalDamage);
+            
+            // ビジュアルエフェクトとメッセージは視界内の場合のみ
+            if (isVisibleToPlayer) {
+                // シンプルな出血メッセージのみ表示
+                game.logger.add(`${this.name} takes ${totalDamage} bleeding damage! (HP: ${this.hp}/${this.maxHp})`, "playerHit");
+            }
+            
+            // 死亡判定
+            const killed = this.hp <= 0;
+            
+            if (killed) {
+                // 死亡時の処理
+                this.isSleeping = false;
+                this.hasStartedFleeing = false;
+                
+                // 出血効果をクリア
+                this.bleedingEffects = [];
+                
+                // 蜘蛛の巣に捕まっていた場合、蜘蛛の巣を除去
+                if (this.caughtInWeb) {
+                    const webX = this.caughtInWeb.x;
+                    const webY = this.caughtInWeb.y;
+                    game.webs = game.webs.filter(w => !(w.x === webX && w.y === webY));
+                }
+                
+                // 死亡メッセージは視界内の場合のみ
+                if (isVisibleToPlayer) {
+                    game.logger.add(`${this.name} bleeds out!`, "playerHit");
+                    // 通常の死亡エフェクトを使用
+                    game.renderer.showDeathEffect(this.x, this.y);
+                }
+                
+                // 出血による死亡は、プレイヤーの攻撃による死亡と同様に経験値・vigor変動処理を行う
+                // 死亡情報オブジェクトを作成
+                const deathInfo = {
+                    monster: this,
+                    killedByPlayer: true, // プレイヤーの攻撃が原因の出血なのでtrue
+                    result: {
+                        damage: totalDamage,
+                        killed: true,
+                        evaded: false
+                    },
+                    damageResult: {
+                        totalAttack: totalDamage,
+                        attackRolls: [], // 出血の場合はロールなし
+                        defenseRolls: [] // 出血の場合は防御ロールなし
+                    },
+                    context: { 
+                        source: 'bleeding',
+                        attackType: 'Bleeding damage',
+                        isPlayer: false,
+                        isCritical: false,
+                        damageMultiplier: 1
+                    }
+                };
+                
+                // 経験値とvigor変動を処理
+                game.processMonsterDeath(deathInfo);
+                
+                // モンスターを削除
+                game.removeMonster(this);
+            }
+        }
     }
 
     // ========================== updateStats Method ==========================
@@ -1765,5 +1934,25 @@ class Monster {
         } else {
             return mainCat === primaryCategory;
         }
+    }
+
+    // ========================== isBleeding Method ==========================
+    isBleeding() {
+        return this.bleedingEffects && this.bleedingEffects.length > 0;
+    }
+
+    // ========================== getBleedingSeverity Method ==========================
+    getBleedingSeverity() {
+        if (!this.isBleeding()) return 0;
+        
+        // Calculate total damage per turn from all bleeding effects
+        const totalDamagePerTurn = this.bleedingEffects.reduce((sum, effect) => sum + effect.damagePerTurn, 0);
+        
+        // Return severity based on damage as percentage of max HP
+        const damagePercent = (totalDamagePerTurn / this.maxHp) * 100;
+        
+        if (damagePercent >= 10) return 3;  // Severe bleeding (>= 10% HP per turn)
+        if (damagePercent >= 5) return 2;   // Moderate bleeding (>= 5% HP per turn)
+        return 1;                           // Light bleeding (< 5% HP per turn)
     }
 } 
