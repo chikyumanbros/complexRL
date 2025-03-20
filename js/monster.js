@@ -247,23 +247,14 @@ class Monster {
             const isVisibleToPlayer = game.getVisibleTiles()
                 .some(tile => tile.x === this.x && tile.y === this.y);
             
-            // Calculate bleeding duration based on damage and health status
-            const baseDuration = 3;
-            const healthFactor = healthStatus.name === "Near Death" ? 2 : 
-                                healthStatus.name === "Badly Wounded" ? 1.5 : 
-                                healthStatus.name === "Wounded" ? 1.2 : 1;
-            
-            const duration = Math.floor(baseDuration * healthFactor);
-            
             // Calculate bleeding damage per turn based on max HP
             const baseDamage = Math.max(1, Math.floor(this.maxHp * 0.05));
             const damageFactor = Math.min(1.5, 1 + (damageRatio * 0.5));
             const damagePerTurn = Math.max(1, Math.floor(baseDamage * damageFactor));
             
-            // Create and add the bleeding effect
+            // Create and add the bleeding effect (ターン数は削除)
             const bleedingEffect = {
                 id: Date.now() + Math.floor(Math.random() * 1000),  // Unique ID for this bleeding instance
-                remainingTurns: duration,
                 damagePerTurn: damagePerTurn
             };
             
@@ -280,26 +271,48 @@ class Monster {
     processBleedingEffects(game) {
         if (this.bleedingEffects.length === 0) return;
         
+        // 出血からの自然回復の確率を体力状態に基づいて計算
+        const healthStatus = this.getHealthStatus(this.hp, this.maxHp);
+        let recoveryChance = 0;
+        
+        // 体力状態に応じた回復確率を設定
+        switch(healthStatus.name) {
+            case "Near Death":
+                recoveryChance = 5;  // 瀕死: 5%の確率でのみ回復
+                break;
+            case "Badly Wounded":
+                recoveryChance = 15; // 重傷: 15%の確率で回復
+                break;
+            case "Wounded":
+                recoveryChance = 30; // 負傷: 30%の確率で回復
+                break;
+            default: // Healthy
+                recoveryChance = 50; // 健康: 50%の確率で回復
+                break;
+        }
+        
+        // 自然回復の抽選
+        const recoveryRoll = Math.random() * 100;
+        if (recoveryRoll < recoveryChance) {
+            // 出血が自然に止まる
+            const isVisibleToPlayer = game.getVisibleTiles()
+                .some(tile => tile.x === this.x && tile.y === this.y);
+            
+            if (isVisibleToPlayer) {
+                game.logger.add(`${this.name}'s bleeding stops.`, "warning");
+            }
+            
+            this.bleedingEffects = [];
+            return;
+        }
+        
         // Track total bleeding damage for this turn
         let totalDamage = 0;
         
-        // Process each bleeding effect
-        const remainingEffects = [];
+        // 各出血効果のダメージを合計
         for (const effect of this.bleedingEffects) {
-            if (effect.remainingTurns > 0) {
-                // Apply damage
-                totalDamage += effect.damagePerTurn;
-                effect.remainingTurns--;
-                
-                // Keep this effect if it still has turns remaining
-                if (effect.remainingTurns > 0) {
-                    remainingEffects.push(effect);
-                }
-            }
+            totalDamage += effect.damagePerTurn;
         }
-        
-        // Update the bleeding effects array
-        this.bleedingEffects = remainingEffects;
         
         // If there's damage to apply
         if (totalDamage > 0) {
@@ -316,8 +329,23 @@ class Monster {
             // 出血の重症度を取得
             const severity = this.getBleedingSeverity();
             
-            // Add a bloodpool at the monster's position
-            game.addBloodpool(this.x, this.y, severity);
+            // 出血量を計算
+            let bloodVolume = 0;
+            switch (severity) {
+                case 3: // 重度の出血
+                    bloodVolume = GAME_CONSTANTS.BLOODPOOL.VOLUME.BLEEDING_AMOUNT.HEAVY;
+                    break;
+                case 2: // 中度の出血
+                    bloodVolume = GAME_CONSTANTS.BLOODPOOL.VOLUME.BLEEDING_AMOUNT.MEDIUM;
+                    break;
+                case 1: // 軽度の出血
+                default:
+                    bloodVolume = GAME_CONSTANTS.BLOODPOOL.VOLUME.BLEEDING_AMOUNT.LIGHT;
+                    break;
+            }
+            
+            // 血痕を追加（重症度と血液量を指定）
+            game.addBloodpool(this.x, this.y, severity, bloodVolume);
             
             // ビジュアルエフェクトとメッセージは視界内の場合のみ
             if (isVisibleToPlayer) {
