@@ -342,37 +342,37 @@ class Monster {
                     game.logger.add(`${this.name} bleeds out!`, "playerHit");
                     // 通常の死亡エフェクトを使用
                     game.renderer.showDeathEffect(this.x, this.y);
+                    
+                    // プレイヤーの視界内にいる場合のみ経験値・vigor変動処理を行う
+                    // 死亡情報オブジェクトを作成
+                    const deathInfo = {
+                        monster: this,
+                        killedByPlayer: true, // プレイヤーの攻撃が原因の出血なのでtrue
+                        result: {
+                            damage: totalDamage,
+                            killed: true,
+                            evaded: false
+                        },
+                        damageResult: {
+                            totalAttack: totalDamage,
+                            attackRolls: [], // 出血の場合はロールなし
+                            defenseRolls: [] // 出血の場合は防御ロールなし
+                        },
+                        context: { 
+                            source: 'bleeding',
+                            attackType: 'Bleeding damage',
+                            isPlayer: false,
+                            isCritical: false,
+                            damageMultiplier: 1
+                        }
+                    };
+                    
+                    // 経験値とvigor変動を処理
+                    game.processMonsterDeath(deathInfo);
+                } else {
+                    // プレイヤーの視界外の場合は単にモンスターを削除
+                    game.removeMonster(this);
                 }
-                
-                // 出血による死亡は、プレイヤーの攻撃による死亡と同様に経験値・vigor変動処理を行う
-                // 死亡情報オブジェクトを作成
-                const deathInfo = {
-                    monster: this,
-                    killedByPlayer: true, // プレイヤーの攻撃が原因の出血なのでtrue
-                    result: {
-                        damage: totalDamage,
-                        killed: true,
-                        evaded: false
-                    },
-                    damageResult: {
-                        totalAttack: totalDamage,
-                        attackRolls: [], // 出血の場合はロールなし
-                        defenseRolls: [] // 出血の場合は防御ロールなし
-                    },
-                    context: { 
-                        source: 'bleeding',
-                        attackType: 'Bleeding damage',
-                        isPlayer: false,
-                        isCritical: false,
-                        damageMultiplier: 1
-                    }
-                };
-                
-                // 経験値とvigor変動を処理
-                game.processMonsterDeath(deathInfo);
-                
-                // モンスターを削除
-                game.removeMonster(this);
             }
         }
     }
