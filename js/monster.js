@@ -1742,4 +1742,28 @@ class Monster {
         
         return count;
     }
+
+    // モンスターのメインカテゴリを取得
+    getMainCategory() {
+        return MONSTERS[this.type].category?.primary || null;
+    }
+
+    // モンスターのサブカテゴリを取得
+    getSubCategory() {
+        return MONSTERS[this.type].category?.secondary || null;
+    }
+
+    // 特定のカテゴリに属しているかチェック
+    isOfCategory(primaryCategory, secondaryCategory = null) {
+        const mainCat = this.getMainCategory();
+        const subCat = this.getSubCategory();
+        
+        if (!mainCat) return false;
+        
+        if (secondaryCategory) {
+            return mainCat === primaryCategory && subCat === secondaryCategory;
+        } else {
+            return mainCat === primaryCategory;
+        }
+    }
 } 

@@ -1254,14 +1254,14 @@ class Renderer {
         const container = document.createElement('div');
         container.style.display = 'flex';
         container.style.alignItems = 'flex-start';
-        container.style.gap = '50px';
+        container.style.gap = '80px'; // 間隔を50pxから80pxに増加
         container.style.border = 'none';
         container.style.padding = '0';
 
         const infoDiv = document.createElement('div');
         infoDiv.style.border = 'none';
         infoDiv.style.padding = '0';
-        infoDiv.style.width = '200px';
+        infoDiv.style.width = '300px'; // 幅を200pxから300pxに増加
         infoDiv.style.flexShrink = '0';
 
         // モンスターの存在と生存状態を厳密にチェック
@@ -1301,6 +1301,10 @@ class Renderer {
             const speedInfo = GAME_CONSTANTS.COLORS.SPEED[speed.value];
             const sizeInfo = GAME_CONSTANTS.COLORS.SIZE[size.value];
 
+            // カテゴリ情報を追加
+            const mainCategory = monster.getMainCategory();
+            const subCategory = monster.getSubCategory();
+            
             lookInfo.push(
                 `ATK: ${monster.attackPower.base}+${monster.attackPower.diceCount}d${monster.attackPower.diceSides}`,
                 `DEF: ${monster.defense.base}+${monster.defense.diceCount}d${monster.defense.diceSides}`,
@@ -1308,7 +1312,8 @@ class Renderer {
                 `EVA: ${monster.evasion}%`,
                 `PER: ${monster.perception}`,
                 `SIZE: <span style="color: ${sizeInfo.color}">${sizeInfo.name}</span>`,
-                `SPD: <span style="color: ${speedInfo.color}">${speedInfo.name}</span>`
+                `SPD: <span style="color: ${speedInfo.color}">${speedInfo.name}</span>`,
+                `CATEGORY: ${mainCategory} / ${subCategory}`
             );
 
             infoDiv.innerHTML = lookInfo.join('\n');

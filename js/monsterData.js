@@ -1,3 +1,35 @@
+const MONSTER_CATEGORIES = {
+    // メインカテゴリ
+    PRIMARY: {
+        ORGANIC: 'organic',        // 生物
+        UNDEAD: 'undead',          // アンデッド
+        MECHANICAL: 'mechanical',  // 機械
+        ETHEREAL: 'ethereal'       // 霊体/幽体
+    },
+    
+    // サブカテゴリ
+    SECONDARY: {
+        // ORGANIC サブカテゴリ
+        MAMMAL: 'mammal',          // 哺乳類
+        REPTILE: 'reptile',        // 爬虫類
+        INSECTOID: 'insectoid',    // 昆虫/節足動物
+        HUMANOID: 'humanoid',      // 人型生物
+        
+        // UNDEAD サブカテゴリ
+        CORPOREAL: 'corporeal',    // 実体系
+        INCORPOREAL: 'incorporeal', // 非実体系
+        
+        // MECHANICAL サブカテゴリ
+        DRONE: 'drone',            // ドローン
+        CONSTRUCT: 'construct',    // 人工構造物
+        CYBORG: 'cyborg',          // サイボーグ
+        
+        // ETHEREAL サブカテゴリ
+        SPIRIT: 'spirit',          // 霊魂
+        ELEMENTAL: 'elemental'     // 元素体
+    }
+};
+
 const MONSTERS = {
     RAT: {
         char: 'r',
@@ -17,6 +49,10 @@ const MONSTERS = {
             chance: 0.7,    // 70% chance to form a pack
             min: 5,         // Minimum 2 creatures
             max: 15         // Maximum 4 creatures
+        },
+        category: {
+            primary: MONSTER_CATEGORIES.PRIMARY.ORGANIC,
+            secondary: MONSTER_CATEGORIES.SECONDARY.MAMMAL
         }
     },
     BAT: {
@@ -37,6 +73,10 @@ const MONSTERS = {
             chance: 0.6,
             min: 5,
             max: 15
+        },
+        category: {
+            primary: MONSTER_CATEGORIES.PRIMARY.ORGANIC,
+            secondary: MONSTER_CATEGORIES.SECONDARY.MAMMAL
         }
     },
     G_VIPER: {
@@ -63,6 +103,10 @@ const MONSTERS = {
             jumpCooldown: 10,     // ジャンプのクールダウン（ターン数）
             jumpChance: 0.4,     // ジャンプを試みる確率
             jumpRange: 3         // ジャンプの最大距離
+        },
+        category: {
+            primary: MONSTER_CATEGORIES.PRIMARY.ORGANIC,
+            secondary: MONSTER_CATEGORIES.SECONDARY.REPTILE
         }
     },
     GOBLIN: {
@@ -83,6 +127,10 @@ const MONSTERS = {
             chance: 0.5,
             min: 2,
             max: 4
+        },
+        category: {
+            primary: MONSTER_CATEGORIES.PRIMARY.ORGANIC,
+            secondary: MONSTER_CATEGORIES.SECONDARY.HUMANOID
         }
     },
     MECH_DRONE: {
@@ -116,6 +164,10 @@ const MONSTERS = {
                 diceSides: 3
             },
             rangedAttackAccuracy: 70     // 命中率（%）
+        },
+        category: {
+            primary: MONSTER_CATEGORIES.PRIMARY.MECHANICAL,
+            secondary: MONSTER_CATEGORIES.SECONDARY.DRONE
         }
     },
     G_SPIDER: {
@@ -144,6 +196,10 @@ const MONSTERS = {
             webChance: 0.3,       // 蜘蛛の巣を生成する確率
             webDuration: 20,      // 蜘蛛の巣の持続ターン数
             webTrapChance: 0.75   // プレイヤーが罠にかかる確率
+        },
+        category: {
+            primary: MONSTER_CATEGORIES.PRIMARY.ORGANIC,
+            secondary: MONSTER_CATEGORIES.SECONDARY.INSECTOID
         }
     },
     SKELETON: {
@@ -164,6 +220,10 @@ const MONSTERS = {
             chance: 0.3,
             min: 2,
             max: 5
+        },
+        category: {
+            primary: MONSTER_CATEGORIES.PRIMARY.UNDEAD,
+            secondary: MONSTER_CATEGORIES.SECONDARY.CORPOREAL
         }
     },
     ZOMBIE: {
@@ -184,6 +244,10 @@ const MONSTERS = {
             chance: 0.4,
             min: 2,
             max: 10
+        },
+        category: {
+            primary: MONSTER_CATEGORIES.PRIMARY.UNDEAD,
+            secondary: MONSTER_CATEGORIES.SECONDARY.CORPOREAL
         }
     },
     GHOST: {
@@ -204,6 +268,10 @@ const MONSTERS = {
             chance: 0.2,
             min: 2,
             max: 5
+        },
+        category: {
+            primary: MONSTER_CATEGORIES.PRIMARY.ETHEREAL,
+            secondary: MONSTER_CATEGORIES.SECONDARY.SPIRIT
         }
     },
     TROLL: {
@@ -224,6 +292,10 @@ const MONSTERS = {
             chance: 0.1,    // Trolls rarely form packs
             min: 2,
             max: 3
+        },
+        category: {
+            primary: MONSTER_CATEGORIES.PRIMARY.ORGANIC,
+            secondary: MONSTER_CATEGORIES.SECONDARY.HUMANOID
         }
     },
 };
