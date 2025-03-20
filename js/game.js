@@ -59,12 +59,22 @@ class Game {
         // セーブデータを削除
         localStorage.removeItem('complexRL_saveData');
         
+        // ゲームオーバー状態をリセット
+        this.isGameOver = false;
+        
+        // ゲームモードをリセット
+        this.mode = GAME_CONSTANTS.MODES.GAME;
+        
         // ゲームを初期化
         this.init();
         
-        // BGMを更新
+        // サウンドマネージャーをリセット
+        this.soundManager.stopAllSounds();
         this.soundManager.userInteracted = true;
         this.soundManager.updateBGM();
+        
+        // レンダリングを更新
+        this.renderer.render();
     }
 
     init() {

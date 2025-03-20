@@ -319,8 +319,11 @@ class InputHandler {
         // --- Game Over Input Handling ---
         if (this.game.isGameOver) {
             if (key === 'enter' || key === ' ') {
-                // 完全に新しいゲームを開始するために、ページをリロード
-                window.location.reload();
+                // 完全に新しいゲームを開始
+                this.game.reset();
+                // サウンドマネージャーの状態を明示的に更新
+                this.game.soundManager.userInteracted = true;
+                this.game.soundManager.updateBGM();
                 return;
             }
             return;  // その他のキー入力を無視

@@ -275,6 +275,76 @@ class SoundManager {
         }
     }
 
+    // すべてのサウンドを停止するメソッド
+    stopAllSounds() {
+        // BGMの停止
+        this.homeBGM.pause();
+        this.homeBGM.currentTime = 0;
+        this.floor1BGM.pause();
+        this.floor1BGM.currentTime = 0;
+        
+        // 効果音の停止
+        this.doorOpenSound.pause();
+        this.doorOpenSound.currentTime = 0;
+        this.doorCloseSound.pause();
+        this.doorCloseSound.currentTime = 0;
+        this.doorKillSound.pause();
+        this.doorKillSound.currentTime = 0;
+        this.portalSound.pause();
+        this.portalSound.currentTime = 0;
+        this.levelUpSound.pause();
+        this.levelUpSound.currentTime = 0;
+        this.descendStairsSound.pause();
+        this.descendStairsSound.currentTime = 0;
+        this.killMonsterSound.pause();
+        this.killMonsterSound.currentTime = 0;
+        this.missSound.pause();
+        this.missSound.currentTime = 0;
+        this.critSound.pause();
+        this.critSound.currentTime = 0;
+        this.damageSound.pause();
+        this.damageSound.currentTime = 0;
+        this.takeDamageSound.pause();
+        this.takeDamageSound.currentTime = 0;
+        this.playerDeathSound.pause();
+        this.playerDeathSound.currentTime = 0;
+        this.rangedAttackSound.pause();
+        this.rangedAttackSound.currentTime = 0;
+        this.nextAttackModifierSound.pause();
+        this.nextAttackModifierSound.currentTime = 0;
+        this.meditationSound.pause();
+        this.meditationSound.currentTime = 0;
+        this.jumpSound.pause();
+        this.jumpSound.currentTime = 0;
+        this.vigorUpSound.pause();
+        this.vigorUpSound.currentTime = 0;
+        this.vigorDownSound.pause();
+        this.vigorDownSound.currentTime = 0;
+        this.cautionSound.pause();
+        this.cautionSound.currentTime = 0;
+        this.caution2Sound.pause();
+        this.caution2Sound.currentTime = 0;
+        
+        // 移動音の停止
+        for (const key in this.moveSounds) {
+            if (this.moveSounds.hasOwnProperty(key)) {
+                this.moveSounds[key].pause();
+                this.moveSounds[key].currentTime = 0;
+            }
+        }
+        
+        // フェードアウト処理中のタイマーをクリア
+        if (this.fadeOutInterval) {
+            clearInterval(this.fadeOutInterval);
+            this.fadeOutInterval = null;
+        }
+        
+        // フェードアウト中フラグをリセット
+        this.isPortalFadingOut = false;
+        
+        console.log('All sounds stopped');
+    }
+
     // portalSound専用のフェードアウトメソッド
     fadeOutPortalSound(duration = 100) {
         if (!this.portalSound || this.portalSound.paused) return;
