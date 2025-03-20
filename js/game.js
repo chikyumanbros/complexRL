@@ -675,11 +675,13 @@ class Game {
             if (context.isCritical) {
                 this.renderer.showCritEffect(monster.x, monster.y);
             }
+        }
 
-            // lookパネルを更新
-            this.logger.clearLookInfo();
+        // lookパネルを常に更新（suppressMessageに関わらず）
+        this.logger.clearLookInfo();
 
-            // 新規: モンスターを倒した時の効果音を再生
+        // 新規: モンスターを倒した時の効果音を再生（suppressMessageがtrueでなければ）
+        if (!suppressMessage) {
             this.playSound('killMonsterSound');
         }
 

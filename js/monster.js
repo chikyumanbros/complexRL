@@ -343,6 +343,9 @@ class Monster {
                     // 通常の死亡エフェクトを使用
                     game.renderer.showDeathEffect(this.x, this.y);
                     
+                    // lookパネルを更新（モンスター情報をクリア）
+                    game.logger.clearLookInfo();
+                    
                     // プレイヤーの視界内にいる場合のみ経験値・vigor変動処理を行う
                     // 死亡情報オブジェクトを作成
                     const deathInfo = {
