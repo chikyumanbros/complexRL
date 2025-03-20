@@ -69,6 +69,10 @@ class Game {
         // ゲームモードをリセット
         this.mode = GAME_CONSTANTS.MODES.GAME;
         
+        // 血痕と蜘蛛の巣をクリア
+        this.bloodpools = [];
+        this.webs = [];
+        
         // ゲームを初期化
         this.init();
         
@@ -88,6 +92,9 @@ class Game {
         this.colors = [];
         this.rooms = [];
         this.monsters = [];
+        this.webs = [];       // 蜘蛛の巣の配列を空にする
+        this.bloodpools = []; // 血痕の配列を空にする
+        this.neuralObelisks = []; // ニューラルオベリスクの配列を空にする
         this.explored = this.initializeExplored();
         this.totalMonstersSpawned = 0;
         this.turn = 0;
@@ -701,6 +708,27 @@ class Game {
             this.playSound('killMonsterSound');
         }
 
+        // 生物系モンスターの場合、死亡時に血痕を生成する確率判定
+        if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC)) {
+            const deathBloodChance = 0.8; // 80%の確率で血痕を生成
+            if (Math.random() < deathBloodChance) {
+                // 重症度を計算（ダメージ量に応じて）
+                let severity;
+                const damagePercent = (result.damage / monster.maxHp) * 100;
+                
+                if (damagePercent >= 75) {
+                    severity = 3; // 重度の血痕
+                } else if (damagePercent >= 40) {
+                    severity = 2; // 中度の血痕
+                } else {
+                    severity = 1; // 軽度の血痕
+                }
+                
+                // 血痕を生成
+                this.addBloodpool(monster.x, monster.y, severity);
+            }
+        }
+
         // モンスターを削除し、死亡エフェクトを表示（suppressMessageがtrueでも実行）
         this.removeMonster(monster);
         // すでにmonster.jsで死亡エフェクトが表示されている可能性があるので、
@@ -1059,6 +1087,10 @@ class Game {
     gameOver() {
         // セーブデータを削除
         localStorage.removeItem('complexRL_saveData');
+
+        // 血痕と蜘蛛の巣をクリア
+        this.bloodpools = [];
+        this.webs = [];
 
         // Calculate final score.
         const totalXP = this.player.xp;
