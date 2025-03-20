@@ -1157,23 +1157,33 @@ class Game {
         this.explored = this.initializeExplored();
         this.turn = 0;  // フロアごとのターン数をリセット
         
+        // セーブデータからロードした場合は既存の血痕とウェブを保持
+        const existingBloodpools = [...this.bloodpools];
+        const existingWebs = [...this.webs];
+        
         // 蜘蛛の巣情報をリセット
         this.webs = [];
         
+        // 血痕情報をリセット
+        this.bloodpools = [];
+        
         // マップ生成時に設置された蜘蛛の巣をゲームオブジェクトに追加
         if (mapGenerator.initialWebs && mapGenerator.initialWebs.length > 0) {
-            //console.log(`マップ生成時に ${mapGenerator.initialWebs.length} 個の蜘蛛の巣を配置しました。`);
-            
-            // 初期化されていなければ初期化
-            if (!this.webs) {
-                this.webs = [];
-            }
-            
-            // マップ生成時の蜘蛛の巣を追加
             this.webs.push(...mapGenerator.initialWebs);
-        } else {
-            //console.warn('マップ生成時に蜘蛛の巣が生成されませんでした');
         }
+
+        // 既存の血痕とウェブを復元（有効な位置のもののみ）
+        existingBloodpools.forEach(bloodpool => {
+            if (this.isValidPosition(bloodpool.x, bloodpool.y) && this.map[bloodpool.y][bloodpool.x] === 'floor') {
+                this.bloodpools.push(bloodpool);
+            }
+        });
+
+        existingWebs.forEach(web => {
+            if (this.isValidPosition(web.x, web.y) && this.map[web.y][web.x] === 'floor') {
+                this.webs.push(web);
+            }
+        });
         
         // Home Floorモードのために、階段の位置を記録
         if (this.homeFloorData) {

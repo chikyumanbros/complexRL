@@ -74,7 +74,8 @@ class SaveSystem {
                 isSleeping: monster.isSleeping,
                 hasStartedFleeing: monster.hasStartedFleeing
             })),
-            webs: this.game.webs
+            webs: this.game.webs,
+            bloodpools: this.game.bloodpools
         };
 
         try {
@@ -196,6 +197,20 @@ class SaveSystem {
                         return false;
                     }
                     return this.game.map[web.y][web.x] === 'floor';
+                });
+            }
+            
+            // 血痕情報をリセットしてから復元
+            this.game.bloodpools = [];
+            if (Array.isArray(data.bloodpools)) {
+                this.game.bloodpools = data.bloodpools.filter(bloodpool => {
+                    if (!bloodpool || typeof bloodpool.x !== 'number' || typeof bloodpool.y !== 'number') {
+                        return false;
+                    }
+                    if (bloodpool.x < 0 || bloodpool.x >= this.game.width || bloodpool.y < 0 || bloodpool.y >= this.game.height) {
+                        return false;
+                    }
+                    return this.game.map[bloodpool.y][bloodpool.x] === 'floor';
                 });
             }
 
