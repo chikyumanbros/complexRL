@@ -1223,8 +1223,7 @@ class Game {
         this.explored = this.initializeExplored();
         this.turn = 0;  // フロアごとのターン数をリセット
         
-        // セーブデータからロードした場合でも蜘蛛の巣情報をリセット
-        const existingWebs = [...this.webs];
+        // 蜘蛛の巣情報を完全にリセット
         this.webs = [];
         
         // 血痕情報を完全にリセット
@@ -1234,13 +1233,6 @@ class Game {
         if (mapGenerator.initialWebs && mapGenerator.initialWebs.length > 0) {
             this.webs.push(...mapGenerator.initialWebs);
         }
-
-        // 既存のウェブを復元（有効な位置のもののみ）
-        existingWebs.forEach(web => {
-            if (this.isValidPosition(web.x, web.y) && this.map[web.y][web.x] === 'floor') {
-                this.webs.push(web);
-            }
-        });
         
         // Home Floorモードのために、階段の位置を記録
         if (this.homeFloorData) {
