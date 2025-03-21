@@ -1713,7 +1713,8 @@ body::before {
     100% { opacity: 1.0; }
 }
 
-/* Bloodpool animations */
+/* Bloodpool animations - disabled */
+/*
 @keyframes bloodpool-drip {
     0% { transform: scale(1); }
     50% { transform: scale(1.1); }
@@ -1741,7 +1742,6 @@ body::before {
     animation: bloodpool-pulse 2s infinite, bloodpool-drip 3s infinite;
 }
 
-/* Add animation effects for bloodpool creation */
 @keyframes bloodpool-create {
     0% { opacity: 0; transform: scale(0.5); }
     50% { opacity: 1; transform: scale(1.3); }
@@ -1751,3 +1751,4 @@ body::before {
 .bloodpool-effect {
     animation: bloodpool-create 0.8s;
 }
+*/

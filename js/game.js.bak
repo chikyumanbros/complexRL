@@ -28,7 +28,6 @@ class Game {
         this.totalMonstersSpawned = 0;
         this.maxTotalMonsters = 100;
         this.webs = [];  // 蜘蛛の巣の配列
-        this.bloodpools = []; // 血痕の配列（後方互換性のために残す）
         this.neuralObelisks = []; // ニューラルオベリスクの配列
         this.explored = [];
         this.rooms = [];
@@ -75,11 +74,10 @@ class Game {
         // ゲームモードをリセット
         this.mode = GAME_CONSTANTS.MODES.GAME;
         
-        // 液体をリセット
+        // 液体システムをリセット
         this.liquidSystem.reset();
         
-        // 血痕と蜘蛛の巣をクリア（後方互換性のために残す）
-        this.bloodpools = [];
+        // 蜘蛛の巣をクリア
         this.webs = [];
         
         // ロガーの部屋情報をクリア
@@ -104,70 +102,27 @@ class Game {
         this.map = [];
         this.tiles = [];
         this.colors = [];
-        this.rooms = [];
         this.monsters = [];
-        this.webs = [];       // 蜘蛛の巣の配列を空にする
-        this.bloodpools = []; // 血痕の配列を空にする
-        this.neuralObelisks = []; // ニューラルオベリスクの配列を空にする
-        this.explored = this.initializeExplored();
+        this.webs = [];
+        this.rooms = [];
+        this.neuralObelisks = [];
         this.totalMonstersSpawned = 0;
-        this.turn = 0;
-        this.totalTurns = 0;  // ゲーム全体のターン数をリセット
+        
+        // 液体をリセット
+        this.liquidSystem.reset();
+        
+        // フロア情報を初期化
         this.floorLevel = 0;
+        this.dangerLevel = 'SAFE';
 
-        // プレイヤーを初期化（ステータスは未割り振りの状態で）
+        // プレイヤー初期化
         this.player = new Player(0, 0, this);
-        // 初期ステータスをすべて8に設定
-        Object.keys(this.player.stats).forEach(stat => {
-            this.player.stats[stat] = 6;
-        });
-        this.player.remainingStatPoints = 12;  // 割り振り可能なポイント
+        this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
         
-        // スキルのクールダウンをリセット（ゲーム初期化時のみ）
-        if (this.player.skills) {
-            for (const skill of this.player.skills.values()) {
-                skill.remainingCooldown = 0;
-            }
-        }
+        // ログをクリア
+        this.logger.clear();
         
-        // this.codexSystem = new CodexSystem(); // codexSystem を削除
-        this.logger = new Logger(this);
-        this.isGameOver = false;
-
-        // 危険度をランダムに決定（reset()と同じロジック）
-        const dangerLevels = Object.keys(GAME_CONSTANTS.DANGER_LEVELS);
-        const weights = [0.3, 0.4, 0.2, 0.1]; // SAFE, NORMAL, DANGEROUS, DEADLYの出現確率
-        let roll = Math.random();
-        let cumulativeWeight = 0;
-
-        for (let i = 0; i < dangerLevels.length; i++) {
-            cumulativeWeight += weights[i];
-            if (roll < cumulativeWeight) {
-                this.dangerLevel = dangerLevels[i];
-                break;
-            }
-        }
-
-        // Generate a new floor (including player placement and monster generation)
         this.generateNewFloor();
-
-        // Initialize and display information
-        const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
-        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);
-        this.updateRoomInfo();
-
-        // プレイヤーの初期位置周辺を探索済みにマーク
-        this.updateExplored();
-
-        // Setup input handling and rendering
-        this.renderer.render();
-        this.inputHandler.bindKeys();
-
-        // プレイヤー名入力画面を表示
-        this.renderer.renderNamePrompt('');
-        this.inputHandler.setMode('name');
-
-        // BGMの初期化はSoundManagerに任せる
     }
 
     placePlayerInRoom() {
@@ -690,53 +645,24 @@ class Game {
     }
 
     processMonsterDeath(deathInfo) {
-        const { monster, result, damageResult, context, suppressMessage } = deathInfo;
-
-        // suppressMessageフラグがtrueの場合はログメッセージを表示しない
-        if (!suppressMessage) {
-            // 機会攻撃とキルのログを1行にまとめる
-            const attackDesc = context.isOpportunityAttack ? "Opportunity attack" : context.attackType;
-            const criticalText = context.isCritical ? " [CRITICAL HIT!]" : "";
+        const { monster, result, suppressMessage = false } = deathInfo;
+        
+        // 戦闘結果やモンスターが存在しない場合は何もしない
+        if (!result || !monster) {
+            return;
+        }
+        
+        // プレイヤーの視界内かどうかをチェック
+        const isVisibleToPlayer = this.getVisibleTiles().some(
+            tile => tile.x === monster.x && tile.y === monster.y
+        );
+        
+        // 出血による効果を適用（モンスターに出血がある、かつHPが0以下になった場合）
+        if (monster.isDefeated() && monster.bleeding) {
+            // 重症度を決定（攻撃によるダメージが大きいほど多くの血痕）
+            let severity = 1;
             
-            // ドアキルの場合はダメージ計算の詳細を表示しない
-            let message;
-            if (damageResult === null || context.attackType === "Door crush") {
-                message = `${attackDesc}${criticalText} kills ${monster.name} with ${result.damage} damage!`;
-            } else if (context.source === 'bleeding') {
-                // 出血ダメージの場合は防御力を表示しない
-                message = `${attackDesc}${criticalText} kills ${monster.name} with ${result.damage} damage!`;
-            } else {
-                const damageCalc = `(ATK: ${damageResult.totalAttack - damageResult.attackRolls.reduce((sum, roll) => sum + roll, 0)}+[${damageResult.attackRolls.join(',')}]` +
-                    `${context.damageMultiplier !== 1 ? ` ×${context.damageMultiplier.toFixed(1)}` : ''} ` +
-                    `${context.isCritical ? '[DEF IGNORED]' : `vs DEF: ${monster.defense.base}+[${damageResult.defenseRolls.join(',')}]`})`;
-                message = `${attackDesc}${criticalText} kills ${monster.name} with ${result.damage} damage! ${damageCalc}`;
-            }
-
-            // クリティカルヒットの場合でも必ずkillクラスを含める
-            const messageClass = context.isCritical ? "playerCrit kill" : "kill";
-
-            this.logger.add(message, messageClass);
-
-            // クリティカルヒット時のエフェクトを表示
-            if (context.isCritical) {
-                this.renderer.showCritEffect(monster.x, monster.y);
-            }
-        }
-
-        // lookパネルを常に更新（suppressMessageに関わらず）
-        this.logger.clearLookInfo();
-
-        // 新規: モンスターを倒した時の効果音を再生（suppressMessageがtrueでなければ）
-        if (!suppressMessage) {
-            this.playSound('killMonsterSound');
-        }
-
-        // 生物系モンスターの場合、死亡時に血痕を生成する確率判定
-        if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC)) {
-            const deathBloodChance = 0.8; // 80%の確率で血痕を生成
-            if (Math.random() < deathBloodChance) {
-                // 重症度を計算（ダメージ量に応じて）
-                let severity;
+            if (result.damage) {
                 const damagePercent = (result.damage / monster.maxHp) * 100;
                 
                 if (damagePercent >= 75) {
@@ -778,82 +704,29 @@ class Game {
         // 経験値の計算
         const levelDiff = monster.level - this.player.level;
         const baseXP = Math.floor(monster.baseXP || monster.level);
-        const levelMultiplier = levelDiff > 0
-            ? 1 + (levelDiff * 0.2)
-            : Math.max(0.1, 1 + (levelDiff * 0.1));
-        const intBonus = 1 + Math.max(0, (this.player.stats.int - 10) * 0.03);
-        const xpGained = Math.max(1, Math.floor(baseXP * levelMultiplier * intBonus));
-
-        // Vigor変動の計算（より安全な実装）
-        const wisBonus = Math.max(0, this.player.stats.wis || 0);  // 負の値とundefinedを防ぐ
-        const maxRoll = Math.max(1, this.player.level + wisBonus);
-        const roll = Math.floor(Math.random() * maxRoll) + 1;
-
-        // Vigor変動量の計算を安全に実装
-        let vigorChange = 0;
-        const oldVigor = Number.isFinite(this.player.vigor) ? 
-            this.player.vigor : 
-            GAME_CONSTANTS.VIGOR.MAX;
-
-        if (roll <= this.player.level) {
-            // 失敗：Vigor減少（より安全な計算）
-            const wisValue = Math.max(0, this.player.stats.wis || 0);
-            vigorChange = -Math.max(1, Math.floor(wisValue / 3));
-        } else {
-            // 成功：Vigor回復（より安全な計算）
-            const baseRecovery = Math.max(1, Math.floor((monster.level || 1) / 2));
-            const maxRecovery = Math.max(0, GAME_CONSTANTS.VIGOR.MAX - oldVigor);
-            vigorChange = Math.min(baseRecovery, maxRecovery);
-        }
-
-        // Vigor値の更新（より安全な実装）
-        const newVigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, oldVigor + vigorChange));
-        this.player.vigor = newVigor;
-        this.player.validateVigor();  // Add validation after changing vigor
-
-        // 状態変化の確認と通知
-        const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(oldVigor, this.player.stats);
-        const newStatus = GAME_CONSTANTS.VIGOR.getStatus(newVigor, this.player.stats);
-
-        if (vigorChange !== 0) {
-            // 自動移動を停止
-            this.player.stopAllAutoMovement();
-
-            // Vigor変動のログ出力を修正
-            const changeDesc = vigorChange > 0 ? "restores" : "depletes";
-            // Vigor増減の言葉遣いを精神的な意味合いも込めて変更
-            const vigorVerb = vigorChange > 0 ? "is invigorated" : "is drained";
-            this.logger.add(
-                `Combat ${changeDesc} your vigor. Your spirit ${vigorVerb}.`,
-                vigorChange > 0 ? "playerInfo" : "warning"
-            );
-
-            // 状態が変化した場合は追加のメッセージ（既存のまま）
-            if (oldStatus.name !== newStatus.name) {
-                this.logger.add(
-                    `Your vigor state changed to ${newStatus.name.toLowerCase()}.`,
-                    "warning"
-                );
-                // Vigor状態変化時に効果音を再生
-                if (vigorChange > 0) {
-                    this.playSound('vigorUpSound');
-                } else {
-                    this.playSound('vigorDownSound');
-                }
-            }
-        }
-
-        // 経験値とCodexポイントの獲得ログ
-        let rewardText = `Gained ${xpGained} XP!`;
-       
-        this.logger.add(rewardText, "playerInfo");
-
-        // 経験値とCodexポイントの付与
-        this.player.addExperience(xpGained);
         
-
-        if (deathInfo.killedByPlayer) {
-            this.monsterKillCount++;  // プレイヤーが倒した場合のみカウント
+        // レベル差によるXP調整（難しいモンスターほど多くのXPを獲得）
+        let xpMultiplier = 1.0;
+        if (levelDiff > 0) {
+            xpMultiplier = 1.0 + (levelDiff * 0.1);  // 1段階上なら1.1倍、2段階上なら1.2倍...
+        } else if (levelDiff < 0) {
+            xpMultiplier = Math.max(0.4, 1.0 + (levelDiff * 0.2));  // 1段階下なら0.8倍、2段階下なら0.6倍...
+        }
+        
+        const earnedXP = Math.floor(baseXP * xpMultiplier);
+        
+        // 視界内であれば経験値獲得メッセージを表示
+        if (isVisibleToPlayer && !suppressMessage) {
+            this.logger.add(`You gained ${earnedXP} experience points from defeating ${monster.name}.`, "special");
+        }
+        
+        // プレイヤーに経験値を追加
+        this.player.addXP(earnedXP);
+        
+        // 必要に応じてレベルアップを処理
+        if (this.player.checkLevelUp() && !suppressMessage) {
+            this.renderer.showLevelUpEffect(this.player.x, this.player.y);
+            this.player.levelUp();
         }
     }
 
@@ -1123,50 +996,38 @@ class Game {
     }
 
     gameOver() {
-        // セーブデータを削除
-        localStorage.removeItem('complexRL_saveData');
-
-        // 血痕と蜘蛛の巣をクリア
-        this.bloodpools = [];
+        // ゲームオーバー状態を設定
+        this.isGameOver = true;
+        
+        // BGMを停止
+        this.soundManager.stopBGM();
+        
+        // ゲームオーバー効果音の再生
+        this.soundManager.playSound('game_over');
+        
+        // ゲームオーバーメッセージをログに表示
+        this.logger.add("You have died. Game Over.", "important");
+        this.logger.add(`You reached floor ${this.floorLevel} and survived for ${this.totalTurns} turns.`, "info");
+        
+        // 敵の状態をリセット (動きを止める)
+        this.monsters = [];
+        
+        // 蜘蛛の巣と血痕をクリア
         this.webs = [];
-
-        // Calculate final score.
-        const totalXP = this.player.xp;
-        const finalScore = {
-            turns: this.totalTurns,  // 全体のターン数を使用
-            totalScore: Math.floor((totalXP * 1.5) / Math.max(1, this.totalTurns * 0.01))  // 全体のターン数を使用
-        };
-
-        // 死因が設定されていない場合は、最後の戦闘情報から推測
-        if (!this.player.deathCause) {
-            if (this.lastCombatMonster) {
-                this.player.deathCause = `Slain by ${this.lastCombatMonster.name}`;
-            } else if (this.player.hp <= 0) {
-                this.player.deathCause = 'Unknown cause';
-            }
-        }
+        this.liquidSystem.reset();
 
         // ハイスコアを保存
+        const finalScore = this.calculateFinalScore();
         this.saveHighScore(finalScore);
 
-        // Render the final state.
+        // ゲームのセーブデータを削除（ゲームオーバー後はリスタートできるように）
+        localStorage.removeItem('complexRL_saveData');
+        
+        // もう一度プレイするかどうかの確認ボタンを表示（実装は省略）
+        // 実際の実装ではボタンを表示するコードが入ります
+        
+        // レンダリングを更新
         this.renderer.render();
-
-        // Set game over state.
-        this.isGameOver = true;
-        this.mode = GAME_CONSTANTS.MODES.GAME_OVER;
-
-        // Display game over message via Logger.
-        this.logger.showGameOverMessage(finalScore);
-
-        // ゲームオーバー時にフェードアウト
-        if (!this.soundManager.homeBGM.paused) {
-            this.soundManager.fadeOutBGM(2000).then(() => {
-                // フェードアウト完了後に音声状態をリセット
-                this.soundManager.userInteracted = true;
-                this.soundManager.updateBGM();
-            });
-        }
     }
 
     generateNewFloor() {
@@ -1178,7 +1039,7 @@ class Game {
         // ポータルサウンドをフェードアウト
         this.soundManager.fadeOutPortalSound();
 
-        // Determine danger level by random roll.
+        // フロアのダンジョンレベルを決定
         const dangerRoll = Math.random() * 100;
         if (dangerRoll < 5) {  // 5%に減少
             this.dangerLevel = 'SAFE';
@@ -1190,13 +1051,10 @@ class Game {
             this.dangerLevel = 'DEADLY';
         }
 
-        // Add debug log.
-        //console.log(`New floor ${this.floorLevel}, Danger Level: ${this.dangerLevel} (Roll: ${dangerRoll})`);
-
-        // Send floor information to Logger.
+        // ロガーに階層情報を送信
         this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);
 
-        // Pass the game instance when generating a new floor.
+        // マップ生成
         const mapGenerator = new MapGenerator(
             GAME_CONSTANTS.DIMENSIONS.WIDTH,
             GAME_CONSTANTS.DIMENSIONS.HEIGHT,
@@ -1213,11 +1071,6 @@ class Game {
         // ニューラルオベリスク情報を Game クラスに保存
         this.neuralObelisks = mapGenerator.neuralObelisks || [];
         
-        // デバッグログ
-        if (this.neuralObelisks.length > 0) {
-            //console.log('Neural Obelisks saved to Game:', this.neuralObelisks);
-        }
-        
         // 高さと幅を定数から再設定して一貫性を保つ
         this.width = GAME_CONSTANTS.DIMENSIONS.WIDTH;
         this.height = GAME_CONSTANTS.DIMENSIONS.HEIGHT;
@@ -1232,9 +1085,6 @@ class Game {
         
         // 液体システムをリセット
         this.liquidSystem.reset();
-        
-        // 血痕情報を完全にリセット（後方互換性のため）
-        this.bloodpools = [];
         
         // マップ生成時に設置された蜘蛛の巣をゲームオブジェクトに追加
         if (mapGenerator.initialWebs && mapGenerator.initialWebs.length > 0) {
@@ -1270,9 +1120,6 @@ class Game {
         this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);  // Update floor info in Logger
         this.updateRoomInfo();  // Update surrounding room information
         this.updateExplored();  // Update explored information
-
-        // フロア生成後に描画が完了してからセーブを実行
-        requestAnimationFrame(() => this.saveGame());
     }
 
     setInputMode(mode, options = {}) {
@@ -1888,47 +1735,23 @@ class Game {
     
     // ========================== updateBloodpools Method ==========================
     updateBloodpools() {
-        // 新しいLiquidSystemを使用して液体を更新する
         this.liquidSystem.update('blood');
-        
-        // 後方互換性のために残す
-        // 血痕は消えないようにする
-        // 元のコードはコメントアウト
-        /*
-        this.bloodpools = this.bloodpools.filter(bloodpool => {
-            bloodpool.remainingTurns--;
-            return bloodpool.remainingTurns > 0;
-        });
-        */
     }
     
     // ========================== addBloodpool Method ==========================
-    addBloodpool(x, y, severity, volume = null) {
-        // 新しいLiquidSystemを使用して血液を追加する
+    addBloodpool(x, y, severity = 1, volume = null) {
         this.liquidSystem.addLiquid(x, y, 'blood', severity, volume);
-        
-        // 後方互換性のために、bloodpoolsプロパティも更新する
-        // これは将来的に削除可能
-        this.bloodpools = this.liquidSystem.getLiquids('blood');
     }
     
     // 血液量から重症度を計算するメソッド
-    calculateSeverityFromVolume(volume) {
+    calculateBloodpoolSeverity(volume) {
         return this.liquidSystem.calculateSeverityFromVolume('blood', volume);
     }
     
     // 血液のオーバーフロー処理
-    handleBloodOverflow(x, y, totalVolume) {
+    handleBloodpoolOverflow(x, y, totalVolume) {
         this.liquidSystem.handleOverflow('blood', x, y, totalVolume);
-    }
-
-    // ========================== transferBloodpool Method ==========================
-    // 血痕の上を通過した際に血痕の一部が移動先に付着する処理
-    transferBloodpool(fromX, fromY, toX, toY) {
-        this.liquidSystem.transferLiquid('blood', fromX, fromY, toX, toY);
-        
-        // 後方互換性のために更新
-        this.bloodpools = this.liquidSystem.getLiquids('blood');
+    // ========================== High Score Methods ==========================
     }
 
     // ハイスコアの保存

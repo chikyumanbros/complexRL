@@ -67,6 +67,14 @@ class LiquidSystem {
 
         // 液体の量を決定
         let liquidAmount = this.calculateLiquidAmount(type, severity, volume);
+        
+        // 液体の設定を取得
+        const liquidSettings = GAME_CONSTANTS.LIQUIDS[type.toUpperCase()];
+        
+        // 微量の液体は処理しない（最小値未満は無視）
+        if (liquidAmount < liquidSettings.VOLUME.MINIMUM) {
+            return false;
+        }
 
         // 既存の液体を検索
         const existingLiquid = this.liquids[lowerType].find(l => l.x === x && l.y === y);
@@ -75,6 +83,13 @@ class LiquidSystem {
             // 既存の液体がある場合、液体量を追加して重症度を更新
             const oldVolume = existingLiquid.volume || 0;
             const newVolume = oldVolume + liquidAmount;
+            
+            // 新しい総量が最小値未満なら液体を削除して終了
+            if (newVolume < liquidSettings.VOLUME.MINIMUM) {
+                this.liquids[lowerType] = this.liquids[lowerType].filter(l => !(l.x === x && l.y === y));
+                return false;
+            }
+            
             existingLiquid.volume = newVolume;
 
             // 液体量に応じて重症度を決定
@@ -194,6 +209,11 @@ class LiquidSystem {
 
         // 各タイルに均等に液体を分配
         const volumePerTile = overflowVolume / adjacentTiles.length;
+        
+        // 分配される液体量が最小値未満なら溢れない
+        if (volumePerTile < liquidSettings.VOLUME.MINIMUM) {
+            return;
+        }
 
         // 液体を周囲のタイルに追加
         for (const tile of adjacentTiles) {
@@ -232,17 +252,23 @@ class LiquidSystem {
 
         // 移動元の液体の量を減らす
         const transferAmount = sourceLiquid.volume * transferRate;
+        
+        // 転移量が最小値未満なら転移しない
+        if (transferAmount < liquidSettings.VOLUME.MINIMUM) {
+            return false;
+        }
+        
         sourceLiquid.volume -= transferAmount;
 
         // 移動元の液体の量が少なくなりすぎたら消滅
-        if (sourceLiquid.volume < liquidSettings.VOLUME.MINIMUM || sourceLiquid.volume < 0.05) {
+        if (sourceLiquid.volume < liquidSettings.VOLUME.MINIMUM) {
             this.liquids[lowerType] = this.liquids[lowerType].filter(l => !(l.x === fromX && l.y === fromY));
         } else {
             // 重症度を再計算
             sourceLiquid.severity = this.calculateSeverityFromVolume(type, sourceLiquid.volume);
         }
 
-        // 移動先に液体を追加
+        // 移動先に液体を追加（最小値チェックはaddLiquidメソッド内で行われる）
         const severity = this.calculateSeverityFromVolume(type, transferAmount);
         this.addLiquid(toX, toY, type, severity, transferAmount);
 

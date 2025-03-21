@@ -727,6 +727,10 @@ class RendererEffects {
      * @param {number} severity - 出血の重症度 (1=軽度, 2=中度, 3=重度)
      */
     showBloodpoolEffect(x, y, severity) {
+        // 血痕エフェクトを無効化
+        // エフェクト表示のコードはコメントアウトしました
+        
+        /*
         // 位置を計算
         const position = this.renderer.getTilePosition(x, y);
         
@@ -742,17 +746,17 @@ class RendererEffects {
         
         // 重症度に基づいたスタイル設定
         if (severity === 3) {
-            effectDiv.textContent = GAME_CONSTANTS.BLOODPOOL.SEVERITY.HEAVY.CHAR;
-            effectDiv.style.color = GAME_CONSTANTS.BLOODPOOL.SEVERITY.HEAVY.COLOR;
-            effectDiv.style.setProperty('--base-opacity', GAME_CONSTANTS.BLOODPOOL.SEVERITY.HEAVY.OPACITY);
+            effectDiv.textContent = GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.HEAVY.CHAR;
+            effectDiv.style.color = GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.HEAVY.COLOR;
+            effectDiv.style.setProperty('--base-opacity', GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.HEAVY.OPACITY);
         } else if (severity === 2) {
-            effectDiv.textContent = GAME_CONSTANTS.BLOODPOOL.SEVERITY.MEDIUM.CHAR;
-            effectDiv.style.color = GAME_CONSTANTS.BLOODPOOL.SEVERITY.MEDIUM.COLOR;
-            effectDiv.style.setProperty('--base-opacity', GAME_CONSTANTS.BLOODPOOL.SEVERITY.MEDIUM.OPACITY);
+            effectDiv.textContent = GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.MEDIUM.CHAR;
+            effectDiv.style.color = GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.MEDIUM.COLOR;
+            effectDiv.style.setProperty('--base-opacity', GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.MEDIUM.OPACITY);
         } else {
-            effectDiv.textContent = GAME_CONSTANTS.BLOODPOOL.SEVERITY.LIGHT.CHAR;
-            effectDiv.style.color = GAME_CONSTANTS.BLOODPOOL.SEVERITY.LIGHT.COLOR;
-            effectDiv.style.setProperty('--base-opacity', GAME_CONSTANTS.BLOODPOOL.SEVERITY.LIGHT.OPACITY);
+            effectDiv.textContent = GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.LIGHT.CHAR;
+            effectDiv.style.color = GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.LIGHT.COLOR;
+            effectDiv.style.setProperty('--base-opacity', GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.LIGHT.OPACITY);
         }
         
         // ゲームコンテナに追加
@@ -768,6 +772,7 @@ class RendererEffects {
         
         // マップを再描画
         this.renderer.render();
+        */
     }
 
     // 弾道エフェクトを表示するメソッド

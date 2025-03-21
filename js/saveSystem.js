@@ -75,7 +75,10 @@ class SaveSystem {
                 hasStartedFleeing: monster.hasStartedFleeing
             })),
             webs: this.game.webs,
-            bloodpools: this.game.bloodpools
+            bloodpools: this.game.bloodpools,
+            liquids: {
+                blood: this.game.liquidSystem.getLiquids('blood')
+            }
         };
 
         try {
@@ -200,10 +203,27 @@ class SaveSystem {
                 });
             }
             
-            // 血痕情報をリセットしてから復元
-            this.game.bloodpools = [];
-            if (Array.isArray(data.bloodpools)) {
-                this.game.bloodpools = data.bloodpools.filter(bloodpool => {
+            // liquidSystemをリセット
+            this.game.liquidSystem.reset();
+            
+            // 液体データの復元
+            if (data.liquids && data.liquids.blood && Array.isArray(data.liquids.blood)) {
+                data.liquids.blood.forEach(liquid => {
+                    if (liquid && typeof liquid.x === 'number' && typeof liquid.y === 'number' &&
+                        liquid.x >= 0 && liquid.x < this.game.width && 
+                        liquid.y >= 0 && liquid.y < this.game.height &&
+                        this.game.map[liquid.y][liquid.x] === 'floor') {
+                        // liquidSystemに直接追加
+                        this.game.liquidSystem.addLiquid(
+                            liquid.x, liquid.y, 'blood', 
+                            liquid.severity, liquid.volume
+                        );
+                    }
+                });
+            } 
+            // 後方互換性のための処理 - 古いセーブデータのbloodpoolsがある場合
+            else if (Array.isArray(data.bloodpools)) {
+                data.bloodpools.filter(bloodpool => {
                     if (!bloodpool || typeof bloodpool.x !== 'number' || typeof bloodpool.y !== 'number') {
                         return false;
                     }
@@ -211,8 +231,17 @@ class SaveSystem {
                         return false;
                     }
                     return this.game.map[bloodpool.y][bloodpool.x] === 'floor';
+                }).forEach(bloodpool => {
+                    // liquidSystemに変換して追加
+                    this.game.liquidSystem.addLiquid(
+                        bloodpool.x, bloodpool.y, 'blood', 
+                        bloodpool.severity, bloodpool.volume
+                    );
                 });
             }
+            
+            // bloodpoolsを更新（後方互換性のため）
+            this.game.bloodpools = this.game.liquidSystem.getLiquids('blood');
 
             // 環境の更新
             this.game.updateExplored();
