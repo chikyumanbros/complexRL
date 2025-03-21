@@ -333,14 +333,14 @@ class Monster {
             let bloodVolume = 0;
             switch (severity) {
                 case 3: // 重度の出血
-                    bloodVolume = GAME_CONSTANTS.BLOODPOOL.VOLUME.BLEEDING_AMOUNT.HEAVY;
+                    bloodVolume = GAME_CONSTANTS.LIQUIDS.BLOOD.VOLUME.AMOUNT.HEAVY;
                     break;
                 case 2: // 中度の出血
-                    bloodVolume = GAME_CONSTANTS.BLOODPOOL.VOLUME.BLEEDING_AMOUNT.MEDIUM;
+                    bloodVolume = GAME_CONSTANTS.LIQUIDS.BLOOD.VOLUME.AMOUNT.MEDIUM;
                     break;
                 case 1: // 軽度の出血
                 default:
-                    bloodVolume = GAME_CONSTANTS.BLOODPOOL.VOLUME.BLEEDING_AMOUNT.LIGHT;
+                    bloodVolume = GAME_CONSTANTS.LIQUIDS.BLOOD.VOLUME.AMOUNT.LIGHT;
                     break;
             }
             

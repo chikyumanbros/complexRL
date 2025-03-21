@@ -59,7 +59,138 @@ const GAME_CONSTANTS = {
         FAIL_MESSAGE: "The web is too sticky to remove."    // 取り除けなかった時のメッセージ
     },
 
-    // 血痕関連
+    // 液体関連の定数を統合
+    LIQUIDS: {
+        // 血液
+        BLOOD: {
+            CHAR: '≈',
+            COLOR: '#800000', // より暗い赤
+            ANIMATION_CHARS: ['≈', '∼', '≈', '∼', '≈', '∼'],
+            ANIMATION_COLORS: [
+                '#800000',  // より暗い赤色
+                '#8B0000',  // 少し明るい、しかし暗い赤色
+                '#A52A2A',  // 茶色がかった暗い赤色
+                '#B22222',  // 少し明るい赤色
+                '#A52A2A',  // 茶色がかった暗い赤色
+                '#8B0000',  // 少し明るい、しかし暗い赤色
+            ],
+            SEVERITY: {
+                LIGHT: {
+                    CHAR: '∴',
+                    COLOR: '#800000',
+                    OPACITY: 0.6
+                },
+                MEDIUM: {
+                    CHAR: '≈',
+                    COLOR: '#8B0000',
+                    OPACITY: 0.75
+                },
+                HEAVY: {
+                    CHAR: '*',
+                    COLOR: '#A52A2A',
+                    OPACITY: 0.9
+                }
+            },
+            DURATION: {
+                BASE: 15,           // 基本持続ターン数
+                SEVERITY_FACTOR: {  // 重症度による持続時間の追加係数
+                    LIGHT: 1,       // 軽度: 基本持続時間×1
+                    MEDIUM: 1.5,    // 中度: 基本持続時間×1.5
+                    HEAVY: 2        // 重度: 基本持続時間×2
+                }
+            },
+            // 血液量の管理用定数
+            VOLUME: {
+                // 出血量（リットル）
+                AMOUNT: {
+                    LIGHT: 0.2,      // 軽度の出血: 0.2リットル/ターン
+                    MEDIUM: 0.5,     // 中度の出血: 0.5リットル/ターン
+                    HEAVY: 1.0       // 重度の出血: 1.0リットル/ターン
+                },
+                // 閾値（どの量から重症度が変わるか）
+                THRESHOLD: {
+                    MEDIUM: 0.5,     // 中度の血痕になる閾値
+                    HEAVY: 1.5       // 重度の血痕になる閾値
+                },
+                // モンスター死亡時の出血量（リットル）
+                DEATH_AMOUNT: {
+                    TINY: 0.5,       // 小型: 0.5リットル
+                    SMALL: 1.0,      // 小さめ: 1.0リットル
+                    MEDIUM: 2.0,     // 中型: 2.0リットル
+                    LARGE: 4.0,      // 大型: 4.0リットル
+                    HUGE: 6.0        // 巨大: 6.0リットル
+                },
+                // タイルの血液容量限界（リットル）
+                TILE_CAPACITY: 5.0,  // 1タイルに最大5リットルまで
+                // 溢れ出る割合（限界を超えた分の何%が溢れるか）
+                OVERFLOW_RATIO: 0.7,  // 限界を超えた量の70%が周囲に溢れる
+                // 最小量（これ未満になると消滅）
+                MINIMUM: 0.05        // 0.05リットル未満で消滅
+            },
+            // 通過時の転移率（何%が移動先に付着するか）
+            TRANSFER_RATE: 0.3,      // 30%が移動先に付着
+            // 蒸発率（ターンごとに減少する割合）
+            EVAPORATION_RATE: 0.0,   // 血液は蒸発しない（0%）
+            // 特殊効果
+            EFFECTS: {
+                DISSOLVES_WEB: true  // 蜘蛛の巣を溶かす
+            }
+        },
+        // 将来的に追加する液体タイプの例
+        /*
+        WATER: {
+            CHAR: '~',
+            COLOR: '#4169E1', // ロイヤルブルー
+            SEVERITY: {
+                LIGHT: {
+                    CHAR: '·',
+                    COLOR: '#4169E1',
+                    OPACITY: 0.5
+                },
+                MEDIUM: {
+                    CHAR: '~',
+                    COLOR: '#1E90FF',
+                    OPACITY: 0.7
+                },
+                HEAVY: {
+                    CHAR: '≈',
+                    COLOR: '#0000CD',
+                    OPACITY: 0.9
+                }
+            },
+            DURATION: {
+                BASE: 10,
+                SEVERITY_FACTOR: {
+                    LIGHT: 1,
+                    MEDIUM: 1.5,
+                    HEAVY: 2
+                }
+            },
+            VOLUME: {
+                AMOUNT: {
+                    LIGHT: 0.3,
+                    MEDIUM: 0.7,
+                    HEAVY: 1.2
+                },
+                THRESHOLD: {
+                    MEDIUM: 0.6,
+                    HEAVY: 1.8
+                },
+                TILE_CAPACITY: 6.0,
+                OVERFLOW_RATIO: 0.8,
+                MINIMUM: 0.1
+            },
+            TRANSFER_RATE: 0.4,
+            EVAPORATION_RATE: 0.1,
+            EFFECTS: {
+                DISSOLVES_WEB: true,
+                EXTINGUISHES_FIRE: true
+            }
+        }
+        */
+    },
+
+    // 後方互換性のために残しておく（将来的には削除可能）
     BLOODPOOL: {
         CHAR: '≈',
         COLOR: '#800000', // より暗い赤

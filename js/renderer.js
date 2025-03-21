@@ -901,34 +901,34 @@ class Renderer {
                         style += `; grid-row: ${y + 1}; grid-column: ${x + 1};`;
                     }
                     
-                    // 血痕の描画
+                    // 液体の描画
                     const bloodpool = this.game.bloodpools && this.game.bloodpools.find(bp => bp.x === x && bp.y === y);
                     if (bloodpool) {
                         // 重症度に基づいてクラスとスタイルを設定
                         if (bloodpool.severity === 3) {
                             classes.push('bloodpool-heavy');
-                            content = GAME_CONSTANTS.BLOODPOOL.SEVERITY.HEAVY.CHAR;
-                            style = `color: ${GAME_CONSTANTS.BLOODPOOL.SEVERITY.HEAVY.COLOR}; opacity: ${GAME_CONSTANTS.BLOODPOOL.SEVERITY.HEAVY.OPACITY}`;
+                            content = GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.HEAVY.CHAR;
+                            style = `color: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.HEAVY.COLOR}; opacity: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.HEAVY.OPACITY}`;
                         } else if (bloodpool.severity === 2) {
                             classes.push('bloodpool-medium');
-                            content = GAME_CONSTANTS.BLOODPOOL.SEVERITY.MEDIUM.CHAR;
-                            style = `color: ${GAME_CONSTANTS.BLOODPOOL.SEVERITY.MEDIUM.COLOR}; opacity: ${GAME_CONSTANTS.BLOODPOOL.SEVERITY.MEDIUM.OPACITY}`;
+                            content = GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.MEDIUM.CHAR;
+                            style = `color: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.MEDIUM.COLOR}; opacity: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.MEDIUM.OPACITY}`;
                         } else {
                             classes.push('bloodpool-light');
-                            content = GAME_CONSTANTS.BLOODPOOL.SEVERITY.LIGHT.CHAR;
-                            style = `color: ${GAME_CONSTANTS.BLOODPOOL.SEVERITY.LIGHT.COLOR}; opacity: ${GAME_CONSTANTS.BLOODPOOL.SEVERITY.LIGHT.OPACITY}`;
+                            content = GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.LIGHT.CHAR;
+                            style = `color: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.LIGHT.COLOR}; opacity: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.LIGHT.OPACITY}`;
                         }
                         
                         // プレイヤーやモンスターが血痕の上にいる場合は、そのキャラクターを優先表示
                         if (x === this.game.player.x && y === this.game.player.y) {
                             content = this.game.player.char;
                             const healthStatus = this.game.player.getHealthStatus(this.game.player.hp, this.game.player.maxHp);
-                            style = `color: ${healthStatus.color}; opacity: 1; text-shadow: 0 0 5px ${GAME_CONSTANTS.BLOODPOOL.SEVERITY.HEAVY.COLOR}`;
+                            style = `color: ${healthStatus.color}; opacity: 1; text-shadow: 0 0 5px ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.HEAVY.COLOR}`;
                         } else {
                             const monster = this.game.getMonsterAt(x, y);
                             if (monster) {
                                 content = monster.char;
-                                style = `color: ${GAME_CONSTANTS.COLORS.MONSTER[monster.type]}; opacity: 1; text-shadow: 0 0 5px ${GAME_CONSTANTS.BLOODPOOL.SEVERITY.HEAVY.COLOR}`;
+                                style = `color: ${GAME_CONSTANTS.COLORS.MONSTER[monster.type]}; opacity: 1; text-shadow: 0 0 5px ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.HEAVY.COLOR}`;
                             }
                         }
                         
@@ -1622,6 +1622,18 @@ class Renderer {
      * @param {number} severity - 出血の重症度 (1=軽度, 2=中度, 3=重度)
      */
     showBloodpoolEffect(x, y, severity) {
+        this.effects.showBloodpoolEffect(x, y, severity);
+    }
+
+    /**
+     * 液体エフェクトの表示
+     * @param {string} type - 液体の種類
+     * @param {number} x - 液体のX座標
+     * @param {number} y - 液体のY座標
+     * @param {number} severity - 液体の重症度 (1=軽度, 2=中度, 3=重度)
+     */
+    showLiquidEffect(type, x, y, severity) {
+        // 現在は血液と同じエフェクトを使用
         this.effects.showBloodpoolEffect(x, y, severity);
     }
 

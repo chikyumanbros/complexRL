@@ -10,6 +10,7 @@ class Game {
         this.highScoreManager = new HighScoreManager(this);
         this.visionSystem = new VisionSystem(this);
         this.saveSystem = new SaveSystem(this);  // 追加
+        this.liquidSystem = new LiquidSystem(this); // 液体システムの追加
 
         // デバッグユーティリティの初期化
         this.debugUtils = new DebugUtils(this);
@@ -27,7 +28,7 @@ class Game {
         this.totalMonstersSpawned = 0;
         this.maxTotalMonsters = 100;
         this.webs = [];  // 蜘蛛の巣の配列
-        this.bloodpools = []; // 血痕の配列
+        this.bloodpools = []; // 血痕の配列（後方互換性のために残す）
         this.neuralObelisks = []; // ニューラルオベリスクの配列
         this.explored = [];
         this.rooms = [];
@@ -74,7 +75,10 @@ class Game {
         // ゲームモードをリセット
         this.mode = GAME_CONSTANTS.MODES.GAME;
         
-        // 血痕と蜘蛛の巣をクリア
+        // 液体をリセット
+        this.liquidSystem.reset();
+        
+        // 血痕と蜘蛛の巣をクリア（後方互換性のために残す）
         this.bloodpools = [];
         this.webs = [];
         
@@ -1881,6 +1885,10 @@ class Game {
     
     // ========================== updateBloodpools Method ==========================
     updateBloodpools() {
+        // 新しいLiquidSystemを使用して液体を更新する
+        this.liquidSystem.update('blood');
+        
+        // 後方互換性のために残す
         // 血痕は消えないようにする
         // 元のコードはコメントアウト
         /*
@@ -1893,158 +1901,31 @@ class Game {
     
     // ========================== addBloodpool Method ==========================
     addBloodpool(x, y, severity, volume = null) {
-        // マップが有効でない場合は処理しない
-        if (!this.map || !this.map[y] || !this.map[y][x] || this.map[y][x] !== 'floor') {
-            return;
-        }
+        // 新しいLiquidSystemを使用して血液を追加する
+        this.liquidSystem.addLiquid(x, y, 'blood', severity, volume);
         
-        // 蜘蛛の巣が血に触れると消える処理
-        const webAtPosition = this.webs.findIndex(web => web.x === x && web.y === y);
-        if (webAtPosition !== -1) {
-            // 蜘蛛の巣を消去
-            this.webs.splice(webAtPosition, 1);
-            
-            // プレイヤーが捕まっていた場合は解放
-            if (this.player.caughtInWeb && 
-                this.player.caughtInWeb.x === x && 
-                this.player.caughtInWeb.y === y) {
-                this.player.caughtInWeb = null;
-                this.logger.addMessage('The blood dissolves the web, and you are freed!', 'important');
-            }
-            
-            // 捕まっていたモンスターを解放
-            const monster = this.getMonsterAt(x, y);
-            if (monster && monster.caughtInWeb) {
-                monster.caughtInWeb = false;
-                this.logger.addMessage(`The blood dissolves the web, and ${monster.name} is freed!`, 'info');
-            }
-            
-            // エフェクトを表示
-            const isVisible = this.getVisibleTiles().some(tile => tile.x === x && tile.y === y);
-            if (isVisible && this.renderer) {
-                // 蜘蛛の巣が溶けるエフェクト表示があれば使用
-                this.logger.addMessage('The blood dissolved the web!', 'info');
-            }
-        }
-        
-        // 追加する血液量を決定
-        let bloodAmount = 0;
-        if (volume !== null) {
-            // 明示的に量が指定された場合はその値を使用
-            bloodAmount = volume;
-        } else {
-            // 重症度から量を決定
-            switch (severity) {
-                case 3:
-                    bloodAmount = GAME_CONSTANTS.BLOODPOOL.VOLUME.BLEEDING_AMOUNT.HEAVY;
-                    break;
-                case 2:
-                    bloodAmount = GAME_CONSTANTS.BLOODPOOL.VOLUME.BLEEDING_AMOUNT.MEDIUM;
-                    break;
-                case 1:
-                default:
-                    bloodAmount = GAME_CONSTANTS.BLOODPOOL.VOLUME.BLEEDING_AMOUNT.LIGHT;
-                    break;
-            }
-        }
-        
-        // 既存の血痕をチェック
-        const existingBloodpool = this.bloodpools.find(b => b.x === x && b.y === y);
-        
-        if (existingBloodpool) {
-            // 既存の血痕がある場合、血液量を追加して重症度を更新
-            const oldVolume = existingBloodpool.volume || 0;
-            const newVolume = oldVolume + bloodAmount;
-            existingBloodpool.volume = newVolume;
-            
-            // 血液量に応じて重症度を決定
-            const newSeverity = this.calculateSeverityFromVolume(newVolume);
-            if (newSeverity > existingBloodpool.severity) {
-                existingBloodpool.severity = newSeverity;
-                
-                // 血痕の重症度が上がったときにエフェクトを表示
-                const isVisible = this.getVisibleTiles().some(tile => tile.x === x && tile.y === y);
-                if (isVisible && this.renderer) {
-                    this.renderer.showBloodpoolEffect(x, y, newSeverity);
-                }
-            }
-            
-            // 血液量が限界を超えた場合、周囲のタイルに溢れる
-            this.handleBloodOverflow(x, y, newVolume);
-            
-        } else {
-            // 新しい血痕を追加
-            this.bloodpools.push({
-                x: x,
-                y: y,
-                severity: severity,
-                volume: bloodAmount
-            });
-            
-            // 血液量が限界を超えた場合、周囲のタイルに溢れる
-            this.handleBloodOverflow(x, y, bloodAmount);
-            
-            // 新しい血痕が作成されたときにエフェクトを表示
-            const isVisible = this.getVisibleTiles().some(tile => tile.x === x && tile.y === y);
-            if (isVisible && this.renderer) {
-                this.renderer.showBloodpoolEffect(x, y, severity);
-            }
-        }
+        // 後方互換性のために、bloodpoolsプロパティも更新する
+        // これは将来的に削除可能
+        this.bloodpools = this.liquidSystem.getLiquids('blood');
     }
     
     // 血液量から重症度を計算するメソッド
     calculateSeverityFromVolume(volume) {
-        if (volume >= 3.0) return 3; // 3リットル以上: 重度
-        if (volume >= 1.0) return 2; // 1リットル以上: 中度
-        return 1;                    // 1リットル未満: 軽度
+        return this.liquidSystem.calculateSeverityFromVolume('blood', volume);
     }
     
     // 血液のオーバーフロー処理
     handleBloodOverflow(x, y, totalVolume) {
-        const capacity = GAME_CONSTANTS.BLOODPOOL.VOLUME.TILE_CAPACITY;
+        this.liquidSystem.handleOverflow('blood', x, y, totalVolume);
+    }
+
+    // ========================== transferBloodpool Method ==========================
+    // 血痕の上を通過した際に血痕の一部が移動先に付着する処理
+    transferBloodpool(fromX, fromY, toX, toY) {
+        this.liquidSystem.transferLiquid('blood', fromX, fromY, toX, toY);
         
-        // 容量を超えていない場合は何もしない
-        if (totalVolume <= capacity) return;
-        
-        // 溢れる量を計算
-        const excessVolume = totalVolume - capacity;
-        const overflowVolume = excessVolume * GAME_CONSTANTS.BLOODPOOL.VOLUME.OVERFLOW_RATIO;
-        
-        // 現在のタイルの血液量を調整（容量-溢れた分）
-        const bloodpool = this.bloodpools.find(b => b.x === x && b.y === y);
-        if (bloodpool) {
-            bloodpool.volume = capacity - (excessVolume - overflowVolume);
-        }
-        
-        // 周囲の床タイルを取得
-        const adjacentTiles = [];
-        for (let dx = -1; dx <= 1; dx++) {
-            for (let dy = -1; dy <= 1; dy++) {
-                if (dx === 0 && dy === 0) continue; // 自分自身は除外
-                
-                const nx = x + dx;
-                const ny = y + dy;
-                
-                // マップ内で、床タイルであれば追加
-                if (this.isValidPosition(nx, ny) && this.map[ny][nx] === 'floor') {
-                    adjacentTiles.push({x: nx, y: ny});
-                }
-            }
-        }
-        
-        // 周囲のタイルがない場合は処理を終了
-        if (adjacentTiles.length === 0) return;
-        
-        // 各タイルに均等に血液を分配
-        const volumePerTile = overflowVolume / adjacentTiles.length;
-        
-        // 血液を周囲のタイルに追加
-        for (const tile of adjacentTiles) {
-            // 溢れた先のタイルにある蜘蛛の巣も処理する必要があるため、
-            // addBloodpool関数を通して処理する（蜘蛛の巣を溶かす処理も含む）
-            const severity = this.calculateSeverityFromVolume(volumePerTile);
-            this.addBloodpool(tile.x, tile.y, severity, volumePerTile);
-        }
+        // 後方互換性のために更新
+        this.bloodpools = this.liquidSystem.getLiquids('blood');
     }
 
     // ハイスコアの保存
@@ -2107,37 +1988,6 @@ class Game {
                 }
             }
         }
-    }
-
-    // ========================== transferBloodpool Method ==========================
-    // 血痕の上を通過した際に血痕の一部が移動先に付着する処理
-    transferBloodpool(fromX, fromY, toX, toY) {
-        // 移動元に血痕があるかチェック
-        const sourceBloodpool = this.bloodpools.find(b => b.x === fromX && b.y === fromY);
-        if (!sourceBloodpool) {
-            return; // 血痕がなければ何もしない
-        }
-        
-        // 移動先が有効な床タイルであることを確認
-        if (!this.isValidPosition(toX, toY) || this.map[toY][toX] !== 'floor') {
-            return;
-        }
-        
-        // 移動元の血痕の量を減らす（30%程度）
-        const transferAmount = sourceBloodpool.volume * 0.3;
-        sourceBloodpool.volume -= transferAmount;
-        
-        // 移動元の血痕の量が少なくなりすぎたら消滅
-        if (sourceBloodpool.volume < 0.05) {
-            this.bloodpools = this.bloodpools.filter(b => !(b.x === fromX && b.y === fromY));
-        } else {
-            // 重症度を再計算
-            sourceBloodpool.severity = this.calculateSeverityFromVolume(sourceBloodpool.volume);
-        }
-        
-        // 移動先に血痕を追加（既存の血痕があれば加算、なければ新規作成）
-        const severity = this.calculateSeverityFromVolume(transferAmount);
-        this.addBloodpool(toX, toY, severity, transferAmount);
     }
 }
 
