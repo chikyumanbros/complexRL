@@ -111,6 +111,7 @@ class Game {
         this.neuralObelisks = []; // ニューラルオベリスクの配列を空にする
         this.explored = this.initializeExplored();
         this.totalMonstersSpawned = 0;
+        this.monstersKilled = 0;  // モンスター撃破数を追跡
         this.turn = 0;
         this.totalTurns = 0;  // ゲーム全体のターン数をリセット
         this.floorLevel = 0;
@@ -782,6 +783,9 @@ class Game {
     processMonsterDeath(deathInfo) {
         const { monster, result, damageResult, context, suppressMessage } = deathInfo;
 
+        // モンスター撃破数をカウントアップ
+        this.monstersKilled++;
+
         // suppressMessageフラグがtrueの場合はログメッセージを表示しない
         if (!suppressMessage) {
             // 機会攻撃とキルのログを1行にまとめる
@@ -1222,10 +1226,26 @@ class Game {
 
         // Calculate final score.
         const totalXP = this.player.xp;
+        
+        // モンスター撃破数をカウント（存在しない場合は初期化）
+        if (!this.monstersKilled) {
+            this.monstersKilled = 0;
+        }
+        
         const finalScore = {
-            turns: this.totalTurns,  // 全体のターン数を使用
-            totalScore: Math.floor((totalXP * 1.5) / Math.max(1, this.totalTurns * 0.01))  // 全体のターン数を使用
+            turns: this.totalTurns,
+            xpScore: totalXP * 10,  // 基本XPスコア
+            levelBonus: Math.pow(this.player.level, 2) * 100,  // レベルによるボーナス
+            floorBonus: this.floorLevel * 50,  // 到達した階層ボーナス
+            efficiencyBonus: Math.floor(totalXP * 2000 / Math.max(1, this.totalTurns)),  // 効率ボーナス
+            monsterBonus: this.monstersKilled * 20,  // 倒したモンスター数ボーナス
+            totalScore: 0  // 初期化
         };
+        
+        // 合計スコア計算
+        finalScore.totalScore = finalScore.xpScore + finalScore.levelBonus + 
+                               finalScore.floorBonus + finalScore.efficiencyBonus + 
+                               finalScore.monsterBonus;
 
         // 死因が設定されていない場合は、最後の戦闘情報から推測
         if (!this.player.deathCause) {

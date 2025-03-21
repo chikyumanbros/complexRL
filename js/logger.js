@@ -377,7 +377,7 @@ class Logger {
             display += `${this.roomInfo}\n\n`;
         } else {
             // roomInfoがnullの場合はデフォルトメッセージを表示
-            display += `<span style="color: ${this.messageColors.lookInfo.tile}">周囲を探索してください...</span>\n\n`;
+            display += `<span style="color: ${this.messageColors.lookInfo.tile}">Explore your surroundings...</span>\n\n`;
         }
         
         display += "=== LOOK INFO ===\n";
@@ -446,6 +446,15 @@ class Logger {
         this.add("Final Score:", "important");
         this.add(`Total Score: ${finalScore.totalScore}`, "important");
         this.add(`Survived Turns: ${finalScore.turns}`, "important");
+        
+        // スコア詳細の表示
+        this.add("--- Score Details ---", "info");
+        this.add(`XP Score: ${finalScore.xpScore}`, "info");
+        this.add(`Level Bonus: ${finalScore.levelBonus}`, "info");
+        this.add(`Floor Bonus: ${finalScore.floorBonus}`, "info");
+        this.add(`Efficiency Bonus: ${finalScore.efficiencyBonus}`, "info");
+        this.add(`Monster Bonus: ${finalScore.monsterBonus}`, "info");
+        
         this.add("=================", "important");
         this.add("Press Enter to restart", "info");
         

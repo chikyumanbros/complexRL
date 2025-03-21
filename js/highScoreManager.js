@@ -10,11 +10,7 @@ class HighScoreManager {
     saveHighScore(finalScore) {
         const deathInfo = {
             cause: this.game.player.deathCause || 'Unknown',
-            level: this.game.player.level,
-            skills: Array.from(this.game.player.skills.entries()).map(([slot, skill]) => ({
-                slot,
-                id: skill.id
-            }))
+            level: this.game.player.level
         };
 
         const newScore = {
