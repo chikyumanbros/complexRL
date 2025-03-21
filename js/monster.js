@@ -551,6 +551,9 @@ class Monster {
                 this.x, this.y
             );
             
+            // プレイヤーの視界内にモンスターがいるかをチェック
+            const isInPlayerVision = game.getVisibleTiles().some(tile => tile.x === this.x && tile.y === this.y);
+            
             let wakeupChance = 0;
             
             // プレイヤーが隣接している場合
@@ -620,10 +623,7 @@ class Monster {
                 this.isSleeping = false;
 
                 // プレイヤーの視界内にいる場合のみメッセージを表示
-                const isVisibleToPlayer = game.getVisibleTiles()
-                    .some(tile => tile.x === this.x && tile.y === this.y);
-                
-                if (isVisibleToPlayer) {
+                if (isInPlayerVision) {
                     game.logger.add(`${this.name} wakes up!`, "monsterInfo");
                     game.renderer.flashLogPanel();
                     game.playSound('cautionSound');
@@ -661,23 +661,16 @@ class Monster {
         const playerSize = GAME_CONSTANTS.FORMULAS.SIZE(game.player.stats);
         const sizeBonus = (3 - playerSize.value) * 2;  // プレイヤーの感知システムと同じ計算式
 
+        // プレイヤーの視界内にモンスターがいるかをチェック
+        const isInPlayerVision = game.getVisibleTiles().some(tile => tile.x === this.x && tile.y === this.y);
+
         // サイズボーナスを考慮した感知判定
         if ((Distance <= (this.perception + sizeBonus) && this.hasLineOfSight(game)) || 
             (pathDistance <= effectiveSoundRange)) {
             if (!this.hasSpottedPlayer) {
-                const isVisibleToPlayer = game.getVisibleTiles()
-                    .some(tile => tile.x === this.x && tile.y === this.y);
-                
-                if (!isVisibleToPlayer) {
-                    // プレイヤーからモンスターが見えない場合のみ知覚チェック
-                    game.player.checkPerception(game);
-                    // --- 知覚が成功した場合に cautionSound を再生 ---
-                    if (game.player.perceptionChecked && game.player.perceptionSuccess) {
-                        game.soundManager.playSound('cautionSound');
-                    }
-                } else {
-                    // プレイヤーからモンスターが見える場合のみスポットメッセージ
-                    // 修正: 視覚と聴覚を明確に区別
+                // プレイヤーの視界内にいる場合のみメッセージとサウンドを表示
+                if (isInPlayerVision) {
+                    // 視覚と聴覚を明確に区別
                     const isVisual = Distance <= (this.perception + sizeBonus) && this.hasLineOfSight(game);
                     const isAuditory = pathDistance <= effectiveSoundRange;
                     
@@ -691,15 +684,12 @@ class Monster {
                         spotType = "detects"; // フォールバック
                     }
                     
-                    // プレイヤーの視界内にいる場合のみメッセージとサウンドを表示
-                    if (isVisibleToPlayer) {
-                        game.logger.add(`${this.name} ${spotType} you!`, "monsterInfo");
-                        game.renderer.flashLogPanel();
-                        game.soundManager.playSound('cautionSound');
-                        
-                        // モンスターがプレイヤーをスポットしたときも情報を表示
-                        game.renderer.examineTarget(this.x, this.y);
-                    }
+                    game.logger.add(`${this.name} ${spotType} you!`, "monsterInfo");
+                    game.renderer.flashLogPanel();
+                    game.soundManager.playSound('cautionSound');
+                    
+                    // モンスターがプレイヤーをスポットしたときも情報を表示
+                    game.renderer.examineTarget(this.x, this.y);
                 }
                 
                 this.hasSpottedPlayer = true;
