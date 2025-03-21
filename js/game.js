@@ -1898,6 +1898,35 @@ class Game {
             return;
         }
         
+        // 蜘蛛の巣が血に触れると消える処理
+        const webAtPosition = this.webs.findIndex(web => web.x === x && web.y === y);
+        if (webAtPosition !== -1) {
+            // 蜘蛛の巣を消去
+            this.webs.splice(webAtPosition, 1);
+            
+            // プレイヤーが捕まっていた場合は解放
+            if (this.player.caughtInWeb && 
+                this.player.caughtInWeb.x === x && 
+                this.player.caughtInWeb.y === y) {
+                this.player.caughtInWeb = null;
+                this.logger.addMessage('The blood dissolves the web, and you are freed!', 'important');
+            }
+            
+            // 捕まっていたモンスターを解放
+            const monster = this.getMonsterAt(x, y);
+            if (monster && monster.caughtInWeb) {
+                monster.caughtInWeb = false;
+                this.logger.addMessage(`The blood dissolves the web, and ${monster.name} is freed!`, 'info');
+            }
+            
+            // エフェクトを表示
+            const isVisible = this.getVisibleTiles().some(tile => tile.x === x && tile.y === y);
+            if (isVisible && this.renderer) {
+                // 蜘蛛の巣が溶けるエフェクト表示があれば使用
+                this.logger.addMessage('The blood dissolved the web!', 'info');
+            }
+        }
+        
         // 追加する血液量を決定
         let bloodAmount = 0;
         if (volume !== null) {
@@ -2011,6 +2040,8 @@ class Game {
         
         // 血液を周囲のタイルに追加
         for (const tile of adjacentTiles) {
+            // 溢れた先のタイルにある蜘蛛の巣も処理する必要があるため、
+            // addBloodpool関数を通して処理する（蜘蛛の巣を溶かす処理も含む）
             const severity = this.calculateSeverityFromVolume(volumePerTile);
             this.addBloodpool(tile.x, tile.y, severity, volumePerTile);
         }
@@ -2076,6 +2107,37 @@ class Game {
                 }
             }
         }
+    }
+
+    // ========================== transferBloodpool Method ==========================
+    // 血痕の上を通過した際に血痕の一部が移動先に付着する処理
+    transferBloodpool(fromX, fromY, toX, toY) {
+        // 移動元に血痕があるかチェック
+        const sourceBloodpool = this.bloodpools.find(b => b.x === fromX && b.y === fromY);
+        if (!sourceBloodpool) {
+            return; // 血痕がなければ何もしない
+        }
+        
+        // 移動先が有効な床タイルであることを確認
+        if (!this.isValidPosition(toX, toY) || this.map[toY][toX] !== 'floor') {
+            return;
+        }
+        
+        // 移動元の血痕の量を減らす（30%程度）
+        const transferAmount = sourceBloodpool.volume * 0.3;
+        sourceBloodpool.volume -= transferAmount;
+        
+        // 移動元の血痕の量が少なくなりすぎたら消滅
+        if (sourceBloodpool.volume < 0.05) {
+            this.bloodpools = this.bloodpools.filter(b => !(b.x === fromX && b.y === fromY));
+        } else {
+            // 重症度を再計算
+            sourceBloodpool.severity = this.calculateSeverityFromVolume(sourceBloodpool.volume);
+        }
+        
+        // 移動先に血痕を追加（既存の血痕があれば加算、なければ新規作成）
+        const severity = this.calculateSeverityFromVolume(transferAmount);
+        this.addBloodpool(toX, toY, severity, transferAmount);
     }
 }
 

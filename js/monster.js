@@ -973,79 +973,21 @@ class Monster {
         }
 
         if (bestMove) {
+            // 移動前の位置を記録
             const oldX = this.x;
             const oldY = this.y;
-            const newX = this.x + bestMove.x;
-            const newY = this.y + bestMove.y;
-
-            // 移動前の位置を保存
-            const wasTargeted = game.player.rangedCombat.target && 
-                              game.player.rangedCombat.target.x === oldX && 
-                              game.player.rangedCombat.target.y === oldY;
-
-            // 蜘蛛の巣チェック
-            const web = game.webs && game.webs.find(w => w.x === newX && w.y === newY);
             
-            if (web) {
-                // 蜘蛛の巣を生成したモンスター自身は影響を受けない
-                if (web.createdBy === this.id) {
-                    this.x = newX;
-                    this.y = newY;
-                } else {
-                    // Giant Spiderは蜘蛛の巣の影響を受けない
-                    const isSpider = this.type === 'G_SPIDER';
-                    
-                    if (isSpider) {
-                        // 蜘蛛は通常移動（蜘蛛の巣に引っかからない）
-                        this.x = newX;
-                        this.y = newY;
-                    } else {
-                        // 蜘蛛の巣に引っかかるかチェック
-                        const trapChance = web.trapChance || GAME_CONSTANTS.WEB.TRAP_CHANCE;
-                        const roll = Math.random();
-                        
-                        if (roll < trapChance) {
-                            // 蜘蛛の巣に引っかかった
-                            this.x = newX;
-                            this.y = newY;
-                            
-                            // 捕まり状態を設定
-                            this.caughtInWeb = web;
-                            
-                            // プレイヤーの視界内にいる場合のみメッセージを表示
-                            const isVisibleToPlayer = game.getVisibleTiles()
-                                .some(tile => tile.x === newX && tile.y === newY);
-                            
-                            if (isVisibleToPlayer) {
-                                game.logger.add(`${this.name} is caught in a web!`, "monsterInfo");
-                                // 効果音を再生
-                                game.playSound('webTrapSound');
-                            }
-                        } else {
-                            // 蜘蛛の巣を避けた
-                            this.x = newX;
-                            this.y = newY;
-                            
-                            // プレイヤーの視界内にいる場合のみメッセージを表示
-                            const isVisibleToPlayer = game.getVisibleTiles()
-                                .some(tile => tile.x === newX && tile.y === newY);
-                            
-                            if (isVisibleToPlayer) {
-                                game.logger.add(`${this.name} navigates through the web.`, "monsterInfo");
-                            }
-                        }
-                    }
-                }
-            } else {
-                // 通常の移動
-                this.x = newX;
-                this.y = newY;
-            }
-
-            // ターゲットの位置を更新
-            if (wasTargeted) {
-                game.player.rangedCombat.target = { x: this.x, y: this.y };
-            }
+            // 移動実行
+            this.x += bestMove.x;
+            this.y += bestMove.y;
+            
+            // 血痕の移動処理 - 移動元に血痕があれば一部を移動先に移す
+            game.transferBloodpool(oldX, oldY, this.x, this.y);
+            
+            return true;
+        } else {
+            // 移動の選択肢がない場合
+            return false;
         }
     }
 
@@ -1111,7 +1053,7 @@ class Monster {
         // 最適な逃走先を探す
         let bestMove = null;
         let bestDistance = currentDistance;
-        let bestSafety = -1;  // 周囲の壁や障害物による安全度
+        let bestSafety = -1;
 
         for (const dir of directions) {
             const newX = this.x + dir.dx;
@@ -1147,8 +1089,16 @@ class Monster {
 
         // 最適な移動先が見つかった場合、移動を実行
         if (bestMove) {
+            // 移動前の位置を記録
+            const oldX = this.x;
+            const oldY = this.y;
+            
             this.x += bestMove.dx;
             this.y += bestMove.dy;
+            
+            // 血痕の移動処理 - 移動元に血痕があれば一部を移動先に移す
+            game.transferBloodpool(oldX, oldY, this.x, this.y);
+            
             return true;
         }
 
@@ -1183,40 +1133,31 @@ class Monster {
             return false;
         }
         
-        // クールダウン中の場合は何もしない
+        // クールダウン中はジャンプできない
         if (this.jumpCooldownRemaining > 0) {
-            this.jumpCooldownRemaining--;
             return false;
         }
         
-        // ジャンプを試みる確率チェック
-        if (Math.random() > this.abilities.jumpChance) {
-            return false;
-        }
-        
-        // プレイヤーとの距離を計算
-        const dx = game.player.x - this.x;
-        const dy = game.player.y - this.y;
-        const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
-            game.player.x, game.player.y,
-            this.x, this.y
+        // プレイヤーとの現在の距離を計算
+        const currentDistance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
+            this.x, this.y,
+            game.player.x, game.player.y
         );
         
-        // スキルのジャンプと同じ計算方法でジャンプ範囲を計算
-        // DEXとCONの差を3で割って3を加えた値
-        const jumpRange = Math.floor((this.stats.dex - this.stats.con) / 3) + 3;
-        
-        // 距離が近すぎる場合や遠すぎる場合はジャンプしない
-        if (distance <= 2 || distance > jumpRange) {
+        // プレイヤーに既に隣接している場合はジャンプしない
+        if (currentDistance <= 1) {
             return false;
         }
         
-        // プレイヤーが見えない場合はジャンプしない
+        // プレイヤーが視界内にいるかチェック
         if (!this.hasLineOfSight(game)) {
             return false;
         }
         
-        // ジャンプ先の候補を生成
+        // ジャンプ可能な距離の設定
+        const jumpRange = this.abilities.jumpRange || 5;
+        
+        // ジャンプの候補位置を格納する配列
         const jumpCandidates = [];
         
         // プレイヤーの周囲のタイルをチェック
@@ -1281,6 +1222,9 @@ class Monster {
         // 位置を更新
         this.x = jumpTarget.x;
         this.y = jumpTarget.y;
+        
+        // 血痕の移動処理 - 移動元に血痕があれば一部を移動先に移す
+        game.transferBloodpool(fromX, fromY, this.x, this.y);
         
         // ログにジャンプメッセージを追加
         game.logger.add(`${this.name} leaps toward you!`, "monsterInfo");

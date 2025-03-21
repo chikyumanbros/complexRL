@@ -253,6 +253,10 @@ class Player {
         const newY = this.y + dy;
         
         if (this.canMoveTo(newX, newY, map)) {
+            // 移動前の位置を記録
+            const oldX = this.x;
+            const oldY = this.y;
+            
             // まず移動を実行
             this.lastPosition = { x: this.x, y: this.y };
             this.x = newX;
@@ -263,6 +267,9 @@ class Player {
             const randomIndex = Math.floor(Math.random() * moveSoundKeys.length);
             const soundName = moveSoundKeys[randomIndex];
             this.game.playSound(soundName);
+            
+            // 血痕の移動処理 - 移動元に血痕があれば一部を移動先に移す
+            this.game.transferBloodpool(oldX, oldY, this.x, this.y);
             
             // 蜘蛛の巣チェック - 移動後に判定
             const web = this.game.webs.find(web => web.x === this.x && web.y === this.y);
