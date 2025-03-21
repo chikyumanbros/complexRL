@@ -214,6 +214,24 @@ class SaveSystem {
                 });
             }
 
+            // 環境の更新
+            this.game.updateExplored();
+            if (this.game.floorLevel === 0) {
+                this.game.updateHomeFloor();
+            }
+
+            // ロガーの状態をリセット
+            if (this.game.logger) {
+                this.game.logger.clear();
+                this.game.logger.clearRoomInfo();
+                // 情報を再構築
+                this.game.logger.updateFloorInfo(this.game.floorLevel, this.game.dangerLevel);
+            }
+
+            // 部屋情報を強制的に更新
+            this.game.updateRoomInfo();
+            
+            // UIを再描画
             this.game.renderer.render();
             this.game.logger.add("Previous save data loaded", "important");
 
@@ -224,7 +242,7 @@ class SaveSystem {
             this.game.soundManager.userInteracted = true;
             this.game.soundManager.updateBGM();
         } catch (e) {
-            console.error('Failed to load save data:', e);
+            console.error('Failed to load game data:', e);
             this.game.init();
         }
     }

@@ -248,12 +248,15 @@ class Logger {
 
             // Add portal description if present
             let portalDesc = '';
-            if (room && room.hasPortal) {
-                portalDesc = this.getRandomDescription('portal');
-            } else if (room && room.hasVoidPortal) {
-                portalDesc = this.getRandomDescription('voidportal');
-            } else if (room && room.isNexus) {
-                portalDesc = this.getRandomDescription('nexus');
+            // ポータル情報がない場合はスキップ
+            if (room && typeof room.hasPortal === 'boolean') {
+                if (room.hasPortal) {
+                    portalDesc = this.getRandomDescription('portal');
+                } else if (room.hasVoidPortal) {
+                    portalDesc = this.getRandomDescription('voidportal');
+                } else if (room.isNexus) {
+                    portalDesc = this.getRandomDescription('nexus');
+                }
             }
             
             // Add obelisk description if present
@@ -284,7 +287,7 @@ class Logger {
             // Combine all descriptions with appropriate colors
             roomInfo = `<span style="color: ${brightnessColor}">${roomInfo}</span><br>` +
                        (combatDesc ? `<span style="color: ${this.messageColors.monsters.many}">${combatDesc}</span><br>` : '') +
-                       (portalDesc ? `<span style="color: ${this.messageColors[room.hasVoidPortal ? 'voidportal' : room.hasPortal ? 'portal' : 'nexus']}">${portalDesc}</span><br>` : '') +
+                       (portalDesc ? `<span style="color: ${this.getPortalColor(room)}">${portalDesc}</span><br>` : '') +
                        (obeliskDesc ? `<span style="color: ${obeliskColor}">${obeliskDesc}</span><br>` : '') +
                        `<span style="color: ${monsterColor}">${monsterDesc}</span>`;
 
@@ -296,6 +299,21 @@ class Logger {
                 this.renderLookPanel();
             }
         }
+    }
+
+    // 安全にポータルの色を取得するヘルパーメソッド
+    getPortalColor(room) {
+        if (!room) return this.messageColors.portal;
+        
+        if (room.hasVoidPortal) {
+            return this.messageColors.voidportal;
+        } else if (room.hasPortal) {
+            return this.messageColors.portal;
+        } else if (room.isNexus) {
+            return this.messageColors.nexus;
+        }
+        
+        return this.messageColors.portal; // デフォルト値
     }
 
     shouldUpdateRoomInfo(room, monsterCount) {
@@ -357,6 +375,9 @@ class Logger {
         display += "=== SURROUNDINGS ===\n";
         if (this.roomInfo) {
             display += `${this.roomInfo}\n\n`;
+        } else {
+            // roomInfoがnullの場合はデフォルトメッセージを表示
+            display += `<span style="color: ${this.messageColors.lookInfo.tile}">周囲を探索してください...</span>\n\n`;
         }
         
         display += "=== LOOK INFO ===\n";
@@ -397,6 +418,16 @@ class Logger {
         this.messages = [];
         this.logElement.innerHTML = '';
         this.gameOverMessageShown = false;
+        
+        // すべての状態をリセット
+        this.clearRoomInfo();
+        this.clearLookInfo();
+        this.floorInfo = null;
+        
+        // パネルを更新
+        if (this.game && this.game.mode === GAME_CONSTANTS.MODES.GAME) {
+            this.renderLookPanel();
+        }
     }
 
     clearLookInfo() {
@@ -430,5 +461,14 @@ class Logger {
         
         // メッセージログをクリア
         this.logElement.innerHTML = '';
+    }
+
+    clearRoomInfo() {
+        this.roomInfo = null;
+        this.currentRoom = null;
+        this.currentMonsterCount = 0;
+        if (this.game && this.game.mode === GAME_CONSTANTS.MODES.GAME) {
+            this.renderLookPanel();
+        }
     }
 } 

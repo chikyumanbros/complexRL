@@ -44,6 +44,11 @@ class Game {
 
         this.init();
 
+        // リセット後も確実にロガーの初期化を行う
+        if (this.logger) {
+            this.logger.clearRoomInfo();
+        }
+
         // 保存されたデータがあれば読み込む
         this.saveSystem.loadGame();
 
@@ -72,6 +77,11 @@ class Game {
         // 血痕と蜘蛛の巣をクリア
         this.bloodpools = [];
         this.webs = [];
+        
+        // ロガーの部屋情報をクリア
+        if (this.logger) {
+            this.logger.clearRoomInfo();
+        }
         
         // ゲームを初期化
         this.init();
@@ -664,6 +674,15 @@ class Game {
             }
         }
         this.lastHomeFloorUpdate = this.turn;
+
+        // 最後の更新時間を記録
+        this.lastHomeFloorUpdate = Date.now();
+        
+        // 最後に部屋情報を更新（ポータル情報を反映）
+        if (this.logger) {
+            this.logger.clearRoomInfo(); // 古い情報をクリア
+        }
+        this.updateRoomInfo(); // 部屋情報を更新
     }
 
     processMonsterDeath(deathInfo) {
@@ -1301,6 +1320,9 @@ class Game {
     }
 
     updateRoomInfo() {
+        // プレイヤーが初期化されていない場合は更新しない
+        if (!this.player) return;
+
         const px = this.player.x;
         const py = this.player.y;
         const currentRoom = this.rooms.find(room =>
@@ -1315,13 +1337,21 @@ class Game {
         let hasVoidPortal = false;
         let isNexus = this.floorLevel === 0;  // レベル0（ネクサス）かどうか
 
+        // tiles配列が正しく初期化されているか確認
+        if (!this.tiles || !this.tiles.length) {
+            if (this.logger) {
+                this.logger.clearRoomInfo();
+            }
+            return;
+        }
+
         // プレイヤーの周囲2マス以内のポータルをチェック
         for (let dy = -2; dy <= 2; dy++) {
             for (let dx = -2; dx <= 2; dx++) {
                 const checkX = px + dx;
                 const checkY = py + dy;
                 
-                if (this.isValidPosition(checkX, checkY)) {
+                if (this.isValidPosition(checkX, checkY) && this.tiles && this.tiles[checkY] && this.tiles[checkY][checkX]) {
                     if (this.tiles[checkY][checkX] === GAME_CONSTANTS.PORTAL.GATE.CHAR) {
                         hasPortal = true;
                     } else if (this.tiles[checkY][checkX] === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
@@ -1332,15 +1362,15 @@ class Game {
         }
 
         // モンスターのカウント（既存のコード）
-        let monsterCount;
-        if (currentRoom) {
+        let monsterCount = 0;
+        if (currentRoom && this.monsters) {
             monsterCount = this.monsters.filter(monster =>
                 monster.x >= currentRoom.x &&
                 monster.x < currentRoom.x + currentRoom.width &&
                 monster.y >= currentRoom.y &&
                 monster.y < currentRoom.y + currentRoom.height
             ).length;
-        } else {
+        } else if (this.monsters) {
             monsterCount = this.monsters.filter(monster => {
                 const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(monster.x, monster.y, px, py);
                 return distance <= 2.5;
@@ -1359,7 +1389,9 @@ class Game {
             isNexus
         };
 
-        this.logger.updateRoomInfo(roomInfo, monsterCount);
+        if (this.logger) {
+            this.logger.updateRoomInfo(roomInfo, monsterCount);
+        }
     }
 
     // Get the room in which the player is currently located.
@@ -1395,7 +1427,7 @@ class Game {
 
     // New: Method to check if a coordinate is valid.
     isValidPosition(x, y) {
-        return x >= 0 && x < this.width && y >= 0 && y < this.height;
+        return x >= 0 && x < this.width && y >= 0 && y < this.height && this.tiles && this.tiles[y];
     }
 
     // セーブデータを保存
@@ -1405,7 +1437,23 @@ class Game {
 
     // セーブデータを読み込む
     loadGame() {
+        // ロガーの部屋情報をクリア
+        if (this.logger) {
+            this.logger.clearRoomInfo();
+        }
+        
         this.saveSystem.loadGame();
+        
+        // セーブデータ読み込み後にマップ状態を確認し、必要なら初期化
+        if (!this.tiles || !this.tiles.length) {
+            this.tiles = [];
+            for (let y = 0; y < this.height; y++) {
+                this.tiles[y] = new Array(this.width).fill('.');
+            }
+        }
+        
+        // 部屋情報が更新されていない可能性があるため強制的に更新
+        this.updateRoomInfo();
     }
 
     getRoomAt(x, y) {
@@ -1509,6 +1557,15 @@ class Game {
             }
         }
         this.lastHomeFloorUpdate = this.turn;
+
+        // 最後の更新時間を記録
+        this.lastHomeFloorUpdate = Date.now();
+        
+        // 最後に部屋情報を更新（ポータル情報を反映）
+        if (this.logger) {
+            this.logger.clearRoomInfo(); // 古い情報をクリア
+        }
+        this.updateRoomInfo(); // 部屋情報を更新
     }
 
     playSound(audioName) {  // 引数を変更
