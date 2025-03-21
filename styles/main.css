@@ -1625,7 +1625,7 @@ body::before {
 
 /* 蜘蛛の巣のアニメーション */
 .web-tile {
-    animation: web-animation 2s infinite;
+    animation: none !important;
     position: relative;
     display: inline-block;
 }
@@ -1656,7 +1656,7 @@ body::before {
 
 .web-tile::before {
     content: '⅗';
-    animation: web-char-animation 2s infinite;
+    animation: none !important;
     position: absolute;
     left: 0;
     top: 0;
@@ -1681,7 +1681,7 @@ body::before {
 }
 
 .web-remove-effect {
-    animation: web-remove-animation 0.5s forwards;
+    animation: none !important;
     position: absolute;
     display: inline-block;
     text-align: center;
@@ -1689,23 +1689,7 @@ body::before {
 }
 
 .player-caught-web {
-    animation: none !important; /* アニメーションを無効化 */
-}
-
-/* 捕まったモンスター用の点滅アニメーション */
-.monster-caught-web {
-    animation: web-blink 0.5s infinite alternate;
-    color: #ff0000 !important; /* 赤色に変更 */
-}
-
-@keyframes web-blink {
-    0% { opacity: 0.2; color: #ff0000; }
-    100% { opacity: 1.0; color: #ff5555; }
-}
-
-/* プレイヤーが捕まっている場合のアニメーション（既存のものと区別） */
-.player-caught-web {
-    animation: player-web-blink 0.8s infinite alternate;
+    animation: none !important;
 }
 
 @keyframes player-web-blink {
@@ -1713,42 +1697,8 @@ body::before {
     100% { opacity: 1.0; }
 }
 
-/* Bloodpool animations - disabled */
-/*
-@keyframes bloodpool-drip {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+/* 捕まったモンスター用の点滅アニメーション */
+.monster-caught-web {
+    animation: none !important;
+    color: #ff0000 !important; /* 赤色に変更 */
 }
-
-@keyframes bloodpool-pulse {
-    0% { opacity: var(--base-opacity, 0.6); }
-    50% { opacity: calc(var(--base-opacity, 0.6) + 0.2); }
-    100% { opacity: var(--base-opacity, 0.6); }
-}
-
-.bloodpool-light {
-    --base-opacity: 0.6;
-    animation: bloodpool-pulse 3s infinite;
-}
-
-.bloodpool-medium {
-    --base-opacity: 0.75;
-    animation: bloodpool-pulse 2.5s infinite;
-}
-
-.bloodpool-heavy {
-    --base-opacity: 0.9;
-    animation: bloodpool-pulse 2s infinite, bloodpool-drip 3s infinite;
-}
-
-@keyframes bloodpool-create {
-    0% { opacity: 0; transform: scale(0.5); }
-    50% { opacity: 1; transform: scale(1.3); }
-    100% { opacity: var(--base-opacity, 0.6); transform: scale(1); }
-}
-
-.bloodpool-effect {
-    animation: bloodpool-create 0.8s;
-}
-*/

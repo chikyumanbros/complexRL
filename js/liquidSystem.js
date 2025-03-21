@@ -287,10 +287,13 @@ class LiquidSystem {
      * @param {string} type - 液体タイプ
      */
     handleLiquidInteractions(x, y, type) {
-        // 液体タイプに基づいた相互作用を処理
+        // 全ての液体タイプに対してwebとの相互作用を処理
+        this.handleWebInteraction(x, y);
+        
+        // 液体タイプに基づいた追加の相互作用を処理
         switch (type) {
             case 'blood':
-                this.handleBloodInteractions(x, y);
+                // 血液固有の追加相互作用があれば処理
                 break;
             // 将来的に他の液体タイプの相互作用を追加
             // case 'water':
@@ -303,36 +306,41 @@ class LiquidSystem {
     }
 
     /**
-     * 血液固有の相互作用を処理
+     * ウェブ（蜘蛛の巣）との相互作用を処理
      * @param {number} x - X座標
      * @param {number} y - Y座標 
      */
-    handleBloodInteractions(x, y) {
+    handleWebInteraction(x, y) {
         // 蜘蛛の巣との相互作用
-        const webAtPosition = this.game.webs.findIndex(web => web.x === x && web.y === y);
-        if (webAtPosition !== -1) {
+        if (!this.game.webs) {
+            this.game.webs = [];
+            return;
+        }
+        
+        const webIndex = this.game.webs.findIndex(web => web.x === x && web.y === y);
+        if (webIndex !== -1) {
             // 蜘蛛の巣を消去
-            this.game.webs.splice(webAtPosition, 1);
+            this.game.webs.splice(webIndex, 1);
 
             // プレイヤーが捕まっていた場合は解放
             if (this.game.player.caughtInWeb && 
                 this.game.player.caughtInWeb.x === x && 
                 this.game.player.caughtInWeb.y === y) {
                 this.game.player.caughtInWeb = null;
-                this.game.logger.addMessage('血液が蜘蛛の巣を溶かし、あなたは解放された！', 'important');
+                this.game.logger.add('The liquid dissolves the web, freeing you!', 'important');
             }
 
             // 捕まっていたモンスターを解放
             const monster = this.game.getMonsterAt(x, y);
             if (monster && monster.caughtInWeb) {
                 monster.caughtInWeb = false;
-                this.game.logger.addMessage(`血液が蜘蛛の巣を溶かし、${monster.name}は解放された！`, 'info');
+                this.game.logger.add(`The liquid dissolves the web, freeing ${monster.name}!`, 'monsterInfo');
             }
 
             // エフェクトを表示
             const isVisible = this.game.getVisibleTiles().some(tile => tile.x === x && tile.y === y);
             if (isVisible) {
-                this.game.logger.addMessage('血液が蜘蛛の巣を溶かした！', 'info');
+                this.game.logger.add('The liquid dissolves the web!', 'info');
             }
         }
     }

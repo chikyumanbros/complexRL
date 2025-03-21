@@ -1969,12 +1969,16 @@ class Game {
 
     // 蜘蛛の巣の更新処理
     updateWebs() {
-        // 持続時間が終了した蜘蛛の巣を削除
-        this.webs = this.webs.filter(web => {
-            web.remainingTurns--;
-            return web.remainingTurns > 0;
-        });
+        // webs配列が存在しない場合は作成
+        if (!this.webs) {
+            this.webs = [];
+            return;
+        }
+        
+        // NOTE: 蜘蛛の巣は自然消滅しません
+        // ウェブの存在確認のみを行います
     }
+    
     
     // ========================== updateBloodpools Method ==========================
     updateBloodpools() {

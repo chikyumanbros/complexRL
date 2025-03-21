@@ -655,7 +655,7 @@ class RendererEffects {
         // 位置を計算
         const position = this.renderer.getTilePosition(x, y);
         
-        // エフェクト表示用のdivを作成
+        // エフェクト要素を作成
         const effectDiv = document.createElement('div');
         effectDiv.className = 'web-effect';
         effectDiv.style.position = 'absolute';
@@ -664,7 +664,7 @@ class RendererEffects {
         effectDiv.style.width = '20px';        // 仮の値、実際のタイルサイズに合わせて調整
         effectDiv.style.height = '20px';       // 仮の値、実際のタイルサイズに合わせて調整
         effectDiv.style.zIndex = '100';
-        effectDiv.style.animation = 'web-animation 0.5s';
+        effectDiv.style.animation = 'none';    // アニメーションを無効化
         effectDiv.textContent = GAME_CONSTANTS.WEB.CHAR;
         effectDiv.style.color = GAME_CONSTANTS.WEB.COLOR;
         
@@ -701,7 +701,7 @@ class RendererEffects {
         effectDiv.style.width = '20px';        // 仮の値、実際のタイルサイズに合わせて調整
         effectDiv.style.height = '20px';       // 仮の値、実際のタイルサイズに合わせて調整
         effectDiv.style.zIndex = '100';
-        effectDiv.style.animation = 'web-remove-animation 0.5s';
+        effectDiv.style.animation = 'none';    // アニメーションを無効化
         effectDiv.textContent = GAME_CONSTANTS.WEB.CHAR;
         effectDiv.style.color = '#FFFFFF';
         
