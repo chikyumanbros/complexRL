@@ -343,6 +343,13 @@ class StatusRenderer {
 
             const sleepStatus = monster.isSleeping ? 'Zzz' : '';
             const fleeingStatus = monster.hasStartedFleeing ? '>>' : '';
+            
+            // 出血状態の確認とデバッグ情報
+            let bleedingStatus = '';
+            if (monster.bleedingEffects && monster.bleedingEffects.length > 0) {
+                bleedingStatus = '<span style="color: #ff0000">♥</span>';
+            }
+            
             const monsterSymbol = monster.char || 'M';
             const monsterColor = GAME_CONSTANTS.COLORS.MONSTER[monster.type];
 
@@ -367,7 +374,7 @@ class StatusRenderer {
 
             return `<span style="color: ${monsterColor}">` +
                 `<span style="color: ${directionColor}; display: inline-block; width: 2em">${direction}</span>[${monsterSymbol}] </span>` +
-                `<span style="color: ${monsterColor}">${monsterName}</span> ${sleepStatus}${fleeingStatus} <br>` +
+                `<span style="color: ${monsterColor}">${monsterName}</span> ${sleepStatus}${fleeingStatus}${bleedingStatus} <br>` +
                 `<div class="hp-bar">` +
                     `<div class="hp-numbers">HP: ${monster.hp}/${monster.maxHp}</div>` +
                     `<span class="bar ${healthClass}">${hpText}</span>` +
