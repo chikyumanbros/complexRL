@@ -454,6 +454,9 @@ class Game {
         // モンスターの配列のコピーを作成（ループ中にモンスターが削除される可能性があるため）
         const monstersCopy = [...this.monsters];
         
+        // 血液プールの位置を取得
+        const bloodpools = this.liquidSystem.getLiquids('blood');
+        
         // For each monster, take a turn
         for (const monster of monstersCopy) {
             // Skip dead monsters
@@ -469,6 +472,91 @@ class Game {
                 }
             }
             
+            // アンデッド系モンスターの場合、近くの血に引き寄せられる
+            if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.UNDEAD)) {
+                // 血液検出範囲を大幅に拡大（基本値20マス + 知覚値の影響）
+                const baseDetectionRange = 20;
+                const perceptionBonus = monster.perception || 0;
+                const detectionRange = baseDetectionRange + Math.floor(perceptionBonus * 0.5);
+                let nearestBlood = null;
+                let nearestDistance = detectionRange + 1;
+                
+                for (const blood of bloodpools) {
+                    const distance = Math.max(
+                        Math.abs(monster.x - blood.x),
+                        Math.abs(monster.y - blood.y)
+                    );
+                    
+                    // 視界チェック（壁を通して血の匂いを感知しない）
+                    const canSense = this.hasLineOfSight(monster.x, monster.y, blood.x, blood.y);
+                    
+                    // より近い血を見つけた場合、または血の重症度/量が多い場合は優先
+                    if (distance <= detectionRange && canSense && 
+                        (distance < nearestDistance || 
+                         (distance === nearestDistance && blood.severity > (nearestBlood?.severity || 0)))) {
+                        nearestBlood = blood;
+                        nearestDistance = distance;
+                    }
+                }
+                
+                // 近くに血があり、モンスターがまだ行動していない場合
+                if (nearestBlood && !monster.hasActedThisTurn) {
+                    // 血の方向へ移動する傾向を設定
+                    monster.attractedToBlood = {
+                        x: nearestBlood.x,
+                        y: nearestBlood.y,
+                        severity: nearestBlood.severity,
+                        distance: nearestDistance
+                    };
+                    
+                    // 血が遠ければ遠いほど移動確率は減少するが、重症度が高いほど増加
+                    const distanceFactor = 1 - (nearestDistance / (detectionRange * 1.5));
+                    const severityFactor = nearestBlood.severity * 0.15;
+                    const baseChance = 30;
+                    const moveChance = baseChance + (severityFactor * 100) + (distanceFactor * 40);
+                    
+                    // モンスターが近くのプレイヤーを見つけられない場合、または血の重症度が非常に高い場合
+                    const isPlayerNearby = this.isPlayerAdjacent(monster.x, monster.y);
+                    const isVeryAttractive = nearestBlood.severity >= 3 && nearestDistance <= 10;
+                    
+                    if (!isPlayerNearby || isVeryAttractive) {
+                        if (Math.random() * 100 < moveChance) {
+                            // 血への移動を計算
+                            const dx = Math.sign(nearestBlood.x - monster.x);
+                            const dy = Math.sign(nearestBlood.y - monster.y);
+                            
+                            // 移動先が有効か確認
+                            if (this.isValidPosition(monster.x + dx, monster.y + dy) && 
+                                !this.isOccupied(monster.x + dx, monster.y + dy)) {
+                                monster.x += dx;
+                                monster.y += dy;
+                                monster.hasActedThisTurn = true;
+                                
+                                // プレイヤーの視界内にいる場合のみメッセージを表示
+                                const isVisibleToPlayer = this.getVisibleTiles()
+                                    .some(tile => tile.x === monster.x && tile.y === monster.y);
+                                
+                                // プレイヤーの知覚可能範囲内にある血液の近くにいる場合のみメッセージを表示
+                                const isBloodInPlayerSight = this.getVisibleTiles()
+                                    .some(tile => tile.x === nearestBlood.x && tile.y === nearestBlood.y);
+                                    
+                                // プレイヤーまたは血液が視界内にある場合のみメッセージを表示
+                                if (isVisibleToPlayer && (isBloodInPlayerSight || nearestDistance <= 3)) {
+                                    // 距離に応じたメッセージを表示
+                                    if (nearestDistance <= 5) {
+                                        this.logger.add(`${monster.name} is strongly attracted to the scent of blood!`, "monsterInfo");
+                                    } else if (nearestDistance <= 15) {
+                                        this.logger.add(`${monster.name} moved, drawn by the scent of blood...`, "monsterInfo");
+                                    } else {
+                                        this.logger.add(`${monster.name} seems to have sensed the scent of blood from afar...`, "monsterInfo");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
             // Skip if monster died from bleeding
             if (monster.hp <= 0) continue;
             
@@ -481,6 +569,8 @@ class Game {
         // モンスターの行動フラグをリセット
         for (const monster of this.monsters) {
             monster.hasActedThisTurn = false;
+            // 血への誘引情報をリセット
+            monster.attractedToBlood = null;
         }
 
         // プレイヤーの知覚チェック

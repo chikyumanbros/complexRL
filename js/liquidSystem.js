@@ -55,6 +55,11 @@ class LiquidSystem {
         if (!this.game.map || !this.game.map[y] || !this.game.map[y][x] || this.game.map[y][x] !== 'floor') {
             return false;
         }
+        
+        // 階段の上には液体を置かない
+        if (this.game.tiles && this.game.tiles[y] && this.game.tiles[y][x] === GAME_CONSTANTS.STAIRS.CHAR) {
+            return false;
+        }
 
         // 液体タイプが存在するか確認
         if (!this.liquids[lowerType]) {
