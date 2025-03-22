@@ -605,15 +605,20 @@ class Game {
                         // 重症度と量に基づいた回復量を計算
                         const severityFactor = bloodAtPosition.severity * 0.5;
                         const maxHealing = monster.maxHp * 0.25; // 最大HPの25%まで回復可能
-                        healAmount = Math.floor(monster.maxHp * 0.05 * severityFactor); // 基本回復量
-                        healAmount = Math.min(healAmount, maxHealing, monster.maxHp - monster.hp); // 最大回復量を制限
+                        
+                        // 基本回復量を計算し、最小値として1を保証する
+                        healAmount = Math.floor(monster.maxHp * 0.05 * severityFactor); 
+                        healAmount = Math.max(1, healAmount); // 最小でも1回復するように保証
+                        
+                        // 最大回復量を制限
+                        healAmount = Math.min(healAmount, maxHealing, monster.maxHp - monster.hp);
                         
                         // 回復処理
                         monster.hp += healAmount;
                     }
                     
                     // 十分な量の血液がある場合のみ吸収
-                    if (bloodAtPosition.volume >= 0.1) {
+                    if (bloodAtPosition.volume >= GAME_CONSTANTS.LIQUIDS.BLOOD.VOLUME.MINIMUM) {
                         // 血液の量を減らす（消費）- HPが減っていなくても吸収する
                         const consumedVolume = Math.min(bloodAtPosition.volume, bloodAtPosition.severity * 0.2);
                         bloodAtPosition.volume -= consumedVolume;

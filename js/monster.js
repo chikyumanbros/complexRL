@@ -988,14 +988,19 @@ class Monster {
             const isVisibleToPlayer = game.getVisibleTiles()
                 .some(tile => tile.x === this.x && tile.y === this.y);
             
-            if (isVisibleToPlayer) {
-                const messages = [
-                    `${this.name} flees in panic!`,
-                    `${this.name} retreats!`,
-                    `${this.name} tries to escape!`
-                ];
-                const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-                game.logger.add(randomMessage, "monsterInfo");
+            if (isVisibleToPlayer && !this.hasStartedFleeing) {
+                // 通常の追跡移動用のメッセージを表示（逃走ではない場合）
+                if (game.player.x === targetX && game.player.y === targetY) {
+                    // プレイヤーを追跡している場合
+                    const pursueMessages = [
+                        `${this.name} moves toward you.`,
+                        `${this.name} approaches menacingly.`,
+                        `${this.name} advances.`
+                    ];
+                    const randomMessage = pursueMessages[Math.floor(Math.random() * pursueMessages.length)];
+                    game.logger.add(randomMessage, "monsterInfo");
+                }
+                // 血痕追跡やその他の移動はゲーム内の別の場所でメッセージ処理されるため、ここでは何も表示しない
             }
             
             // 蜘蛛の巣チェック - 移動後に判定
