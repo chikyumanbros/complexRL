@@ -473,9 +473,10 @@ class Game {
                 }
             }
             
-            // アンデッド系またはINSECTOID系モンスターの場合、近くの血に引き寄せられる
+            // アンデッド系、昆虫系、爬虫類系モンスターの場合、近くの血に引き寄せられる
             if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.UNDEAD) || 
-                monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC, MONSTER_CATEGORIES.SECONDARY.INSECTOID)) {
+                monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC, MONSTER_CATEGORIES.SECONDARY.INSECTOID) ||
+                monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC, MONSTER_CATEGORIES.SECONDARY.REPTILE)) {
                 // 血液検出範囲を大幅に拡大（基本値20マス + 知覚値の影響）
                 const baseDetectionRange = 20;
                 const perceptionBonus = monster.perception || 0;
@@ -516,9 +517,11 @@ class Game {
                     const severityFactor = nearestBlood.severity * 0.15;
                     let baseChance = 30;
                     
-                    // 昆虫系モンスターの場合、血への引き寄せられる確率を高める
+                    // モンスターの種類によって血への引き寄せられる確率を調整
                     if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC, MONSTER_CATEGORIES.SECONDARY.INSECTOID)) {
                         baseChance = 50; // 昆虫系はより強く引き寄せられる
+                    } else if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC, MONSTER_CATEGORIES.SECONDARY.REPTILE)) {
+                        baseChance = 40; // 爬虫類系も強めに引き寄せられる
                     }
                     
                     const moveChance = baseChance + (severityFactor * 100) + (distanceFactor * 40);
@@ -551,7 +554,7 @@ class Game {
                                 // プレイヤーまたは血液が視界内にある場合のみメッセージを表示
                                 if (isVisibleToPlayer && (isBloodInPlayerSight || nearestDistance <= 3)) {
                                     // 距離に応じたメッセージを表示
-                                    // 昆虫系と死者系で異なるメッセージを表示
+                                    // 昆虫系、爬虫類系、死者系で異なるメッセージを表示
                                     if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC, MONSTER_CATEGORIES.SECONDARY.INSECTOID)) {
                                         if (nearestDistance <= 5) {
                                             this.logger.add(`${monster.name} is aggressively drawn to the scent of blood!`, "monsterInfo");
@@ -559,6 +562,14 @@ class Game {
                                             this.logger.add(`${monster.name} skitters toward the blood...`, "monsterInfo");
                                         } else {
                                             this.logger.add(`${monster.name} seems to have detected blood from afar...`, "monsterInfo");
+                                        }
+                                    } else if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC, MONSTER_CATEGORIES.SECONDARY.REPTILE)) {
+                                        if (nearestDistance <= 5) {
+                                            this.logger.add(`${monster.name} flicks its tongue, sensing the blood!`, "monsterInfo");
+                                        } else if (nearestDistance <= 15) {
+                                            this.logger.add(`${monster.name} slithers toward the blood...`, "monsterInfo");
+                                        } else {
+                                            this.logger.add(`${monster.name} tastes the air, detecting blood nearby...`, "monsterInfo");
                                         }
                                     } else { // アンデッド系の場合
                                         if (nearestDistance <= 5) {
@@ -569,6 +580,80 @@ class Game {
                                             this.logger.add(`${monster.name} seems to have sensed the scent of blood from afar...`, "monsterInfo");
                                         }
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 現在の位置に血液があり、対象のモンスターは血液を吸収する（HPが減っていなくても）
+            if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.UNDEAD) || 
+                monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC, MONSTER_CATEGORIES.SECONDARY.INSECTOID) ||
+                monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC, MONSTER_CATEGORIES.SECONDARY.REPTILE)) {
+                
+                // 現在位置の血液を確認
+                const bloodAtPosition = this.liquidSystem.liquids.blood.find(
+                    blood => blood.x === monster.x && blood.y === monster.y
+                );
+                
+                if (bloodAtPosition) {
+                    let healAmount = 0;
+                    
+                    // HPが減っている場合は回復処理も行う
+                    if (monster.hp < monster.maxHp) {
+                        // 重症度と量に基づいた回復量を計算
+                        const severityFactor = bloodAtPosition.severity * 0.5;
+                        const maxHealing = monster.maxHp * 0.25; // 最大HPの25%まで回復可能
+                        healAmount = Math.floor(monster.maxHp * 0.05 * severityFactor); // 基本回復量
+                        healAmount = Math.min(healAmount, maxHealing, monster.maxHp - monster.hp); // 最大回復量を制限
+                        
+                        // 回復処理
+                        monster.hp += healAmount;
+                    }
+                    
+                    // 十分な量の血液がある場合のみ吸収
+                    if (bloodAtPosition.volume >= 0.1) {
+                        // 血液の量を減らす（消費）- HPが減っていなくても吸収する
+                        const consumedVolume = Math.min(bloodAtPosition.volume, bloodAtPosition.severity * 0.2);
+                        bloodAtPosition.volume -= consumedVolume;
+                        
+                        // 血液量が最小値未満になった場合は削除
+                        if (bloodAtPosition.volume < GAME_CONSTANTS.LIQUIDS.BLOOD.VOLUME.MINIMUM) {
+                            this.liquidSystem.liquids.blood = this.liquidSystem.liquids.blood.filter(
+                                blood => !(blood.x === monster.x && blood.y === monster.y)
+                            );
+                        } else {
+                            // 重症度を再計算
+                            bloodAtPosition.severity = this.liquidSystem.calculateSeverityFromVolume('blood', bloodAtPosition.volume);
+                        }
+                        
+                        // 後方互換性のために、bloodpoolsプロパティも更新
+                        this.bloodpools = this.liquidSystem.getLiquids('blood');
+                        
+                        // プレイヤーの視界内にいる場合のみメッセージを表示
+                        const isVisibleToPlayer = this.getVisibleTiles()
+                            .some(tile => tile.x === monster.x && tile.y === monster.y);
+                        
+                        if (isVisibleToPlayer) {
+                            // モンスターの種類と回復有無に応じたメッセージを表示
+                            if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.UNDEAD)) {
+                                if (healAmount > 0) {
+                                    this.logger.add(`${monster.name} absorbs the blood and restores ${healAmount} HP! (HP: ${monster.hp}/${monster.maxHp})`, "monsterInfo");
+                                } else {
+                                    this.logger.add(`${monster.name} absorbs the blood...`, "monsterInfo");
+                                }
+                            } else if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC, MONSTER_CATEGORIES.SECONDARY.INSECTOID)) {
+                                if (healAmount > 0) {
+                                    this.logger.add(`${monster.name} feeds on the blood and regains ${healAmount} HP! (HP: ${monster.hp}/${monster.maxHp})`, "monsterInfo");
+                                } else {
+                                    this.logger.add(`${monster.name} feeds on the blood...`, "monsterInfo");
+                                }
+                            } else if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC, MONSTER_CATEGORIES.SECONDARY.REPTILE)) {
+                                if (healAmount > 0) {
+                                    this.logger.add(`${monster.name} laps at the blood and recovers ${healAmount} HP! (HP: ${monster.hp}/${monster.maxHp})`, "monsterInfo");
+                                } else {
+                                    this.logger.add(`${monster.name} laps at the blood...`, "monsterInfo");
                                 }
                             }
                         }
