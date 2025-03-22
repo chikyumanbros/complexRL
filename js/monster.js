@@ -977,18 +977,78 @@ class Monster {
             const oldX = this.x;
             const oldY = this.y;
             
-            // 移動実行
-            this.x += bestMove.x;
-            this.y += bestMove.y;
+            // 移動実施
+            this.x = this.x + bestMove.x;
+            this.y = this.y + bestMove.y;
             
             // 血痕の移動処理 - 移動元に血痕があれば一部を移動先に移す
             game.transferBloodpool(oldX, oldY, this.x, this.y);
             
+            // プレイヤーの視界内にいる場合のみメッセージを表示
+            const isVisibleToPlayer = game.getVisibleTiles()
+                .some(tile => tile.x === this.x && tile.y === this.y);
+            
+            if (isVisibleToPlayer) {
+                const messages = [
+                    `${this.name} flees in panic!`,
+                    `${this.name} retreats!`,
+                    `${this.name} tries to escape!`
+                ];
+                const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+                game.logger.add(randomMessage, "monsterInfo");
+            }
+            
+            // 蜘蛛の巣チェック - 移動後に判定
+            const web = game.webs && game.webs.find(w => w.x === this.x && w.y === this.y);
+            if (web && this.type !== 'G_SPIDER') { // G_SPIDERは自分の巣に引っかからない
+                // 蜘蛛の巣に引っかかるかチェック
+                const trapChance = web.trapChance || GAME_CONSTANTS.WEB.TRAP_CHANCE;
+                // 捕捉確率を調整（プレイヤーと同じ計算式に）
+                const adjustedTrapChance = Math.min(0.9, trapChance * 1.5); // 50%増しに、最大90%
+                const roll = Math.random();
+                
+                if (roll < adjustedTrapChance) {
+                    // 蜘蛛の巣に引っかかった
+                    // プレイヤーの視界内にいる場合のみメッセージを表示
+                    const isVisibleToPlayer = game.getVisibleTiles()
+                        .some(tile => tile.x === this.x && tile.y === this.y);
+                    
+                    if (isVisibleToPlayer) {
+                        game.logger.add(`${this.name} is caught in a web!`, "monsterInfo");
+                    }
+                    
+                    // 移動したらほぼ確実に捕まるように - 同一ターン内の脱出確率を大幅に下げる
+                    const immediateEscapeChance = 0.15; // 15%の確率でのみ即時脱出可能に
+                    const escapeRoll = Math.random();
+                    
+                    if (escapeRoll < immediateEscapeChance) {
+                        // 脱出成功（同一ターン内）- まれなケース
+                        if (isVisibleToPlayer) {
+                            game.logger.add(`${this.name} manages to break free immediately!`, "monsterInfo");
+                            // 効果音を再生
+                            game.playSound('webBreakSound');
+                        }
+                        
+                        // 蜘蛛の巣を除去
+                        game.webs = game.webs.filter(w => !(w.x === web.x && w.y === web.y));
+                    } else {
+                        // 脱出失敗 - 捕まり状態をセット（ほとんどのケース）
+                        if (isVisibleToPlayer) {
+                            game.logger.add(`${this.name} struggles but remains caught in the web.`, "monsterInfo");
+                            // 効果音を再生
+                            game.playSound('webTrapSound');
+                        }
+                        
+                        // 捕まり状態を設定
+                        this.caughtInWeb = web;
+                    }
+                }
+            }
+            
             return true;
-        } else {
-            // 移動の選択肢がない場合
-            return false;
         }
+        
+        return false;
     }
 
     // ========================== spawnRandomMonster Static Method ==========================
@@ -1093,15 +1153,77 @@ class Monster {
             const oldX = this.x;
             const oldY = this.y;
             
-            this.x += bestMove.dx;
-            this.y += bestMove.dy;
+            // 移動の実行
+            this.x = this.x + bestMove.dx;
+            this.y = this.y + bestMove.dy;
             
             // 血痕の移動処理 - 移動元に血痕があれば一部を移動先に移す
             game.transferBloodpool(oldX, oldY, this.x, this.y);
             
+            // プレイヤーの視界内にいる場合のみメッセージを表示
+            const isVisibleToPlayer = game.getVisibleTiles()
+                .some(tile => tile.x === this.x && tile.y === this.y);
+            
+            if (isVisibleToPlayer) {
+                const messages = [
+                    `${this.name} flees in panic!`,
+                    `${this.name} retreats!`,
+                    `${this.name} tries to escape!`
+                ];
+                const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+                game.logger.add(randomMessage, "monsterInfo");
+            }
+            
+            // 蜘蛛の巣チェック - 移動後に判定
+            const web = game.webs && game.webs.find(w => w.x === this.x && w.y === this.y);
+            if (web && this.type !== 'G_SPIDER') { // G_SPIDERは自分の巣に引っかからない
+                // 蜘蛛の巣に引っかかるかチェック
+                const trapChance = web.trapChance || GAME_CONSTANTS.WEB.TRAP_CHANCE;
+                // 捕捉確率を調整（プレイヤーと同じ計算式に）
+                const adjustedTrapChance = Math.min(0.9, trapChance * 1.5); // 50%増しに、最大90%
+                const roll = Math.random();
+                
+                if (roll < adjustedTrapChance) {
+                    // 蜘蛛の巣に引っかかった
+                    // プレイヤーの視界内にいる場合のみメッセージを表示
+                    const isVisibleToPlayer = game.getVisibleTiles()
+                        .some(tile => tile.x === this.x && tile.y === this.y);
+                    
+                    if (isVisibleToPlayer) {
+                        game.logger.add(`${this.name} is caught in a web!`, "monsterInfo");
+                    }
+                    
+                    // 移動したらほぼ確実に捕まるように - 同一ターン内の脱出確率を大幅に下げる
+                    const immediateEscapeChance = 0.15; // 15%の確率でのみ即時脱出可能に
+                    const escapeRoll = Math.random();
+                    
+                    if (escapeRoll < immediateEscapeChance) {
+                        // 脱出成功（同一ターン内）- まれなケース
+                        if (isVisibleToPlayer) {
+                            game.logger.add(`${this.name} manages to break free immediately!`, "monsterInfo");
+                            // 効果音を再生
+                            game.playSound('webBreakSound');
+                        }
+                        
+                        // 蜘蛛の巣を除去
+                        game.webs = game.webs.filter(w => !(w.x === web.x && w.y === web.y));
+                    } else {
+                        // 脱出失敗 - 捕まり状態をセット（ほとんどのケース）
+                        if (isVisibleToPlayer) {
+                            game.logger.add(`${this.name} struggles but remains caught in the web.`, "monsterInfo");
+                            // 効果音を再生
+                            game.playSound('webTrapSound');
+                        }
+                        
+                        // 捕まり状態を設定
+                        this.caughtInWeb = web;
+                    }
+                }
+            }
+            
             return true;
         }
-
+        
         // 逃げ場がない場合は、プレイヤーに背を向けて戦う
         this.hasStartedFleeing = false;
         return false;
@@ -1594,6 +1716,52 @@ class Monster {
                 if (isVisibleToPlayer) {
                     game.logger.add(`${this.name} moves strategically towards its web.`, "monsterInfo");
                 }
+                
+                // 蜘蛛の巣チェック - 移動後に判定 (蜘蛛以外の場合)
+                if (this.type !== 'G_SPIDER') {
+                    const currentWeb = game.webs && game.webs.find(w => w.x === this.x && w.y === this.y);
+                    if (currentWeb && currentWeb !== web) { // 異なる蜘蛛の巣に移動した場合
+                        // 蜘蛛の巣に引っかかるかチェック
+                        const trapChance = currentWeb.trapChance || GAME_CONSTANTS.WEB.TRAP_CHANCE;
+                        // 捕捉確率を調整（プレイヤーと同じ計算式に）
+                        const adjustedTrapChance = Math.min(0.9, trapChance * 1.5); // 50%増しに、最大90%
+                        const roll = Math.random();
+                        
+                        if (roll < adjustedTrapChance) {
+                            // 蜘蛛の巣に引っかかった
+                            if (isVisibleToPlayer) {
+                                game.logger.add(`${this.name} is caught in a web!`, "monsterInfo");
+                            }
+                            
+                            // 移動したらほぼ確実に捕まるように - 同一ターン内の脱出確率を大幅に下げる
+                            const immediateEscapeChance = 0.15; // 15%の確率でのみ即時脱出可能に
+                            const escapeRoll = Math.random();
+                            
+                            if (escapeRoll < immediateEscapeChance) {
+                                // 脱出成功（同一ターン内）- まれなケース
+                                if (isVisibleToPlayer) {
+                                    game.logger.add(`${this.name} manages to break free immediately!`, "monsterInfo");
+                                    // 効果音を再生
+                                    game.playSound('webBreakSound');
+                                }
+                                
+                                // 蜘蛛の巣を除去
+                                game.webs = game.webs.filter(w => !(w.x === currentWeb.x && w.y === currentWeb.y));
+                            } else {
+                                // 脱出失敗 - 捕まり状態をセット（ほとんどのケース）
+                                if (isVisibleToPlayer) {
+                                    game.logger.add(`${this.name} struggles but remains caught in the web.`, "monsterInfo");
+                                    // 効果音を再生
+                                    game.playSound('webTrapSound');
+                                }
+                                
+                                // 捕まり状態を設定
+                                this.caughtInWeb = currentWeb;
+                            }
+                        }
+                    }
+                }
+                
                 return true;
             }
         }
