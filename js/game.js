@@ -473,8 +473,9 @@ class Game {
                 }
             }
             
-            // アンデッド系モンスターの場合、近くの血に引き寄せられる
-            if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.UNDEAD)) {
+            // アンデッド系またはINSECTOID系モンスターの場合、近くの血に引き寄せられる
+            if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.UNDEAD) || 
+                monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC, MONSTER_CATEGORIES.SECONDARY.INSECTOID)) {
                 // 血液検出範囲を大幅に拡大（基本値20マス + 知覚値の影響）
                 const baseDetectionRange = 20;
                 const perceptionBonus = monster.perception || 0;
@@ -513,7 +514,13 @@ class Game {
                     // 血が遠ければ遠いほど移動確率は減少するが、重症度が高いほど増加
                     const distanceFactor = 1 - (nearestDistance / (detectionRange * 1.5));
                     const severityFactor = nearestBlood.severity * 0.15;
-                    const baseChance = 30;
+                    let baseChance = 30;
+                    
+                    // 昆虫系モンスターの場合、血への引き寄せられる確率を高める
+                    if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC, MONSTER_CATEGORIES.SECONDARY.INSECTOID)) {
+                        baseChance = 50; // 昆虫系はより強く引き寄せられる
+                    }
+                    
                     const moveChance = baseChance + (severityFactor * 100) + (distanceFactor * 40);
                     
                     // モンスターが近くのプレイヤーを見つけられない場合、または血の重症度が非常に高い場合
@@ -544,12 +551,23 @@ class Game {
                                 // プレイヤーまたは血液が視界内にある場合のみメッセージを表示
                                 if (isVisibleToPlayer && (isBloodInPlayerSight || nearestDistance <= 3)) {
                                     // 距離に応じたメッセージを表示
-                                    if (nearestDistance <= 5) {
-                                        this.logger.add(`${monster.name} is strongly attracted to the scent of blood!`, "monsterInfo");
-                                    } else if (nearestDistance <= 15) {
-                                        this.logger.add(`${monster.name} moved, drawn by the scent of blood...`, "monsterInfo");
-                                    } else {
-                                        this.logger.add(`${monster.name} seems to have sensed the scent of blood from afar...`, "monsterInfo");
+                                    // 昆虫系と死者系で異なるメッセージを表示
+                                    if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC, MONSTER_CATEGORIES.SECONDARY.INSECTOID)) {
+                                        if (nearestDistance <= 5) {
+                                            this.logger.add(`${monster.name} is aggressively drawn to the scent of blood!`, "monsterInfo");
+                                        } else if (nearestDistance <= 15) {
+                                            this.logger.add(`${monster.name} skitters toward the blood...`, "monsterInfo");
+                                        } else {
+                                            this.logger.add(`${monster.name} seems to have detected blood from afar...`, "monsterInfo");
+                                        }
+                                    } else { // アンデッド系の場合
+                                        if (nearestDistance <= 5) {
+                                            this.logger.add(`${monster.name} is strongly attracted to the scent of blood!`, "monsterInfo");
+                                        } else if (nearestDistance <= 15) {
+                                            this.logger.add(`${monster.name} moved, drawn by the scent of blood...`, "monsterInfo");
+                                        } else {
+                                            this.logger.add(`${monster.name} seems to have sensed the scent of blood from afar...`, "monsterInfo");
+                                        }
                                     }
                                 }
                             }
