@@ -61,6 +61,11 @@ class LiquidSystem {
             return false;
         }
 
+        // 閉じたドアの上には液体を置かない
+        if (this.game.tiles && this.game.tiles[y] && this.game.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+            return false;
+        }
+
         // 液体タイプが存在するか確認
         if (!this.liquids[lowerType]) {
             console.error(`未定義の液体タイプ: ${lowerType}`);
@@ -251,6 +256,11 @@ class LiquidSystem {
             return false;
         }
 
+        // 移動先が閉じたドアの場合は移動しない
+        if (this.game.tiles && this.game.tiles[toY] && this.game.tiles[toY][toX] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+            return false;
+        }
+
         // 液体の転移率を取得
         const liquidSettings = GAME_CONSTANTS.LIQUIDS[type.toUpperCase()];
         const transferRate = liquidSettings ? liquidSettings.TRANSFER_RATE : 0.3;
@@ -387,6 +397,10 @@ class LiquidSystem {
 
                 // マップ内で、床タイルであれば追加
                 if (this.game.isValidPosition(nx, ny) && this.game.map[ny][nx] === 'floor') {
+                    // 閉じたドアのタイルは除外
+                    if (this.game.tiles && this.game.tiles[ny][nx] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                        continue;
+                    }
                     adjacentTiles.push({x: nx, y: ny});
                 }
             }
