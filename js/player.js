@@ -528,14 +528,25 @@ class Player {
         // HPが0になった場合の処理
         if (this.hp === 0) {
             // 死因を設定
-            let cause = 'Exhaustion';  // デフォルトの死因
+            let cause = 'Unknown cause';  // デフォルトの死因
             if (context.source) {
                 if (context.source instanceof Monster) {
                     cause = `Killed by ${context.source.name}`;
                 } else if (context.source === 'exhaustion') {
                     cause = 'Succumbed to exhaustion';
+                } else if (typeof context.source === 'string') {
+                    cause = context.source;
                 }
+            } else if (context.attackType) {
+                // 攻撃タイプがある場合はそれを使用
+                cause = context.attackType;
             }
+            
+            // 遠距離攻撃の場合の特別処理
+            if (context.isRangedAttack && context.attackerName) {
+                cause = `Killed by ${context.attackerName}'s energy beam`;
+            }
+            
             this.deathCause = cause;
             
             // エフェクトと効果音を再生

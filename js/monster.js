@@ -1798,7 +1798,12 @@ class Monster {
                     game.logger.add(`Critical hit!`, "monsterCrit");
                     
                     // ダメージを適用
-                    const result = game.player.takeDamage(finalDamage, game);
+                    const result = game.player.takeDamage(finalDamage, {
+                        isRangedAttack: true,
+                        isCritical: true,
+                        attackerName: this.name,
+                        attackType: "Energy beam"
+                    });
                     
                     // ダメージエフェクト
                     game.renderer.showCritEffect(game.player.x, game.player.y);
@@ -1817,7 +1822,12 @@ class Monster {
                     finalDamage = Math.max(1, damage.total - totalDefense);
                     
                     // ダメージを適用
-                    const result = game.player.takeDamage(finalDamage, game);
+                    const result = game.player.takeDamage(finalDamage, {
+                        isRangedAttack: true,
+                        isCritical: false,
+                        attackerName: this.name,
+                        attackType: "Energy beam"
+                    });
                     
                     // ダメージエフェクト
                     game.renderer.showDamageFlash();
