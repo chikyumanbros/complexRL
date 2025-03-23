@@ -919,6 +919,19 @@ class Renderer {
                             style = `color: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.LIGHT.COLOR}; opacity: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.LIGHT.OPACITY}`;
                         }
                         
+                        // 開いたドアの上に血痕がある場合は、ドアの文字を保持
+                        if (this.game.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.OPEN) {
+                            content = GAME_CONSTANTS.TILES.DOOR.OPEN;
+                            // 血痕の色とスタイルを適用
+                            if (bloodpool.severity === 3) {
+                                style = `color: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.HEAVY.COLOR}; opacity: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.HEAVY.OPACITY}`;
+                            } else if (bloodpool.severity === 2) {
+                                style = `color: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.MEDIUM.COLOR}; opacity: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.MEDIUM.OPACITY}`;
+                            } else {
+                                style = `color: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.LIGHT.COLOR}; opacity: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.LIGHT.OPACITY}`;
+                            }
+                        }
+                        
                         // プレイヤーやモンスターが血痕の上にいる場合は、そのキャラクターを優先表示
                         if (x === this.game.player.x && y === this.game.player.y) {
                             content = this.game.player.char;
