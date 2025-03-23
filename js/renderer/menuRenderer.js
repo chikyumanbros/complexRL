@@ -226,8 +226,6 @@ class MenuRenderer {
             // タイトルアート用のコンテナを作成
             const titleArtContainer = document.createElement('div');
             titleArtContainer.className = 'title-art-container';
-            titleArtContainer.style.animation = 'none';
-            titleArtContainer.style.transition = 'none';
             titleArtContainer.style.lineHeight = '0.5';
             titleArtContainer.style.margin = '5px';
             titleArtContainer.style.padding = '0';
@@ -236,13 +234,21 @@ class MenuRenderer {
             titleArtContainer.style.opacity = '1';
             staticContainer.appendChild(titleArtContainer);
             
+            // 基本色と波のパラメータ - フルカラーに変更
+            const baseHue = 0; // 赤から開始
+            const hueRange = 360; // フルカラーの色相範囲
+            const baseValue = 75; // 明るさの基本値
+            const valueRange = 15; // 明るさの変化範囲
+            const baseSaturation = 90; // 彩度の基本値
+            
+            // タイトルアートの各行の要素を保持する配列
+            const titleElements = [];
+            
             // タイトルアートを表示
-            titleArt.forEach(line => {
+            titleArt.forEach((line, index) => {
                 const div = document.createElement('div');
                 div.textContent = line;
                 div.className = 'message title';
-                div.style.animation = 'none';
-                div.style.transition = 'none';
                 div.style.whiteSpace = 'pre';
                 div.style.lineHeight = '0.8';
                 div.style.margin = '0';
@@ -250,10 +256,48 @@ class MenuRenderer {
                 div.style.display = 'block';
                 div.style.visibility = 'visible';
                 div.style.opacity = '1';
-                div.style.color = '#fffdd0'; // クリーム色で確実に表示
                 div.style.fontSize = '20px';
+                
+                // 初期の色を設定（HSLを使用）- 行によって異なる色相で初期化
+                const initialHue = (baseHue + index * 30) % 360;
+                const initialValue = baseValue;
+                div.style.color = `hsl(${initialHue}, ${baseSaturation}%, ${initialValue}%)`;
+                
                 titleArtContainer.appendChild(div);
+                titleElements.push(div); // 配列に要素を追加
             });
+            
+            // 波のアニメーション用のパラメータ
+            let time = 0;
+            const waveSpeed = 0.05; // 波の速度（遅めに）
+            const waveFrequency = 0.3; // 波の周波数
+            const waveAmplitude = 1.0; // 波の振幅
+            
+            // JavaScriptによるウェーブアニメーション
+            const animateWave = () => {
+                titleElements.forEach((element, index) => {
+                    // 波形関数を使用して色相と明るさを計算
+                    const waveOffset = Math.sin(time + index * waveFrequency) * waveAmplitude;
+                    
+                    // 色相の計算 - 全色相環を回転
+                    const hue = (baseHue + index * 40 + time * 20) % 360;
+                    
+                    // 明るさの変化 - 波に合わせて明るく/暗くなる
+                    const value = baseValue + waveOffset * valueRange;
+                    
+                    // HSL色空間で色を設定
+                    element.style.color = `hsl(${hue}, ${baseSaturation}%, ${value}%)`;
+                });
+                
+                // 時間を進める
+                time += waveSpeed;
+                
+                // 次のアニメーションフレーム
+                setTimeout(animateWave, 50); // よりスムーズなアニメーションのため、短い間隔
+            };
+            
+            // アニメーションを開始
+            animateWave();
             
             // 空行とクレジットを表示
             ['', ...credits].forEach(line => {
