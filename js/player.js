@@ -767,10 +767,49 @@ class Player {
         if (this.game.tiles[this.y][this.x] === GAME_CONSTANTS.STAIRS.CHAR) {
             this.game.logger.add(`You descend to floor ${this.game.floorLevel + 1}...`, "important");
             this.game.processTurn();  // 先にターンを消費
+            
+            // 階段を降りる前に、現在のHPとvigorを記録
+            const beforeHp = this.hp;
+            const beforeVigor = this.vigor;
+            
+            // 危険度に応じた回復率を定義
+            const recoveryRates = {
+                'SAFE': { hp: 0.5, vigor: 0.7 },        // HP 50%, vigor 70%
+                'NORMAL': { hp: 0.3, vigor: 0.5 },      // HP 30%, vigor 50%
+                'DANGEROUS': { hp: 0.15, vigor: 0.25 },  // HP 15%, vigor 25%
+                'DEADLY': { hp: 0.05, vigor: 0.1 }       // HP 5%, vigor 10%
+            };
+            
+            // 現在の危険度から回復率を取得
+            const currentDanger = this.game.dangerLevel;
+            const recoveryRate = recoveryRates[currentDanger];
+            
+            // HP回復の計算（最大値を超えないように）
+            const hpRecovery = Math.floor((this.maxHp - this.hp) * recoveryRate.hp);
+            if (hpRecovery > 0) {
+                this.hp = Math.min(this.maxHp, this.hp + hpRecovery);
+            }
+            
+            // Vigor回復の計算（最大値を超えないように）
+            const vigorRecovery = Math.floor((this.maxVigor - this.vigor) * recoveryRate.vigor);
+            if (vigorRecovery > 0) {
+                this.vigor = Math.min(this.maxVigor, this.vigor + vigorRecovery);
+            }
+            
+            // フロアレベルを増加
             this.game.floorLevel++;
+            
+            // 新しいフロアを生成
             this.game.generateNewFloor();
             this.game.soundManager.updateBGM();  // BGMを更新
             this.game.playSound('descendStairsSound');
+            
+            // 回復量をログに表示（回復があった場合のみ）
+            if (hpRecovery > 0 || vigorRecovery > 0) {
+                const recoveryMessage = `階段を降りると体力が回復した！ ${beforeHp} → ${this.hp} HP, ${beforeVigor} → ${this.vigor} Vigor`;
+                this.game.logger.add(recoveryMessage, "positive");
+            }
+            
             return true;
         }
         return false;
