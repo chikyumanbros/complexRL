@@ -942,22 +942,46 @@ class MapGenerator {
         
         // 階段の配置可能な位置を収集
         const validPositions = [];
+        const MIN_DISTANCE_FROM_PLAYER = 5; // プレイヤーからの最小距離
+        
         for (let y = lastRoom.y; y < lastRoom.y + lastRoom.height; y++) {
             for (let x = lastRoom.x; x < lastRoom.x + lastRoom.width; x++) {
-                // プレイヤーの開始位置と異なる場所のみを有効な位置として追加
-                if (this.map[y][x] === 'floor' && 
-                    !(x === this.game?.player?.x && y === this.game?.player?.y)) {
-                    validPositions.push({x, y});
+                // 床タイルかつプレイヤーの位置と異なる場合
+                if (this.map[y][x] === 'floor') {
+                    // プレイヤーが存在する場合、距離をチェック
+                    if (this.game?.player) {
+                        // プレイヤーからの距離を計算
+                        const distanceToPlayer = Math.sqrt(
+                            Math.pow(x - this.game.player.x, 2) + 
+                            Math.pow(y - this.game.player.y, 2)
+                        );
+                        
+                        // 最小距離以上離れている場合のみ有効な位置として追加
+                        if (distanceToPlayer >= MIN_DISTANCE_FROM_PLAYER) {
+                            validPositions.push({x, y});
+                        }
+                    } else {
+                        // プレイヤーが存在しない場合（初期生成時など）は全ての床タイルを追加
+                        validPositions.push({x, y});
+                    }
+                }
+            }
+        }
+        
+        // 有効な位置が見つからない場合は制約を緩める
+        if (validPositions.length === 0) {
+            for (let y = lastRoom.y; y < lastRoom.y + lastRoom.height; y++) {
+                for (let x = lastRoom.x; x < lastRoom.x + lastRoom.width; x++) {
+                    if (this.map[y][x] === 'floor' && 
+                        !(x === this.game?.player?.x && y === this.game?.player?.y)) {
+                        validPositions.push({x, y});
+                    }
                 }
             }
         }
         
         // 有効な位置からランダムに1つ選択
         const stairsPos = validPositions[Math.floor(Math.random() * validPositions.length)];
-        
-        // デバッグログ
-        //console.log('Valid positions for stairs:', validPositions.length);
-        //console.log('Selected position:', stairsPos);
         
         // 階段の配置
         this.map[stairsPos.y][stairsPos.x] = 'floor';  // 基底マップを床に
