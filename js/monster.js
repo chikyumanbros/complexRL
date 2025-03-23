@@ -688,7 +688,7 @@ class Monster {
                     game.renderer.flashLogPanel();
                     game.soundManager.playSound('cautionSound');
                     
-                    // モンスターがプレイヤーをスポットしたときも情報を表示
+                    // モンスターがプレイヤーをスポットしたときも情報を表示（プレイヤーから見える場合のみ）
                     game.renderer.examineTarget(this.x, this.y);
                 }
                 

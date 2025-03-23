@@ -108,3 +108,12 @@ bloodpool通過で確率で移動先にbloodpoolを拡散するように
 level1 巨大なウジ虫　blood吸収で　level2巨大な蝿に変化
 
 
+ゲーム要素として新たにガスを新たに作ってみたい。
+constantsの拡張と、gassystemとして新しいクラスを設定して拡散する物理動作処理をする。
+bloodから時間経過でmiasmaが発生
+プレーヤーはmiasmaに触れるとvigor低下
+charは
+░
+▒
+▓
+を透過で使用する。

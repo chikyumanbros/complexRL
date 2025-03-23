@@ -931,6 +931,18 @@ class Renderer {
                                 style = `color: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.LIGHT.COLOR}; opacity: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.LIGHT.OPACITY}`;
                             }
                         }
+                        // 閉じたドアの上に血痕がある場合も、同様にドアの文字を保持して血痕の色を適用
+                        else if (this.game.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                            content = GAME_CONSTANTS.TILES.DOOR.CLOSED;
+                            // 血痕の色とスタイルを適用
+                            if (bloodpool.severity === 3) {
+                                style = `color: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.HEAVY.COLOR}; opacity: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.HEAVY.OPACITY}`;
+                            } else if (bloodpool.severity === 2) {
+                                style = `color: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.MEDIUM.COLOR}; opacity: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.MEDIUM.OPACITY}`;
+                            } else {
+                                style = `color: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.LIGHT.COLOR}; opacity: ${GAME_CONSTANTS.LIQUIDS.BLOOD.SEVERITY.LIGHT.OPACITY}`;
+                            }
+                        }
                         
                         // プレイヤーやモンスターが血痕の上にいる場合は、そのキャラクターを優先表示
                         if (x === this.game.player.x && y === this.game.player.y) {
@@ -1315,6 +1327,14 @@ class Renderer {
     examineTarget(targetX, targetY, lookMode = false) {
         // ターン毎にlookInfoをクリアするため、game.loggerのメソッドを呼び出す
         this.game.logger.clearLookInfo();
+
+        // プレイヤーの視界内にあるかチェック（lookModeが有効な場合、または明示的に視界チェックをスキップする場合を除く）
+        const isVisible = lookMode || this.game.getVisibleTiles().some(tile => tile.x === targetX && tile.y === targetY);
+        
+        // 視界内にない場合は何も表示しない
+        if (!isVisible) {
+            return;
+        }
 
         let monster = this.game.getMonsterAt(targetX, targetY);
         
