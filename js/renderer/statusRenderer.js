@@ -295,13 +295,31 @@ class StatusRenderer {
                         <div class="bar" style="width: ${energyPercent}%; background-color: ${barColor}"></div>
                     </div>
                 </div>
-                <div class="ranged-stats-grid">
-                    <div class="ranged-info">ATK: <span class="value">${rangedCombat.attack.base}+${rangedCombat.attack.dice.count}d${rangedCombat.attack.dice.sides}</span></div>
-                    <div class="ranged-info">ACC: <span class="value">${accuracyDisplay}</span></div>
-                    <div class="ranged-info">Range: <span class="value">${rangedCombat.range}</span></div>
-                    <div class="ranged-info">Cost: <span class="value">${rangedCombat.energy.cost}/shot</span></div>
-                    <div class="ranged-info">Re.C: <span class="value">${rangedCombat.energy.rechargeRate}/turn</span></div>
-                    <div class="ranged-info">SPD: <span class="value">${speedDisplay}</span></div>
+                <div class="stats-grid">
+                    <div class="stat-row">
+                        <span class="label">ATK:</span>
+                        <span id="attack">${rangedCombat.attack.base}+${rangedCombat.attack.dice.count}d${rangedCombat.attack.dice.sides}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="label">ACC:</span>
+                        <span id="accuracy">${accuracyDisplay}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="label">Range:</span>
+                        <span id="range">${rangedCombat.range}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="label">Cost:</span>
+                        <span id="cost">${rangedCombat.energy.cost}/shot</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="label">Re.C:</span>
+                        <span id="recharge">${rangedCombat.energy.rechargeRate}/turn</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="label">SPD:</span>
+                        <span id="speed">${speedDisplay}</span>
+                    </div>
                 </div>
                 ${targetInfo}
                 ${penaltyText}
