@@ -942,7 +942,7 @@ class MapGenerator {
         
         // 階段の配置可能な位置を収集
         const validPositions = [];
-        const MIN_DISTANCE_FROM_PLAYER = 5; // プレイヤーからの最小距離
+        const MIN_DISTANCE_FROM_PLAYER = 10; // プレイヤーからの最小距離を10マスに増加
         
         for (let y = lastRoom.y; y < lastRoom.y + lastRoom.height; y++) {
             for (let x = lastRoom.x; x < lastRoom.x + lastRoom.width; x++) {
@@ -970,11 +970,38 @@ class MapGenerator {
         
         // 有効な位置が見つからない場合は制約を緩める
         if (validPositions.length === 0) {
-            for (let y = lastRoom.y; y < lastRoom.y + lastRoom.height; y++) {
-                for (let x = lastRoom.x; x < lastRoom.x + lastRoom.width; x++) {
-                    if (this.map[y][x] === 'floor' && 
-                        !(x === this.game?.player?.x && y === this.game?.player?.y)) {
-                        validPositions.push({x, y});
+            // 最小距離を徐々に減らして再試行
+            let reducedDistance = MIN_DISTANCE_FROM_PLAYER;
+            while (validPositions.length === 0 && reducedDistance > 3) {
+                reducedDistance -= 2; // 距離を2マスずつ減らす
+                for (let y = lastRoom.y; y < lastRoom.y + lastRoom.height; y++) {
+                    for (let x = lastRoom.x; x < lastRoom.x + lastRoom.width; x++) {
+                        if (this.map[y][x] === 'floor' && 
+                            !(x === this.game?.player?.x && y === this.game?.player?.y)) {
+                            if (this.game?.player) {
+                                const distanceToPlayer = Math.sqrt(
+                                    Math.pow(x - this.game.player.x, 2) + 
+                                    Math.pow(y - this.game.player.y, 2)
+                                );
+                                if (distanceToPlayer >= reducedDistance) {
+                                    validPositions.push({x, y});
+                                }
+                            } else {
+                                validPositions.push({x, y});
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // それでも見つからない場合は、最低限プレイヤーと同じ位置でないことだけを確認
+            if (validPositions.length === 0) {
+                for (let y = lastRoom.y; y < lastRoom.y + lastRoom.height; y++) {
+                    for (let x = lastRoom.x; x < lastRoom.x + lastRoom.width; x++) {
+                        if (this.map[y][x] === 'floor' && 
+                            !(x === this.game?.player?.x && y === this.game?.player?.y)) {
+                            validPositions.push({x, y});
+                        }
                     }
                 }
             }
