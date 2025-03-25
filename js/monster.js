@@ -765,6 +765,8 @@ class Monster {
             return false;
         }
         
+        // --- Floor Check ---
+        // 床でないタイル（壁やvoidなど）は移動できない
         return game.map[y][x] === 'floor';
     }
 
@@ -939,6 +941,23 @@ class Monster {
         ].filter(move => {
             const newX = this.x + move.x;
             const newY = this.y + move.y;
+            
+            // 斜め移動の場合、2つの隣接するマスも通行可能か確認
+            if (Math.abs(move.x) === 1 && Math.abs(move.y) === 1) {
+                // 水平方向のマスが通行可能か
+                const horizontalPassable = this.canMoveTo(this.x + move.x, this.y, game) && 
+                                          !game.getMonsterAt(this.x + move.x, this.y);
+                
+                // 垂直方向のマスが通行可能か
+                const verticalPassable = this.canMoveTo(this.x, this.y + move.y, game) && 
+                                        !game.getMonsterAt(this.x, this.y + move.y);
+                
+                // どちらかが通行不可能なら、斜め移動は許可しない
+                if (!horizontalPassable || !verticalPassable) {
+                    return false;
+                }
+            }
+            
             // 移動先の厳密なチェック
             return this.canMoveTo(newX, newY, game) && 
                    !game.getMonsterAt(newX, newY) && 
@@ -967,9 +986,19 @@ class Monster {
             const oldX = this.x;
             const oldY = this.y;
             
+            // 移動予定先が本当に移動可能か最終確認する
+            const newX = this.x + bestMove.x;
+            const newY = this.y + bestMove.y;
+            
+            // 最終チェック - 壁やその他の障害物がないことを確認
+            if (!this.canMoveTo(newX, newY, game) || game.getMonsterAt(newX, newY)) {
+                // 移動先が不適切になった場合は移動せずに終了
+                return false;
+            }
+            
             // 移動実施
-            this.x = this.x + bestMove.x;
-            this.y = this.y + bestMove.y;
+            this.x = newX;
+            this.y = newY;
             
             // 血痕の移動処理 - 移動元に血痕があれば一部を移動先に移す
             game.transferBloodpool(oldX, oldY, this.x, this.y);
@@ -1148,9 +1177,19 @@ class Monster {
             const oldX = this.x;
             const oldY = this.y;
             
-            // 移動の実行
-            this.x = this.x + bestMove.dx;
-            this.y = this.y + bestMove.dy;
+            // 移動予定先が本当に移動可能か最終確認する
+            const newX = this.x + bestMove.dx;
+            const newY = this.y + bestMove.dy;
+            
+            // 最終チェック - 壁やその他の障害物がないことを確認
+            if (!this.canMoveTo(newX, newY, game) || game.getMonsterAt(newX, newY)) {
+                // 移動先が不適切になった場合は移動せずに終了
+                return false;
+            }
+            
+            // 移動実施
+            this.x = newX;
+            this.y = newY;
             
             // 血痕の移動処理 - 移動元に血痕があれば一部を移動先に移す
             game.transferBloodpool(oldX, oldY, this.x, this.y);
@@ -1333,6 +1372,12 @@ class Monster {
         const fromX = this.x;
         const fromY = this.y;
         
+        // 最終チェック - ジャンプ先が本当に移動可能か確認
+        if (!this.canMoveTo(jumpTarget.x, jumpTarget.y, game) || 
+            game.getMonsterAt(jumpTarget.x, jumpTarget.y)) {
+            return false; // 移動先が不適切な場合はジャンプしない
+        }
+        
         // 移動エフェクトを表示
         game.renderer.showMovementTrailEffect(fromX, fromY, jumpTarget.x, jumpTarget.y);
         
@@ -1402,6 +1447,18 @@ class Monster {
                 const targetX = this.x + offsetX;
                 const targetY = this.y + offsetY;
                 
+                // 斜め移動の場合は、隣接する2つのマスも通行可能か確認
+                if (Math.abs(offsetX) === 1 && Math.abs(offsetY) === 1) {
+                    // 水平方向と垂直方向が壁でないか確認
+                    const horizontalPassable = this.canMoveTo(this.x + offsetX, this.y, game);
+                    const verticalPassable = this.canMoveTo(this.x, this.y + offsetY, game);
+                    
+                    // どちらかが通行不可能なら、斜め移動は許可しない
+                    if (!horizontalPassable || !verticalPassable) {
+                        continue;
+                    }
+                }
+                
                 // 移動可能かチェック（壁や閉じたドアがない）
                 if (this.canMoveTo(targetX, targetY, game) && 
                     !game.getMonsterAt(targetX, targetY) &&
@@ -1420,8 +1477,10 @@ class Monster {
         // ランダムに位置を選択
         const webPos = webPositions[Math.floor(Math.random() * webPositions.length)];
         
-        // 再度位置が有効か最終チェック
-        if (!this.canMoveTo(webPos.x, webPos.y, game)) {
+        // 再度位置が有効か最終チェック - より厳密に確認
+        if (!this.canMoveTo(webPos.x, webPos.y, game) || 
+            game.getMonsterAt(webPos.x, webPos.y) ||
+            (webPos.x === game.player.x && webPos.y === game.player.y)) {
             return false;
         }
         
@@ -1682,6 +1741,19 @@ class Monster {
         const validMoves = possibleMoves.filter(move => {
             const newX = this.x + move.x;
             const newY = this.y + move.y;
+            
+            // 斜め移動の場合、水平方向と垂直方向のマスもチェック
+            if (Math.abs(move.x) === 1 && Math.abs(move.y) === 1) {
+                const horizontalPassable = this.canMoveTo(this.x + move.x, this.y, game) && 
+                                          !game.getMonsterAt(this.x + move.x, this.y);
+                const verticalPassable = this.canMoveTo(this.x, this.y + move.y, game) && 
+                                        !game.getMonsterAt(this.x, this.y + move.y);
+                                        
+                if (!horizontalPassable || !verticalPassable) {
+                    return false;
+                }
+            }
+            
             return this.canMoveTo(newX, newY, game) && !game.getMonsterAt(newX, newY);
         });
 
@@ -1701,9 +1773,27 @@ class Monster {
             }, null);
 
             if (bestMove) {
-                this.x += bestMove.move.x;
-                this.y += bestMove.move.y;
-
+                // 移動前の位置を記録
+                const oldX = this.x;
+                const oldY = this.y;
+                
+                // 移動予定先が本当に移動可能か最終確認する
+                const newX = this.x + bestMove.move.x;
+                const newY = this.y + bestMove.move.y;
+                
+                // 最終チェック - 壁やその他の障害物がないことを確認
+                if (!this.canMoveTo(newX, newY, game) || game.getMonsterAt(newX, newY)) {
+                    // 移動先が不適切になった場合は移動せずに終了
+                    return false;
+                }
+                
+                // 移動実施
+                this.x = newX;
+                this.y = newY;
+                
+                // 血痕の移動処理 - 移動元に血痕があれば一部を移動先に移す
+                game.transferBloodpool(oldX, oldY, this.x, this.y);
+                
                 // プレイヤーの視界内にいる場合のみメッセージを表示
                 const isVisibleToPlayer = game.getVisibleTiles()
                     .some(tile => tile.x === this.x && tile.y === this.y);
