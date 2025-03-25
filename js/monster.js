@@ -649,7 +649,10 @@ class Monster {
         // プレイヤーの視界内にモンスターがいるかをチェック
         const isInPlayerVision = game.getVisibleTiles().some(tile => tile.x === this.x && tile.y === this.y);
 
-        // サイズボーナスを考慮した感知判定
+        // モンスターの追跡持続ターン数を調整（知覚能力が高いほど長く追跡）
+        this.maxTrackingTurns = 5 + Math.floor(this.perception / 2); // 基本5ターン + 知覚ボーナス
+
+        // サイズボーナスを考慮した感知判定 
         if ((Distance <= (this.perception + sizeBonus) && this.hasLineOfSight(game)) || 
             (pathDistance <= effectiveSoundRange)) {
             if (!this.hasSpottedPlayer) {
@@ -714,15 +717,58 @@ class Monster {
             }
             
             this.pursueTarget(game, game.player.x, game.player.y);
-        } 
+        }
         else if (this.trackingTurns > 0 && this.lastKnownPlayerX !== null) {
             this.trackingTurns--;
+            
+            // プレイヤーを見失ってからの追跡ターン数を表示（デバッグ用、必要に応じてコメントアウト）
+            // if (isInPlayerVision) {
+            //     game.logger.add(`${this.name} is searching for you (${this.trackingTurns} turns left).`, "monsterInfo");
+            // }
+            
             this.pursueTarget(game, this.lastKnownPlayerX, this.lastKnownPlayerY);
             
+            // プレイヤーの最後の位置に到達した場合、周囲を探索
+            if (this.x === this.lastKnownPlayerX && this.y === this.lastKnownPlayerY) {
+                // 周囲のランダムな位置に移動して探索を続ける
+                const directions = [
+                    [-1, -1], [0, -1], [1, -1],
+                    [-1,  0],          [1,  0],
+                    [-1,  1], [0,  1], [1,  1]
+                ];
+                
+                // シャッフルして最初のいくつかの方向に移動を試みる
+                for (let i = directions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [directions[i], directions[j]] = [directions[j], directions[i]];
+                }
+                
+                // 最初の有効な方向に移動
+                for (const [moveX, moveY] of directions) {
+                    const newX = this.x + moveX;
+                    const newY = this.y + moveY;
+                    
+                    if (this.canMoveTo(newX, newY, game) && !game.getMonsterAt(newX, newY)) {
+                        this.x = newX;
+                        this.y = newY;
+                        
+                        if (isInPlayerVision) {
+                            game.logger.add(`${this.name} searches the area.`, "monsterInfo");
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            // 追跡終了時
             if (this.trackingTurns === 0) {
                 this.hasSpottedPlayer = false;
                 this.lastKnownPlayerX = null;
                 this.lastKnownPlayerY = null;
+                
+                if (isInPlayerVision) {
+                    game.logger.add(`${this.name} loses interest.`, "monsterInfo");
+                }
             }
         }
         else {
@@ -755,19 +801,54 @@ class Monster {
             return false;
         }
         
-        // --- Closed Door Check ---
-        if (game.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+        // --- 床タイルのチェック ---
+        // 床でないマップはそもそも移動できない
+        if (game.map[y][x] !== 'floor') {
             return false;
         }
         
-        // --- Wall Check (add tiles check) ---
-        if (GAME_CONSTANTS.TILES.WALL.includes(game.tiles[y][x])) {
+        // --- 特殊タイルのチェック ---
+        const tileChar = game.tiles[y][x];
+        
+        // --- Wall Check (include all wall types) ---
+        if (GAME_CONSTANTS.TILES.WALL.includes(tileChar) || 
+            GAME_CONSTANTS.TILES.CYBER_WALL.includes(tileChar)) {
             return false;
         }
         
-        // --- Floor Check ---
-        // 床でないタイル（壁やvoidなど）は移動できない
-        return game.map[y][x] === 'floor';
+        // --- Door Check ---
+        if (tileChar === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+            return false;
+        }
+        
+        // --- Obstacle Check (視線を遮る/通す障害物の両方) ---
+        if (GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(tileChar) || 
+            GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tileChar)) {
+            return false;
+        }
+        
+        // --- Portal Check (通常ポータルとvoidポータル) ---
+        if (tileChar === GAME_CONSTANTS.PORTAL.GATE.CHAR || 
+            tileChar === GAME_CONSTANTS.PORTAL.VOID.CHAR) {
+            return false;
+        }
+        
+        // --- Stairs Check ---
+        if (tileChar === GAME_CONSTANTS.STAIRS.CHAR) {
+            return false;
+        }
+        
+        // --- Neural Obelisk Check ---
+        if (tileChar === GAME_CONSTANTS.NEURAL_OBELISK.CHAR) {
+            return false;
+        }
+        
+        // --- Web Check (自分自身がG_SPIDERなら移動可能、それ以外の場合は移動可能だが捕まる可能性がある) ---
+        // 蜘蛛の巣は移動自体は可能なのでここではチェックしない
+        // pursueTarget内などで実際に移動後に捕まるかチェックする
+        
+        // すべてのチェックを通過した場合は移動可能
+        return true;
     }
 
     // ========================== attackPlayer Method ==========================
@@ -820,36 +901,14 @@ class Monster {
     }
 
     // ========================== hasLineOfSight Method ==========================
-    // 視線チェックメソッドを追加
+    // 視線チェックメソッドを修正 - game内のvisionSystemを使用
     hasLineOfSight(game) {
-        const points = this.getLinePoints(this.x, this.y, game.player.x, game.player.y);
-        
-        // プレイヤーの位置を除く全ての点をチェック
-        for (let i = 0; i < points.length - 1; i++) {
-            const point = points[i];
-            const tile = game.tiles[point.y][point.x];
-            
-            // 床でない場合、障害物の種類をチェック
-            if (game.map[point.y][point.x] !== 'floor') {
-                // 透明な障害物、void portal、obeliskは視線を通す
-                const isTransparentObstacle = GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tile);
-                const isVoidPortal = tile === GAME_CONSTANTS.PORTAL.VOID.CHAR;
-                const isObelisk = tile === GAME_CONSTANTS.NEURAL_OBELISK.CHAR;
-                if (!isTransparentObstacle && !isVoidPortal && !isObelisk) {
-                    return false;
-                }
-            }
-            
-            // 閉じたドアは視線を遮る
-            if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
-                return false;
-            }
-        }
-        return true;
+        // 游ムのVisionSystemを利用する
+        return game.visionSystem.hasLineOfSight(this.x, this.y, game.player.x, game.player.y);
     }
 
     // ========================== getLinePoints Utility Method ==========================
-    // 2点間の経路上の全ての点を取得
+    // 2点間の経路上の全ての点を取得（壁の角を「すり抜ける」問題を修正）
     getLinePoints(x0, y0, x1, y1) {
         const points = [];
         const dx = Math.abs(x1 - x0);
@@ -860,6 +919,9 @@ class Monster {
 
         let x = x0;
         let y = y0;
+        
+        let lastX = x;
+        let lastY = y;
 
         while (true) {
             points.push({x: x, y: y});
@@ -867,6 +929,11 @@ class Monster {
             if (x === x1 && y === y1) break;
             
             const e2 = 2 * err;
+            
+            // 元の（lastX、lastY）座標を保存
+            lastX = x;
+            lastY = y;
+            
             if (e2 > -dy) {
                 err -= dy;
                 x += sx;
@@ -874,6 +941,25 @@ class Monster {
             if (e2 < dx) {
                 err += dx;
                 y += sy;
+            }
+            
+            // 斜め移動の場合、壁の角をチェック
+            if (x !== lastX && y !== lastY) {
+                // 壁の角をチェック - 両方の隣接マスが壁ならば視線は通らない
+                const horizontalWall = this.x !== undefined ? 
+                    !this.canMoveTo(lastX + sx, lastY, game) : 
+                    game.map[lastY][lastX + sx] !== 'floor';
+                    
+                const verticalWall = this.x !== undefined ? 
+                    !this.canMoveTo(lastX, lastY + sy, game) : 
+                    game.map[lastY + sy][lastX] !== 'floor';
+                    
+                if (horizontalWall && verticalWall) {
+                    // 両方が壁の場合、視線は通らない
+                    points.push({x: lastX + sx, y: lastY});
+                    points.push({x: lastX, y: lastY + sy});
+                    break;
+                }
             }
         }
 
@@ -944,16 +1030,21 @@ class Monster {
             
             // 斜め移動の場合、2つの隣接するマスも通行可能か確認
             if (Math.abs(move.x) === 1 && Math.abs(move.y) === 1) {
-                // 水平方向のマスが通行可能か
+                // 水平方向と垂直方向の両方のマスが通行可能か確認
                 const horizontalPassable = this.canMoveTo(this.x + move.x, this.y, game) && 
                                           !game.getMonsterAt(this.x + move.x, this.y);
                 
-                // 垂直方向のマスが通行可能か
                 const verticalPassable = this.canMoveTo(this.x, this.y + move.y, game) && 
                                         !game.getMonsterAt(this.x, this.y + move.y);
                 
-                // どちらかが通行不可能なら、斜め移動は許可しない
+                // 両方の隣接マスが通行不可能なら、斜め移動は許可しない
                 if (!horizontalPassable || !verticalPassable) {
+                    return false;
+                }
+                
+                // 視線判定も行う - 斜め移動で壁をすり抜けないようにする
+                // 移動先から現在地点への視線が通るか確認
+                if (!game.visionSystem.hasLineOfSight(newX, newY, this.x, this.y)) {
                     return false;
                 }
             }
@@ -964,10 +1055,41 @@ class Monster {
                    game.tiles[newY][newX] !== GAME_CONSTANTS.TILES.DOOR.CLOSED;
         });
 
+        // --- 追跡ロジックの改善 ---
         let bestMove = null;
         let bestDistance = Infinity;
 
-        for (const move of possibleMoves) {
+        // 最適な移動を探索する前に、最後に知っているプレイヤーの位置への方向を計算
+        const dirX = Math.sign(targetX - this.x);
+        const dirY = Math.sign(targetY - this.y);
+
+        // 方向に対する優先度付きの移動
+        const prioritizedMoves = possibleMoves.slice();
+        
+        // 直接的な方向への移動に高い優先度を与える
+        prioritizedMoves.sort((a, b) => {
+            // 目標方向と一致する移動に高い優先度
+            const aDirectionMatch = (Math.sign(a.x) === dirX && Math.sign(a.y) === dirY);
+            const bDirectionMatch = (Math.sign(b.x) === dirX && Math.sign(b.y) === dirY);
+            
+            if (aDirectionMatch && !bDirectionMatch) return -1;
+            if (!aDirectionMatch && bDirectionMatch) return 1;
+            
+            // 方向が一致する場合は、より近い移動を優先
+            const aDistance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
+                this.x + a.x, this.y + a.y,
+                targetX, targetY
+            );
+            const bDistance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
+                this.x + b.x, this.y + b.y,
+                targetX, targetY
+            );
+            
+            return aDistance - bDistance;
+        });
+
+        // 優先度順に移動を評価
+        for (const move of prioritizedMoves) {
             const newX = this.x + move.x;
             const newY = this.y + move.y;
             
@@ -975,12 +1097,15 @@ class Monster {
                 newX, newY,
                 targetX, targetY
             );
+            
+            // 最短距離の移動を選択
             if (newDistance < bestDistance) {
                 bestDistance = newDistance;
                 bestMove = move;
             }
         }
 
+        // --- 移動の実行 ---
         if (bestMove) {
             // 移動前の位置を記録
             const oldX = this.x;
@@ -1143,9 +1268,8 @@ class Monster {
             const newX = this.x + dir.dx;
             const newY = this.y + dir.dy;
 
-            if (!this.canMoveTo(newX, newY, game) || 
-                game.getMonsterAt(newX, newY) || 
-                game.tiles[newY][newX] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+            // canMoveToで全てのチェックを行うようになったので、追加チェックは不要
+            if (!this.canMoveTo(newX, newY, game) || game.getMonsterAt(newX, newY)) {
                 continue;
             }
 
@@ -1181,7 +1305,7 @@ class Monster {
             const newX = this.x + bestMove.dx;
             const newY = this.y + bestMove.dy;
             
-            // 最終チェック - 壁やその他の障害物がないことを確認
+            // 最終チェック - 移動可能か確認
             if (!this.canMoveTo(newX, newY, game) || game.getMonsterAt(newX, newY)) {
                 // 移動先が不適切になった場合は移動せずに終了
                 return false;
@@ -1208,52 +1332,7 @@ class Monster {
                 game.logger.add(randomMessage, "monsterInfo");
             }
             
-            // 蜘蛛の巣チェック - 移動後に判定
-            const web = game.webs && game.webs.find(w => w.x === this.x && w.y === this.y);
-            if (web && this.type !== 'G_SPIDER') { // G_SPIDERは自分の巣に引っかからない
-                // 蜘蛛の巣に引っかかるかチェック
-                const trapChance = web.trapChance || GAME_CONSTANTS.WEB.TRAP_CHANCE;
-                // 捕捉確率を調整（プレイヤーと同じ計算式に）
-                const adjustedTrapChance = Math.min(0.9, trapChance * 1.5); // 50%増しに、最大90%
-                const roll = Math.random();
-                
-                if (roll < adjustedTrapChance) {
-                    // 蜘蛛の巣に引っかかった
-                    // プレイヤーの視界内にいる場合のみメッセージを表示
-                    const isVisibleToPlayer = game.getVisibleTiles()
-                        .some(tile => tile.x === this.x && tile.y === this.y);
-                    
-                    if (isVisibleToPlayer) {
-                        game.logger.add(`${this.name} is caught in a web!`, "monsterInfo");
-                    }
-                    
-                    // 移動したらほぼ確実に捕まるように - 同一ターン内の脱出確率を大幅に下げる
-                    const immediateEscapeChance = 0.15; // 15%の確率でのみ即時脱出可能に
-                    const escapeRoll = Math.random();
-                    
-                    if (escapeRoll < immediateEscapeChance) {
-                        // 脱出成功（同一ターン内）- まれなケース
-                        if (isVisibleToPlayer) {
-                            game.logger.add(`${this.name} manages to break free immediately!`, "monsterInfo");
-                            // 効果音を再生
-                            game.playSound('webBreakSound');
-                        }
-                        
-                        // 蜘蛛の巣を除去
-                        game.webs = game.webs.filter(w => !(w.x === web.x && w.y === web.y));
-                    } else {
-                        // 脱出失敗 - 捕まり状態をセット（ほとんどのケース）
-                        if (isVisibleToPlayer) {
-                            game.logger.add(`${this.name} struggles but remains caught in the web.`, "monsterInfo");
-                            // 効果音を再生
-                            game.playSound('webTrapSound');
-                        }
-                        
-                        // 捕まり状態を設定
-                        this.caughtInWeb = web;
-                    }
-                }
-            }
+            // ここ以降は移動後の処理のため変更なし
             
             return true;
         }
@@ -1325,7 +1404,7 @@ class Monster {
                 const targetX = game.player.x + offsetX;
                 const targetY = game.player.y + offsetY;
                 
-                // 移動可能かチェック
+                // 移動可能かチェック（canMoveToを使用）
                 if (this.canMoveTo(targetX, targetY, game) && 
                     !game.getMonsterAt(targetX, targetY)) {
                     
@@ -1459,12 +1538,29 @@ class Monster {
                     }
                 }
                 
-                // 移動可能かチェック（壁や閉じたドアがない）
-                if (this.canMoveTo(targetX, targetY, game) && 
+                // Web生成位置チェック
+                // 床タイルであること、かつ特殊オブジェクトがないこと、かつ他のモンスターがいないこと、かつプレイヤーがいないこと
+                if (game.map[targetY][targetX] === 'floor' && 
                     !game.getMonsterAt(targetX, targetY) &&
                     !(targetX === game.player.x && targetY === game.player.y)) {
                     
-                    webPositions.push({ x: targetX, y: targetY });
+                    // 特殊タイルを確認（障害物や階段などの上には生成しない）
+                    const tileChar = game.tiles[targetY][targetX];
+                    
+                    const isSpecialTile = 
+                        GAME_CONSTANTS.TILES.WALL.includes(tileChar) || 
+                        GAME_CONSTANTS.TILES.CYBER_WALL.includes(tileChar) ||
+                        GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(tileChar) || 
+                        GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tileChar) ||
+                        tileChar === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
+                        tileChar === GAME_CONSTANTS.STAIRS.CHAR ||
+                        tileChar === GAME_CONSTANTS.PORTAL.GATE.CHAR ||
+                        tileChar === GAME_CONSTANTS.PORTAL.VOID.CHAR ||
+                        tileChar === GAME_CONSTANTS.NEURAL_OBELISK.CHAR;
+                    
+                    if (!isSpecialTile) {
+                        webPositions.push({ x: targetX, y: targetY });
+                    }
                 }
             }
         }
@@ -1478,9 +1574,24 @@ class Monster {
         const webPos = webPositions[Math.floor(Math.random() * webPositions.length)];
         
         // 再度位置が有効か最終チェック - より厳密に確認
-        if (!this.canMoveTo(webPos.x, webPos.y, game) || 
+        // 床タイルであること、かつ他のモンスターがいないこと、かつプレイヤーがいないこと
+        if (game.map[webPos.y][webPos.x] !== 'floor' || 
             game.getMonsterAt(webPos.x, webPos.y) ||
             (webPos.x === game.player.x && webPos.y === game.player.y)) {
+            return false;
+        }
+        
+        // 特殊タイルの再チェック
+        const tileChar = game.tiles[webPos.y][webPos.x];
+        if (GAME_CONSTANTS.TILES.WALL.includes(tileChar) || 
+            GAME_CONSTANTS.TILES.CYBER_WALL.includes(tileChar) ||
+            GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(tileChar) || 
+            GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tileChar) ||
+            tileChar === GAME_CONSTANTS.TILES.DOOR.CLOSED ||
+            tileChar === GAME_CONSTANTS.STAIRS.CHAR ||
+            tileChar === GAME_CONSTANTS.PORTAL.GATE.CHAR ||
+            tileChar === GAME_CONSTANTS.PORTAL.VOID.CHAR ||
+            tileChar === GAME_CONSTANTS.NEURAL_OBELISK.CHAR) {
             return false;
         }
         
