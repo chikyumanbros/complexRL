@@ -290,6 +290,10 @@ class Game {
         this.turn++;
         this.totalTurns++;  // ゲーム全体のターン数をインクリメント
 
+        // ウェブ処理フラグをリセット
+        this.player._processedWebThisTurn = false;
+        this.player._lastWebBreakResult = false;
+
         // プレイヤーのターン処理
         this.processPlayerTurn();
 

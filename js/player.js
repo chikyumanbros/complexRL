@@ -229,7 +229,8 @@ class Player {
     // ===== Movement Methods =====
     move(dx, dy, map) {
         // 蜘蛛の巣に捕まっている場合、まず脱出を試みる
-        if (this.caughtInWeb) {
+        // この時、game.js の processPlayerTurn で既に処理されていない場合のみ実行
+        if (this.caughtInWeb && !this._processedWebThisTurn) {
             if (!this.tryToBreakFreeFromWeb()) {
                 // 脱出失敗時はターンを消費して終了
                 this.game.logger.add("You're stuck in the web and can't move.", "warning");
@@ -1619,12 +1620,20 @@ class Player {
     tryToBreakFreeFromWeb() {
         if (!this.caughtInWeb) return true; // 捕まっていなければ成功とみなす
         
+        // 同一ターン内で二度目の処理の場合は前回の結果を返す
+        if (this._processedWebThisTurn) {
+            return this._lastWebBreakResult;
+        }
+        
         // 脱出チャンスを計算（DEXが高いほど脱出しやすいが、ベース確率を下げる）
         const baseChance = 0.2; // ベース確率を20%に下げる（元の値より低く）
         const dexBonus = Math.max(0, (this.stats.dex - 10) * 0.02); // DEXボーナスも減少（3%→2%）
         const escapeChance = Math.min(0.75, baseChance + dexBonus); // 最大確率も75%に制限
         
         const roll = Math.random();
+        // 処理済みフラグをセット
+        this._processedWebThisTurn = true;
+        
         if (roll < escapeChance) {
             // 脱出成功
             this.game.logger.add("You break free from the web!", "playerInfo");
@@ -1642,6 +1651,7 @@ class Player {
             // 効果音を再生
             this.game.playSound('damageSound');
             
+            this._lastWebBreakResult = true;
             return true; // アクションを続行可能
         } else {
             // 脱出失敗のメッセージをより厳しく
@@ -1661,6 +1671,7 @@ class Player {
             const healthStatus = this.getHealthStatus(this.hp, this.maxHp);
             this.caughtInWeb.playerColor = healthStatus.color;
             
+            this._lastWebBreakResult = false;
             return false; // アクション失敗
         }
     }
