@@ -56,6 +56,12 @@ class LiquidSystem {
             return false;
         }
         
+        // 壁タイルには液体を置かない（追加のチェック）
+        if (this.game.tiles && this.game.tiles[y] && 
+            GAME_CONSTANTS.TILES.WALL.includes(this.game.tiles[y][x])) {
+            return false;
+        }
+        
         // 階段の上には液体を置かない
         if (this.game.tiles && this.game.tiles[y] && this.game.tiles[y][x] === GAME_CONSTANTS.STAIRS.CHAR) {
             return false;
@@ -256,6 +262,11 @@ class LiquidSystem {
             return false;
         }
 
+        // 移動先が壁タイルでないことを確認
+        if (this.game.tiles && GAME_CONSTANTS.TILES.WALL.includes(this.game.tiles[toY][toX])) {
+            return false;
+        }
+
         // 移動先が閉じたドアの場合は移動しない
         if (this.game.tiles && this.game.tiles[toY] && this.game.tiles[toY][toX] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
             return false;
@@ -401,6 +412,12 @@ class LiquidSystem {
                     if (this.game.tiles && this.game.tiles[ny][nx] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
                         continue;
                     }
+                    
+                    // 壁タイルも除外
+                    if (this.game.tiles && GAME_CONSTANTS.TILES.WALL.includes(this.game.tiles[ny][nx])) {
+                        continue;
+                    }
+                    
                     adjacentTiles.push({x: nx, y: ny});
                 }
             }

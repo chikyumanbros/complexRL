@@ -760,6 +760,11 @@ class Monster {
             return false;
         }
         
+        // --- Wall Check (add tiles check) ---
+        if (GAME_CONSTANTS.TILES.WALL.includes(game.tiles[y][x])) {
+            return false;
+        }
+        
         return game.map[y][x] === 'floor';
     }
 

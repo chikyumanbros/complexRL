@@ -844,14 +844,21 @@ class MapGenerator {
             return false;
         }
 
-        // 床タイルかチェック（障害物や他の要素がないことを確認）
-        const isFloorTile = GAME_CONSTANTS.TILES.FLOOR.includes(this.tiles[y][x]);
-        if (!isFloorTile) {
+        // 床タイルかつ何も配置されていないことを確認
+        if (this.map[y][x] !== 'floor') {
             return false;
         }
         
-        // 追加：VOIDポータルとの重複チェック
-        if (this.map[y][x] === 'void') {
+        // 壁タイルには配置しない（追加のチェック）
+        if (GAME_CONSTANTS.TILES.WALL.includes(this.tiles[y][x])) {
+            return false;
+        }
+        
+        // 階段、ポータル、障害物などが配置されていないか確認
+        // ニューラルオベリスクなどの特別なオブジェクトとの重複を避ける
+        // 基本床タイルであることを確認するよう条件を緩和
+        const isBasicFloorTile = GAME_CONSTANTS.TILES.FLOOR.includes(this.tiles[y][x]);
+        if (!isBasicFloorTile) {
             return false;
         }
 
@@ -1756,6 +1763,11 @@ class MapGenerator {
 
         // 床タイルかつ何も配置されていないことを確認
         if (this.map[y][x] !== 'floor') {
+            return false;
+        }
+        
+        // 壁タイルには配置しない（追加のチェック）
+        if (GAME_CONSTANTS.TILES.WALL.includes(this.tiles[y][x])) {
             return false;
         }
         
