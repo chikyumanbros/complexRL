@@ -1799,8 +1799,11 @@ class Monster {
             return false;
         }
 
-        // モンスター情報を表示
-        game.renderer.examineTarget(this.x, this.y);
+        // プレイヤーの視界内にいる場合のみモンスター情報を表示
+        const isMonsterVisibleToPlayer = game.getVisibleTiles().some(tile => tile.x === this.x && tile.y === this.y);
+        if (isMonsterVisibleToPlayer) {
+            game.renderer.examineTarget(this.x, this.y);
+        }
         
         // 射線上のモンスターをチェック
         const linePoints = this.getLinePoints(this.x, this.y, game.player.x, game.player.y);
@@ -1831,10 +1834,10 @@ class Monster {
             // 50%の確率で誤射判定
             if (Math.random() < 0.5) {
                 // プレイヤーの視界内にいる場合のみメッセージとエフェクトを表示
-                const isVisibleToPlayer = game.getVisibleTiles()
-                    .some(tile => tile.x === this.x && tile.y === this.y);
+                const isAttackVisibleToPlayer = game.getVisibleTiles()
+                    .some(tile => tile.x === this.x && tile.y === this.y || tile.x === monster.x && tile.y === monster.y);
                 
-                if (isVisibleToPlayer) {
+                if (isAttackVisibleToPlayer) {
                     game.logger.add(`${this.name}'s energy beam hits ${monster.name} instead!`, "monsterInfo");
                     game.renderer.showRangedAttackEffect(this.x, this.y, monster.x, monster.y, '#00FFFF');
                     game.playSound('rangedAttackSound');
@@ -1850,7 +1853,7 @@ class Monster {
                 if (isCritical) {
                     // クリティカルヒットの場合は防御無視
                     finalDamage = damage.total;
-                    if (isVisibleToPlayer) {
+                    if (isAttackVisibleToPlayer) {
                         game.logger.add(`Critical hit!`, "monsterCrit");
                     }
                 } else {
@@ -1865,7 +1868,7 @@ class Monster {
                 // ダメージ適用
                 const result = monster.takeDamage(finalDamage, game);
 
-                if (isVisibleToPlayer) {
+                if (isAttackVisibleToPlayer) {
                     const rollsStr = damage.rolls.join(', ');
                     if (isCritical) {
                         game.logger.add(`The beam hits ${monster.name} for ${result.damage} damage! (ATK: ${damage.base}+[${rollsStr}] vs DEF: [IGNORED]) (HP: ${monster.hp}/${monster.maxHp})`, "monsterCrit");
@@ -1935,71 +1938,35 @@ class Monster {
         const hit = isCritical || hitRoll <= hitChance;
 
         // プレイヤーの視界内にいる場合のみメッセージとエフェクトを表示
-        const isVisibleToPlayer = game.getVisibleTiles()
+        const isPlayerAttackVisible = game.getVisibleTiles()
             .some(tile => tile.x === this.x && tile.y === this.y);
 
-        if (isVisibleToPlayer) {
+        if (isPlayerAttackVisible) {
             // エフェクトを表示
             game.renderer.showRangedAttackEffect(this.x, this.y, game.player.x, game.player.y, '#00FFFF');
             game.playSound('rangedAttackSound');
 
             // 命中判定結果のログ表示
             game.logger.add(`${this.name} fires an energy beam at you! (ACC: ${Math.floor(hitChance)}% | Roll: ${hitRoll}${isCritical ? ' [CRITICAL HIT!]' : ''})`, "monsterInfo");
+        }
             
-            if (hit) {
-                let finalDamage = 0;
-                let defenseRolls = [];
-                
-                if (isCritical) {
-                    // クリティカルヒット時は防御無視
-                    finalDamage = damage.total;
+        if (hit) {
+            let finalDamage = 0;
+            let defenseRolls = [];
+            
+            if (isCritical) {
+                // クリティカルヒット時は防御無視
+                finalDamage = damage.total;
+                if (isPlayerAttackVisible) {
                     game.logger.add(`Critical hit!`, "monsterCrit");
-                    
-                    // ダメージを適用
-                    const result = game.player.takeDamage(finalDamage, {
-                        isRangedAttack: true,
-                        isCritical: true,
-                        attackerName: this.name,
-                        attackType: "Energy beam"
-                    });
-                    
-                    // ダメージエフェクト
-                    game.renderer.showCritEffect(game.player.x, game.player.y);
-                    game.renderer.showDamageFlash();
-                    game.playSound('critSound');
-                    
-                    // ログメッセージ
-                    const rollsStr = damage.rolls.join(', ');
-                    game.logger.add(`The beam hits for ${result.damage} damage! (ATK: ${damage.base}+[${rollsStr}] vs DEF: [IGNORED]) (HP: ${game.player.hp}/${game.player.maxHp})`, "monsterCrit");
-                } else {
-                    // 通常命中の場合は防御計算
-                    const defense = game.player.defense;
-                    defenseRolls = Array(defense.diceCount).fill(0)
-                        .map(() => Math.floor(Math.random() * defense.diceSides) + 1);
-                    const totalDefense = defense.base + defenseRolls.reduce((sum, roll) => sum + roll, 0);
-                    finalDamage = Math.max(1, damage.total - totalDefense);
-                    
-                    // ダメージを適用
-                    const result = game.player.takeDamage(finalDamage, {
-                        isRangedAttack: true,
-                        isCritical: false,
-                        attackerName: this.name,
-                        attackType: "Energy beam"
-                    });
-                    
-                    // ダメージエフェクト
-                    game.renderer.showDamageFlash();
-                    game.playSound('rangedAttackSound');
-                    
-                    // ログメッセージ
-                    const rollsStr = damage.rolls.join(', ');
-                    const defenseRollsStr = defenseRolls.join(', ');
-                    game.logger.add(`The beam hits for ${result.damage} damage! (ATK: ${damage.base}+[${rollsStr}] vs DEF: ${defense.base}+[${defenseRollsStr}]) (HP: ${game.player.hp}/${game.player.maxHp})`, "monsterHit");
                 }
             } else {
-                game.logger.add(`The beam misses you!`, "monsterMiss");
-                game.renderer.showMissEffect(game.player.x, game.player.y, 'miss');
-                game.playSound('missSound');
+                // 通常命中の場合は防御計算
+                const defense = game.player.defense;
+                defenseRolls = Array(defense.diceCount).fill(0)
+                    .map(() => Math.floor(Math.random() * defense.diceSides) + 1);
+                const totalDefense = defense.base + defenseRolls.reduce((sum, roll) => sum + roll, 0);
+                finalDamage = Math.max(1, damage.total - totalDefense);
             }
         }
 
