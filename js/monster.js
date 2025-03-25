@@ -1973,6 +1973,30 @@ class Monster {
                 const totalDefense = defense.base + defenseRolls.reduce((sum, roll) => sum + roll, 0);
                 finalDamage = Math.max(1, damage.total - totalDefense);
             }
+            
+            // プレイヤーにダメージを適用する処理が欠落しています
+            // 以下のコードを追加する必要があります：
+            game.player.takeDamage(finalDamage, {
+                source: this,
+                game: game,
+                isCritical: isCritical
+            });
+            
+            // ダメージログ表示
+            if (isPlayerAttackVisible) {
+                const attackCalc = `ATK: ${damage.base}+[${damage.rolls.join(',')}]`;
+                const defenseCalc = isCritical 
+                    ? '[DEF IGNORED]' 
+                    : `vs DEF: ${game.player.defense.base}+[${defenseRolls.join(',')}]`;
+                const healthStatus = `HP: ${Math.max(0, game.player.hp)}/${game.player.maxHp}`;
+                
+                game.logger.add(
+                    `The beam hits you for ${finalDamage} damage! (${attackCalc} ${defenseCalc}) (${healthStatus})`,
+                    isCritical ? "monsterCrit" : "monsterHit"
+                );
+                
+                game.renderer.showDamageFlash();
+            }
         }
 
         // 遠距離攻撃の位置を記録（音源として）
