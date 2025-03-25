@@ -804,10 +804,12 @@ class Player {
             this.game.soundManager.updateBGM();  // BGMを更新
             this.game.playSound('descendStairsSound');
             
-            // 回復量をログに表示（回復があった場合のみ）
+            // Display recovery message in log (only if recovery occurred)
             if (hpRecovery > 0 || vigorRecovery > 0) {
-                const recoveryMessage = `階段を降りると体力が回復した！ ${beforeHp} → ${this.hp} HP, ${beforeVigor} → ${this.vigor} Vigor`;
-                this.game.logger.add(recoveryMessage, "positive");
+                const hpDiff = this.hp - beforeHp;
+                const vigorDiff = this.vigor - beforeVigor;
+                const recoveryMessage = `You descend the stairs and recover! ${beforeHp} → ${this.hp} HP (+${hpDiff}), ${beforeVigor} → ${this.vigor} Vigor (+${vigorDiff})`;
+                this.game.logger.add(recoveryMessage, "heal");
             }
             
             return true;

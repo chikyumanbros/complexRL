@@ -14,302 +14,46 @@ class MapGenerator {
     }
 
     generate() {
-        this.floorTheme = this.determineFloorTheme();
+        this.map = this.initializeMap();
+        this.tiles = this.initializeTiles();
+        this.colors = this.initializeColors();
         
+        // フロア生成時にfloorInfoをリセット
+        if (this.game) {
+            this.game.floorInfo = null;
+        }
+        
+        // Add special handling for floor 0
         if (this.floorLevel === 0) {
             this.generateHomeFloor();
-            return;
-        }
-        
-        this.initializeMap();
-        this.initializeTiles();
-        this.initializeColors();
-        
-        const rooms = this.generateRooms();
-        this.connectRooms(rooms);
-        this.placeObstacles(rooms);
-        this.placeDoors(rooms);
-        
-        if (this.floorLevel > 3) {
+        } else {
+            const rooms = this.generateRooms();
+            // 生成した部屋情報をインスタンス変数として保存
+            this.rooms = rooms;
+            this.connectRooms(rooms);
+            this.placeDoors(rooms);
+            this.placeStairs(rooms);
+            this.placeVoidPortal(); // VOIDポータルを追加（現在凍結中）
             this.placeWebsInRooms(rooms);
             this.placeWebsInCorridors();
+            
+            // 孤立した島を検出し接続
+            this.connectIsolatedIslands();
         }
         
-        this.placeStairs(rooms);
-        
-        // 新しい地域接続性チェックとパス作成
-        this.ensureGlobalConnectivity();
-        
+        // フロアのテーマ情報をゲームオブジェクトに保存
         if (this.game) {
+            this.game.floorTheme = this.floorTheme;
+            // フロアテーマのフレーバーテキストを設定
             this.setFloorThemeFlavorText();
         }
         
-        return this.map;
-    }
-    
-    // マップ全体の接続性を確保するメソッド
-    ensureGlobalConnectivity() {
-        console.log("Checking global map connectivity...");
-        
-        // マップの全ての床タイルを特定
-        const floorTiles = [];
-        for (let y = 0; y < this.height; y++) {
-            for (let x = 0; x < this.width; x++) {
-                if (this.map[y][x] === 'floor') {
-                    floorTiles.push({x, y});
-                }
-            }
-        }
-        
-        if (floorTiles.length === 0) {
-            console.log("No floor tiles found, skipping connectivity check");
-            return;
-        }
-        
-        // 接続性チェックの開始点
-        const start = floorTiles[0];
-        
-        // BFS（幅優先探索）で接続されている領域を探索
-        const visited = Array(this.height).fill().map(() => Array(this.width).fill(false));
-        const queue = [start];
-        visited[start.y][start.x] = true;
-        let connectedTiles = 0;
-        
-        while (queue.length > 0) {
-            const current = queue.shift();
-            connectedTiles++;
-            
-            // 隣接する8方向を検査
-            const directions = [
-                {x: 0, y: -1}, {x: 1, y: -1}, {x: 1, y: 0}, {x: 1, y: 1},
-                {x: 0, y: 1}, {x: -1, y: 1}, {x: -1, y: 0}, {x: -1, y: -1}
-            ];
-            
-            for (const dir of directions) {
-                const nx = current.x + dir.x;
-                const ny = current.y + dir.y;
-                
-                // マップ範囲内かチェック
-                if (nx < 0 || nx >= this.width || ny < 0 || ny >= this.height) {
-                    continue;
-                }
-                
-                // 未訪問の床タイルのみ探索
-                if (!visited[ny][nx] && this.map[ny][nx] === 'floor') {
-                    visited[ny][nx] = true;
-                    queue.push({x: nx, y: ny});
-                }
-            }
-        }
-        
-        // 未接続の床タイルを特定
-        const disconnectedRegions = [];
-        let currentRegion = [];
-        
-        for (const tile of floorTiles) {
-            if (!visited[tile.y][tile.x]) {
-                // この床タイルは最初のBFSで到達できなかった
-                currentRegion = this.exploreRegion(tile.x, tile.y, visited);
-                disconnectedRegions.push(currentRegion);
-            }
-        }
-        
-        console.log(`Connected tiles: ${connectedTiles}, Total floor tiles: ${floorTiles.length}`);
-        console.log(`Found ${disconnectedRegions.length} disconnected regions`);
-        
-        // 未接続の領域を接続する
-        if (disconnectedRegions.length > 0) {
-            this.connectDisconnectedRegions(disconnectedRegions, visited);
-        }
-    }
-    
-    // 特定の開始点から接続されている領域を探索
-    exploreRegion(startX, startY, visited) {
-        const region = [];
-        const tempVisited = JSON.parse(JSON.stringify(visited)); // ディープコピー
-        const queue = [{x: startX, y: startY}];
-        tempVisited[startY][startX] = true;
-        
-        while (queue.length > 0) {
-            const current = queue.shift();
-            region.push(current);
-            
-            // 隣接する8方向を検査
-            const directions = [
-                {x: 0, y: -1}, {x: 1, y: -1}, {x: 1, y: 0}, {x: 1, y: 1},
-                {x: 0, y: 1}, {x: -1, y: 1}, {x: -1, y: 0}, {x: -1, y: -1}
-            ];
-            
-            for (const dir of directions) {
-                const nx = current.x + dir.x;
-                const ny = current.y + dir.y;
-                
-                // マップ範囲内かチェック
-                if (nx < 0 || nx >= this.width || ny < 0 || ny >= this.height) {
-                    continue;
-                }
-                
-                // 未訪問の床タイルのみ探索
-                if (!tempVisited[ny][nx] && this.map[ny][nx] === 'floor') {
-                    tempVisited[ny][nx] = true;
-                    queue.push({x: nx, y: ny});
-                    visited[ny][nx] = true; // 元の訪問フラグも更新
-                }
-            }
-        }
-        
-        return region;
-    }
-    
-    // 切断された領域をメインマップに接続
-    connectDisconnectedRegions(disconnectedRegions, visited) {
-        console.log("Connecting disconnected regions to main map...");
-        
-        // メイン領域（接続されている部分）のエッジタイルを特定
-        const mainMapEdgeTiles = this.findEdgeTiles(visited);
-        
-        // 各切断領域をメインマップに接続
-        disconnectedRegions.forEach((region, index) => {
-            console.log(`Connecting region ${index + 1} with ${region.length} tiles`);
-            
-            // この領域のエッジタイルを特定
-            const regionEdgeTiles = this.findRegionEdgeTiles(region);
-            
-            // 最適な接続点を見つける
-            let bestConnection = null;
-            let shortestDistance = Infinity;
-            
-            for (const mainTile of mainMapEdgeTiles) {
-                for (const regionTile of regionEdgeTiles) {
-                    const distance = Math.abs(mainTile.x - regionTile.x) + Math.abs(mainTile.y - regionTile.y);
-                    
-                    if (distance < shortestDistance) {
-                        shortestDistance = distance;
-                        bestConnection = {main: mainTile, region: regionTile};
-                    }
-                }
-            }
-            
-            if (bestConnection) {
-                console.log(`Creating path from (${bestConnection.main.x},${bestConnection.main.y}) to (${bestConnection.region.x},${bestConnection.region.y})`);
-                this.createForcedDirectPath(bestConnection.main.x, bestConnection.main.y, bestConnection.region.x, bestConnection.region.y);
-            } else {
-                console.log("Failed to find connection points for region");
-            }
-        });
-    }
-    
-    // マップのエッジタイル（壁に隣接する床タイル）を特定
-    findEdgeTiles(visited) {
-        const edgeTiles = [];
-        
-        for (let y = 0; y < this.height; y++) {
-            for (let x = 0; x < this.width; x++) {
-                // 訪問済みの床タイルのみチェック
-                if (!visited[y][x] || this.map[y][x] !== 'floor') {
-                    continue;
-                }
-                
-                // 隣接するセルに壁があるかチェック
-                const directions = [
-                    {x: 0, y: -1}, {x: 1, y: 0}, {x: 0, y: 1}, {x: -1, y: 0}
-                ];
-                
-                let isEdge = false;
-                for (const dir of directions) {
-                    const nx = x + dir.x;
-                    const ny = y + dir.y;
-                    
-                    if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height && this.map[ny][nx] === 'wall') {
-                        isEdge = true;
-                        break;
-                    }
-                }
-                
-                if (isEdge) {
-                    edgeTiles.push({x, y});
-                }
-            }
-        }
-        
-        return edgeTiles;
-    }
-    
-    // 領域のエッジタイルを特定
-    findRegionEdgeTiles(region) {
-        const edgeTiles = [];
-        
-        for (const tile of region) {
-            // 隣接するセルに壁があるかチェック
-            const directions = [
-                {x: 0, y: -1}, {x: 1, y: 0}, {x: 0, y: 1}, {x: -1, y: 0}
-            ];
-            
-            let isEdge = false;
-            for (const dir of directions) {
-                const nx = tile.x + dir.x;
-                const ny = tile.y + dir.y;
-                
-                if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height && this.map[ny][nx] === 'wall') {
-                    isEdge = true;
-                    break;
-                }
-            }
-            
-            if (isEdge) {
-                edgeTiles.push({x: tile.x, y: tile.y});
-            }
-        }
-        
-        return edgeTiles;
-    }
-    
-    // 2点間に強制的な直線パスを作成
-    createForcedDirectPath(startX, startY, endX, endY) {
-        const dx = Math.abs(endX - startX);
-        const dy = Math.abs(endY - startY);
-        const sx = (startX < endX) ? 1 : -1;
-        const sy = (startY < endY) ? 1 : -1;
-        let err = dx - dy;
-        
-        // 幅広い通路を作成する（通行しやすくするため）
-        const pathWidth = 2; // 合計幅5マス（中心から両側に2マス）
-        
-        let x = startX, y = startY;
-        console.log(`Creating wide path from (${startX},${startY}) to (${endX},${endY})`);
-        
-        while (true) {
-            // 現在位置とその周囲を床に設定
-            for (let offsetY = -pathWidth; offsetY <= pathWidth; offsetY++) {
-                for (let offsetX = -pathWidth; offsetX <= pathWidth; offsetX++) {
-                    const nx = x + offsetX;
-                    const ny = y + offsetY;
-                    
-                    if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
-                        // 特殊タイル（階段など）は維持
-                        if (GAME_CONSTANTS.STAIRS && this.tiles[ny][nx] === GAME_CONSTANTS.STAIRS.CHAR) {
-                            continue;
-                        }
-                        
-                        this.map[ny][nx] = 'floor';
-                        this.tiles[ny][nx] = GAME_CONSTANTS.TILES.FLOOR[
-                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
-                        ];
-                        this.colors[ny][nx] = GAME_CONSTANTS.COLORS.FLOOR;
-                    }
-                }
-            }
-            
-            // 終点に到達したら終了
-            if (x === endX && y === endY) break;
-            
-            // 次の位置を計算
-            const e2 = 2 * err;
-            if (e2 > -dy) { err -= dy; x += sx; }
-            if (e2 < dx) { err += dx; y += sy; }
-        }
-        
-        console.log("Path created successfully");
+        return {
+            map: this.map,
+            tiles: this.tiles,
+            colors: this.colors,
+            rooms: this.rooms
+        };
     }
 
     initializeMap() {
@@ -1529,202 +1273,58 @@ class MapGenerator {
         }
     }
 
-    // プレイヤーから到達可能かどうかを判定（A*アルゴリズムを使用）
+    // プレイヤーから到達可能かどうかを判定
     isReachableFromPlayer(targetX, targetY) {
         if (!this.game?.player) return true; // プレイヤーがいない場合は常に到達可能とみなす
         
         const startX = this.game.player.x;
         const startY = this.game.player.y;
         
-        console.log(`Checking reachability from player(${startX},${startY}) to target(${targetX},${targetY})`);
-        
-        // 開始地点と目標地点が同じ場合
-        if (startX === targetX && startY === targetY) {
-            return true;
-        }
-        
-        // デバッグ: 現在の周辺タイルの状態を出力
-        console.log(`==== 経路探索開始 ====`);
-        for (let y = Math.max(0, startY - 3); y <= Math.min(this.height - 1, startY + 3); y++) {
-            let row = '';
-            for (let x = Math.max(0, startX - 3); x <= Math.min(this.width - 1, startX + 3); x++) {
-                if (x === startX && y === startY) {
-                    row += 'P'; // プレイヤー位置
-                } else {
-                    if (this.map[y][x] === 'wall') {
-                        row += '#'; // 壁
-                    } else if (this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
-                        row += '+'; // 閉じたドア
-                    } else if (this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.OPEN) {
-                        row += '/'; // 開いたドア
-                    } else if (GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][x])) {
-                        row += '*'; // 通行不可の障害物
-                    } else if (GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.tiles[y][x])) {
-                        row += '~'; // 透明な障害物
-                    } else {
-                        row += '.'; // 通行可能な床
-                    }
-                }
-            }
-            console.log(row);
-        }
-        console.log(`====================`);
-        
-        // 目標地点周辺のタイル状態を出力
-        console.log(`==== 目標地点周辺 ====`);
-        for (let y = Math.max(0, targetY - 3); y <= Math.min(this.height - 1, targetY + 3); y++) {
-            let row = '';
-            for (let x = Math.max(0, targetX - 3); x <= Math.min(this.width - 1, targetX + 3); x++) {
-                if (x === targetX && y === targetY) {
-                    row += 'T'; // 目標位置
-                } else {
-                    if (this.map[y][x] === 'wall') {
-                        row += '#'; // 壁
-                    } else if (this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
-                        row += '+'; // 閉じたドア
-                    } else if (this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.OPEN) {
-                        row += '/'; // 開いたドア
-                    } else if (GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][x])) {
-                        row += '*'; // 通行不可の障害物
-                    } else if (GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.tiles[y][x])) {
-                        row += '~'; // 透明な障害物
-                    } else {
-                        row += '.'; // 通行可能な床
-                    }
-                }
-            }
-            console.log(row);
-        }
-        console.log(`====================`);
-        
-        // 幅優先探索（BFS）を使用して確実に到達可能かどうかを判定
+        // 訪問済みのマスを記録
         const visited = Array(this.height).fill().map(() => Array(this.width).fill(false));
         const queue = [{x: startX, y: startY}];
         visited[startY][startX] = true;
         
-        // 探索方向（4方向または8方向）
-        const directions = [
-            {x: 0, y: -1}, {x: 1, y: 0}, {x: 0, y: 1}, {x: -1, y: 0},
-            {x: 1, y: -1}, {x: 1, y: 1}, {x: -1, y: 1}, {x: -1, y: -1} // 斜め方向も含む
-        ];
-        
-        // BFSでの探索
+        // 幅優先探索
         while (queue.length > 0) {
-            const current = queue.shift();
+            const {x, y} = queue.shift();
             
             // 目標に到達した
-            if (current.x === targetX && current.y === targetY) {
-                console.log(`Path found using BFS - target is reachable`);
+            if (x === targetX && y === targetY) {
                 return true;
             }
             
-            // 隣接するマスを探索
+            // 隣接する通行可能マスを探索
+            const directions = [{x: 0, y: -1}, {x: 1, y: 0}, {x: 0, y: 1}, {x: -1, y: 0}];
             for (const dir of directions) {
-                const nx = current.x + dir.x;
-                const ny = current.y + dir.y;
+                const nx = x + dir.x;
+                const ny = y + dir.y;
                 
-                // マップ範囲外または既に訪問済みならスキップ
-                if (nx < 0 || nx >= this.width || ny < 0 || ny >= this.height || visited[ny][nx]) {
-                    continue;
-                }
-                
-                // タイルの通行可能性をチェック
-                let canPass = false;
-                
-                if (nx === targetX && ny === targetY) {
-                    // 目標地点は特別扱い（階段などの特殊タイルの場合）
-                    canPass = true;
-                    console.log(`Target tile at (${nx},${ny}) is being treated as passable (special case)`);
-                } else if (this.map[ny][nx] === 'floor') {
-                    // 床タイルの場合、障害物の有無をチェック
-                    const tileChar = this.tiles[ny][nx];
-                    
-                    if (tileChar === GAME_CONSTANTS.TILES.DOOR.CLOSED || 
-                        tileChar === GAME_CONSTANTS.TILES.DOOR.OPEN) {
-                        // ドアは通行可能
-                        canPass = true;
-                        console.log(`Door at (${nx},${ny}) is passable, type: ${tileChar}`);
-                    } else if (!GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(tileChar) &&
-                               !GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tileChar)) {
-                        // 通行不可の障害物がない場合
-                        canPass = true;
-                    }
-                }
-                
-                // 通行可能なら訪問済みにして探索キューに追加
-                if (canPass) {
-                    visited[ny][nx] = true;
+                if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height &&
+                    this.map[ny][nx] === 'floor' && !visited[ny][nx]) {
                     queue.push({x: nx, y: ny});
+                    visited[ny][nx] = true;
                 }
             }
         }
         
-        // マップ全体の探索状況をデバッグ表示
-        console.log(`==== 探索結果 ====`);
-        let visitedCount = 0;
-        for (let y = 0; y < this.height; y++) {
-            for (let x = 0; x < this.width; x++) {
-                if (visited[y][x]) {
-                    visitedCount++;
-                }
-            }
-        }
-        console.log(`Visited ${visitedCount} tiles out of ${this.width * this.height}`);
-        
-        // プレイヤー周辺の探索結果
-        for (let y = Math.max(0, startY - 5); y <= Math.min(this.height - 1, startY + 5); y++) {
-            let row = '';
-            for (let x = Math.max(0, startX - 5); x <= Math.min(this.width - 1, startX + 5); x++) {
-                if (x === startX && y === startY) {
-                    row += 'P'; // プレイヤー位置
-                } else if (visited[y][x]) {
-                    row += 'v'; // 訪問済み
-                } else {
-                    if (this.map[y][x] === 'wall') {
-                        row += '#'; // 壁
-                    } else {
-                        row += '.'; // 通行可能だが未訪問
-                    }
-                }
-            }
-            console.log(row);
-        }
-        console.log(`====================`);
-        
-        console.log(`No path found - target is unreachable`);
-        return false; // パスが見つからなかった
+        // 到達できなかった
+        return false;
     }
 
-    // パスを作成するメソッド
+    // 階段までのパスを作成
     createPathToStairs(stairsX, stairsY) {
         if (!this.game?.player) return; // プレイヤーがいない場合は処理しない
         
         const playerX = this.game.player.x;
         const playerY = this.game.player.y;
         
-        console.log(`Creating path from player(${playerX},${playerY}) to stairs(${stairsX},${stairsY})`);
-        
-        // 既存のパスをチェック
-        console.log("Checking initial reachability...");
-        if (this.isReachableFromPlayer(stairsX, stairsY)) {
-            console.log("Stairs already reachable, no need to create path");
-            return;
-        }
-        
-        console.log("No existing path found, creating new path...");
-        
-        // A*アルゴリズムで最短経路を見つける
+        // プレイヤーからの最短経路を見つける（A*アルゴリズム）
         const openSet = [{x: playerX, y: playerY, g: 0, h: 0, f: 0}];
         const closedSet = new Set();
         const cameFrom = {};
         
-        let iterations = 0;
-        const MAX_ITERATIONS = 2000; // 大きなマップでも十分な反復回数
-        let pathFound = false;
-        
-        while (openSet.length > 0 && iterations < MAX_ITERATIONS) {
-            iterations++;
-            
+        while (openSet.length > 0) {
             // f値が最も小さいノードを選択
             openSet.sort((a, b) => a.f - b.f);
             const current = openSet.shift();
@@ -1733,111 +1333,24 @@ class MapGenerator {
             // 目標に到達した
             if (current.x === stairsX && current.y === stairsY) {
                 // パスを再構築して床を作成
-                console.log(`Path found after ${iterations} iterations, creating path...`);
-                
-                // パスのマスを記録
-                const path = [];
                 let pathKey = key;
-                
                 while (pathKey in cameFrom) {
                     const [x, y] = pathKey.split(',').map(Number);
-                    path.push({x, y});
+                    this.map[y][x] = 'floor';
+                    this.tiles[y][x] = GAME_CONSTANTS.TILES.FLOOR[
+                        Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+                    ];
+                    this.colors[y][x] = GAME_CONSTANTS.COLORS.FLOOR;
+                    
                     pathKey = cameFrom[pathKey];
                 }
-                path.reverse(); // スタートからゴールの順に並べ替え
-                
-                // パスを床に変更
-                let pathCreated = false;
-                for (const point of path) {
-                    // 壁や障害物の場合のみ床に変更
-                    if (this.map[point.y][point.x] === 'wall' || 
-                        GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[point.y][point.x]) ||
-                        GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.tiles[point.y][point.x])) {
-                        
-                        this.map[point.y][point.x] = 'floor';
-                        this.tiles[point.y][point.x] = GAME_CONSTANTS.TILES.FLOOR[
-                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
-                        ];
-                        this.colors[point.y][point.x] = GAME_CONSTANTS.COLORS.FLOOR;
-                        pathCreated = true;
-                        
-                        // パスを広げる（幅を持たせる）
-                        for (let dy = -1; dy <= 1; dy++) {
-                            for (let dx = -1; dx <= 1; dx++) {
-                                if (dx === 0 && dy === 0) continue; // 中心は既に処理済み
-                                
-                                const nx = point.x + dx;
-                                const ny = point.y + dy;
-                                
-                                // マップ範囲内かつ壁または障害物の場合
-                                if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
-                                    // 階段は上書きしない
-                                    if (nx === stairsX && ny === stairsY) continue;
-                                    
-                                    if (this.map[ny][nx] === 'wall' || 
-                                        GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[ny][nx]) ||
-                                        GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.tiles[ny][nx])) {
-                                        
-                                        // 50%の確率で床に変更（パスに幅を持たせる）
-                                        if (Math.random() < 0.5) {
-                                            this.map[ny][nx] = 'floor';
-                                            this.tiles[ny][nx] = GAME_CONSTANTS.TILES.FLOOR[
-                                                Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
-                                            ];
-                                            this.colors[ny][nx] = GAME_CONSTANTS.COLORS.FLOOR;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                // 階段周辺を常に通行可能に
-                for (let dy = -1; dy <= 1; dy++) {
-                    for (let dx = -1; dx <= 1; dx++) {
-                        const nx = stairsX + dx;
-                        const ny = stairsY + dy;
-                        
-                        // マップ範囲内
-                        if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
-                            // 階段自体は上書きしない
-                            if (nx === stairsX && ny === stairsY) continue;
-                            
-                            if (this.map[ny][nx] === 'wall' || 
-                                GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[ny][nx]) ||
-                                GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.tiles[ny][nx])) {
-                                
-                                // 階段の周りは必ず床にする
-                                this.map[ny][nx] = 'floor';
-                                this.tiles[ny][nx] = GAME_CONSTANTS.TILES.FLOOR[
-                                    Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
-                                ];
-                                this.colors[ny][nx] = GAME_CONSTANTS.COLORS.FLOOR;
-                                pathCreated = true;
-                            }
-                        }
-                    }
-                }
-                
-                if (pathCreated) {
-                    console.log("Path tiles created based on A* search");
-                } else {
-                    console.log("No new path tiles needed to be created");
-                }
-                
-                pathFound = true;
-                break;
+                return;
             }
             
             closedSet.add(key);
             
-            // 隣接するマスを探索（8方向に拡張）
-            const directions = [
-                {x: 0, y: -1}, {x: 1, y: -1}, {x: 1, y: 0}, {x: 1, y: 1}, 
-                {x: 0, y: 1}, {x: -1, y: 1}, {x: -1, y: 0}, {x: -1, y: -1}
-            ];
-            
+            // 隣接するマスを探索
+            const directions = [{x: 0, y: -1}, {x: 1, y: 0}, {x: 0, y: 1}, {x: -1, y: 0}];
             for (const dir of directions) {
                 const nx = current.x + dir.x;
                 const ny = current.y + dir.y;
@@ -1849,63 +1362,9 @@ class MapGenerator {
                     continue;
                 }
                 
-                // A*経路探索用の通行可能判定（探索用に条件を緩和）
-                let canPass = false;
-                
-                // 現在のタイルの状態
-                const isWall = this.map[ny][nx] === 'wall';
-                const tileChar = this.tiles[ny][nx];
-                const isBlockingObstacle = GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(tileChar);
-                const isTransparentObstacle = GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tileChar);
-                
-                // 目標地点は必ず通行可能
-                if (nx === stairsX && ny === stairsY) {
-                    canPass = true;
-                }
-                // 床は基本的に通行可能（ドアや障害物を考慮）
-                else if (this.map[ny][nx] === 'floor') {
-                    if (tileChar === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
-                        // 閉じたドアは通過可能（プレイヤーは開けられる）
-                        canPass = true;
-                    } else if (tileChar === GAME_CONSTANTS.TILES.DOOR.OPEN) {
-                        // 開いたドアは通過可能
-                        canPass = true;
-                    } else if (!isBlockingObstacle && !isTransparentObstacle) {
-                        // 通行不可の障害物がなければ通過可能
-                        canPass = true;
-                    }
-                }
-                // 壁や障害物は通行不可だが、経路作成のため「コスト高で通過可能」とする
-                else if (isWall || isBlockingObstacle || isTransparentObstacle) {
-                    canPass = true; // 経路探索では通行可能とする（後で床に変換）
-                }
-                
-                // 通行不可なら次のマスへ
-                if (!canPass) {
-                    continue;
-                }
-                
-                // タイルの種類に応じたコスト計算
-                let tileCost = 1; // 基本コスト
-                
-                // 壁や障害物はコスト高
-                if (isWall || isBlockingObstacle || isTransparentObstacle) {
-                    tileCost = 5; // 壁を通過するコストを高く
-                }
-                
-                // 斜め移動の場合はコスト増加
-                if (dir.x !== 0 && dir.y !== 0) {
-                    tileCost *= 1.414; // √2 に近似
-                }
-                
-                // ドアは若干コスト高
-                if (tileChar === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
-                    tileCost += 1; // ドアを開けるコスト
-                }
-                
                 // マンハッタン距離のヒューリスティック
                 const h = Math.abs(nx - stairsX) + Math.abs(ny - stairsY);
-                const g = current.g + tileCost;
+                const g = current.g + 1;
                 const f = g + h;
                 
                 // 既にオープンセットにあって、今回のパスの方が長い場合はスキップ
@@ -1914,7 +1373,7 @@ class MapGenerator {
                     continue;
                 }
                 
-                // オープンセットに追加または更新
+                // オープンセットに追加
                 if (existingIndex === -1) {
                     openSet.push({x: nx, y: ny, g, h, f});
                 } else {
@@ -1926,230 +1385,36 @@ class MapGenerator {
             }
         }
         
-        // 到達可能かどうか再確認
-        console.log("Checking reachability after path creation...");
-        const isReachable = this.isReachableFromPlayer(stairsX, stairsY);
-        
-        if (pathFound && isReachable) {
-            console.log("Path to stairs created successfully");
-            return;
-        }
-        
-        console.log(`WARNING: ${pathFound ? "Path was found but stairs still not reachable" : "A* search failed after " + iterations + " iterations"}`);
-        console.log("Creating emergency path as fallback...");
-        
-        // 緊急パス作成
-        this.createEmergencyPathToStairs(playerX, playerY, stairsX, stairsY);
-        
-        // 最終確認
-        const finalCheck = this.isReachableFromPlayer(stairsX, stairsY);
-        if (!finalCheck) {
-            console.log("CRITICAL: Even emergency path creation failed. Forcing direct connection.");
-            
-            // 最後の手段：プレイヤーと階段を直接床で繋ぐ
-            const plotDirectLine = (x0, y0, x1, y1) => {
-                const dx = Math.abs(x1 - x0);
-                const dy = Math.abs(y1 - y0);
-                const sx = (x0 < x1) ? 1 : -1;
-                const sy = (y0 < y1) ? 1 : -1;
-                let err = dx - dy;
-                
-                // 幅5の太い通路を作成
-                const width = 2; // 中心から両側へ2マス（合計幅5）
-                
-                let x = x0, y = y0;
-                while (true) {
-                    // 現在位置とその周囲を床にする
-                    for (let offsetY = -width; offsetY <= width; offsetY++) {
-                        for (let offsetX = -width; offsetX <= width; offsetX++) {
-                            const nx = x + offsetX;
-                            const ny = y + offsetY;
-                            
-                            if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
-                                // 階段位置は保持
-                                if (nx === stairsX && ny === stairsY) continue;
-                                
-                                this.map[ny][nx] = 'floor';
-                                this.tiles[ny][nx] = GAME_CONSTANTS.TILES.FLOOR[
-                                    Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
-                                ];
-                                this.colors[ny][nx] = GAME_CONSTANTS.COLORS.FLOOR;
-                            }
-                        }
-                    }
-                    
-                    // 終点に到達したら終了
-                    if (x === x1 && y === y1) break;
-                    
-                    // 次の位置へ
-                    const e2 = 2 * err;
-                    if (e2 > -dy) { err -= dy; x += sx; }
-                    if (e2 < dx) { err += dx; y += sy; }
-                }
-            };
-            
-            // 直接線を引く
-            plotDirectLine(playerX, playerY, stairsX, stairsY);
-            
-            // 階段のタイルを復元
-            this.tiles[stairsY][stairsX] = GAME_CONSTANTS.STAIRS.CHAR;
-            this.colors[stairsY][stairsX] = GAME_CONSTANTS.STAIRS.COLOR;
-            
-            console.log("Direct path forcibly created");
-        }
+        // パスが見つからない場合は、直線的なパスを強制的に作成
+        this.createDirectPathToStairs(playerX, playerY, stairsX, stairsY);
     }
 
-    // 緊急用の直接パス生成（最後の手段）
-    createEmergencyPathToStairs(startX, startY, endX, endY) {
-        console.log(`Creating EMERGENCY path from (${startX},${startY}) to (${endX},${endY})`);
+    // 直線的なパスを強制的に作成
+    createDirectPathToStairs(startX, startY, endX, endY) {
+        // 斜めの場合、水平→垂直の順でパスを作成
+        const dx = Math.sign(endX - startX);
+        const dy = Math.sign(endY - startY);
         
-        // 完全に新しいアプローチ：複数の幅広い通路を作成する
-        
-        // 経由点を設定（ジグザグパスの角）
-        const waypoints = [
-            {x: startX, y: startY}, // スタート
-            {x: Math.floor((startX + endX) / 2), y: startY}, // 中間点1
-            {x: Math.floor((startX + endX) / 2), y: endY}, // 中間点2
-            {x: endX, y: endY} // ゴール
-        ];
-        
-        // プレイヤーの周囲を床にする（3x3エリア）
-        for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-                const nx = startX + dx;
-                const ny = startY + dy;
-                if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
-                    this.map[ny][nx] = 'floor';
-                    this.tiles[ny][nx] = GAME_CONSTANTS.TILES.FLOOR[
-                        Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
-                    ];
-                    this.colors[ny][nx] = GAME_CONSTANTS.COLORS.FLOOR;
-                }
-            }
+        // 水平方向に移動
+        let x = startX;
+        while (x !== endX) {
+            x += dx;
+            this.map[startY][x] = 'floor';
+            this.tiles[startY][x] = GAME_CONSTANTS.TILES.FLOOR[
+                Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+            ];
+            this.colors[startY][x] = GAME_CONSTANTS.COLORS.FLOOR;
         }
         
-        // 階段の周囲を床にする（3x3エリア）
-        for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-                const nx = endX + dx;
-                const ny = endY + dy;
-                if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
-                    // 階段自体は保持する
-                    if (nx === endX && ny === endY) continue;
-                    
-                    this.map[ny][nx] = 'floor';
-                    this.tiles[ny][nx] = GAME_CONSTANTS.TILES.FLOOR[
-                        Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
-                    ];
-                    this.colors[ny][nx] = GAME_CONSTANTS.COLORS.FLOOR;
-                }
-            }
-        }
-        
-        // 経由点間に幅広い通路を作成（幅3の通路）
-        for (let i = 0; i < waypoints.length - 1; i++) {
-            const start = waypoints[i];
-            const end = waypoints[i + 1];
-            
-            // 水平移動
-            if (start.x !== end.x) {
-                const step = start.x < end.x ? 1 : -1;
-                for (let x = start.x; x !== end.x + step; x += step) {
-                    // 幅3の通路
-                    for (let offset = -1; offset <= 1; offset++) {
-                        const y = start.y + offset;
-                        if (y >= 0 && y < this.height && x >= 0 && x < this.width) {
-                            this.map[y][x] = 'floor';
-                            this.tiles[y][x] = GAME_CONSTANTS.TILES.FLOOR[
-                                Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
-                            ];
-                            this.colors[y][x] = GAME_CONSTANTS.COLORS.FLOOR;
-                        }
-                    }
-                }
-            }
-            
-            // 垂直移動
-            if (start.y !== end.y) {
-                const step = start.y < end.y ? 1 : -1;
-                for (let y = start.y; y !== end.y + step; y += step) {
-                    // 幅3の通路
-                    for (let offset = -1; offset <= 1; offset++) {
-                        const x = end.x + offset;
-                        if (y >= 0 && y < this.height && x >= 0 && x < this.width) {
-                            this.map[y][x] = 'floor';
-                            this.tiles[y][x] = GAME_CONSTANTS.TILES.FLOOR[
-                                Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
-                            ];
-                            this.colors[y][x] = GAME_CONSTANTS.COLORS.FLOOR;
-                        }
-                    }
-                }
-            }
-        }
-        
-        // 階段のタイルを復元
-        this.tiles[endY][endX] = GAME_CONSTANTS.STAIRS.CHAR;
-        this.colors[endY][endX] = GAME_CONSTANTS.STAIRS.COLOR;
-        
-        // 直接パスの確認
-        const isReachable = this.isReachableFromPlayer(endX, endY);
-        console.log(`Emergency path created. Stairs reachable: ${isReachable}`);
-        
-        if (!isReachable) {
-            // まだ到達できない場合は、最終手段：プレイヤーと階段を直接つなぐ直線パス
-            console.log("CRITICAL: Emergency path failed. Creating direct line path as last resort.");
-            
-            // 直線パスを作成（ブレゼンハムのアルゴリズム）
-            const plotLine = (x0, y0, x1, y1) => {
-                const dx = Math.abs(x1 - x0);
-                const dy = Math.abs(y1 - y0);
-                const sx = (x0 < x1) ? 1 : -1;
-                const sy = (y0 < y1) ? 1 : -1;
-                let err = dx - dy;
-                
-                while (x0 !== x1 || y0 !== y1) {
-                    // 現在位置を床に
-                    this.map[y0][x0] = 'floor';
-                    this.tiles[y0][x0] = GAME_CONSTANTS.TILES.FLOOR[
-                        Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
-                    ];
-                    this.colors[y0][x0] = GAME_CONSTANTS.COLORS.FLOOR;
-                    
-                    // 周囲も床にする
-                    for (let dy = -1; dy <= 1; dy++) {
-                        for (let dx = -1; dx <= 1; dx++) {
-                            const nx = x0 + dx;
-                            const ny = y0 + dy;
-                            if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
-                                this.map[ny][nx] = 'floor';
-                                this.tiles[ny][nx] = GAME_CONSTANTS.TILES.FLOOR[
-                                    Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
-                                ];
-                                this.colors[ny][nx] = GAME_CONSTANTS.COLORS.FLOOR;
-                            }
-                        }
-                    }
-                    
-                    // 次の位置を計算
-                    const e2 = 2 * err;
-                    if (e2 > -dy) {
-                        err -= dy;
-                        x0 += sx;
-                    }
-                    if (e2 < dx) {
-                        err += dx;
-                        y0 += sy;
-                    }
-                }
-            };
-            
-            // プレイヤーから階段への直線
-            plotLine(startX, startY, endX, endY);
-            
-            // 階段のタイルを復元
-            this.tiles[endY][endX] = GAME_CONSTANTS.STAIRS.CHAR;
-            this.colors[endY][endX] = GAME_CONSTANTS.STAIRS.COLOR;
+        // 垂直方向に移動
+        let y = startY;
+        while (y !== endY) {
+            y += dy;
+            this.map[y][endX] = 'floor';
+            this.tiles[y][endX] = GAME_CONSTANTS.TILES.FLOOR[
+                Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+            ];
+            this.colors[y][endX] = GAME_CONSTANTS.COLORS.FLOOR;
         }
     }
 
@@ -2757,5 +2022,250 @@ class MapGenerator {
         
         // フロアテーマ情報も保存
         this.game.floorInfo.theme = this.floorTheme;
+    }
+
+    // 孤立した島を検出し接続するメソッド
+    connectIsolatedIslands() {
+        // 床タイルの位置を収集
+        const floorTiles = [];
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                if (this.map[y][x] === 'floor') {
+                    floorTiles.push({x, y});
+                }
+            }
+        }
+        
+        if (floorTiles.length === 0) return; // 床タイルがない場合は処理しない
+        
+        // 床タイルをグループ化（島ごとに分類）
+        const islands = this.identifyIslands(floorTiles);
+        
+        // 島が1つ以下なら接続不要
+        if (islands.length <= 1) return;
+        
+        //console.log(`Detected ${islands.length} isolated islands. Connecting them...`);
+        
+        // すべての島のペアの組み合わせとその最短距離を計算
+        const connections = [];
+        for (let i = 0; i < islands.length; i++) {
+            for (let j = i + 1; j < islands.length; j++) {
+                const closest = this.findClosestPoints(islands[i], islands[j]);
+                connections.push({
+                    islandA: i,
+                    islandB: j,
+                    fromX: closest.fromX,
+                    fromY: closest.fromY,
+                    toX: closest.toX,
+                    toY: closest.toY,
+                    distance: closest.distance
+                });
+            }
+        }
+        
+        // 距離でソート
+        connections.sort((a, b) => a.distance - b.distance);
+        
+        // Union-Find構造を初期化
+        const parent = new Array(islands.length).fill(0).map((_, i) => i);
+        const find = (x) => {
+            if (parent[x] !== x) {
+                parent[x] = find(parent[x]);
+            }
+            return parent[x];
+        };
+        const union = (x, y) => {
+            parent[find(x)] = find(y);
+        };
+        
+        // 最小全域木アルゴリズムで島を接続
+        for (const conn of connections) {
+            if (find(conn.islandA) !== find(conn.islandB)) {
+                // この2つの島はまだ接続されていないので通路を作成
+                this.createBridgeBetweenPoints(
+                    conn.fromX, conn.fromY, 
+                    conn.toX, conn.toY
+                );
+                
+                // 島を接続済みとしてマーク
+                union(conn.islandA, conn.islandB);
+                
+                // すべての島が接続されたかチェック
+                let allConnected = true;
+                const firstParent = find(0);
+                for (let i = 1; i < islands.length; i++) {
+                    if (find(i) !== firstParent) {
+                        allConnected = false;
+                        break;
+                    }
+                }
+                
+                if (allConnected) break; // すべて接続済みなら終了
+            }
+        }
+    }
+
+    // 床タイルを島ごとにグループ化するメソッド
+    identifyIslands(floorTiles) {
+        // タイルが訪問済みかを記録する配列
+        const visited = new Set();
+        // 検出された島を格納する配列
+        const islands = [];
+        
+        // すべての床タイルに対して処理
+        for (const tile of floorTiles) {
+            const key = `${tile.x},${tile.y}`;
+            if (visited.has(key)) continue;
+            
+            // 新しい島を検出
+            const island = [];
+            const queue = [tile];
+            visited.add(key);
+            
+            // BFSで連結成分を探索
+            while (queue.length > 0) {
+                const current = queue.shift();
+                island.push(current);
+                
+                // 4方向を確認
+                const directions = [{x: 0, y: -1}, {x: 1, y: 0}, {x: 0, y: 1}, {x: -1, y: 0}];
+                for (const dir of directions) {
+                    const nx = current.x + dir.x;
+                    const ny = current.y + dir.y;
+                    const neighborKey = `${nx},${ny}`;
+                    
+                    // マップ範囲内かつ床タイルかつ未訪問の場合
+                    if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height &&
+                        this.map[ny][nx] === 'floor' && !visited.has(neighborKey)) {
+                        queue.push({x: nx, y: ny});
+                        visited.add(neighborKey);
+                    }
+                }
+            }
+            
+            // 検出された島を追加
+            if (island.length > 0) {
+                islands.push(island);
+            }
+        }
+        
+        return islands;
+    }
+
+    // 2つの島の間で最も近い点のペアを見つけるメソッド
+    findClosestPoints(islandA, islandB) {
+        let closestDistance = Infinity;
+        let fromX, fromY, toX, toY;
+        
+        for (const tileA of islandA) {
+            for (const tileB of islandB) {
+                // マンハッタン距離を計算
+                const distance = Math.abs(tileA.x - tileB.x) + Math.abs(tileA.y - tileB.y);
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    fromX = tileA.x;
+                    fromY = tileA.y;
+                    toX = tileB.x;
+                    toY = tileB.y;
+                }
+            }
+        }
+        
+        return {fromX, fromY, toX, toY, distance: closestDistance};
+    }
+
+    // 2点間に橋（通路）を作成するメソッド
+    createBridgeBetweenPoints(fromX, fromY, toX, toY) {
+        // 斜めの場合、水平→垂直の順でパスを作成する
+        const pathType = Math.random() < 0.5 ? 'horizontal-first' : 'vertical-first';
+        
+        if (pathType === 'horizontal-first') {
+            // 水平に進んでから垂直に進む
+            let x = fromX;
+            const dx = Math.sign(toX - fromX);
+            
+            while (x !== toX) {
+                x += dx;
+                this.createFloorTile(x, fromY);
+            }
+            
+            let y = fromY;
+            const dy = Math.sign(toY - fromY);
+            
+            while (y !== toY) {
+                y += dy;
+                this.createFloorTile(toX, y);
+            }
+        } else {
+            // 垂直に進んでから水平に進む
+            let y = fromY;
+            const dy = Math.sign(toY - fromY);
+            
+            while (y !== toY) {
+                y += dy;
+                this.createFloorTile(fromX, y);
+            }
+            
+            let x = fromX;
+            const dx = Math.sign(toX - fromX);
+            
+            while (x !== toX) {
+                x += dx;
+                this.createFloorTile(x, toY);
+            }
+        }
+        
+        // テーマが洞窟の場合、通路を少しランダム化して自然な見た目にする
+        if (this.floorTheme === 'CAVE') {
+            this.naturalizePathBetween(fromX, fromY, toX, toY);
+        }
+    }
+
+    // 床タイルを作成するヘルパーメソッド
+    createFloorTile(x, y) {
+        if (this.map[y][x] !== 'floor') {  // 既に床である場合は処理しない
+            this.map[y][x] = 'floor';
+            this.tiles[y][x] = GAME_CONSTANTS.TILES.FLOOR[
+                Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+            ];
+            this.colors[y][x] = GAME_CONSTANTS.COLORS.FLOOR;
+        }
+    }
+
+    // 洞窟テーマ用に通路を自然に見せるための処理
+    naturalizePathBetween(fromX, fromY, toX, toY) {
+        // パスの周囲にランダムに追加の床タイルを配置する
+        const minX = Math.min(fromX, toX);
+        const maxX = Math.max(fromX, toX);
+        const minY = Math.min(fromY, toY);
+        const maxY = Math.max(fromY, toY);
+        
+        // パス周辺の領域を対象に処理
+        for (let y = minY - 1; y <= maxY + 1; y++) {
+            for (let x = minX - 1; x <= maxX + 1; x++) {
+                // マップ範囲内かつ壁タイルである場合
+                if (x >= 0 && x < this.width && y >= 0 && y < this.height && 
+                    this.map[y][x] === 'wall') {
+                    
+                    // 隣接する床タイルの数をカウント
+                    let floorCount = 0;
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            const nx = x + dx;
+                            const ny = y + dy;
+                            if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height && 
+                                this.map[ny][nx] === 'floor') {
+                                floorCount++;
+                            }
+                        }
+                    }
+                    
+                    // ランダムに床タイルに変更（隣接する床タイルが多いほど確率が高い）
+                    if (floorCount >= 2 && Math.random() < 0.4 * floorCount / 8) {
+                        this.createFloorTile(x, y);
+                    }
+                }
+            }
+        }
     }
 } 

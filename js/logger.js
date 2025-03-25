@@ -199,10 +199,24 @@ class Logger {
     // Update floor information
     updateFloorInfo(floorLevel, dangerLevel) {
         const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[dangerLevel];
+        
+        // floorInfo初期化
         this.floorInfo = {
             flavor: dangerInfo.flavor,
             danger: Object.keys(GAME_CONSTANTS.DANGER_LEVELS).indexOf(dangerLevel)  // Convert to numeric index
         };
+        
+        // フロアテーマに関するフレーバーテキストを追加
+        if (this.game.floorInfo && this.game.floorInfo.flavor) {
+            // 既存のフレーバーとテーマのフレーバーを組み合わせる
+            this.floorInfo.flavor = `${dangerInfo.flavor} ${this.game.floorInfo.flavor}`;
+            
+            // テーマ情報も保存
+            if (this.game.floorInfo.theme) {
+                this.floorInfo.theme = this.game.floorInfo.theme;
+            }
+        }
+        
         if (this.game.mode === GAME_CONSTANTS.MODES.GAME) {
             this.renderLookPanel();
         }

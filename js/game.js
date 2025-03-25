@@ -1472,9 +1472,10 @@ class Game {
         this.spawnInitialMonsters();
         // Initialize and display information
         const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.dangerLevel];
-        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);
+        
+        // フロア生成後、テーマ情報がloggerに確実に反映されるように順序を調整
         this.updateRoomInfo();
-
+        
         // プレイヤーの初期位置周辺を探索済みにマーク
         this.updateExplored();
 
@@ -1482,13 +1483,14 @@ class Game {
         this.renderer.render();
         this.inputHandler.bindKeys();
 
-        // 描画とログの更新
+        // 描画とログの更新（重要: フロアテーマ情報が設定された後に呼び出す）
         this.renderer.render();
-        this.logger.renderLookPanel();  // Display look panel
-        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);  // Update floor info in Logger
-        this.updateRoomInfo();  // Update surrounding room information
-        this.updateExplored();  // Update explored information
-
+        // フロア情報を更新（MapGeneratorで設定されたfloorInfoを利用）
+        this.logger.updateFloorInfo(this.floorLevel, this.dangerLevel);
+        this.logger.renderLookPanel();  // パネルを再描画
+        this.updateRoomInfo();  // 周囲の部屋情報を更新
+        this.updateExplored();
+        
         // フロア生成後に描画が完了してからセーブを実行
         requestAnimationFrame(() => this.saveGame());
     }
