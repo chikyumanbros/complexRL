@@ -35,17 +35,13 @@ class SoundManager {
         this.meditationSound = new Audio('assets/sounds/meditation.wav'); // meditation用SE
         this.jumpSound = new Audio('assets/sounds/jump.wav'); // jump用SE
 
-        // move sound
+        // 移動音
         this.moveSounds = {
             'move1': new Audio('assets/sounds/move1.wav'),
             'move2': new Audio('assets/sounds/move2.wav'),
             'move3': new Audio('assets/sounds/move3.wav'),
             'move4': new Audio('assets/sounds/move4.wav'),
         };
-
-        // Vigor up/down sounds
-        this.vigorUpSound = new Audio('assets/sounds/vigorup.wav');
-        this.vigorDownSound = new Audio('assets/sounds/vigordown.wav');
 
         // caution sound
         this.cautionSound = new Audio('assets/sounds/caution.wav');
@@ -183,10 +179,6 @@ class SoundManager {
             }
         }
 
-        // Vigor up/down sounds
-        this.vigorUpSound.volume = this.seVolume;
-        this.vigorDownSound.volume = this.seVolume;
-
         // caution sound の音量を設定
         this.cautionSound.volume = this.seVolume;
         this.caution2Sound.volume = this.seVolume;
@@ -316,14 +308,6 @@ class SoundManager {
         this.meditationSound.currentTime = 0;
         this.jumpSound.pause();
         this.jumpSound.currentTime = 0;
-        this.vigorUpSound.pause();
-        this.vigorUpSound.currentTime = 0;
-        this.vigorDownSound.pause();
-        this.vigorDownSound.currentTime = 0;
-        this.cautionSound.pause();
-        this.cautionSound.currentTime = 0;
-        this.caution2Sound.pause();
-        this.caution2Sound.currentTime = 0;
         
         // 移動音の停止
         for (const key in this.moveSounds) {

@@ -356,9 +356,6 @@ class Game {
             }
         }
 
-        // Vigor処理
-        this.processVigorUpdate();
-
         // スキルのクールダウン処理
         for (const [_, skill] of this.player.skills) {
             if (skill.remainingCooldown > 0) {
@@ -373,18 +370,6 @@ class Game {
 
         // プレイヤーのnextAttackModifiersをクリア
         this.player.nextAttackModifiers = [];
-    }
-
-    processVigorUpdate() {
-        // Vigor機能は廃止されました
-    }
-
-    processHomeFloorVigor() {
-        // Vigor機能は廃止されました
-    }
-
-    processNormalFloorVigor() {
-        // Vigor機能は廃止されました
     }
 
     processMonsterTurn() {
@@ -655,8 +640,7 @@ class Game {
     }
 
     processPlayerNaturalHealing() {
-        const vigorStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
-        if (vigorStatus.name !== 'Exhausted' && this.player.hp < this.player.maxHp) {
+        if (this.player.hp < this.player.maxHp) {
             const successChance = GAME_CONSTANTS.FORMULAS.NATURAL_HEALING.getSuccessChance(this.player.stats);
             const roll = Math.random() * 100;
 
@@ -745,12 +729,6 @@ class Game {
         if (this.player.hp < this.player.maxHp) {
             const healAmount = this.player.maxHp - this.player.hp;
             this.player.hp = this.player.maxHp;
-        }
-
-        // Vigorを全回復
-        if (this.player.vigor < GAME_CONSTANTS.VIGOR.MAX) {
-            this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
-            this.player.validateVigor();  // Add validation after setting vigor
         }
 
         // エネルギーを全回復
@@ -921,65 +899,6 @@ class Game {
             : Math.max(0.1, 1 + (levelDiff * 0.1));
         const intBonus = 1 + Math.max(0, (this.player.stats.int - 10) * 0.03);
         const xpGained = Math.max(1, Math.floor(baseXP * levelMultiplier * intBonus));
-
-        // Vigor変動の計算（より安全な実装）
-        const wisBonus = Math.max(0, this.player.stats.wis || 0);  // 負の値とundefinedを防ぐ
-        const maxRoll = Math.max(1, this.player.level + wisBonus);
-        const roll = Math.floor(Math.random() * maxRoll) + 1;
-
-        // Vigor変動量の計算を安全に実装
-        let vigorChange = 0;
-        const oldVigor = Number.isFinite(this.player.vigor) ? 
-            this.player.vigor : 
-            GAME_CONSTANTS.VIGOR.MAX;
-
-        if (roll <= this.player.level) {
-            // 失敗：Vigor減少（より安全な計算）
-            const wisValue = Math.max(0, this.player.stats.wis || 0);
-            vigorChange = -Math.max(1, Math.floor(wisValue / 3));
-        } else {
-            // 成功：Vigor回復（より安全な計算）
-            const baseRecovery = Math.max(1, Math.floor((monster.level || 1) / 2));
-            const maxRecovery = Math.max(0, GAME_CONSTANTS.VIGOR.MAX - oldVigor);
-            vigorChange = Math.min(baseRecovery, maxRecovery);
-        }
-
-        // Vigor値の更新（より安全な実装）
-        const newVigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, oldVigor + vigorChange));
-        this.player.vigor = newVigor;
-        this.player.validateVigor();  // Add validation after changing vigor
-
-        // 状態変化の確認と通知
-        const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(oldVigor, this.player.stats);
-        const newStatus = GAME_CONSTANTS.VIGOR.getStatus(newVigor, this.player.stats);
-
-        if (vigorChange !== 0) {
-            // 自動移動を停止
-            this.player.stopAllAutoMovement();
-
-            // Vigor変動のログ出力を修正
-            const changeDesc = vigorChange > 0 ? "restores" : "depletes";
-            // Vigor増減の言葉遣いを精神的な意味合いも込めて変更
-            const vigorVerb = vigorChange > 0 ? "is invigorated" : "is drained";
-            this.logger.add(
-                `Combat ${changeDesc} your vigor. Your spirit ${vigorVerb}.`,
-                vigorChange > 0 ? "playerInfo" : "warning"
-            );
-
-            // 状態が変化した場合は追加のメッセージ（既存のまま）
-            if (oldStatus.name !== newStatus.name) {
-                this.logger.add(
-                    `Your vigor state changed to ${newStatus.name.toLowerCase()}.`,
-                    "warning"
-                );
-                // Vigor状態変化時に効果音を再生
-                if (vigorChange > 0) {
-                    this.playSound('vigorUpSound');
-                } else {
-                    this.playSound('vigorDownSound');
-                }
-            }
-        }
 
         // 経験値とCodexポイントの獲得ログ
         let rewardText = `Gained ${xpGained} XP!`;
@@ -1591,12 +1510,6 @@ class Game {
             this.player.hp = this.player.maxHp;
         }
 
-        // Vigorを全回復
-        if (this.player.vigor < GAME_CONSTANTS.VIGOR.MAX) {
-            this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
-            this.player.validateVigor();  // Add validation after setting vigor
-        }
-
         // エネルギーを全回復
         if (this.player.energy < this.player.maxEnergy) {
             this.player.energy = this.player.maxEnergy;
@@ -1796,18 +1709,14 @@ class Game {
             return "You noticed an enemy";
         }
         
-        // VigorEffectsが発生したかどうかのチェック
-        if (this.vigorEffectOccurred) {
-            this.vigorEffectOccurred = false; // リセット
-            return "A strange sensation interrupted you";
-        }
+        // VigorEffectsが発生したかどうかのチェック - vigor廃止に伴い削除
         
         return null;
     }
 
-    // vigorエフェクト発生時の通知メソッド
+    // vigorエフェクト発生時の通知メソッド - 廃止済み
     onVigorEffectOccurred() {
-        this.vigorEffectOccurred = true;
+        // vigor機能は廃止されました
         
         // 休憩中であればキャンセル
         if (this.player.resting?.active) {
@@ -1859,18 +1768,8 @@ class Game {
         this.player.hp = Math.min(this.player.maxHp, this.player.hp + hpHealAmount);
         const actualHpHealed = this.player.hp - oldHp;
         
-        // Vigor回復量を計算（最大Vigorの割合）
-        const vigorHealAmount = Math.floor(GAME_CONSTANTS.VIGOR.MAX * (healPercent / 100));
-        const oldVigor = this.player.vigor;
-        this.player.vigor = Math.min(GAME_CONSTANTS.VIGOR.MAX, this.player.vigor + vigorHealAmount);
-        const actualVigorHealed = this.player.vigor - oldVigor;
-        
         // 回復メッセージを表示
-        let message = `You feel revitalized! Recovered ${actualHpHealed} HP`;
-        if (actualVigorHealed > 0) {
-            message += " and your vigor has increased";
-        }
-        message += ".";
+        const message = `You feel revitalized! Recovered ${actualHpHealed} HP.`;
         this.logger.add(message, "playerInfo");
         
         // ステータスパネルを更新

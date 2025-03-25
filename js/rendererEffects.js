@@ -180,14 +180,14 @@ class RendererEffects {
         // 瞑想状態の場合は知恵と知性に基づいた範囲、それ以外の場合は固定範囲
         const effectRange = this.renderer.game.player.meditation?.active 
             ? Math.max(1, Math.min(8, Math.floor(this.renderer.game.player.stats.wis - Math.floor(this.renderer.game.player.stats.int / 2)) * 2))
-            : 8; // vigor効果の場合は広い範囲に適用
+            : 8; // 通常効果の場合は広い範囲に適用
 
         if (distance <= effectRange) {
             // ターンカウンターを使用してシード値を生成
             const seed = this.renderer.psychedelicTurn * 1000 + x * 100 + y;
             const rand = Math.abs(Math.sin(seed));
 
-            // vigor効果の場合はエフェクト発生確率を上げる
+            // 通常効果の場合はエフェクト発生確率を上げる
             const threshold = this.renderer.game.player.meditation?.active ? 0.5 : 0.7;
             
             if (rand < threshold) {
@@ -233,7 +233,7 @@ class RendererEffects {
     }
 
     /**
-     * 完全な再描画を強制する（VigorEffectsなど特殊効果後に呼び出す）
+     * 完全な再描画を強制する（特殊効果後に呼び出す）
      */
     forceRefresh() {
         //console.log('RendererEffects: 強制再描画を要求します');
@@ -241,11 +241,11 @@ class RendererEffects {
     }
 
     /**
-     * VigorEffectsのforgetTilesなどの後に呼び出すためのメソッド
+     * 特殊効果後に呼び出すためのメソッド
      */
-    refreshAfterVigorEffect() {
+    refreshAfterSpecialEffect() {
         // forceRefreshを呼び出さずに、直接必要な処理を行う
-        //console.log('RendererEffects: VigorEffect後の再描画を実行します');
+        //console.log('RendererEffects: 特殊効果後の再描画を実行します');
         // タイル状態のキャッシュをクリア
         this.renderer.tileStateCache = {};
         // 探索状態のハッシュを更新

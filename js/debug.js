@@ -3,14 +3,23 @@ class DebugUtils {
     constructor(game) {
         this.game = game;
         this.enabled = false;
-        this.debugElements = {};
-        this.currentStatMode = null; // ステータス編集モード用
-        this.mapGenerationMode = false; // マップ生成モード
-        this.selectedFloorLevel = 1; // 選択中のフロアレベル
-        this.selectedDangerLevel = 'NORMAL'; // 選択中の危険度
         
-        // ゲームのレンダリング後に自動的にデバッグパネルを更新するためのフック
-        this.setupAutoUpdate();
+        // デバッグモード中に追加する要素を格納するオブジェクト
+        this.debugElements = {
+            panel: null,
+            messagePanel: null
+        };
+        
+        // ステータス編集モード用の変数
+        this.currentStatMode = null;
+        
+        // マップ生成モード用の変数
+        this.mapGenerationMode = false;
+        this.selectedFloorLevel = 1;
+        this.selectedDangerLevel = 'NORMAL';
+        
+        // 自動アップデート用のインターバル
+        this.updateInterval = null;
         
         // デバッグモードのトグル (Ctrl+Shift+D)
         document.addEventListener('keydown', (e) => {
@@ -23,12 +32,6 @@ class DebugUtils {
         // デバッグモード有効時のキー操作
         document.addEventListener('keydown', (e) => {
             if (!this.enabled) return;
-            
-            // Vigorの操作
-            if (e.key === 'v') {
-                // 'v'キーを押したらVIGORモード
-                this.showVigorControls();
-            }
             
             // ステータス操作モード
             if (e.key === 's') {
@@ -53,25 +56,6 @@ class DebugUtils {
             if (this.currentStatMode) {
                 this.handleStatEditKeys(e);
                 return;
-            }
-            
-            // Vigorを減少 (PageDown)
-            if (e.key === 'PageDown') {
-                this.decreaseVigor(10);
-                e.preventDefault();
-            }
-            
-            // Vigorを増加 (PageUp)
-            if (e.key === 'PageUp') {
-                this.increaseVigor(10);
-                e.preventDefault();
-            }
-            
-            // 特定のVIGORステータスに設定するショートカット
-            if (e.ctrlKey && e.shiftKey && e.key >= '1' && e.key <= '5') {
-                e.preventDefault();
-                const number = parseInt(e.key);
-                this.setVigorToStatus(number);
             }
         });
     }
@@ -120,7 +104,6 @@ class DebugUtils {
             this.showDebugPanel();
             this.game.logger.add("Debug Mode Enabled", "important");
             this.game.logger.add("Ctrl+Shift+D: Toggle Debug Mode", "important");
-            this.game.logger.add("v: Vigor Control Mode", "important");
             this.game.logger.add("s: Stat Edit Mode", "important");
             this.game.logger.add("m: Map Generation Mode", "important");
         } else {
@@ -271,68 +254,6 @@ class DebugUtils {
         this.game.logger.add(`Currently Editing: ${this.currentStatMode ? this.currentStatMode.toUpperCase() : 'None'}`, "important");
     }
     
-    // Vigorを増加
-    increaseVigor(amount) {
-        const oldVigor = this.game.player.vigor;
-        this.game.player.vigor = Math.min(GAME_CONSTANTS.VIGOR.MAX, oldVigor + amount);
-        console.log(`Vigor: ${oldVigor} -> ${this.game.player.vigor}`);
-        this.game.player.validateVigor();
-        this.game.renderer.render();
-        this.updateDebugPanel();
-    }
-    
-    // Vigorを減少
-    decreaseVigor(amount) {
-        const oldVigor = this.game.player.vigor;
-        this.game.player.vigor = Math.max(0, oldVigor - amount);
-        console.log(`Vigor: ${oldVigor} -> ${this.game.player.vigor}`);
-        this.game.player.validateVigor();
-        this.game.renderer.render();
-        this.updateDebugPanel();
-    }
-    
-    // 特定のVigorステータスに設定
-    setVigorToStatus(statusNumber) {
-        const stats = this.game.player.stats;
-        const thresholds = GAME_CONSTANTS.VIGOR.calculateThresholds(stats);
-        let newVigor;
-        
-        // getStatus関数の実装に基づいて正確な状態を設定
-        switch (statusNumber) {
-            case 1: // High
-                newVigor = thresholds.MODERATE + 1; // MODERATE閾値より大きい
-                break;
-            case 2: // Moderate
-                newVigor = thresholds.LOW + 1; // LOW閾値より大きく、MODERATE閾値以下
-                break;
-            case 3: // Low
-                newVigor = thresholds.CRITICAL + 1; // CRITICAL閾値より大きく、LOW閾値以下
-                break;
-            case 4: // Critical
-                newVigor = 1; // 0より大きく、CRITICAL閾値以下
-                break;
-            case 5: // Exhausted
-                newVigor = 0; // 0以下
-                break;
-            default:
-                return;
-        }
-        
-        // 絶対値からパーセンテージに変換して正確に状態を設定
-        const percentage = (newVigor / GAME_CONSTANTS.VIGOR.MAX) * 100;
-        const oldVigor = this.game.player.vigor;
-        this.game.player.vigor = newVigor;
-        
-        // 設定後の実際の状態を取得
-        const newStatus = GAME_CONSTANTS.VIGOR.getStatus(newVigor, stats).name;
-        console.log(`Vigor status changed: ${oldVigor} -> ${newVigor} (${percentage.toFixed(1)}%, ${newStatus})`);
-        this.game.logger.add(`Vigor set to ${newStatus} (${newVigor}/${GAME_CONSTANTS.VIGOR.MAX})`, "important");
-        
-        this.game.player.validateVigor();
-        this.game.renderer.render();
-        this.updateDebugPanel();
-    }
-    
     // デバッグパネルの表示
     showDebugPanel() {
         let panel = document.getElementById('debug-panel');
@@ -374,8 +295,6 @@ class DebugUtils {
         
         const player = this.game.player;
         const stats = player.stats;
-        const vigorStatus = GAME_CONSTANTS.VIGOR.getStatus(player.vigor, stats);
-        const thresholds = GAME_CONSTANTS.VIGOR.calculateThresholds(stats);
         
         let statHTML = '';
         const statKeys = ['str', 'dex', 'con', 'int', 'wis'];
@@ -415,17 +334,6 @@ class DebugUtils {
         this.debugElements.panel.innerHTML = `
             <h3>Debug Panel</h3>
             <div>
-                <strong>Vigor:</strong> ${player.vigor}/${GAME_CONSTANTS.VIGOR.MAX}
-                (${vigorStatus.name})
-            </div>
-            <div>
-                <strong>Vigor Thresholds:</strong><br>
-                High: ${thresholds.HIGH}<br>
-                Moderate: ${thresholds.MODERATE}<br>
-                Low: ${thresholds.LOW}<br>
-                Critical: ${thresholds.CRITICAL}
-            </div>
-            <div>
                 <strong>Base Stats:</strong><br>
                 ${statHTML}
             </div>
@@ -439,25 +347,10 @@ class DebugUtils {
             </div>
             <div>
                 <strong>Controls:</strong><br>
-                v: Vigor Control<br>
                 s: Stat Edit<br>
-                m: Map Generation<br>
-                PageUp/Down: Vigor ±10<br>
-                Ctrl+Shift+1~5: Set Vigor Status
+                m: Map Generation
             </div>
         `;
-    }
-    
-    // Vigor操作ガイドの表示
-    showVigorControls() {
-        this.game.logger.add("--- VIGOR DEBUG MODE ---", "important");
-        this.game.logger.add("PageUp: Vigor +10", "important");
-        this.game.logger.add("PageDown: Vigor -10", "important");
-        this.game.logger.add("Ctrl+Shift+1: High", "important");
-        this.game.logger.add("Ctrl+Shift+2: Moderate", "important");
-        this.game.logger.add("Ctrl+Shift+3: Low", "important");
-        this.game.logger.add("Ctrl+Shift+4: Critical", "important");
-        this.game.logger.add("Ctrl+Shift+5: Exhausted", "important");
     }
     
     // マップ生成モードの切り替え

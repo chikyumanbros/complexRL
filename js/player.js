@@ -4,11 +4,23 @@ class Player {
         this.x = x;
         this.y = y;
         this.game = game;
-        this.char = '@';
+        this.name = '';
+        
+        // 基本ステータス
         this.level = 1;
-        this.xp = 0;                  // 経験値の初期化
-        this.xpToNextLevel = this.calculateRequiredXP(1);  // レベル1から2への必要経験値
-        this.stats = { ...GAME_CONSTANTS.STATS.DEFAULT_VALUES };
+        this.xp = 0;
+        this.xpToNextLevel = this.calculateRequiredXP(this.level);
+        
+        // ステータス値の初期化
+        this.stats = {
+            str: 10,
+            dex: 10,
+            con: 10,
+            int: 10,
+            wis: 10
+        };
+        
+        this.char = '@';
         this.remainingStatPoints = 12;  // 追加: 残りのステータスポイント
         this.deathCause = null;  // 死亡原因を記録
         this.lastAction = null;  // 最後の行動を記録するプロパティを追加
@@ -26,20 +38,17 @@ class Player {
         this.skills = new Map();  // スキルマップは空のままにしておきます（スキルシステム削除のため）
         this.meditation = null;  // メディテーション状態を追加
 
-        // Vigorの初期化を条件付きで行う
-        this.vigor = undefined;  // 初期値をundefinedに
-        this.validateVigor();    // validateVigor内で適切な初期値を設定
-
         // 各種パラメータの計算
         this.updateDerivedStats();
 
         this.lastPosition = null;  // 前回の位置を記録するプロパティを追加
         this.autoExploring = false;  // 自動探索フラグを追加
         this.detectedPresences = new Set();  // 既に感知した存在を記録
-        this.name = '';  // プレイヤー名を追加
         
         // 蜘蛛の巣関連のプロパティを追加
-        this.caughtInWeb = null;  // 蜘蛛の巣に捕まっている場合、そのwebオブジェクトを保持
+        this.caughtInWeb = null;  // 捕まっている蜘蛛の巣情報
+        this._processedWebThisTurn = false;  // このターンに蜘蛛の巣処理が済んだか
+        this._lastWebBreakResult = false;  // 最後の蜘蛛の巣脱出試行の結果
 
         // 遠距離攻撃システムの初期化
         this.rangedCombat = {
