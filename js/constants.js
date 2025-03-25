@@ -405,7 +405,7 @@ const GAME_CONSTANTS = {
 
     // 部屋生成関連
     ROOM: {
-        MIN_SIZE: 5,
+        MIN_SIZE: 7,
         MAX_SIZE: 15,
         MIN_COUNT: 15,
         MAX_COUNT: 25,

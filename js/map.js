@@ -31,7 +31,7 @@ class MapGenerator {
             // 生成した部屋情報をインスタンス変数として保存
             this.rooms = rooms;
             this.connectRooms(rooms);
-            this.placeDoors(rooms);
+            // this.placeDoors(rooms); // 処理順序変更：ドア生成をここから移動
             this.placeStairs(rooms);
             this.placeVoidPortal(); // VOIDポータルを追加（現在凍結中）
             this.placeWebsInRooms(rooms);
@@ -39,6 +39,9 @@ class MapGenerator {
             
             // 孤立した島を検出し接続
             this.connectIsolatedIslands();
+            
+            // 処理順序変更：すべての地形生成が完了した後にドアを配置
+            this.placeDoors(rooms);
         }
         
         // フロアのテーマ情報をゲームオブジェクトに保存

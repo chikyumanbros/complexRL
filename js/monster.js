@@ -2056,6 +2056,8 @@ class Monster {
                 const isCritical = Math.random() * 100 <= GAME_CONSTANTS.FORMULAS.CRITICAL_RANGE(this.stats);
                 
                 let finalDamage;
+                let defenseRolls = []; // 変数をここで初期化
+                
                 if (isCritical) {
                     // クリティカルヒットの場合は防御無視
                     finalDamage = damage.total;
@@ -2065,7 +2067,7 @@ class Monster {
                 } else {
                     // 通常ヒットの場合は防御計算
                     const defense = monster.defense;
-                    const defenseRolls = Array(defense.diceCount).fill(0)
+                    defenseRolls = Array(defense.diceCount).fill(0)
                         .map(() => Math.floor(Math.random() * defense.diceSides) + 1);
                     const totalDefense = defense.base + defenseRolls.reduce((sum, roll) => sum + roll, 0);
                     finalDamage = Math.max(1, damage.total - totalDefense);
@@ -2080,8 +2082,9 @@ class Monster {
                         game.logger.add(`The beam hits ${monster.name} for ${result.damage} damage! (ATK: ${damage.base}+[${rollsStr}] vs DEF: [IGNORED]) (HP: ${monster.hp}/${monster.maxHp})`, "monsterCrit");
                     } else {
                         const defense = monster.defense;
-                        const defenseRolls = Array(defense.diceCount).fill(0)
-                            .map(() => Math.floor(Math.random() * defense.diceSides) + 1);
+                        // この行を削除し、上で計算済みのdefenseRollsを使う
+                        // const defenseRolls = Array(defense.diceCount).fill(0)
+                        //    .map(() => Math.floor(Math.random() * defense.diceSides) + 1);
                         const defenseRollsStr = defenseRolls.join(', ');
                         game.logger.add(`The beam hits ${monster.name} for ${result.damage} damage! (ATK: ${damage.base}+[${rollsStr}] vs DEF: ${defense.base}+[${defenseRollsStr}]) (HP: ${monster.hp}/${monster.maxHp})`, "monsterInfo");
                     }
