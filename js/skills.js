@@ -88,6 +88,14 @@ const SKILLS = {
                     // ジャンプの効果音を再生
                     game.playSound('jumpSound');
 
+                    // ---- Check if landed on web ----
+                    const web = game.webs && game.webs.find(w => w.x === target.x && w.y === target.y);
+                    if (web) {
+                        game.logger.add("You land on a web and become entangled!", "warning");
+                        player.caughtInWeb = web;
+                        game.playSound('webTrapSound');
+                    }
+
                     // ターンを消費
                     return { success: true, skipTurnProcess: false };
                 }
