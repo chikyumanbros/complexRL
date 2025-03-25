@@ -536,13 +536,8 @@ class Monster {
             // 脱出成功の場合は通常の行動を続行
         }
 
-        // --- Fleeing Action ---
-        if (this.hasStartedFleeing) {
-            this.flee(game);
-            return;
-        }
-
-        // --- Sleep State Check ---
+        // --- Sleep State Check --- 
+        // 睡眠状態のチェックを先に行うように変更
         if (this.isSleeping) {
             const dx = game.player.x - this.x;
             const dy = game.player.y - this.y;
@@ -608,39 +603,29 @@ class Monster {
                         const soundIntensity = (source.intensity * attenuation) / 100;
                         
                         // 知覚による補正
-                        const perceptionBonus = Math.max(0, (this.perception - 10) * 5);
-                        
-                        // 最終的な起床確率を計算
-                        const sourceWakeupChance = Math.max(0, soundIntensity + perceptionBonus);
-                        
-                        // 最も高い起床確率を採用
-                        wakeupChance = Math.max(wakeupChance, sourceWakeupChance);
+                        wakeupChance += soundIntensity * (this.perception / 10);
                     }
                 }
             }
             
-            if (wakeupChance > 0 && Math.random() * 100 < wakeupChance) {
+            // 起床判定
+            if (Math.random() * 100 < wakeupChance) {
                 this.isSleeping = false;
-
+                
                 // プレイヤーの視界内にいる場合のみメッセージを表示
                 if (isInPlayerVision) {
                     game.logger.add(`${this.name} wakes up!`, "monsterInfo");
-                    game.renderer.flashLogPanel();
-                    game.playSound('cautionSound');
-                    
-                    // モンスターが起床したときも情報を表示
-                    game.renderer.examineTarget(this.x, this.y);
                 }
-
-                this.hasSpottedPlayer = true;
-                this.lastKnownPlayerX = game.player.x;
-                this.lastKnownPlayerY = game.player.y;
-                this.trackingTurns = this.maxTrackingTurns;
-
-                // 周囲のモンスターの起床判定
-                this.alertNearbyMonsters(game);
+            } else {
+                // 睡眠中は何もしない
                 return;
             }
+        }
+
+        // --- Fleeing Action ---
+        // 睡眠チェックの後に逃走チェックを行うように変更
+        if (this.hasStartedFleeing) {
+            this.flee(game);
             return;
         }
 
