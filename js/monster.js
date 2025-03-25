@@ -1997,6 +1997,14 @@ class Monster {
                 
                 game.renderer.showDamageFlash();
             }
+        } else {
+            // ミス時の処理が抜けています
+            // 以下のコードを追加する必要があります：
+            if (isPlayerAttackVisible) {
+                game.logger.add(`${this.name}'s beam misses you!`, "monsterMiss");
+                game.renderer.showMissEffect(game.player.x, game.player.y, 'miss');
+                game.playSound('missSound');
+            }
         }
 
         // 遠距離攻撃の位置を記録（音源として）
