@@ -1446,6 +1446,7 @@ class MapGenerator {
         console.log(`Creating path from player(${playerX},${playerY}) to stairs(${stairsX},${stairsY})`);
         
         // 既存のパスをチェック
+        console.log("Checking initial reachability...");
         if (this.isReachableFromPlayer(stairsX, stairsY)) {
             console.log("Stairs already reachable, no need to create path");
             return;
@@ -1460,6 +1461,7 @@ class MapGenerator {
         
         let iterations = 0;
         const MAX_ITERATIONS = 2000; // 大きなマップでも十分な反復回数
+        let pathFound = false;
         
         while (openSet.length > 0 && iterations < MAX_ITERATIONS) {
             iterations++;
@@ -1510,6 +1512,9 @@ class MapGenerator {
                                 
                                 // マップ範囲内かつ壁または障害物の場合
                                 if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+                                    // 階段は上書きしない
+                                    if (nx === stairsX && ny === stairsY) continue;
+                                    
                                     if (this.map[ny][nx] === 'wall' || 
                                         GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[ny][nx]) ||
                                         GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.tiles[ny][nx])) {
@@ -1529,43 +1534,46 @@ class MapGenerator {
                     }
                 }
                 
-                // 特に階段付近は必ず通れるようにする
+                // 階段周辺を常に通行可能に
                 for (let dy = -1; dy <= 1; dy++) {
                     for (let dx = -1; dx <= 1; dx++) {
                         const nx = stairsX + dx;
                         const ny = stairsY + dy;
                         
+                        // マップ範囲内
                         if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
-                            // 階段自体はそのままに
+                            // 階段自体は上書きしない
                             if (nx === stairsX && ny === stairsY) continue;
                             
-                            this.map[ny][nx] = 'floor';
-                            this.tiles[ny][nx] = GAME_CONSTANTS.TILES.FLOOR[
-                                Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
-                            ];
-                            this.colors[ny][nx] = GAME_CONSTANTS.COLORS.FLOOR;
+                            if (this.map[ny][nx] === 'wall' || 
+                                GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[ny][nx]) ||
+                                GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.tiles[ny][nx])) {
+                                
+                                // 階段の周りは必ず床にする
+                                this.map[ny][nx] = 'floor';
+                                this.tiles[ny][nx] = GAME_CONSTANTS.TILES.FLOOR[
+                                    Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+                                ];
+                                this.colors[ny][nx] = GAME_CONSTANTS.COLORS.FLOOR;
+                                pathCreated = true;
+                            }
                         }
                     }
                 }
                 
                 if (pathCreated) {
-                    console.log("Path to stairs created successfully");
+                    console.log("Path tiles created based on A* search");
                 } else {
-                    console.log("Path exists but no modifications were needed");
+                    console.log("No new path tiles needed to be created");
                 }
                 
-                // 念のための再確認
-                if (!this.isReachableFromPlayer(stairsX, stairsY)) {
-                    console.log("WARNING: Stairs still not reachable after path creation, falling back to direct path");
-                    this.createEmergencyPathToStairs(playerX, playerY, stairsX, stairsY);
-                }
-                
-                return;
+                pathFound = true;
+                break;
             }
             
             closedSet.add(key);
             
-            // 隣接するマスを探索（8方向）
+            // 隣接するマスを探索（8方向に拡張）
             const directions = [
                 {x: 0, y: -1}, {x: 1, y: -1}, {x: 1, y: 0}, {x: 1, y: 1}, 
                 {x: 0, y: 1}, {x: -1, y: 1}, {x: -1, y: 0}, {x: -1, y: -1}
@@ -1582,28 +1590,58 @@ class MapGenerator {
                     continue;
                 }
                 
+                // A*経路探索用の通行可能判定（探索用に条件を緩和）
+                let canPass = false;
+                
+                // 現在のタイルの状態
+                const isWall = this.map[ny][nx] === 'wall';
+                const tileChar = this.tiles[ny][nx];
+                const isBlockingObstacle = GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(tileChar);
+                const isTransparentObstacle = GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tileChar);
+                
+                // 目標地点は必ず通行可能
+                if (nx === stairsX && ny === stairsY) {
+                    canPass = true;
+                }
+                // 床は基本的に通行可能（ドアや障害物を考慮）
+                else if (this.map[ny][nx] === 'floor') {
+                    if (tileChar === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                        // 閉じたドアは通過可能（プレイヤーは開けられる）
+                        canPass = true;
+                    } else if (tileChar === GAME_CONSTANTS.TILES.DOOR.OPEN) {
+                        // 開いたドアは通過可能
+                        canPass = true;
+                    } else if (!isBlockingObstacle && !isTransparentObstacle) {
+                        // 通行不可の障害物がなければ通過可能
+                        canPass = true;
+                    }
+                }
+                // 壁や障害物は通行不可だが、経路作成のため「コスト高で通過可能」とする
+                else if (isWall || isBlockingObstacle || isTransparentObstacle) {
+                    canPass = true; // 経路探索では通行可能とする（後で床に変換）
+                }
+                
+                // 通行不可なら次のマスへ
+                if (!canPass) {
+                    continue;
+                }
+                
                 // タイルの種類に応じたコスト計算
                 let tileCost = 1; // 基本コスト
                 
+                // 壁や障害物はコスト高
+                if (isWall || isBlockingObstacle || isTransparentObstacle) {
+                    tileCost = 5; // 壁を通過するコストを高く
+                }
+                
                 // 斜め移動の場合はコスト増加
                 if (dir.x !== 0 && dir.y !== 0) {
-                    tileCost = 1.414; // √2 に近似
+                    tileCost *= 1.414; // √2 に近似
                 }
                 
-                // 特殊タイルの追加コスト
-                if (this.map[ny][nx] === 'wall') {
-                    tileCost += 3; // 壁を掘るコスト
-                } else if (GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[ny][nx])) {
-                    tileCost += 2; // 通行不可の障害物を除去するコスト
-                } else if (GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.tiles[ny][nx])) {
-                    tileCost += 1.5; // 透明な障害物を除去するコスト
-                } else if (this.tiles[ny][nx] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
-                    tileCost += 0.5; // ドアを開けるコスト
-                }
-                
-                // ゴールの場合は特別にコストを下げる
-                if (nx === stairsX && ny === stairsY) {
-                    tileCost = 0.5;
+                // ドアは若干コスト高
+                if (tileChar === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                    tileCost += 1; // ドアを開けるコスト
                 }
                 
                 // マンハッタン距離のヒューリスティック
@@ -1629,9 +1667,77 @@ class MapGenerator {
             }
         }
         
-        console.log(`A* search failed after ${iterations} iterations, creating emergency path`);
-        // パスが見つからない場合は、緊急パスを作成
+        // 到達可能かどうか再確認
+        console.log("Checking reachability after path creation...");
+        const isReachable = this.isReachableFromPlayer(stairsX, stairsY);
+        
+        if (pathFound && isReachable) {
+            console.log("Path to stairs created successfully");
+            return;
+        }
+        
+        console.log(`WARNING: ${pathFound ? "Path was found but stairs still not reachable" : "A* search failed after " + iterations + " iterations"}`);
+        console.log("Creating emergency path as fallback...");
+        
+        // 緊急パス作成
         this.createEmergencyPathToStairs(playerX, playerY, stairsX, stairsY);
+        
+        // 最終確認
+        const finalCheck = this.isReachableFromPlayer(stairsX, stairsY);
+        if (!finalCheck) {
+            console.log("CRITICAL: Even emergency path creation failed. Forcing direct connection.");
+            
+            // 最後の手段：プレイヤーと階段を直接床で繋ぐ
+            const plotDirectLine = (x0, y0, x1, y1) => {
+                const dx = Math.abs(x1 - x0);
+                const dy = Math.abs(y1 - y0);
+                const sx = (x0 < x1) ? 1 : -1;
+                const sy = (y0 < y1) ? 1 : -1;
+                let err = dx - dy;
+                
+                // 幅5の太い通路を作成
+                const width = 2; // 中心から両側へ2マス（合計幅5）
+                
+                let x = x0, y = y0;
+                while (true) {
+                    // 現在位置とその周囲を床にする
+                    for (let offsetY = -width; offsetY <= width; offsetY++) {
+                        for (let offsetX = -width; offsetX <= width; offsetX++) {
+                            const nx = x + offsetX;
+                            const ny = y + offsetY;
+                            
+                            if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+                                // 階段位置は保持
+                                if (nx === stairsX && ny === stairsY) continue;
+                                
+                                this.map[ny][nx] = 'floor';
+                                this.tiles[ny][nx] = GAME_CONSTANTS.TILES.FLOOR[
+                                    Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+                                ];
+                                this.colors[ny][nx] = GAME_CONSTANTS.COLORS.FLOOR;
+                            }
+                        }
+                    }
+                    
+                    // 終点に到達したら終了
+                    if (x === x1 && y === y1) break;
+                    
+                    // 次の位置へ
+                    const e2 = 2 * err;
+                    if (e2 > -dy) { err -= dy; x += sx; }
+                    if (e2 < dx) { err += dx; y += sy; }
+                }
+            };
+            
+            // 直接線を引く
+            plotDirectLine(playerX, playerY, stairsX, stairsY);
+            
+            // 階段のタイルを復元
+            this.tiles[stairsY][stairsX] = GAME_CONSTANTS.STAIRS.CHAR;
+            this.colors[stairsY][stairsX] = GAME_CONSTANTS.STAIRS.COLOR;
+            
+            console.log("Direct path forcibly created");
+        }
     }
 
     // 緊急用の直接パス生成（最後の手段）
