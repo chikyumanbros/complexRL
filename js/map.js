@@ -10,12 +10,18 @@ class MapGenerator {
         this.rooms = null;  // 部屋の情報を保存するプロパティを追加
         this.neuralObelisks = [];  // ニューラルオベリスクの情報を保存する配列を初期化
         this.initialWebs = [];     // 生成される蜘蛛の巣の情報を保存する配列を初期化
+        this.floorTheme = this.determineFloorTheme(); // フロアテーマを決定
     }
 
     generate() {
         this.map = this.initializeMap();
         this.tiles = this.initializeTiles();
         this.colors = this.initializeColors();
+        
+        // フロア生成時にfloorInfoをリセット
+        if (this.game) {
+            this.game.floorInfo = null;
+        }
         
         // Add special handling for floor 0
         if (this.floorLevel === 0) {
@@ -30,6 +36,13 @@ class MapGenerator {
             this.placeVoidPortal(); // VOIDポータルを追加（現在凍結中）
             this.placeWebsInRooms(rooms);
             this.placeWebsInCorridors();
+        }
+        
+        // フロアのテーマ情報をゲームオブジェクトに保存
+        if (this.game) {
+            this.game.floorTheme = this.floorTheme;
+            // フロアテーマのフレーバーテキストを設定
+            this.setFloorThemeFlavorText();
         }
         
         return {
@@ -85,21 +98,37 @@ class MapGenerator {
         let baseWallColor = GAME_CONSTANTS.COLORS.WALL_VARIATIONS[floorDigit];
         const dangerLevel = this.game.dangerLevel;
         
+        // テーマに応じた色の調整
+        switch (this.floorTheme) {
+            case 'CAVE':
+                // 洞窟は自然な茶色/岩っぽい色に
+                baseWallColor = this.adjustColor(baseWallColor, {r: 1, g: 0.5, b: 0, brightness: 0});
+                break;
+            case 'LABORATORY':
+                // 実験施設は白っぽく清潔な色に
+                baseWallColor = this.adjustColor(baseWallColor, {r: 0.5, g: 0.5, b: 0.5, brightness: 2});
+                break;
+            case 'RUINS':
+                // 遺跡は古びた石の色に
+                baseWallColor = this.adjustColor(baseWallColor, {r: 0.5, g: 0.5, b: 0, brightness: -1});
+                break;
+            case 'CRYPT':
+                // 地下墓地は暗く不気味な色に
+                baseWallColor = this.adjustColor(baseWallColor, {r: 0, g: 0, b: 0.5, brightness: -2});
+                break;
+        }
+        
         // 危険度に応じて色を調整
         switch (dangerLevel) {
             case 'SAFE':
-                // より明るく、青みがかった色に
                 baseWallColor = this.adjustColor(baseWallColor, {b: 1, brightness: 1});
                 break;
             case 'DANGEROUS':
-                // より暗く、赤みがかった色に
                 baseWallColor = this.adjustColor(baseWallColor, {r: 1, brightness: -1});
                 break;
             case 'DEADLY':
-                // より暗く、紫がかった色に
                 baseWallColor = this.adjustColor(baseWallColor, {r: 1, b: 1, brightness: -2});
                 break;
-            // NORMALの場合は基本色をそのまま使用
         }
         
         // わずかなランダムな色の変動を加える
@@ -152,8 +181,32 @@ class MapGenerator {
 
     generateRooms() {
         const rooms = [];
-        const numRooms = GAME_CONSTANTS.ROOM.MIN_COUNT + 
-            Math.floor(Math.random() * (GAME_CONSTANTS.ROOM.MAX_COUNT - GAME_CONSTANTS.ROOM.MIN_COUNT));
+        
+        // テーマに基づいて部屋数を調整
+        let minRooms, maxRooms;
+        switch (this.floorTheme) {
+            case 'CAVE':
+                minRooms = Math.max(1, GAME_CONSTANTS.ROOM.MIN_COUNT - 1);
+                maxRooms = Math.max(minRooms + 2, GAME_CONSTANTS.ROOM.MAX_COUNT - 2);
+                break;
+            case 'LABORATORY':
+                minRooms = GAME_CONSTANTS.ROOM.MIN_COUNT + 1;
+                maxRooms = GAME_CONSTANTS.ROOM.MAX_COUNT + 2;
+                break;
+            case 'RUINS':
+                minRooms = GAME_CONSTANTS.ROOM.MIN_COUNT;
+                maxRooms = GAME_CONSTANTS.ROOM.MAX_COUNT + 1;
+                break;
+            case 'CRYPT':
+                minRooms = GAME_CONSTANTS.ROOM.MIN_COUNT - 1;
+                maxRooms = GAME_CONSTANTS.ROOM.MIN_COUNT + 2;
+                break;
+            default:
+                minRooms = GAME_CONSTANTS.ROOM.MIN_COUNT;
+                maxRooms = GAME_CONSTANTS.ROOM.MAX_COUNT;
+        }
+        
+        const numRooms = minRooms + Math.floor(Math.random() * (maxRooms - minRooms));
 
         for (let i = 0; i < numRooms; i++) {
             let attempts = 50;
@@ -171,26 +224,150 @@ class MapGenerator {
     }
 
     createRandomRoom() {
-        const width = GAME_CONSTANTS.ROOM.MIN_SIZE + 
+        // 基本となる長方形の部屋を作成
+        const baseWidth = GAME_CONSTANTS.ROOM.MIN_SIZE + 
             Math.floor(Math.random() * (GAME_CONSTANTS.ROOM.MAX_SIZE - GAME_CONSTANTS.ROOM.MIN_SIZE));
-        const height = GAME_CONSTANTS.ROOM.MIN_SIZE + 
+        const baseHeight = GAME_CONSTANTS.ROOM.MIN_SIZE + 
             Math.floor(Math.random() * (GAME_CONSTANTS.ROOM.MAX_SIZE - GAME_CONSTANTS.ROOM.MIN_SIZE));
-        const x = 1 + Math.floor(Math.random() * (this.width - width - 2));
-        const y = 1 + Math.floor(Math.random() * (this.height - height - 2));
+        const x = 1 + Math.floor(Math.random() * (this.width - baseWidth - 2));
+        const y = 1 + Math.floor(Math.random() * (this.height - baseHeight - 2));
 
-        // 部屋の明るさを3段階に設定
-        const roll = Math.random();
-        let brightness;
-        if (roll < GAME_CONSTANTS.ROOM.BRIGHTNESS.PROBABILITIES.DIM) {
-            brightness = GAME_CONSTANTS.ROOM.BRIGHTNESS.DIM;       // 暗い部屋
-        } else if (roll < GAME_CONSTANTS.ROOM.BRIGHTNESS.PROBABILITIES.DIM + 
-                   GAME_CONSTANTS.ROOM.BRIGHTNESS.PROBABILITIES.MODERATE) {
-            brightness = GAME_CONSTANTS.ROOM.BRIGHTNESS.MODERATE;  // 中程度の明るさ
-        } else {
-            brightness = GAME_CONSTANTS.ROOM.BRIGHTNESS.BRIGHT;    // 明るい部屋
+        // テーマに基づいて部屋の形状を決定
+        let shapeTypes = [];
+        
+        switch (this.floorTheme) {
+            case 'CAVE':
+                // 洞窟テーマ: 自然な形状が多い
+                shapeTypes = [
+                    { id: 4, weight: 70 },  // 洞窟型 (70%)
+                    { id: 3, weight: 20 },  // 不規則 (20%)
+                    { id: 0, weight: 10 }   // 長方形 (10%)
+                ];
+                    break;
+            case 'RUINS':
+                // 遺跡テーマ: 崩れた建物のような形状
+                shapeTypes = [
+                    { id: 1, weight: 30 },  // L字型 (30%)
+                    { id: 2, weight: 30 },  // 凹型 (30%)
+                    { id: 3, weight: 30 },  // 不規則 (30%)
+                    { id: 0, weight: 10 }   // 長方形 (10%)
+                ];
+                break;
+            case 'LABORATORY':
+                // 実験施設テーマ: 人工的で整った形状
+                shapeTypes = [
+                    { id: 0, weight: 60 },  // 長方形 (60%)
+                    { id: 1, weight: 20 },  // L字型 (20%)
+                    { id: 2, weight: 20 }   // 凹型 (20%)
+                ];
+                break;
+            case 'CRYPT':
+                // 地下墓地テーマ: 小さく整った部屋が多い
+                shapeTypes = [
+                    { id: 0, weight: 80 },  // 長方形 (80%)
+                    { id: 1, weight: 10 },  // L字型 (10%)
+                    { id: 2, weight: 10 }   // 凹型 (10%)
+                ];
+                break;
+            default:
+                // 標準テーマ: バランスのとれた形状分布
+                shapeTypes = [
+                    { id: 0, weight: 40 },  // 長方形 (40%)
+                    { id: 1, weight: 15 },  // L字型 (15%)
+                    { id: 2, weight: 15 },  // 凹型 (15%)
+                    { id: 3, weight: 15 },  // 不規則 (15%)
+                    { id: 4, weight: 15 }   // 洞窟型 (15%)
+                ];
+        }
+        
+        // 重み付き抽選で部屋形状を決定
+        const totalWeight = shapeTypes.reduce((sum, type) => sum + type.weight, 0);
+        let roll = Math.random() * totalWeight;
+        let shapeType = 0;
+        
+        for (const type of shapeTypes) {
+            roll -= type.weight;
+            if (roll <= 0) {
+                shapeType = type.id;
+                break;
+            }
         }
 
-        return { x, y, width, height, brightness };
+        // 部屋の実際の形状を格納する配列
+        const shape = [];
+        for (let i = 0; i < baseHeight; i++) {
+            shape[i] = new Array(baseWidth).fill(true);
+        }
+
+        // 形状に応じて部屋を加工
+        switch (shapeType) {
+            case 4: // 洞窟型
+                // 洞窟生成時のパラメータをテーマに合わせて調整
+                const caveParams = {
+                    initialFloorChance: 0.6,  // 初期の床の確率
+                    iterations: 4             // セルオートマトンの繰り返し回数
+                };
+                
+                if (this.floorTheme === 'CAVE') {
+                    // CAVEテーマでは、より自然で広い洞窟
+                    caveParams.initialFloorChance = 0.7;
+                    caveParams.iterations = 3;
+                }
+                
+                this.generateCaveShape(shape, baseWidth, baseHeight, caveParams);
+                break;
+            
+            // 他の形状も同様に処理...
+            case 1: // L字型
+                const cutSize = Math.floor(Math.min(baseWidth, baseHeight) * 0.4);
+                for (let i = 0; i < cutSize; i++) {
+                    for (let j = 0; j < cutSize; j++) {
+                        shape[i][baseWidth - 1 - j] = false;
+                    }
+                }
+                break;
+
+            // ... 他の形状処理
+        }
+
+        // 明るさの設定（テーマによって調整）
+        let brightness;
+        const roll2 = Math.random();
+        
+        // テーマごとに明るさ確率を調整
+        let dimProb, moderateProb;
+        
+        switch (this.floorTheme) {
+            case 'CAVE':
+                // 洞窟は暗い傾向
+                dimProb = GAME_CONSTANTS.ROOM.BRIGHTNESS.PROBABILITIES.DIM * 1.5;
+                moderateProb = GAME_CONSTANTS.ROOM.BRIGHTNESS.PROBABILITIES.MODERATE * 0.8;
+                break;
+            case 'LABORATORY':
+                // 実験施設は明るい傾向
+                dimProb = GAME_CONSTANTS.ROOM.BRIGHTNESS.PROBABILITIES.DIM * 0.5;
+                moderateProb = GAME_CONSTANTS.ROOM.BRIGHTNESS.PROBABILITIES.MODERATE * 0.8;
+                break;
+            case 'CRYPT':
+                // 地下墓地は非常に暗い
+                dimProb = GAME_CONSTANTS.ROOM.BRIGHTNESS.PROBABILITIES.DIM * 2;
+                moderateProb = GAME_CONSTANTS.ROOM.BRIGHTNESS.PROBABILITIES.MODERATE * 0.7;
+                break;
+            default:
+                dimProb = GAME_CONSTANTS.ROOM.BRIGHTNESS.PROBABILITIES.DIM;
+                moderateProb = GAME_CONSTANTS.ROOM.BRIGHTNESS.PROBABILITIES.MODERATE;
+        }
+        
+        // 明るさ決定
+        if (roll2 < dimProb) {
+            brightness = GAME_CONSTANTS.ROOM.BRIGHTNESS.DIM;
+        } else if (roll2 < dimProb + moderateProb) {
+            brightness = GAME_CONSTANTS.ROOM.BRIGHTNESS.MODERATE;
+        } else {
+            brightness = GAME_CONSTANTS.ROOM.BRIGHTNESS.BRIGHT;
+        }
+
+        return { x, y, width: baseWidth, height: baseHeight, brightness, shape };
     }
 
     roomsOverlap(room, otherRooms) {
@@ -203,16 +380,19 @@ class MapGenerator {
     }
 
     carveRoom(room) {
-        // 部屋の床を作成
-        for (let y = room.y; y < room.y + room.height; y++) {
-            for (let x = room.x; x < room.x + room.width; x++) {
-                if (y < this.height && x < this.width) {
-                    this.map[y][x] = 'floor';
-                    // ランダムなフロアタイルを選択
-                    this.tiles[y][x] = GAME_CONSTANTS.TILES.FLOOR[
-                        Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
-                    ];
-                    this.colors[y][x] = GAME_CONSTANTS.COLORS.FLOOR;
+        // 部屋の形状に従って床を作成
+        for (let y = 0; y < room.height; y++) {
+            for (let x = 0; x < room.width; x++) {
+                if (room.shape[y][x]) {  // shapeがtrueの場所のみ床を作成
+                    const mapY = room.y + y;
+                    const mapX = room.x + x;
+                    if (mapY < this.height && mapX < this.width) {
+                        this.map[mapY][mapX] = 'floor';
+                        this.tiles[mapY][mapX] = GAME_CONSTANTS.TILES.FLOOR[
+                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+                        ];
+                        this.colors[mapY][mapX] = GAME_CONSTANTS.COLORS.FLOOR;
+                    }
                 }
             }
         }
@@ -687,6 +867,37 @@ class MapGenerator {
     connectRooms(rooms) {
         if (rooms.length < 2) return;
 
+        // テーマに応じた接続パラメータ
+        let extraConnectionRatio;
+        let preferStraightCorridors;
+        
+        switch (this.floorTheme) {
+            case 'CAVE':
+                // 洞窟は接続が少なく、曲がりくねった通路
+                extraConnectionRatio = 0.1;
+                preferStraightCorridors = false;
+                break;
+            case 'LABORATORY':
+                // 実験施設は整然とした直線的な通路
+                extraConnectionRatio = 0.4;
+                preferStraightCorridors = true;
+                break;
+            case 'RUINS':
+                // 遺跡は崩れた通路
+                extraConnectionRatio = 0.3;
+                preferStraightCorridors = false;
+                break;
+            case 'CRYPT':
+                // 地下墓地は限られた通路
+                extraConnectionRatio = 0.2;
+                preferStraightCorridors = true;
+                break;
+            default:
+                // 標準
+                extraConnectionRatio = 0.3;
+                preferStraightCorridors = false;
+        }
+
         // 部屋間の接続情報を格納する配列
         const connections = [];
         
@@ -732,7 +943,7 @@ class MapGenerator {
         }
 
         // 追加の接続を作成（ループを作る）
-        const extraConnectionCount = Math.floor(rooms.length * 0.3); // 部屋数の30%程度
+        const extraConnectionCount = Math.floor(rooms.length * extraConnectionRatio);
         for (const conn of connections) {
             if (selectedConnections.length >= rooms.length - 1 + extraConnectionCount) break;
             if (!selectedConnections.includes(conn)) {
@@ -751,16 +962,27 @@ class MapGenerator {
 
             const { startX, startY, endX, endY } = points;
             
-            // 通路を生成（確率で経路を変える）
-            let attempts = 0;
+            // 通路を生成（テーマに合わせた方向を優先）
             let success = false;
-            while (!success && attempts < 3) {
-                if (Math.random() < 0.5) {
-                    success = this.tryCreateCorridor(startX, endX, startY, endY, 'horizontal');
-                } else {
+            if (preferStraightCorridors) {
+                // 実験施設や地下墓地では水平→垂直の順に試す
+                success = this.tryCreateCorridor(startX, endX, startY, endY, 'horizontal');
+                if (!success) {
                     success = this.tryCreateCorridor(startX, endX, startY, endY, 'vertical');
                 }
-                attempts++;
+            } else {
+                // 自然な洞窟や遺跡ではランダムな順序で試す
+                if (Math.random() < 0.5) {
+                    success = this.tryCreateCorridor(startX, endX, startY, endY, 'horizontal');
+                    if (!success) {
+                        success = this.tryCreateCorridor(startX, endX, startY, endY, 'vertical');
+                    }
+                } else {
+                    success = this.tryCreateCorridor(startX, endX, startY, endY, 'vertical');
+                    if (!success) {
+                        success = this.tryCreateCorridor(startX, endX, startY, endY, 'horizontal');
+                    }
+                }
             }
             
             // どちらの方法でも失敗した場合は強制的に接続
@@ -1006,14 +1228,564 @@ class MapGenerator {
                 }
             }
         }
+
+        // 階段候補位置のパス到達可能性をチェック
+        const accessiblePositions = validPositions.filter(pos => {
+            return this.isReachableFromPlayer(pos.x, pos.y);
+        });
         
-        // 有効な位置からランダムに1つ選択
-        const stairsPos = validPositions[Math.floor(Math.random() * validPositions.length)];
+        // 有効かつ到達可能な位置からランダムに1つ選択
+        const positionsToUse = accessiblePositions.length > 0 ? accessiblePositions : validPositions;
         
-        // 階段の配置
-        this.map[stairsPos.y][stairsPos.x] = 'floor';  // 基底マップを床に
-        this.tiles[stairsPos.y][stairsPos.x] = GAME_CONSTANTS.STAIRS.CHAR;  // 見た目を階段に
-        this.colors[stairsPos.y][stairsPos.x] = GAME_CONSTANTS.STAIRS.COLOR;  // 色を階段用に
+        // 到達可能な位置がない場合、プレイヤーから最も近い部屋へのパスを作成
+        if (accessiblePositions.length === 0 && validPositions.length > 0) {
+            const stairsPos = validPositions[Math.floor(Math.random() * validPositions.length)];
+            this.createPathToStairs(stairsPos.x, stairsPos.y);
+            
+            // 階段の配置
+            this.map[stairsPos.y][stairsPos.x] = 'floor';  // 基底マップを床に
+            this.tiles[stairsPos.y][stairsPos.x] = GAME_CONSTANTS.STAIRS.CHAR;  // 見た目を階段に
+            this.colors[stairsPos.y][stairsPos.x] = GAME_CONSTANTS.STAIRS.COLOR;  // 色を階段用に
+            return;
+        }
+        
+        // 到達可能な位置がある場合は通常通り配置
+        if (positionsToUse.length > 0) {
+            const stairsPos = positionsToUse[Math.floor(Math.random() * positionsToUse.length)];
+            
+            // 階段の配置
+            this.map[stairsPos.y][stairsPos.x] = 'floor';  // 基底マップを床に
+            this.tiles[stairsPos.y][stairsPos.x] = GAME_CONSTANTS.STAIRS.CHAR;  // 見た目を階段に
+            this.colors[stairsPos.y][stairsPos.x] = GAME_CONSTANTS.STAIRS.COLOR;  // 色を階段用に
+        } else {
+            // 最終的な対策: 最後の部屋の中央に階段を配置し、強制的にパスを確保
+            const centerX = Math.floor(lastRoom.x + lastRoom.width / 2);
+            const centerY = Math.floor(lastRoom.y + lastRoom.height / 2);
+            this.map[centerY][centerX] = 'floor';
+            this.tiles[centerY][centerX] = GAME_CONSTANTS.STAIRS.CHAR;
+            this.colors[centerY][centerX] = GAME_CONSTANTS.STAIRS.COLOR;
+            
+            // 強制的にパスを作成
+            this.createPathToStairs(centerX, centerY);
+        }
+    }
+
+    // プレイヤーから到達可能かどうかを判定（A*アルゴリズムを使用）
+    isReachableFromPlayer(targetX, targetY) {
+        if (!this.game?.player) return true; // プレイヤーがいない場合は常に到達可能とみなす
+        
+        const startX = this.game.player.x;
+        const startY = this.game.player.y;
+        
+        console.log(`Checking reachability from player(${startX},${startY}) to target(${targetX},${targetY})`);
+        
+        // 開始地点と目標地点が同じ場合
+        if (startX === targetX && startY === targetY) {
+            return true;
+        }
+        
+        // デバッグ: 現在の周辺タイルの状態を出力
+        console.log(`==== 経路探索開始 ====`);
+        for (let y = Math.max(0, startY - 3); y <= Math.min(this.height - 1, startY + 3); y++) {
+            let row = '';
+            for (let x = Math.max(0, startX - 3); x <= Math.min(this.width - 1, startX + 3); x++) {
+                if (x === startX && y === startY) {
+                    row += 'P'; // プレイヤー位置
+                } else {
+                    if (this.map[y][x] === 'wall') {
+                        row += '#'; // 壁
+                    } else if (this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                        row += '+'; // 閉じたドア
+                    } else if (this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.OPEN) {
+                        row += '/'; // 開いたドア
+                    } else if (GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][x])) {
+                        row += '*'; // 通行不可の障害物
+                    } else if (GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.tiles[y][x])) {
+                        row += '~'; // 透明な障害物
+                    } else {
+                        row += '.'; // 通行可能な床
+                    }
+                }
+            }
+            console.log(row);
+        }
+        console.log(`====================`);
+        
+        // 目標地点周辺のタイル状態を出力
+        console.log(`==== 目標地点周辺 ====`);
+        for (let y = Math.max(0, targetY - 3); y <= Math.min(this.height - 1, targetY + 3); y++) {
+            let row = '';
+            for (let x = Math.max(0, targetX - 3); x <= Math.min(this.width - 1, targetX + 3); x++) {
+                if (x === targetX && y === targetY) {
+                    row += 'T'; // 目標位置
+                } else {
+                    if (this.map[y][x] === 'wall') {
+                        row += '#'; // 壁
+                    } else if (this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                        row += '+'; // 閉じたドア
+                    } else if (this.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.OPEN) {
+                        row += '/'; // 開いたドア
+                    } else if (GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[y][x])) {
+                        row += '*'; // 通行不可の障害物
+                    } else if (GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.tiles[y][x])) {
+                        row += '~'; // 透明な障害物
+                    } else {
+                        row += '.'; // 通行可能な床
+                    }
+                }
+            }
+            console.log(row);
+        }
+        console.log(`====================`);
+        
+        // 幅優先探索（BFS）を使用して確実に到達可能かどうかを判定
+        const visited = Array(this.height).fill().map(() => Array(this.width).fill(false));
+        const queue = [{x: startX, y: startY}];
+        visited[startY][startX] = true;
+        
+        // 探索方向（4方向または8方向）
+        const directions = [
+            {x: 0, y: -1}, {x: 1, y: 0}, {x: 0, y: 1}, {x: -1, y: 0},
+            {x: 1, y: -1}, {x: 1, y: 1}, {x: -1, y: 1}, {x: -1, y: -1} // 斜め方向も含む
+        ];
+        
+        // BFSでの探索
+        while (queue.length > 0) {
+            const current = queue.shift();
+            
+            // 目標に到達した
+            if (current.x === targetX && current.y === targetY) {
+                console.log(`Path found using BFS - target is reachable`);
+                return true;
+            }
+            
+            // 隣接するマスを探索
+            for (const dir of directions) {
+                const nx = current.x + dir.x;
+                const ny = current.y + dir.y;
+                
+                // マップ範囲外または既に訪問済みならスキップ
+                if (nx < 0 || nx >= this.width || ny < 0 || ny >= this.height || visited[ny][nx]) {
+                    continue;
+                }
+                
+                // タイルの通行可能性をチェック
+                let canPass = false;
+                
+                if (nx === targetX && ny === targetY) {
+                    // 目標地点は特別扱い（階段などの特殊タイルの場合）
+                    canPass = true;
+                    console.log(`Target tile at (${nx},${ny}) is being treated as passable (special case)`);
+                } else if (this.map[ny][nx] === 'floor') {
+                    // 床タイルの場合、障害物の有無をチェック
+                    const tileChar = this.tiles[ny][nx];
+                    
+                    if (tileChar === GAME_CONSTANTS.TILES.DOOR.CLOSED || 
+                        tileChar === GAME_CONSTANTS.TILES.DOOR.OPEN) {
+                        // ドアは通行可能
+                        canPass = true;
+                        console.log(`Door at (${nx},${ny}) is passable, type: ${tileChar}`);
+                    } else if (!GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(tileChar) &&
+                               !GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tileChar)) {
+                        // 通行不可の障害物がない場合
+                        canPass = true;
+                    }
+                }
+                
+                // 通行可能なら訪問済みにして探索キューに追加
+                if (canPass) {
+                    visited[ny][nx] = true;
+                    queue.push({x: nx, y: ny});
+                }
+            }
+        }
+        
+        // マップ全体の探索状況をデバッグ表示
+        console.log(`==== 探索結果 ====`);
+        let visitedCount = 0;
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                if (visited[y][x]) {
+                    visitedCount++;
+                }
+            }
+        }
+        console.log(`Visited ${visitedCount} tiles out of ${this.width * this.height}`);
+        
+        // プレイヤー周辺の探索結果
+        for (let y = Math.max(0, startY - 5); y <= Math.min(this.height - 1, startY + 5); y++) {
+            let row = '';
+            for (let x = Math.max(0, startX - 5); x <= Math.min(this.width - 1, startX + 5); x++) {
+                if (x === startX && y === startY) {
+                    row += 'P'; // プレイヤー位置
+                } else if (visited[y][x]) {
+                    row += 'v'; // 訪問済み
+                } else {
+                    if (this.map[y][x] === 'wall') {
+                        row += '#'; // 壁
+                    } else {
+                        row += '.'; // 通行可能だが未訪問
+                    }
+                }
+            }
+            console.log(row);
+        }
+        console.log(`====================`);
+        
+        console.log(`No path found - target is unreachable`);
+        return false; // パスが見つからなかった
+    }
+
+    // パスを作成するメソッド
+    createPathToStairs(stairsX, stairsY) {
+        if (!this.game?.player) return; // プレイヤーがいない場合は処理しない
+        
+        const playerX = this.game.player.x;
+        const playerY = this.game.player.y;
+        
+        console.log(`Creating path from player(${playerX},${playerY}) to stairs(${stairsX},${stairsY})`);
+        
+        // 既存のパスをチェック
+        if (this.isReachableFromPlayer(stairsX, stairsY)) {
+            console.log("Stairs already reachable, no need to create path");
+            return;
+        }
+        
+        console.log("No existing path found, creating new path...");
+        
+        // A*アルゴリズムで最短経路を見つける
+        const openSet = [{x: playerX, y: playerY, g: 0, h: 0, f: 0}];
+        const closedSet = new Set();
+        const cameFrom = {};
+        
+        let iterations = 0;
+        const MAX_ITERATIONS = 2000; // 大きなマップでも十分な反復回数
+        
+        while (openSet.length > 0 && iterations < MAX_ITERATIONS) {
+            iterations++;
+            
+            // f値が最も小さいノードを選択
+            openSet.sort((a, b) => a.f - b.f);
+            const current = openSet.shift();
+            const key = `${current.x},${current.y}`;
+            
+            // 目標に到達した
+            if (current.x === stairsX && current.y === stairsY) {
+                // パスを再構築して床を作成
+                console.log(`Path found after ${iterations} iterations, creating path...`);
+                
+                // パスのマスを記録
+                const path = [];
+                let pathKey = key;
+                
+                while (pathKey in cameFrom) {
+                    const [x, y] = pathKey.split(',').map(Number);
+                    path.push({x, y});
+                    pathKey = cameFrom[pathKey];
+                }
+                path.reverse(); // スタートからゴールの順に並べ替え
+                
+                // パスを床に変更
+                let pathCreated = false;
+                for (const point of path) {
+                    // 壁や障害物の場合のみ床に変更
+                    if (this.map[point.y][point.x] === 'wall' || 
+                        GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[point.y][point.x]) ||
+                        GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.tiles[point.y][point.x])) {
+                        
+                        this.map[point.y][point.x] = 'floor';
+                        this.tiles[point.y][point.x] = GAME_CONSTANTS.TILES.FLOOR[
+                            Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+                        ];
+                        this.colors[point.y][point.x] = GAME_CONSTANTS.COLORS.FLOOR;
+                        pathCreated = true;
+                        
+                        // パスを広げる（幅を持たせる）
+                        for (let dy = -1; dy <= 1; dy++) {
+                            for (let dx = -1; dx <= 1; dx++) {
+                                if (dx === 0 && dy === 0) continue; // 中心は既に処理済み
+                                
+                                const nx = point.x + dx;
+                                const ny = point.y + dy;
+                                
+                                // マップ範囲内かつ壁または障害物の場合
+                                if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+                                    if (this.map[ny][nx] === 'wall' || 
+                                        GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[ny][nx]) ||
+                                        GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.tiles[ny][nx])) {
+                                        
+                                        // 50%の確率で床に変更（パスに幅を持たせる）
+                                        if (Math.random() < 0.5) {
+                                            this.map[ny][nx] = 'floor';
+                                            this.tiles[ny][nx] = GAME_CONSTANTS.TILES.FLOOR[
+                                                Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+                                            ];
+                                            this.colors[ny][nx] = GAME_CONSTANTS.COLORS.FLOOR;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 特に階段付近は必ず通れるようにする
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        const nx = stairsX + dx;
+                        const ny = stairsY + dy;
+                        
+                        if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+                            // 階段自体はそのままに
+                            if (nx === stairsX && ny === stairsY) continue;
+                            
+                            this.map[ny][nx] = 'floor';
+                            this.tiles[ny][nx] = GAME_CONSTANTS.TILES.FLOOR[
+                                Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+                            ];
+                            this.colors[ny][nx] = GAME_CONSTANTS.COLORS.FLOOR;
+                        }
+                    }
+                }
+                
+                if (pathCreated) {
+                    console.log("Path to stairs created successfully");
+                } else {
+                    console.log("Path exists but no modifications were needed");
+                }
+                
+                // 念のための再確認
+                if (!this.isReachableFromPlayer(stairsX, stairsY)) {
+                    console.log("WARNING: Stairs still not reachable after path creation, falling back to direct path");
+                    this.createEmergencyPathToStairs(playerX, playerY, stairsX, stairsY);
+                }
+                
+                return;
+            }
+            
+            closedSet.add(key);
+            
+            // 隣接するマスを探索（8方向）
+            const directions = [
+                {x: 0, y: -1}, {x: 1, y: -1}, {x: 1, y: 0}, {x: 1, y: 1}, 
+                {x: 0, y: 1}, {x: -1, y: 1}, {x: -1, y: 0}, {x: -1, y: -1}
+            ];
+            
+            for (const dir of directions) {
+                const nx = current.x + dir.x;
+                const ny = current.y + dir.y;
+                const neighborKey = `${nx},${ny}`;
+                
+                // マップ範囲外またはクローズドセットにあるなら次へ
+                if (nx < 0 || nx >= this.width || ny < 0 || ny >= this.height || 
+                    closedSet.has(neighborKey)) {
+                    continue;
+                }
+                
+                // タイルの種類に応じたコスト計算
+                let tileCost = 1; // 基本コスト
+                
+                // 斜め移動の場合はコスト増加
+                if (dir.x !== 0 && dir.y !== 0) {
+                    tileCost = 1.414; // √2 に近似
+                }
+                
+                // 特殊タイルの追加コスト
+                if (this.map[ny][nx] === 'wall') {
+                    tileCost += 3; // 壁を掘るコスト
+                } else if (GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(this.tiles[ny][nx])) {
+                    tileCost += 2; // 通行不可の障害物を除去するコスト
+                } else if (GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(this.tiles[ny][nx])) {
+                    tileCost += 1.5; // 透明な障害物を除去するコスト
+                } else if (this.tiles[ny][nx] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                    tileCost += 0.5; // ドアを開けるコスト
+                }
+                
+                // ゴールの場合は特別にコストを下げる
+                if (nx === stairsX && ny === stairsY) {
+                    tileCost = 0.5;
+                }
+                
+                // マンハッタン距離のヒューリスティック
+                const h = Math.abs(nx - stairsX) + Math.abs(ny - stairsY);
+                const g = current.g + tileCost;
+                const f = g + h;
+                
+                // 既にオープンセットにあって、今回のパスの方が長い場合はスキップ
+                const existingIndex = openSet.findIndex(node => node.x === nx && node.y === ny);
+                if (existingIndex !== -1 && openSet[existingIndex].g <= g) {
+                    continue;
+                }
+                
+                // オープンセットに追加または更新
+                if (existingIndex === -1) {
+                    openSet.push({x: nx, y: ny, g, h, f});
+                } else {
+                    openSet[existingIndex] = {x: nx, y: ny, g, h, f};
+                }
+                
+                // 経路を記録
+                cameFrom[neighborKey] = key;
+            }
+        }
+        
+        console.log(`A* search failed after ${iterations} iterations, creating emergency path`);
+        // パスが見つからない場合は、緊急パスを作成
+        this.createEmergencyPathToStairs(playerX, playerY, stairsX, stairsY);
+    }
+
+    // 緊急用の直接パス生成（最後の手段）
+    createEmergencyPathToStairs(startX, startY, endX, endY) {
+        console.log(`Creating EMERGENCY path from (${startX},${startY}) to (${endX},${endY})`);
+        
+        // 完全に新しいアプローチ：複数の幅広い通路を作成する
+        
+        // 経由点を設定（ジグザグパスの角）
+        const waypoints = [
+            {x: startX, y: startY}, // スタート
+            {x: Math.floor((startX + endX) / 2), y: startY}, // 中間点1
+            {x: Math.floor((startX + endX) / 2), y: endY}, // 中間点2
+            {x: endX, y: endY} // ゴール
+        ];
+        
+        // プレイヤーの周囲を床にする（3x3エリア）
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                const nx = startX + dx;
+                const ny = startY + dy;
+                if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+                    this.map[ny][nx] = 'floor';
+                    this.tiles[ny][nx] = GAME_CONSTANTS.TILES.FLOOR[
+                        Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+                    ];
+                    this.colors[ny][nx] = GAME_CONSTANTS.COLORS.FLOOR;
+                }
+            }
+        }
+        
+        // 階段の周囲を床にする（3x3エリア）
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                const nx = endX + dx;
+                const ny = endY + dy;
+                if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+                    // 階段自体は保持する
+                    if (nx === endX && ny === endY) continue;
+                    
+                    this.map[ny][nx] = 'floor';
+                    this.tiles[ny][nx] = GAME_CONSTANTS.TILES.FLOOR[
+                        Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+                    ];
+                    this.colors[ny][nx] = GAME_CONSTANTS.COLORS.FLOOR;
+                }
+            }
+        }
+        
+        // 経由点間に幅広い通路を作成（幅3の通路）
+        for (let i = 0; i < waypoints.length - 1; i++) {
+            const start = waypoints[i];
+            const end = waypoints[i + 1];
+            
+            // 水平移動
+            if (start.x !== end.x) {
+                const step = start.x < end.x ? 1 : -1;
+                for (let x = start.x; x !== end.x + step; x += step) {
+                    // 幅3の通路
+                    for (let offset = -1; offset <= 1; offset++) {
+                        const y = start.y + offset;
+                        if (y >= 0 && y < this.height && x >= 0 && x < this.width) {
+                            this.map[y][x] = 'floor';
+                            this.tiles[y][x] = GAME_CONSTANTS.TILES.FLOOR[
+                                Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+                            ];
+                            this.colors[y][x] = GAME_CONSTANTS.COLORS.FLOOR;
+                        }
+                    }
+                }
+            }
+            
+            // 垂直移動
+            if (start.y !== end.y) {
+                const step = start.y < end.y ? 1 : -1;
+                for (let y = start.y; y !== end.y + step; y += step) {
+                    // 幅3の通路
+                    for (let offset = -1; offset <= 1; offset++) {
+                        const x = end.x + offset;
+                        if (y >= 0 && y < this.height && x >= 0 && x < this.width) {
+                            this.map[y][x] = 'floor';
+                            this.tiles[y][x] = GAME_CONSTANTS.TILES.FLOOR[
+                                Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+                            ];
+                            this.colors[y][x] = GAME_CONSTANTS.COLORS.FLOOR;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 階段のタイルを復元
+        this.tiles[endY][endX] = GAME_CONSTANTS.STAIRS.CHAR;
+        this.colors[endY][endX] = GAME_CONSTANTS.STAIRS.COLOR;
+        
+        // 直接パスの確認
+        const isReachable = this.isReachableFromPlayer(endX, endY);
+        console.log(`Emergency path created. Stairs reachable: ${isReachable}`);
+        
+        if (!isReachable) {
+            // まだ到達できない場合は、最終手段：プレイヤーと階段を直接つなぐ直線パス
+            console.log("CRITICAL: Emergency path failed. Creating direct line path as last resort.");
+            
+            // 直線パスを作成（ブレゼンハムのアルゴリズム）
+            const plotLine = (x0, y0, x1, y1) => {
+                const dx = Math.abs(x1 - x0);
+                const dy = Math.abs(y1 - y0);
+                const sx = (x0 < x1) ? 1 : -1;
+                const sy = (y0 < y1) ? 1 : -1;
+                let err = dx - dy;
+                
+                while (x0 !== x1 || y0 !== y1) {
+                    // 現在位置を床に
+                    this.map[y0][x0] = 'floor';
+                    this.tiles[y0][x0] = GAME_CONSTANTS.TILES.FLOOR[
+                        Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+                    ];
+                    this.colors[y0][x0] = GAME_CONSTANTS.COLORS.FLOOR;
+                    
+                    // 周囲も床にする
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            const nx = x0 + dx;
+                            const ny = y0 + dy;
+                            if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+                                this.map[ny][nx] = 'floor';
+                                this.tiles[ny][nx] = GAME_CONSTANTS.TILES.FLOOR[
+                                    Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+                                ];
+                                this.colors[ny][nx] = GAME_CONSTANTS.COLORS.FLOOR;
+                            }
+                        }
+                    }
+                    
+                    // 次の位置を計算
+                    const e2 = 2 * err;
+                    if (e2 > -dy) {
+                        err -= dy;
+                        x0 += sx;
+                    }
+                    if (e2 < dx) {
+                        err += dx;
+                        y0 += sy;
+                    }
+                }
+            };
+            
+            // プレイヤーから階段への直線
+            plotLine(startX, startY, endX, endY);
+            
+            // 階段のタイルを復元
+            this.tiles[endY][endX] = GAME_CONSTANTS.STAIRS.CHAR;
+            this.colors[endY][endX] = GAME_CONSTANTS.STAIRS.COLOR;
+        }
     }
 
     placeDoors(rooms) {
@@ -1399,5 +2171,226 @@ class MapGenerator {
             }
             this.game.webs.push(web);
         }
+    }
+
+    // 洞窟型の形状を生成するメソッドを拡張
+    generateCaveShape(shape, width, height, params = {}) {
+        // デフォルトパラメータを設定
+        const initialFloorChance = params.initialFloorChance || 0.6;
+        const iterations = params.iterations || 4;
+        
+        // 初期状態をランダムに設定
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                // 端は必ず壁に
+                if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+                    shape[y][x] = false;
+                } else {
+                    shape[y][x] = Math.random() < initialFloorChance;
+                }
+            }
+        }
+
+        // セルオートマトンによる洞窟生成
+        for (let i = 0; i < iterations; i++) {
+            this.applyCellularAutomata(shape, width, height);
+        }
+
+        // 中心部から外側に向かって接続性をチェック
+        this.ensureCaveConnectivity(shape, width, height);
+    }
+
+    // セルオートマトンのルールを適用
+    applyCellularAutomata(shape, width, height) {
+        const newShape = [];
+        for (let y = 0; y < height; y++) {
+            newShape[y] = [...shape[y]];
+        }
+
+        for (let y = 1; y < height - 1; y++) {
+            for (let x = 1; x < width - 1; x++) {
+                const floorCount = this.countNeighborFloors(shape, x, y);
+                
+                // B678/S345678 ルール（より自然な洞窟形状のために調整）
+                if (shape[y][x]) {
+                    // 床の場合、3-8個の隣接床があれば床のまま
+                    newShape[y][x] = floorCount >= 3;
+                } else {
+                    // 壁の場合、6-8個の隣接床があれば床になる
+                    newShape[y][x] = floorCount >= 6;
+                }
+            }
+        }
+
+        // 結果を反映
+        for (let y = 0; y < height; y++) {
+            shape[y] = [...newShape[y]];
+        }
+    }
+
+    // 周囲8マスの床の数をカウント
+    countNeighborFloors(shape, x, y) {
+        let count = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                if (shape[y + dy][x + dx]) count++;
+            }
+        }
+        return count;
+    }
+
+    // 洞窟の接続性を確保
+    ensureCaveConnectivity(shape, width, height) {
+        // 中心点から到達可能な床をマーク
+        const visited = Array(height).fill().map(() => Array(width).fill(false));
+        const centerY = Math.floor(height / 2);
+        const centerX = Math.floor(width / 2);
+
+        // 中心点が壁の場合、近くの床を探す
+        let startX = centerX;
+        let startY = centerY;
+        if (!shape[centerY][centerX]) {
+            let found = false;
+            for (let r = 1; r < Math.min(width, height) / 2 && !found; r++) {
+                for (let dy = -r; dy <= r && !found; dy++) {
+                    for (let dx = -r; dx <= r && !found; dx++) {
+                        const y = centerY + dy;
+                        const x = centerX + dx;
+                        if (y > 0 && y < height - 1 && x > 0 && x < width - 1 && shape[y][x]) {
+                            startY = y;
+                            startX = x;
+                            found = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 幅優先探索で到達可能な床をマーク
+        const queue = [[startY, startX]];
+        visited[startY][startX] = true;
+
+        while (queue.length > 0) {
+            const [y, x] = queue.shift();
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const ny = y + dy;
+                    const nx = x + dx;
+                    if (ny > 0 && ny < height - 1 && nx > 0 && nx < width - 1 &&
+                        shape[ny][nx] && !visited[ny][nx]) {
+                        visited[ny][nx] = true;
+                        queue.push([ny, nx]);
+                    }
+                }
+            }
+        }
+
+        // 到達不可能な床を壁に変更
+        for (let y = 1; y < height - 1; y++) {
+            for (let x = 1; x < width - 1; x++) {
+                if (shape[y][x] && !visited[y][x]) {
+                    shape[y][x] = false;
+                }
+            }
+        }
+
+        // 少なくとも1つの出入り口を確保
+        let hasEntrance = false;
+        for (let x = 1; x < width - 1 && !hasEntrance; x++) {
+            if (shape[1][x] && shape[2][x]) {
+                shape[0][x] = true;
+                hasEntrance = true;
+            }
+        }
+        if (!hasEntrance) {
+            const x = Math.floor(width / 2);
+            shape[0][x] = true;
+            shape[1][x] = true;
+        }
+    }
+
+    // フロアテーマを決定するメソッド
+    determineFloorTheme() {
+        // テーマとその選択確率
+        const themes = [
+            { id: 'STANDARD', weight: 50 },    // 標準的なダンジョン (50%)
+            { id: 'CAVE', weight: 20 },        // 自然な洞窟 (20%)
+            { id: 'RUINS', weight: 15 },       // 古代の遺跡 (15%)
+            { id: 'LABORATORY', weight: 10 },  // 実験施設 (10%)
+            { id: 'CRYPT', weight: 5 }         // 地下墓地 (5%)
+        ];
+        
+        // 重み付き抽選
+        const totalWeight = themes.reduce((sum, theme) => sum + theme.weight, 0);
+        let roll = Math.random() * totalWeight;
+        
+        for (const theme of themes) {
+            roll -= theme.weight;
+            if (roll <= 0) return theme.id;
+        }
+        
+        return 'STANDARD'; // デフォルト
+    }
+
+    // フロアテーマに応じたフレーバーテキストを設定するメソッド
+    setFloorThemeFlavorText() {
+        if (!this.game) return;
+        
+        // ゲームオブジェクトのフロア情報を初期化
+        if (!this.game.floorInfo) {
+            this.game.floorInfo = {};
+        }
+        
+        // テーマごとのフレーバーテキスト
+        const flavorTexts = {
+            'STANDARD': [
+                "The dungeon walls bear the marks of ancient construction. Standard corridors connect chambers of varying sizes.",
+                "A typical complex of rooms and passages, built with practiced geometric precision. Nothing unusual stands out.",
+                "The familiar layout of a traditional dungeon sprawls before you, showing signs of deliberate construction.",
+                "Rectangular chambers connected by straight corridors form a predictable maze of pathways.",
+                "The stonework here is methodical and precise - a testament to skilled dungeon architects."
+            ],
+            'CAVE': [
+                "Natural rock formations create winding passages. The ceiling drips with moisture, and the air smells of earth.",
+                "Jagged cave walls twist unpredictably through the stone. This place was carved by water, not tools.",
+                "Stalagmites and stalactites create natural columns within the irregular cavern system.",
+                "The rough stone walls bear no mark of tools - only the patient erosion of water over centuries.",
+                "The cave system winds organically through the rock, creating unexpected open chambers and tight passages."
+            ],
+            'RUINS': [
+                "Crumbling architecture suggests this place was once grand. Partial collapse has reshaped many chambers.",
+                "Ancient stonework, once precise, now lies in partial ruin. Sections of walls have collapsed entirely.",
+                "These ruins hint at sophisticated architecture from a bygone era, now slowly yielding to time.",
+                "Fallen columns and partial walls suggest this place was abandoned long ago and has partially collapsed.",
+                "The original geometric precision of these chambers has been disrupted by structural failures."
+            ],
+            'LABORATORY': [
+                "Clinical surfaces and precise right angles dominate this area. Everything feels meticulously designed.",
+                "The perfectly geometric layout suggests this was built for scientific experimentation and precision.",
+                "Sterile chambers connected by uniform corridors speak to the methodical purpose of this facility.",
+                "The walls here are unnaturally smooth, built with mathematical precision for some unknown purpose.",
+                "Everything in this clinical environment appears designed for efficiency and control."
+            ],
+            'CRYPT': [
+                "The oppressive atmosphere of a burial complex surrounds you. Small chambers suggest individual tombs.",
+                "Low ceilings and narrow passages mark this as a place for the dead, not the living.",
+                "The compact chambers and restricted pathways suggest this was built to house the deceased.",
+                "The stale air carries the weight of a burial site. The architecture is solemn and restrained.",
+                "Small ritual chambers connect through tight corridors in this place of eternal rest."
+            ]
+        };
+        
+        // 現在のフロアテーマに対応するテキスト配列を取得
+        const textsForTheme = flavorTexts[this.floorTheme] || flavorTexts['STANDARD'];
+        
+        // ランダムに1つ選択
+        const selectedText = textsForTheme[Math.floor(Math.random() * textsForTheme.length)];
+        
+        // フレーバーテキストを設定（上書き）
+        this.game.floorInfo.flavor = selectedText;
+        
+        // フロアテーマ情報も保存
+        this.game.floorInfo.theme = this.floorTheme;
     }
 } 

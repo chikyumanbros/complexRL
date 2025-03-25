@@ -136,7 +136,7 @@ body {
     padding: 10px;
     display: flex;
     flex-direction: column;
-    min-width: 975px;
+    min-width: 755px;
     max-width: 1055px;
     border: 1px solid var(--border-color);
     background: #0f0d0b;
