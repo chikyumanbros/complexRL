@@ -1227,7 +1227,8 @@ class InputHandler {
                 this.game.soundManager.stopSound('meditationSound');
                 player.meditation = null;
             } else {
-                console.log('Meditation cannot be cancelled by input due to vigor effect');
+                // 自動エフェクトによる瞑想はキャンセルできない
+                console.log('Meditation cannot be cancelled by input due to auto effect');
             }
         }
 

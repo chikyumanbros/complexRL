@@ -102,20 +102,19 @@ const SKILLS = {
             {
                 id: 'meditation',
                 name: 'Meditation',
-                desc: 'Meditate to recover HP and Vigor. Move or take damage to cancel. (HP: WIS/3 per turn, Vigor: d(Level+WIS) with risk, Max turns: WIS/2)',
+                desc: 'Meditate to recover HP. Move or take damage to cancel. (HP: WIS/3 per turn, Max turns: WIS/2)',
                 isFreeAction: false,
                 requiresTarget: false,
                 cancelOnDamage: true,
                 getEffectText: (player) => {
                     const healPerTurn = Math.floor(player.stats.wis / 3);
                     const maxTurns = Math.floor(player.stats.wis / 2);
-                    const maxVigorRoll = player.level + player.stats.wis;
-                    return `[HP: ${healPerTurn}/turn, Vigor: d${maxVigorRoll}, ${maxTurns} turns]`;
+                    return `[HP: ${healPerTurn}/turn, ${maxTurns} turns]`;
                 },
                 effect: (game, player) => {
                     // ---- Status Check ----
-                    if (player.hp >= player.maxHp && player.vigor >= GAME_CONSTANTS.VIGOR.MAX) {
-                        game.logger.add("Cannot meditate as both HP and Vigor are full.", "warning");
+                    if (player.hp >= player.maxHp) {
+                        game.logger.add("Cannot meditate as HP is full.", "warning");
                         return false;
                     }
 
@@ -126,15 +125,13 @@ const SKILLS = {
 
                     const healPerTurn = Math.floor(player.stats.wis / 3);
                     const turnsRemaining = Math.floor(player.stats.wis / 2);
-                    const maxVigorRoll = player.level + player.stats.wis;
 
                     player.meditation = {
                         active: true,
                         soundStarted: false,
                         healPerTurn: healPerTurn,
                         turnsRemaining: turnsRemaining,
-                        totalHealed: 0,
-                        maxVigorRoll: maxVigorRoll
+                        totalHealed: 0
                     };
 
                     // サイケデリックエフェクトを追加

@@ -6,7 +6,6 @@ class Game {
         this.renderer = new Renderer(this);
         this.soundManager = new SoundManager(this);
         this.inputHandler = new InputHandler(this);
-        this.vigorEffects = new VigorEffects(this);
         this.highScoreManager = new HighScoreManager(this);
         this.visionSystem = new VisionSystem(this);
         this.saveSystem = new SaveSystem(this);  // 追加
@@ -17,7 +16,6 @@ class Game {
 
         // Game state
         this.player = new Player(0, 0, this);
-        this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
         this.logger = new Logger(this);
         this.mode = GAME_CONSTANTS.MODES.GAME;
         this.turn = 0;
@@ -40,7 +38,6 @@ class Game {
         this.hasDisplayedPresenceWarning = false;
         this.lastHomeFloorUpdate = 0;
         this.inputDisabled = false;
-        this.vigorEffectOccurred = false;
         this.pendingMonsterDeaths = [];
 
         this.init();
@@ -379,81 +376,15 @@ class Game {
     }
 
     processVigorUpdate() {
-        if (this.floorLevel === 0) {
-            this.processHomeFloorVigor();
-        } else {
-            this.processNormalFloorVigor();
-        }
-
-        // Vigorペナルティの処理
-        if (this.floorLevel !== 0) {
-            const currentStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
-            this.processVigorPenalty(currentStatus);
-        }
+        // Vigor機能は廃止されました
     }
 
     processHomeFloorVigor() {
-        const currentVigor = Number.isFinite(this.player.vigor) ? 
-            Number(this.player.vigor) : 
-            GAME_CONSTANTS.VIGOR.MAX;
-
-        if (currentVigor < GAME_CONSTANTS.VIGOR.MAX) {
-            const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(currentVigor, this.player.stats);
-            
-            this.player.validateVigor();
-            this.player.vigor = GAME_CONSTANTS.VIGOR.MAX;
-            this.player.validateVigor();
-
-            const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
-
-            if (oldStatus.name !== newStatus.name) {
-                this.logger.add(`Your vigor has been restored to ${newStatus.name.toLowerCase()} level.`, "playerInfo");
-                this.playSound('vigorUpSound');
-            }
-        }
+        // Vigor機能は廃止されました
     }
 
     processNormalFloorVigor() {
-        this.player.validateVigor();
-
-        const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
-        
-        const currentRoom = this.getCurrentRoom();
-        const dangerLevel = currentRoom ? currentRoom.dangerLevel : 'NORMAL';
-        
-        const decreaseChance = GAME_CONSTANTS.VIGOR.calculateDecreaseChance(this.turn, dangerLevel);
-        const roll = Math.floor(Math.random() * 100);
-
-        if (roll < decreaseChance) {
-            const healthStatus = GAME_CONSTANTS.HEALTH_STATUS.getStatus(
-                this.player.hp,
-                this.player.maxHp,
-                this.player.stats
-            );
-            
-            const decrease = GAME_CONSTANTS.VIGOR.calculateDecreaseAmount(
-                this.player.vigor, 
-                this.player.stats,
-                healthStatus
-            );
-            
-            const oldVigor = this.player.vigor;
-            this.player.vigor = Math.max(0, this.player.vigor - decrease);
-            this.player.validateVigor();
-
-            const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
-            const vigorChange = this.player.vigor - oldVigor;
-
-            if (oldStatus.name !== newStatus.name) {
-                if (vigorChange < 0) {
-                    this.logger.add(`Your vigor has decreased to ${newStatus.name.toLowerCase()} level.`, "warning");
-                    this.playSound('vigorDownSound');
-                } else if (vigorChange > 0) {
-                    this.logger.add(`Your vigor has increased to ${newStatus.name.toLowerCase()} level.`, "playerInfo");
-                    this.playSound('vigorUpSound');
-                }
-            }
-        }
+        // Vigor機能は廃止されました
     }
 
     processMonsterTurn() {
@@ -1080,62 +1011,16 @@ class Game {
             this.logger.add(`Meditation heals you for ${actualHeal} HP.`, "heal");
         }
 
-        // Vigor変動処理
-        const maxRoll = Math.max(1, this.player.level + this.player.stats.wis);  // 最小値を1に
-        const roll = Math.floor(Math.random() * maxRoll) + 1;
-
-        let vigorChange = 0;  // 初期値を設定
-        if (roll <= this.player.level) {
-            // 失敗：Vigorが減少（最小値を-1に）
-            vigorChange = -Math.max(1, Math.floor(Math.random() * this.player.stats.wis));
-        } else {
-            // 成功：Vigor回復
-            const maxRecovery = Math.max(0, GAME_CONSTANTS.VIGOR.MAX - this.player.vigor);
-            vigorChange = Math.min(roll, maxRecovery);
-        }
-
-        // Vigor値の更新と状態変化チェック
-        if (vigorChange !== 0) {
-            // 自動移動を停止
-            this.player.stopAllAutoMovement();
-
-            const oldStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
-            this.player.vigor = Math.max(0, Math.min(GAME_CONSTANTS.VIGOR.MAX, this.player.vigor + vigorChange));
-            this.player.validateVigor();  // Add validation after changing vigor
-            const newStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
-
-            // 状態が変化した場合のみログ表示
-            if (oldStatus.name !== newStatus.name) {
-                this.logger.add(`Your vigor has ${vigorChange < 0 ? 'decreased' : 'increased'} to ${newStatus.name.toLowerCase()} level.`, "warning");
-                // Vigor状態変化時に効果音を再生
-                if (vigorChange > 0) {
-                    this.playSound('vigorUpSound');
-                } else {
-                    this.playSound('vigorDownSound');
-                }
-            }
-        }
-
-        // Vigor回復のログ出力を修正
-        // Vigor増減の言葉遣いを精神的な意味合いも込めて変更
-        const vigorVerb = vigorChange > 0 ? "is invigorated" : "is drained";
-        if (vigorChange > 0) {
-            this.logger.add(`Meditation successful. Your spirit ${vigorVerb}.`, "playerInfo");
-        } else if (vigorChange < 0) {
-            this.logger.add(`Meditation failed. Your spirit ${vigorVerb}.`, "warning");
-        }
-
         this.player.meditation.turnsRemaining--;
 
         // 瞑想中はサイケデリックエフェクトを維持
-        if (!this.player.meditation.vigorEffectMeditation) {
-            // vigor効果による瞑想でない場合のみ、サイケデリックエフェクトを維持
+        if (!this.player.meditation.autoEffectMeditation) {
+            // 自動効果による瞑想でない場合のみ、サイケデリックエフェクトを維持
             this.renderer.psychedelicTurn = Math.max(this.renderer.psychedelicTurn, 3);
         }
 
         // 瞑想終了条件のチェック
-        if ((this.player.hp >= this.player.maxHp && this.player.vigor >= GAME_CONSTANTS.VIGOR.MAX) ||
-            this.player.meditation.turnsRemaining <= 0) {
+        if (this.player.hp >= this.player.maxHp || this.player.meditation.turnsRemaining <= 0) {
             let endMessage;
             if (this.player.meditation.turnsRemaining <= 0) {
                 endMessage = `Meditation complete. (Total healed: ${this.player.meditation.totalHealed} HP)`;
@@ -1150,8 +1035,8 @@ class Game {
                 this.soundManager.stopSound('meditationSound');
             }
             
-            // vigorエフェクトによる瞑想の場合は特別なメッセージを表示
-            if (this.player.meditation.vigorEffectMeditation) {
+            // 自動効果による瞑想の場合は特別なメッセージを表示
+            if (this.player.meditation.autoEffectMeditation) {
                 this.logger.add("The strange sensation passes.", "playerInfo");
             }
 
@@ -1793,99 +1678,7 @@ class Game {
 
     // 新規: Vigorペナルティの処理メソッド
     processVigorPenalty(vigorStatus) {
-        // Highの場合は処理をスキップ
-        if (vigorStatus.name === 'High') return;
-
-        // 状態に応じた確率設定
-        let threshold;
-        let severity;
-
-        //console.log('=== Vigor Penalty Roll ===');
-        //console.log(`Current Vigor Status: ${vigorStatus.name}`);
-
-        switch (vigorStatus.name) {
-            case 'Exhausted': 
-                // 1d20で判定、1で発動（5%） - 確率を10%から5%に下げる
-                threshold = Math.floor(Math.random() * 20) + 1;
-                //console.log(`Exhausted Roll: ${threshold}/20 (needs 1 to trigger)`);
-                if (threshold === 1) {
-                    severity = 'Exhausted';  // 直接文字列を使用
-                    
-                    // 知力値に基づいたダメージを計算
-                    const wisRoll = Math.floor(Math.random() * this.player.stats.wis) + 1;
-                    const exhaustionDamage = wisRoll;
-                    
-                    // プレイヤーにダメージを与える
-                    this.player.hp = Math.max(0, this.player.hp - exhaustionDamage);
-                    this.soundManager.playSound('takeDamageSound');
-                    this.renderer.flashStatusPanel();
-                    
-                    // ダメージのログを表示
-                    this.logger.add(`You take ${exhaustionDamage} damage from exhaustion!`, "warning");
-                    
-                    // 死亡判定
-                    if (this.player.hp <= 0) {
-                        this.soundManager.playSound('playerDeathSound');
-                        this.logger.add("You succumb to exhaustion...", "important");
-                        this.player.deathCause = "Died from exhaustion";  // 死因を設定
-                        this.gameOver();
-                        return; // 死亡した場合は処理を終了
-                    }
-                }
-                break;
-            case 'Critical':
-                // 1d50で判定、1で発動（2%） - 確率を5%から2%に下げる
-                threshold = Math.floor(Math.random() * 50) + 1;
-                //console.log(`Critical Roll: ${threshold}/50 (needs 1 to trigger)`);
-                if (threshold === 1) {
-                    // 良い効果の可能性を排除
-                    severity = 'Critical';
-                }
-                break;
-
-            case 'Low':
-                // 1d50で判定、1で発動（2%） - 確率を5%から2%に下げる
-                threshold = Math.floor(Math.random() * 50) + 1;
-                //console.log(`Low Roll: ${threshold}/50 (needs 1 to trigger)`);
-                if (threshold === 1) {
-                    // 良い効果の可能性を排除
-                    severity = 'Low';
-                }
-                break;
-
-            case 'Moderate':
-                // 1d200で判定、1で発動（0.5%） - 確率を2%から0.5%に下げる
-                threshold = Math.floor(Math.random() * 200) + 1;
-                //console.log(`Moderate Roll: ${threshold}/200 (needs 1 to trigger)`);
-                if (threshold === 1) {
-                    // 良い効果の可能性を排除
-                    severity = 'Moderate';
-                }
-                break;
-        }
-
-        // 効果の適用
-        if (severity) {
-            // グローバルオブジェクトから VigorEffects を参照
-            const effect = VigorEffects.getVigorPenaltyEffect(severity, vigorStatus.name);
-            if (!effect) {
-                //console.log(`No effect applied for severity: ${severity}, vigorStatus: ${vigorStatus.name}`);
-                return;
-            }
-            //console.log(`Selected Severity: ${severity}`);
-            //console.log(`Selected Effect Type: ${effect.type}`);
-            //console.log(`Effect Details:`, effect);
-            const vigorEffects = new VigorEffects(this);
-            vigorEffects.applyVigorEffect(effect);  // インスタンスメソッドとして呼び出し
-            
-            // エフェクトの描画をクリア
-            if (effect.type === 'shortTeleport') {
-                this.renderer.clearEffects();
-            }
-        } else {
-            //console.log('No effect triggered');
-        }
-        //console.log('========================');
+        // Vigor機能は廃止されました
     }
 
     // 休憩を開始するメソッド

@@ -798,128 +798,39 @@ const GAME_CONSTANTS = {
             return Math.max(dx, dy);
         }
     },
-    // Vigor関連
+    // Vigor関連（ダミー互換性用・廃止予定）
     VIGOR: {
         MAX: 100,
         THRESHOLDS: {
-            HIGH: 75,     // 健全
-            MODERATE: 50, // 疲労
-            LOW: 25,      // 消耗
-            CRITICAL: 10,  // 限界
-            EXHAUSTED: 0   // 枯渇
+            HIGH: 75,
+            MODERATE: 50,
+            LOW: 25,
+            CRITICAL: 10,
+            EXHAUSTED: 0
         },
         DECREASE: {
-            // Vigorが低いほど低下が緩やかになるように変更
-            HIGH: 2,        // 健全状態では大きく低下
-            MODERATE: 1,    // 疲労状態では中程度に低下
-            LOW: 1,         // 消耗状態では少し低下
-            CRITICAL: 1     // 限界状態では最小限の低下
+            HIGH: 0,
+            MODERATE: 0,
+            LOW: 0,
+            CRITICAL: 0
         },
-        calculateDecreaseChance: (turnsInFloor, dangerLevel) => {
-            let baseChance;
-            switch (dangerLevel) {
-                case 'SAFE':
-                    baseChance = 2; 
-                    break;
-                case 'NORMAL':
-                    baseChance = 3; 
-                    break;
-                case 'DANGEROUS':
-                    baseChance = 4; 
-                    break;
-                case 'DEADLY':
-                    baseChance = 5; 
-                    break;
-                default:
-                    baseChance = 3;  // デフォルト値
-            }
-            const turnModifier = Math.floor(turnsInFloor / 50);  // 50ターンごとに確率上昇
-            const maxChance = {
-                SAFE: 5,      // 安全: 最大5%
-                NORMAL: 7,    // 通常: 最大7%
-                DANGEROUS: 10, // 危険: 最大10%
-                DEADLY: 15     // 致命的: 最大15%
-            }[dangerLevel] || 7;
-            return Math.min(maxChance, baseChance + turnModifier);
-        },
-        // Vigorの現在値に基づいて低下量を計算する新しい関数
-        calculateDecreaseAmount: function(currentVigor, stats, healthStatus) {
-            const percentage = (currentVigor / this.MAX) * 100;
-            const thresholds = this.calculateThresholds(stats);
-            
-            // 基本低下量を計算（Vigorが低いほど低下が緩やかに）
-            let baseDecrease;
-            if (percentage <= thresholds.CRITICAL) baseDecrease = this.DECREASE.CRITICAL;
-            else if (percentage <= thresholds.LOW) baseDecrease = this.DECREASE.LOW;
-            else if (percentage <= thresholds.MODERATE) baseDecrease = this.DECREASE.MODERATE;
-            else baseDecrease = this.DECREASE.HIGH;
-            
-            // 体力状態による修正（体力が低いほど低下が大きく）
-            let healthMultiplier = 1.0;
-            if (healthStatus) {
-                switch (healthStatus.name) {
-                    case "Near Death":
-                        healthMultiplier = 1.5;  // 瀕死状態では1.5倍
-                        break;
-                    case "Badly Wounded":
-                        healthMultiplier = 1.3;  // 重傷状態では1.3倍
-                        break;
-                    case "Wounded":
-                        healthMultiplier = 1.1;  // 負傷状態では1.1倍
-                        break;
-                    default:
-                        healthMultiplier = 1.0;  // 健康状態では修正なし
-                }
-            }
-            
-            // 最終的な低下量を計算（小数点以下切り上げ）
-            return Math.ceil(baseDecrease * healthMultiplier);
-        },
-        calculateThresholds: function(stats) {
-            const strModifier = (stats.str - 10) * 0.5;  // 力による修正
-            const intModifier = (stats.int - 10) * 0.5;  // 知力による修正
-            return {
-                HIGH: Math.floor(Math.min(90, Math.max(60, this.THRESHOLDS.HIGH - strModifier - intModifier))),
-                MODERATE: Math.floor(Math.min(65, Math.max(35, this.THRESHOLDS.MODERATE - strModifier - intModifier))),
-                LOW: Math.floor(Math.min(40, Math.max(15, this.THRESHOLDS.LOW - strModifier - intModifier))),
-                CRITICAL: Math.floor(Math.min(15, Math.max(5, this.THRESHOLDS.CRITICAL - strModifier - intModifier))),
-                EXHAUSTED: Math.floor(Math.min(0, Math.max(0, this.THRESHOLDS.EXHAUSTED - strModifier - intModifier)))
-            };
-        },
-        getStatus: function(currentVigor, stats) {
-            const percentage = (currentVigor / this.MAX) * 100;
-            const thresholds = this.calculateThresholds(stats);
-
-            if (percentage <= thresholds.EXHAUSTED) return {
-                name: "Exhausted",
-                color: "#4a4a4a",
-                ascii: "(x_xל)"
-            };
-            
-            if (percentage <= thresholds.CRITICAL) return {
-                name: "Critical",
-                color: "#8e44ad",  // 紫色
-                ascii: "◦˛⁔◦ל"
-            };
-            if (percentage <= thresholds.LOW) return {
-                name: "Low",
-                color: "#e74c3c",  // 赤色
-                ascii: "•˛⁔•ל"
-            };
-            if (percentage <= thresholds.MODERATE) return {
-                name: "Moderate",
-                color: "#f1c40f",  // 黄色
-                ascii: "∈Ō_Ōל"
-            };
-            return {
-                name: "High",
-                color: "#2ecc71",  // 緑色
-                ascii: "∈ϴ‿ϴל"  // 変更
-            };
-        }
+        calculateDecreaseChance: () => 0,
+        calculateDecreaseAmount: () => 0,
+        calculateThresholds: () => ({
+            HIGH: 75,
+            MODERATE: 50,
+            LOW: 25,
+            CRITICAL: 10,
+            EXHAUSTED: 0
+        }),
+        getStatus: () => ({
+            name: "High",
+            color: "#2ecc71",
+            ascii: "∈ϴ‿ϴל"
+        })
     },
 
-    // 遠距離攻撃システムの設定を追加
+    // 遠距離攻撃システムの設定
     RANGED_COMBAT: {
         ENERGY: {
             MAX: 100,

@@ -60,31 +60,7 @@ class Player {
     }
 
     validateVigor() {
-        //console.log('Validating Vigor:', {
-        //    currentVigor: this.vigor,
-        //    maxVigor: GAME_CONSTANTS.VIGOR.MAX,
-        //    isFinite: Number.isFinite(this.vigor),
-        //    type: typeof this.vigor
-        //});
-
-        // 値が未定義またはNaNの場合のみ最大値を設定
-        if (this.vigor === undefined || this.vigor === null || Number.isNaN(this.vigor)) {
-            //console.log(`Initializing vigor to max value (${GAME_CONSTANTS.VIGOR.MAX})`);
-            this.vigor = GAME_CONSTANTS.VIGOR.MAX;
-            return;
-        }
-
-        // 数値に変換
-        this.vigor = Number(this.vigor);
-
-        // 値の範囲チェック（0から100の間）
-        if (this.vigor < 0) {
-            //console.warn(`Vigor value (${this.vigor}) below 0, setting to 0`);
-            this.vigor = 0;
-        } else if (this.vigor > GAME_CONSTANTS.VIGOR.MAX) {
-            //console.warn(`Vigor value (${this.vigor}) above ${GAME_CONSTANTS.VIGOR.MAX}, setting to max`);
-            this.vigor = GAME_CONSTANTS.VIGOR.MAX;
-        }
+        // Vigor機能は廃止されました
     }
 
     // ===== Experience and Leveling Methods =====
@@ -146,15 +122,10 @@ class Player {
                 // HPの増加分を計算
                 const hpIncrease = Math.max(0, this.maxHp - oldMaxHp);
                 
-                // Wisdomに基づくvigor回復量を計算（NaNチェック追加）
-                const vigorRecovery = !this.stats.WIS || isNaN(this.stats.WIS) 
-                    ? 0 
-                    : Math.floor(this.stats.WIS / 2);
-                
                 // 総回復量を計算（最大HPを超えない範囲で）
                 const totalRecovery = Math.min(
                     this.maxHp - this.hp,  // 最大HPまでの残り
-                    hpIncrease + vigorRecovery  // 総回復量
+                    hpIncrease  // HP増加分
                 );
                 
                 // HP回復を適用（NaNチェックと最大値制限を追加）
@@ -163,24 +134,12 @@ class Player {
                         maxHp: this.maxHp,
                         oldMaxHp,
                         hpIncrease,
-                        vigorRecovery,
                         currentHp: this.hp,
                         stats: this.stats
                     });
                     this.hp = Math.min(this.hp + hpIncrease, this.maxHp);
                 } else {
                     this.hp = Math.min(this.hp + totalRecovery, this.maxHp);
-                }
-                
-                // vigor回復（NaNチェック追加）
-                if (!isNaN(vigorRecovery) && vigorRecovery > 0) {
-                    const oldVigor = this.vigor;
-                    this.vigor = Math.min(GAME_CONSTANTS.VIGOR.MAX, this.vigor + vigorRecovery);
-                    this.validateVigor();  // Add validation after changing vigor
-                    const vigorGained = this.vigor - oldVigor;
-                    if (vigorGained > 0) {
-                        this.game.logger.add(`Vigor restored by ${vigorGained} points!`, "playerInfo");
-                    }
                 }
                 
                 // 他のステータスの更新
@@ -251,7 +210,7 @@ class Player {
                 this.game.stopSound('meditationSound');
                 this.meditation = null;
             } else {
-                //console.log('Meditation cannot be cancelled by movement due to vigor effect');
+                // 自動エフェクトによる瞑想はキャンセルできない
             }
         }
 
@@ -774,16 +733,15 @@ class Player {
             this.game.logger.add(`You descend to floor ${this.game.floorLevel + 1}...`, "important");
             this.game.processTurn();  // 先にターンを消費
             
-            // 階段を降りる前に、現在のHPとvigorを記録
+            // 階段を降りる前に、現在のHPを記録
             const beforeHp = this.hp;
-            const beforeVigor = this.vigor;
             
             // 危険度に応じた回復率を定義
             const recoveryRates = {
-                'SAFE': { hp: 0.5, vigor: 0.7 },        // HP 50%, vigor 70%
-                'NORMAL': { hp: 0.3, vigor: 0.5 },      // HP 30%, vigor 50%
-                'DANGEROUS': { hp: 0.15, vigor: 0.25 },  // HP 15%, vigor 25%
-                'DEADLY': { hp: 0.05, vigor: 0.1 }       // HP 5%, vigor 10%
+                'SAFE': { hp: 0.5 },        // HP 50%
+                'NORMAL': { hp: 0.3 },      // HP 30%
+                'DANGEROUS': { hp: 0.15 },  // HP 15%
+                'DEADLY': { hp: 0.05 }      // HP 5%
             };
             
             // 現在の危険度から回復率を取得
@@ -796,12 +754,6 @@ class Player {
                 this.hp = Math.min(this.maxHp, this.hp + hpRecovery);
             }
             
-            // Vigor回復の計算（最大値を超えないように）
-            const vigorRecovery = Math.floor((this.maxVigor - this.vigor) * recoveryRate.vigor);
-            if (vigorRecovery > 0) {
-                this.vigor = Math.min(this.maxVigor, this.vigor + vigorRecovery);
-            }
-            
             // フロアレベルを増加
             this.game.floorLevel++;
             
@@ -811,10 +763,9 @@ class Player {
             this.game.playSound('descendStairsSound');
             
             // Display recovery message in log (only if recovery occurred)
-            if (hpRecovery > 0 || vigorRecovery > 0) {
+            if (hpRecovery > 0) {
                 const hpDiff = this.hp - beforeHp;
-                const vigorDiff = this.vigor - beforeVigor;
-                const recoveryMessage = `You descend the stairs and recover! ${beforeHp} → ${this.hp} HP (+${hpDiff}), ${beforeVigor} → ${this.vigor} Vigor (+${vigorDiff})`;
+                const recoveryMessage = `You descend the stairs and recover! ${beforeHp} → ${this.hp} HP (+${hpDiff})`;
                 this.game.logger.add(recoveryMessage, "heal");
             }
             

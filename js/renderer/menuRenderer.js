@@ -64,7 +64,7 @@ class MenuRenderer {
         leftColumn += `<div class="help-category">● STANDARD ACTIONS</div>\n`;
         leftColumn += `<div style="margin-left: 8px;">`;
         leftColumn += `<span class="help-key">[Ctrl+m] or [Alt+m]</span>`;
-        leftColumn += `<span class="help-text">Meditate to recover HP and Vigor</span>`;
+        leftColumn += `<span class="help-text">Meditate to recover HP</span>`;
         leftColumn += `</div>\n`;
         leftColumn += `<div style="margin-left: 8px;">`;
         leftColumn += `<span class="help-key">[Ctrl+j] or [Alt+j]</span>`;
@@ -81,18 +81,6 @@ class MenuRenderer {
         rightColumn += `<span class="health-status wounded">Wounded</span>: 50-75% HP<br>`;
         rightColumn += `<span class="health-status badly-wounded">Badly Wounded</span>: 25-50% HP<br>`;
         rightColumn += `<span class="health-status near-death">Near Death</span>: 0-25% HP`;
-        rightColumn += `</div>\n`;
-
-        // Vigor の説明
-        rightColumn += `<div class="help-category">● VIGOR SYSTEM</div>\n`;
-        rightColumn += `<div style="margin-left: 8px;">`;
-        rightColumn += `<span class="vigor-status high">High</span>: 75-100% - Full potential<br>`;
-        rightColumn += `<span class="vigor-status moderate">Moderate</span>: 50-75% - Slight penalties<br>`;
-        rightColumn += `<span class="vigor-status low">Low</span>: 25-50% - Moderate penalties<br>`;
-        rightColumn += `<span class="vigor-status critical">Critical</span>: 0-25% - Severe penalties<br><br>`;
-        rightColumn += `<span class="help-text">Vigor affects accuracy and evasion.<br>`;
-        rightColumn += `Recovers through meditation or combat victories.<br>`;
-        rightColumn += `Meditation: d(Level+WIS) recovery, but risk -d(WIS) on low roll.</span>`;
         rightColumn += `</div>\n`;
 
         rightColumn += `<div class="help-section-title">■ COMBAT SYSTEM</div>\n`;

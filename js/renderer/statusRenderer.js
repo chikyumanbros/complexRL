@@ -17,7 +17,6 @@ class StatusRenderer {
         const dangerInfo = GAME_CONSTANTS.DANGER_LEVELS[this.game.dangerLevel];
         const floorDisplay = this.game.floorLevel === 0 ? "< THE NEXUS >" : this.game.floorLevel;
         const healthStatus = player.getHealthStatus(player.hp, player.maxHp);
-        const vigorStatus = GAME_CONSTANTS.VIGOR.getStatus(player.vigor, player.stats);
         const size = GAME_CONSTANTS.FORMULAS.SIZE(player.stats);
         const sizeInfo = GAME_CONSTANTS.COLORS.SIZE[size.value];
         const baseSpeed = GAME_CONSTANTS.FORMULAS.SPEED(player.stats);
@@ -112,13 +111,6 @@ class StatusRenderer {
                     <div class="status-row">
                         <span class="label">Health:</span>
                         <span id="health-status" style="color: ${healthStatus.color}">${healthStatus.name}</span>
-                    </div>
-                    <div class="status-row">
-                        <span class="label">Vigor:</span>
-                        <span id="vigor-status">
-                            <span style="color: ${vigorStatus.color}">[${vigorStatus.ascii}]</span>
-                            <span class="bar ${vigorStatus.name.toLowerCase().replace(' ', '-')}"></span>
-                        </span>
                     </div>
                 </div>
             </div>
