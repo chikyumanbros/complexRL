@@ -290,7 +290,7 @@ class Game {
         this.turn++;
         this.totalTurns++;  // ゲーム全体のターン数をインクリメント
 
-        // ウェブ処理フラグをリセット
+        // ウェブ処理フラグをリセット - ターン開始時に必ず初期化する
         this.player._processedWebThisTurn = false;
         this.player._lastWebBreakResult = false;
 
@@ -336,9 +336,10 @@ class Game {
     processPlayerTurn() {
         // 蜘蛛の巣処理
         if (this.player.caughtInWeb) {
-            if (!this.player.tryToBreakFreeFromWeb()) {
-                // 失敗した場合、このターンの行動は制限される
-            }
+            // 脱出を試みる - 成功/失敗の結果に関わらず処理済みとする
+            this.player.tryToBreakFreeFromWeb();
+            // 脱出に失敗した場合は、このメソッドで処理し、
+            // 次にmoveメソッドが呼ばれた時に再処理されないようにする
         }
 
         // メディテーション処理

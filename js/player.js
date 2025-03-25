@@ -231,12 +231,17 @@ class Player {
         // 蜘蛛の巣に捕まっている場合、まず脱出を試みる
         // この時、game.js の processPlayerTurn で既に処理されていない場合のみ実行
         if (this.caughtInWeb && !this._processedWebThisTurn) {
+            // processPlayerTurnで処理されていない場合のみここで処理
             if (!this.tryToBreakFreeFromWeb()) {
                 // 脱出失敗時はターンを消費して終了
                 this.game.logger.add("You're stuck in the web and can't move.", "warning");
                 return true; // ターンは消費するが移動はしない
             }
             // 脱出成功の場合は通常の移動処理を続行
+        } else if (this.caughtInWeb) {
+            // すでに処理済みで、まだ捕まっている場合は移動できない
+            this.game.logger.add("You're stuck in the web and can't move.", "warning");
+            return true; // ターンは消費するが移動はしない
         }
 
         // 以下、通常の移動処理（既存コード）
@@ -1635,14 +1640,14 @@ class Player {
         this._processedWebThisTurn = true;
         
         if (roll < escapeChance) {
-            // 脱出成功
+            // 脱出成功 - メッセージを即座に表示
             this.game.logger.add("You break free from the web!", "playerInfo");
             
             // webの位置情報を取得
             const webX = this.caughtInWeb.x;
             const webY = this.caughtInWeb.y;
             
-            // 蜘蛛の巣を除去
+            // 蜘蛛の巣を即座に除去
             this.game.webs = this.game.webs.filter(w => !(w.x === webX && w.y === webY));
             
             // 捕まり状態を解除
