@@ -120,7 +120,7 @@ class Game {
         this.player = new Player(0, 0, this);
         // 初期ステータスをすべて8に設定
         Object.keys(this.player.stats).forEach(stat => {
-            this.player.stats[stat] = 6;
+            this.player.stats[stat] = 8;
         });
         this.player.remainingStatPoints = 12;  // 割り振り可能なポイント
         

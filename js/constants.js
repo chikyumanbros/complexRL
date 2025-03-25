@@ -523,11 +523,11 @@ const GAME_CONSTANTS = {
             wis: 'Wisdom'
         },
         DEFAULT_VALUES: {
-            str: 6,
-            dex: 6,
-            con: 6,
-            int: 6,
-            wis: 6
+            str: 8,
+            dex: 8,
+            con: 8,
+            int: 8,
+            wis: 8
         },
         DESCRIPTIONS: {
             str: 'Increases physical attack damage and slightly affects max HP.',
