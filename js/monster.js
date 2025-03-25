@@ -909,7 +909,7 @@ class Monster {
 
     // ========================== getLinePoints Utility Method ==========================
     // 2点間の経路上の全ての点を取得（壁の角を「すり抜ける」問題を修正）
-    getLinePoints(x0, y0, x1, y1) {
+    getLinePoints(x0, y0, x1, y1, game) {
         const points = [];
         const dx = Math.abs(x1 - x0);
         const dy = Math.abs(y1 - y0);
@@ -1345,7 +1345,7 @@ class Monster {
     // ========================== hasClosedDoorBetween Method ==========================
     // 新規: プレイヤーとの間に閉じた扉があるかチェックするメソッド
     hasClosedDoorBetween(game, targetX, targetY) {
-        const points = this.getLinePoints(this.x, this.y, targetX, targetY);
+        const points = this.getLinePoints(this.x, this.y, targetX, targetY, game);
         
         for (let i = 0; i < points.length - 1; i++) {
             const point = points[i];
@@ -1717,7 +1717,7 @@ class Monster {
     // ========================== Sound System Methods ==========================
     // 音を聞くことができるか判定するメソッド
     canHearSound(game, source) {
-        const points = this.getLinePoints(this.x, this.y, source.x, source.y);
+        const points = this.getLinePoints(this.x, this.y, source.x, source.y, game);
         let doorCount = 0;
         let wallCount = 0;
         
@@ -1743,7 +1743,7 @@ class Monster {
     
     // 音の減衰を計算するメソッド
     calculateSoundAttenuation(game, source, distance) {
-        const points = this.getLinePoints(this.x, this.y, source.x, source.y);
+        const points = this.getLinePoints(this.x, this.y, source.x, source.y, game);
         let attenuation = 100; // 初期値は100%
         
         // 距離による減衰（1マスごとに10%減衰）
@@ -2012,7 +2012,7 @@ class Monster {
         }
         
         // 射線上のモンスターをチェック
-        const linePoints = this.getLinePoints(this.x, this.y, game.player.x, game.player.y);
+        const linePoints = this.getLinePoints(this.x, this.y, game.player.x, game.player.y, game);
         const monstersInLine = [];
 
         // プレイヤーの位置を除く全ての点をチェック
@@ -2092,8 +2092,8 @@ class Monster {
                     // モンスターが死亡した場合
                     if (result.killed) {
                         game.logger.add(`${monster.name} is destroyed by the beam!`, "monsterInfo");
-                        game.renderer.showDeathEffect(monster.x, monster.y);
-                        game.playSound('deathSound');
+                        
+                        
 
                         // 死亡処理を適切に行う
                         game.processMonsterDeath({
