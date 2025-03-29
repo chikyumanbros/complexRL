@@ -944,15 +944,14 @@ class Monster {
                 y += sy;
             }
             
-            // 斜め移動の場合、壁の角をチェック
-            if (x !== lastX && y !== lastY) {
-                // 壁の角をチェック - 両方の隣接マスが壁ならば視線は通らない
-                // 現在の実装では水平・垂直方向の両方が壁/障害物の場合にのみブロックしている
+            // 斜め移動の場合のみ、壁の角をチェック
+            if (Math.abs(x - lastX) === 1 && Math.abs(y - lastY) === 1) {
+                // 移動が斜めの場合、水平・垂直方向の両方が壁/障害物であれば視線は通らない
                 const horizontalWall = !this.isPassableForLineCheck(lastX + sx, lastY, game);
                 const verticalWall = !this.isPassableForLineCheck(lastX, lastY + sy, game);
-                    
+                
+                // 完全な角を形成する場合のみブロック（両方が壁/障害物）
                 if (horizontalWall && verticalWall) {
-                    // 両方が壁/障害物の場合、視線は通らない - 角をすり抜けることはできない
                     return []; // 視線が通らない場合は空の配列を返す
                 }
             }
@@ -1049,24 +1048,32 @@ class Monster {
             const newX = this.x + move.x;
             const newY = this.y + move.y;
             
-            // 斜め移動の場合、2つの隣接するマスも通行可能か確認
+            // 斜め移動の場合、2つの隣接するマスの少なくとも1つは通行可能であることを確認
             if (Math.abs(move.x) === 1 && Math.abs(move.y) === 1) {
-                // 水平方向と垂直方向の両方のマスが通行可能か確認
+                // 水平方向と垂直方向のマスをチェック
                 const horizontalPassable = this.isPassableForLineCheck(this.x + move.x, this.y, game) && 
                                           !game.getMonsterAt(this.x + move.x, this.y);
                 
                 const verticalPassable = this.isPassableForLineCheck(this.x, this.y + move.y, game) && 
                                         !game.getMonsterAt(this.x, this.y + move.y);
                 
-                // 両方の隣接マスが通行不可能なら、斜め移動は許可しない
-                if (!horizontalPassable || !verticalPassable) {
+                // 両方のマスが通行不可能なら、斜め移動は許可しない
+                if (!horizontalPassable && !verticalPassable) {
                     return false;
                 }
                 
-                // 移動先から現在位置までの視線がクリアか確認（壁のすり抜け防止）
-                const points = this.getLinePoints(newX, newY, this.x, this.y, game);
-                if (points.length === 0) {
-                    return false; // 視線が通らない場合は移動不可
+                // 壁をすり抜ける斜め移動の防止
+                // 移動先がドアの場合は特別チェック不要
+                const destTile = game.tiles[newY][newX];
+                if (destTile === GAME_CONSTANTS.TILES.DOOR.CLOSED || 
+                    destTile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
+                    // ドアへの移動は別途チェックされるのでここではスキップ
+                } else {
+                    // 斜め移動が壁や障害物をすり抜けるような移動の場合は禁止
+                    const points = this.getLinePoints(this.x, this.y, newX, newY, game);
+                    if (points.length === 0) {
+                        return false; // 視線が通らない場合は移動不可
+                    }
                 }
             }
             
