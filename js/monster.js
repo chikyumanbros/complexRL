@@ -934,6 +934,7 @@ class Monster {
             lastX = x;
             lastY = y;
             
+            // 元のBresenhamアルゴリズムのステップ
             if (e2 > -dy) {
                 err -= dy;
                 x += sx;
@@ -946,24 +947,44 @@ class Monster {
             // 斜め移動の場合、壁の角をチェック
             if (x !== lastX && y !== lastY) {
                 // 壁の角をチェック - 両方の隣接マスが壁ならば視線は通らない
-                const horizontalWall = this.x !== undefined ? 
-                    !this.canMoveTo(lastX + sx, lastY, game) : 
-                    game.map[lastY][lastX + sx] !== 'floor';
-                    
-                const verticalWall = this.x !== undefined ? 
-                    !this.canMoveTo(lastX, lastY + sy, game) : 
-                    game.map[lastY + sy][lastX] !== 'floor';
+                // 現在の実装では水平・垂直方向の両方が壁/障害物の場合にのみブロックしている
+                const horizontalWall = !this.isPassableForLineCheck(lastX + sx, lastY, game);
+                const verticalWall = !this.isPassableForLineCheck(lastX, lastY + sy, game);
                     
                 if (horizontalWall && verticalWall) {
-                    // 両方が壁の場合、視線は通らない
-                    points.push({x: lastX + sx, y: lastY});
-                    points.push({x: lastX, y: lastY + sy});
-                    break;
+                    // 両方が壁/障害物の場合、視線は通らない - 角をすり抜けることはできない
+                    return []; // 視線が通らない場合は空の配列を返す
                 }
             }
         }
 
         return points;
+    }
+    
+    // 視線・移動チェック用の通行可能判定メソッド（内部用）
+    isPassableForLineCheck(x, y, game) {
+        // 範囲外なら通行不可
+        if (x < 0 || x >= game.map[0].length || y < 0 || y >= game.map.length) {
+            return false;
+        }
+        
+        // 床でなければ通行不可
+        if (game.map[y][x] !== 'floor') {
+            return false;
+        }
+        
+        // タイルを取得
+        const tile = game.tiles[y][x];
+        
+        // 壁、障害物、閉じたドアなどは通行不可
+        if (GAME_CONSTANTS.TILES.WALL.includes(tile) || 
+            GAME_CONSTANTS.TILES.CYBER_WALL.includes(tile) ||
+            GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(tile) ||
+            tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+            return false;
+        }
+        
+        return true;
     }
 
     // ========================== pursueTarget Method ==========================
@@ -1031,10 +1052,10 @@ class Monster {
             // 斜め移動の場合、2つの隣接するマスも通行可能か確認
             if (Math.abs(move.x) === 1 && Math.abs(move.y) === 1) {
                 // 水平方向と垂直方向の両方のマスが通行可能か確認
-                const horizontalPassable = this.canMoveTo(this.x + move.x, this.y, game) && 
+                const horizontalPassable = this.isPassableForLineCheck(this.x + move.x, this.y, game) && 
                                           !game.getMonsterAt(this.x + move.x, this.y);
                 
-                const verticalPassable = this.canMoveTo(this.x, this.y + move.y, game) && 
+                const verticalPassable = this.isPassableForLineCheck(this.x, this.y + move.y, game) && 
                                         !game.getMonsterAt(this.x, this.y + move.y);
                 
                 // 両方の隣接マスが通行不可能なら、斜め移動は許可しない
@@ -1042,10 +1063,10 @@ class Monster {
                     return false;
                 }
                 
-                // 視線判定も行う - 斜め移動で壁をすり抜けないようにする
-                // 移動先から現在地点への視線が通るか確認
-                if (!game.visionSystem.hasLineOfSight(newX, newY, this.x, this.y)) {
-                    return false;
+                // 移動先から現在位置までの視線がクリアか確認（壁のすり抜け防止）
+                const points = this.getLinePoints(newX, newY, this.x, this.y, game);
+                if (points.length === 0) {
+                    return false; // 視線が通らない場合は移動不可
                 }
             }
             
@@ -1057,7 +1078,7 @@ class Monster {
 
         // --- 追跡ロジックの改善 ---
         let bestMove = null;
-        let bestDistance = Infinity;
+        let bestScore = Infinity;
 
         // 最適な移動を探索する前に、最後に知っているプレイヤーの位置への方向を計算
         const dirX = Math.sign(targetX - this.x);
@@ -1066,41 +1087,45 @@ class Monster {
         // 方向に対する優先度付きの移動
         const prioritizedMoves = possibleMoves.slice();
         
-        // 直接的な方向への移動に高い優先度を与える
-        prioritizedMoves.sort((a, b) => {
-            // 目標方向と一致する移動に高い優先度
-            const aDirectionMatch = (Math.sign(a.x) === dirX && Math.sign(a.y) === dirY);
-            const bDirectionMatch = (Math.sign(b.x) === dirX && Math.sign(b.y) === dirY);
-            
-            if (aDirectionMatch && !bDirectionMatch) return -1;
-            if (!aDirectionMatch && bDirectionMatch) return 1;
-            
-            // 方向が一致する場合は、より近い移動を優先
-            const aDistance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
-                this.x + a.x, this.y + a.y,
-                targetX, targetY
-            );
-            const bDistance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
-                this.x + b.x, this.y + b.y,
-                targetX, targetY
-            );
-            
-            return aDistance - bDistance;
-        });
-
-        // 優先度順に移動を評価
+        // A*アルゴリズムの考え方を取り入れた評価関数
+        // 各移動候補について評価スコアを計算（低いほど良い）
         for (const move of prioritizedMoves) {
             const newX = this.x + move.x;
             const newY = this.y + move.y;
             
-            const newDistance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
+            // 1. 目標までの直線距離（ヒューリスティック）
+            const directDistance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
                 newX, newY,
                 targetX, targetY
             );
             
-            // 最短距離の移動を選択
-            if (newDistance < bestDistance) {
-                bestDistance = newDistance;
+            // 2. 現在地点からのコスト（斜め移動はコスト高め）
+            const moveCost = (Math.abs(move.x) === 1 && Math.abs(move.y) === 1) ? 1.4 : 1.0;
+            
+            // 3. 方向性バイアス（目標方向に一致する移動を優先）
+            const directionMatch = (Math.sign(move.x) === dirX && Math.sign(move.y) === dirY);
+            const directionBonus = directionMatch ? -0.5 : 0;
+            
+            // 4. 壁や障害物に近づく移動を避ける（開けた領域を優先）
+            let obstacleProximityPenalty = 0;
+            const adjacentPositions = [
+                {x: newX+1, y: newY}, {x: newX-1, y: newY},
+                {x: newX, y: newY+1}, {x: newX, y: newY-1}
+            ];
+            
+            // 周囲の障害物をカウント
+            for (const pos of adjacentPositions) {
+                if (!this.isPassableForLineCheck(pos.x, pos.y, game)) {
+                    obstacleProximityPenalty += 0.3; // 各障害物に対してペナルティ
+                }
+            }
+            
+            // 総合スコアを計算（低いほど良い）
+            const score = directDistance + moveCost + directionBonus + obstacleProximityPenalty;
+            
+            // より良いスコアを持つ移動を選択
+            if (score < bestScore) {
+                bestScore = score;
                 bestMove = move;
             }
         }
