@@ -532,7 +532,7 @@ const GAME_CONSTANTS = {
         DESCRIPTIONS: {
             str: 'Increases physical attack damage and slightly affects max HP.',
             dex: 'Affects accuracy, evasion, and slightly influences attack speed.',
-            con: 'Determines max HP and affects natural healing rate.',
+            con: 'Determines max HP and overall physical toughness.',
             int: 'Increases critical hit chance and resistance to status effects.',
             wis: 'Improves perception, affects meditation, and slightly increases max vigor.'
         },
@@ -667,20 +667,12 @@ const GAME_CONSTANTS = {
         },
         NATURAL_HEALING: {
             getSuccessChance: (stats) => {
-                return 10 + Math.floor(stats.con / 6);  // 基本確率10%、CONは6ごとに+1%
+                return 0;  // 常に0を返して回復させない（廃止）
             },
             calculateHeal: (healingDice, healModifier) => {
-                let healAmount = 0;
-                const rolls = [];
-                for (let i = 0; i < healingDice.count; i++) {
-                    const roll = Math.floor(Math.random() * healingDice.sides) + 1;
-                    rolls.push(roll);
-                    healAmount += roll;
-                }
-                healAmount = Math.max(0, healAmount + healModifier);
                 return {
-                    amount: healAmount,
-                    rolls: rolls
+                    amount: 0,  // 常に0を返して回復させない（廃止）
+                    rolls: []
                 };
             },
             applyHeal: (entity, healAmount) => {
