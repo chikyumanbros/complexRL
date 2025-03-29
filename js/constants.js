@@ -488,13 +488,6 @@ const GAME_CONSTANTS = {
                 { key: 'Shift+L', desc: 'Toggle lighting effects' }
             ]
         },
-        RESTING: {
-            title: 'RESTING',
-            keys: [
-                { key: '^', desc: 'Rest for 10 turns' },
-                { key: '~', desc: 'Rest until fully healed' }
-            ]
-        },
         LANDMARK: {
             title: 'LANDMARK TARGET',
             keys: [

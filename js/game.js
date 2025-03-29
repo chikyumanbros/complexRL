@@ -1547,123 +1547,34 @@ class Game {
         // Vigor機能は廃止されました
     }
 
-    // 休憩を開始するメソッド
+    // 休憩を開始するメソッド（自然回復廃止に伴い機能停止）
     startRest(mode, turns = 0) {
-        if (this.player.hp <= 0 || this.player.resting?.active) return;
-        
-        // HPが最大値なら休憩する必要なし
-        if (this.player.hp >= this.player.maxHp) {
-            this.logger.add("You are already at full health", "playerInfo");
-            return;
-        }
-        
-        // 瞑想中は休憩できない
-        if (this.player.meditation && this.player.meditation.active) {
-            this.logger.add("You cannot rest while meditating", "warning");
-            return;
-        }
-        
-        // vigorがexhausted状態の場合は休憩できない
-        const vigorStatus = GAME_CONSTANTS.VIGOR.getStatus(this.player.vigor, this.player.stats);
-        if (vigorStatus.name === 'Exhausted') {
-            this.logger.add("You are too exhausted to rest", "warning");
-            return;
-        }
-        
-        // 休憩状態を初期化
-        this.player.resting = {
-            active: true,
-            mode: mode,
-            turnsRemaining: turns,
-            startHp: this.player.hp
-        };
-        
-        const message = mode === 'turns' ? 
-            `Resting for ${turns} turns...` : 
-            "Resting until fully healed...";
-        
-        this.logger.add(message, "playerInfo");
-        this.playSound('restStartSound'); // 効果音があれば
-        
-        // 休憩を継続（最初のターンを処理）
-        this.continueRest();
+        // 自然回復機能の廃止に伴い休憩機能は使用できません
+        this.logger.add("Rest feature is no longer available.", "warning");
+        return;
     }
 
-    // 休憩を継続するメソッド（自動探索と同様の仕組み）
+    // 休憩を継続するメソッド（自然回復廃止に伴い機能停止）
     continueRest() {
-        if (!this.player.resting?.active) return;
-        
-        // キャンセル条件チェック
-        const cancelReason = this.checkRestCancelConditions();
-        if (cancelReason) {
-            this.cancelRest(cancelReason);
-            return;
-        }
-        
-        // 1ターン進める
-        this.processTurn();
-        
-        // 継続条件をチェック
-        if (this.player.resting?.active) {
-            // 終了条件に達していなければ次のターンを遅延処理
-            setTimeout(() => {
-                if (this.player.resting?.active) {
-                    this.continueRest();
-                }
-            }, 100); // 100msの遅延でターンを進行
-        }
+        // 自然回復機能の廃止に伴い休憩機能は使用できません
+        return;
     }
 
-    // 休憩を終了するメソッド
+    // 休憩を終了するメソッド（自然回復廃止に伴い機能停止）
     endRest(reason) {
-        if (!this.player.resting?.active) return;
-        
-        const healedAmount = this.player.hp - this.player.resting.startHp;
-        this.logger.add(`${reason}. (Healed: ${healedAmount} HP)`, "playerInfo");
-        
-        this.player.resting = {
-            active: false,
-            mode: null,
-            turnsRemaining: 0,
-            startHp: 0
-        };
-        
-        this.playSound('restEndSound'); // 効果音があれば
+        // 自然回復機能の廃止に伴い休憩機能は使用できません
+        return;
     }
 
-    // 休憩をキャンセルするメソッド
+    // 休憩をキャンセルするメソッド（自然回復廃止に伴い機能停止）
     cancelRest(reason) {
-        if (!this.player.resting?.active) return;
-        
-        const healedAmount = this.player.hp - this.player.resting.startHp;
-        this.logger.add(`${reason}. Rest interrupted. (Healed: ${healedAmount} HP)`, "warning");
-        
-        this.player.resting = {
-            active: false,
-            mode: null,
-            turnsRemaining: 0,
-            startHp: 0
-        };
-        
-        this.playSound('restCancelSound'); // 効果音があれば
+        // 自然回復機能の廃止に伴い休憩機能は使用できません
+        return;
     }
     
-    // 休憩のキャンセル条件をチェックするメソッド
+    // 休憩のキャンセル条件をチェックするメソッド（自然回復廃止に伴い機能停止）
     checkRestCancelConditions() {
-        // 敵の視認チェック
-        const visibleMonsters = this.monsters.filter(monster => {
-            // プレイヤーの視界内にいるモンスターを検出
-            return this.hasLineOfSight(this.player.x, this.player.y, monster.x, monster.y) &&
-                GAME_CONSTANTS.DISTANCE.calculateChebyshev(this.player.x, this.player.y, monster.x, monster.y) <= 
-                this.player.perception.base;
-        });
-        
-        if (visibleMonsters.length > 0) {
-            return "You noticed an enemy";
-        }
-        
-        // VigorEffectsが発生したかどうかのチェック - vigor廃止に伴い削除
-        
+        // 自然回復機能の廃止に伴い休憩機能は使用できません
         return null;
     }
 

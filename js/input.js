@@ -1209,13 +1209,7 @@ class InputHandler {
                 this.game.player.lastAction = 'wait';  // 待機アクションを記録
                 this.game.processTurn();
                 return;
-            // REST コマンドを追加
-            case '^':
-                this.game.startRest('turns', 10);
-                return;
-            case '~':
-                this.game.startRest('full');
-                return;
+            // REST コマンドを削除（自然回復廃止に伴う変更）
             default: return;
         }
 

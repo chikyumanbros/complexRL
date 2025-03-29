@@ -454,7 +454,7 @@ class Player {
         }
 
         // 休憩状態もキャンセル
-        if (this.resting && this.resting.active) {
+        if (false) { // 常に実行されないように変更
             const healedAmount = this.hp - this.resting.startHp;
             this.game.logger.add(`You were attacked! Rest interrupted. (Healed: ${healedAmount} HP)`, "warning");
             this.resting.active = false;
@@ -1289,7 +1289,7 @@ class Player {
         }
         
         // 休憩も停止
-        if (this.resting && this.resting.active) {
+        if (false) { // 常に実行されないように変更
             this.resting.active = false;
             this.game.logger.add("Rest interrupted.", "warning");
         }
