@@ -967,23 +967,23 @@ class Monster {
             return false;
         }
         
-        // 床でなければ通行不可
-        if (game.map[y][x] !== 'floor') {
-            return false;
+        // 床であれば通行可能
+        if (game.map[y][x] === 'floor') {
+            // タイルを取得
+            const tile = game.tiles[y][x];
+            
+            // 壁、障害物、閉じたドアなどは通行不可
+            if (GAME_CONSTANTS.TILES.WALL.includes(tile) || 
+                GAME_CONSTANTS.TILES.CYBER_WALL.includes(tile) ||
+                GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(tile) ||
+                tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                return false;
+            }
+            
+            return true;
         }
         
-        // タイルを取得
-        const tile = game.tiles[y][x];
-        
-        // 壁、障害物、閉じたドアなどは通行不可
-        if (GAME_CONSTANTS.TILES.WALL.includes(tile) || 
-            GAME_CONSTANTS.TILES.CYBER_WALL.includes(tile) ||
-            GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(tile) ||
-            tile === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
-            return false;
-        }
-        
-        return true;
+        return false;
     }
 
     // ========================== pursueTarget Method ==========================
@@ -1048,39 +1048,27 @@ class Monster {
             const newX = this.x + move.x;
             const newY = this.y + move.y;
             
-            // 斜め移動の場合、2つの隣接するマスの少なくとも1つは通行可能であることを確認
+            // まず移動先が基本的に移動可能か確認
+            if (!this.canMoveTo(newX, newY, game) || 
+                game.getMonsterAt(newX, newY) || 
+                game.tiles[newY][newX] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+                return false;
+            }
+            
+            // 斜め移動の場合の特別チェック
             if (Math.abs(move.x) === 1 && Math.abs(move.y) === 1) {
-                // 水平方向と垂直方向のマスをチェック
-                const horizontalPassable = this.isPassableForLineCheck(this.x + move.x, this.y, game) && 
-                                          !game.getMonsterAt(this.x + move.x, this.y);
+                // 角の斜め移動を許可するための緩和条件
+                // 少なくとも水平または垂直の一方向が通れればOK
+                const horizontalOpen = this.canMoveTo(this.x + move.x, this.y, game);
+                const verticalOpen = this.canMoveTo(this.x, this.y + move.y, game);
                 
-                const verticalPassable = this.isPassableForLineCheck(this.x, this.y + move.y, game) && 
-                                        !game.getMonsterAt(this.x, this.y + move.y);
-                
-                // 両方のマスが通行不可能なら、斜め移動は許可しない
-                if (!horizontalPassable && !verticalPassable) {
+                // どちらも通行不可なら斜め移動できない
+                if (!horizontalOpen && !verticalOpen) {
                     return false;
-                }
-                
-                // 壁をすり抜ける斜め移動の防止
-                // 移動先がドアの場合は特別チェック不要
-                const destTile = game.tiles[newY][newX];
-                if (destTile === GAME_CONSTANTS.TILES.DOOR.CLOSED || 
-                    destTile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
-                    // ドアへの移動は別途チェックされるのでここではスキップ
-                } else {
-                    // 斜め移動が壁や障害物をすり抜けるような移動の場合は禁止
-                    const points = this.getLinePoints(this.x, this.y, newX, newY, game);
-                    if (points.length === 0) {
-                        return false; // 視線が通らない場合は移動不可
-                    }
                 }
             }
             
-            // 移動先の厳密なチェック
-            return this.canMoveTo(newX, newY, game) && 
-                   !game.getMonsterAt(newX, newY) && 
-                   game.tiles[newY][newX] !== GAME_CONSTANTS.TILES.DOOR.CLOSED;
+            return true;
         });
 
         // --- 追跡ロジックの改善 ---
