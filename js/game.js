@@ -795,10 +795,8 @@ class Game {
         // lookパネルを常に更新（suppressMessageに関わらず）
         this.logger.clearLookInfo();
 
-        // 新規: モンスターを倒した時の効果音を再生（suppressMessageがtrueでなければ）
-        if (!suppressMessage) {
-            this.playSound('killMonsterSound');
-        }
+        // モンスターを倒した時の効果音を常に再生
+        this.playSound('killMonsterSound');
 
         // 生物系モンスターの場合、死亡時に血痕を生成する確率判定
         if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC)) {
