@@ -1649,9 +1649,28 @@ class Game {
         this.player.hp = Math.min(this.player.maxHp, this.player.hp + hpHealAmount);
         const actualHpHealed = this.player.hp - oldHp;
         
-        // 回復メッセージを表示
-        const message = `You feel revitalized! Recovered ${actualHpHealed} HP.`;
-        this.logger.add(message, "playerInfo");
+        // エネルギー回復と上限回復
+        if (this.player.rangedCombat && this.player.rangedCombat.energy) {
+            // エネルギー上限の回復（回復率に基づいて）
+            this.player.resetEnergyDecay(healPercent);
+            
+            // 現在のエネルギーを回復（HP回復と同じ方式で、不足分に対する回復率を適用）
+            const energyHealAmount = Math.floor((this.player.rangedCombat.energy.max - this.player.rangedCombat.energy.current) * (healPercent / 100));
+            const oldEnergy = this.player.rangedCombat.energy.current;
+            this.player.rangedCombat.energy.current = Math.min(
+                this.player.rangedCombat.energy.max,
+                this.player.rangedCombat.energy.current + energyHealAmount
+            );
+            const actualEnergyHealed = this.player.rangedCombat.energy.current - oldEnergy;
+            
+            // 回復メッセージを表示
+            const message = `You feel revitalized! Recovered ${actualHpHealed} HP and ${Math.floor(actualEnergyHealed)} Energy.`;
+            this.logger.add(message, "playerInfo");
+        } else {
+            // エネルギーシステムがない場合はHPのみ回復
+            const message = `You feel revitalized! Recovered ${actualHpHealed} HP.`;
+            this.logger.add(message, "playerInfo");
+        }
         
         // ステータスパネルを更新
         this.renderer.renderStatus();

@@ -55,8 +55,11 @@ class Player {
             energy: {
                 current: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats),
                 max: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats),
+                baseMax: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats), // 基本最大値（減少前）
                 rechargeRate: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_RECHARGE(this.stats),
-                cost: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_COST(this.stats)
+                cost: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_COST(this.stats),
+                decayCounter: 0, // エネルギー上限減少用カウンター
+                decayRate: 0.1   // エネルギー上限の減少率（10ターンで1減少）
             },
             attack: {
                 base: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.BASE_ATTACK(this.stats),
@@ -158,16 +161,24 @@ class Player {
                 this.evasion = GAME_CONSTANTS.FORMULAS.EVASION(this.stats);
 
                 // 遠距離攻撃パラメータの更新
+                const newEnergyMax = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats);
                 this.rangedCombat = {
                     ...this.rangedCombat,
                     energy: {
                         current: Math.min(
-                            this.rangedCombat?.energy?.current ?? GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats),
-                            GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats)
+                            this.rangedCombat?.energy?.current ?? newEnergyMax,
+                            (this.rangedCombat?.energy?.decayCounter > 0) ? 
+                                this.rangedCombat.energy.max : 
+                                newEnergyMax
                         ),
-                        max: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats),
+                        max: (this.rangedCombat?.energy?.decayCounter > 0) ?
+                            this.rangedCombat.energy.max :
+                            newEnergyMax,
+                        baseMax: newEnergyMax,
                         rechargeRate: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_RECHARGE(this.stats),
-                        cost: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_COST(this.stats)
+                        cost: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_COST(this.stats),
+                        decayCounter: this.rangedCombat?.energy?.decayCounter ?? 0,
+                        decayRate: this.rangedCombat?.energy?.decayRate ?? 0.1
                     },
                     attack: {
                         base: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.BASE_ATTACK(this.stats),
@@ -530,11 +541,33 @@ class Player {
             // 画面の更新
             this.game.renderer.render();
             
+            // ダメージが1以上の場合のみ、SEとフラッシュエフェクトを再生
+            if (damage > 0) {
+                this.game.renderer.flashStatusPanel();
+                this.game.playSound('takeDamageSound');
+            }
+
+            if (surroundingPenalty > 0) {
+                this.game.logger.add(`Surrounded! (-${Math.floor(surroundingPenalty * 100)}% evasion)`, "warning");
+            }
+
+            // evasionを元の値に戻す
+            this.evasion = baseEvasion;
+
+            // 蜘蛛の巣に捕まっている場合、色を更新
+            if (this.caughtInWeb) {
+                const healthStatus = this.getHealthStatus(this.hp, this.maxHp);
+                this.caughtInWeb.playerColor = healthStatus.color;
+            }
+
+            // 画面の更新
+            this.game.renderer.render();
+            
             // 結果を返してからゲームオーバー処理を実行
             setTimeout(() => {
                 this.game.gameOver();
             }, 0);
-            
+
             return result;
         }
 
@@ -654,16 +687,24 @@ class Player {
         this.evasion = GAME_CONSTANTS.FORMULAS.EVASION(this.stats);
 
         // 遠距離攻撃パラメータの更新
+        const newEnergyMax = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats);
         this.rangedCombat = {
             ...this.rangedCombat,
             energy: {
                 current: Math.min(
-                    this.rangedCombat?.energy?.current ?? GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats),
-                    GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats)
+                    this.rangedCombat?.energy?.current ?? newEnergyMax,
+                    (this.rangedCombat?.energy?.decayCounter > 0) ? 
+                        this.rangedCombat.energy.max : 
+                        newEnergyMax
                 ),
-                max: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats),
+                max: (this.rangedCombat?.energy?.decayCounter > 0) ?
+                    this.rangedCombat.energy.max :
+                    newEnergyMax,
+                baseMax: newEnergyMax,
                 rechargeRate: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_RECHARGE(this.stats),
-                cost: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_COST(this.stats)
+                cost: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_COST(this.stats),
+                decayCounter: this.rangedCombat?.energy?.decayCounter ?? 0,
+                decayRate: this.rangedCombat?.energy?.decayRate ?? 0.1
             },
             attack: {
                 base: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.BASE_ATTACK(this.stats),
@@ -742,15 +783,16 @@ class Player {
             this.game.logger.add(`You descend to floor ${this.game.floorLevel + 1}...`, "important");
             this.game.processTurn();  // 先にターンを消費
             
-            // 階段を降りる前に、現在のHPを記録
+            // 階段を降りる前に、現在のHPとエネルギーを記録
             const beforeHp = this.hp;
+            const beforeEnergy = this.rangedCombat ? this.rangedCombat.energy.current : 0;
             
             // 危険度に応じた回復率を定義
             const recoveryRates = {
-                'SAFE': { hp: 0.5 },        // HP 50%
-                'NORMAL': { hp: 0.3 },      // HP 30%
-                'DANGEROUS': { hp: 0.15 },  // HP 15%
-                'DEADLY': { hp: 0.05 }      // HP 5%
+                'SAFE': { hp: 0.5, energy: 0.7 },        // HP 50%, Energy 70%
+                'NORMAL': { hp: 0.3, energy: 0.5 },      // HP 30%, Energy 50%
+                'DANGEROUS': { hp: 0.15, energy: 0.3 },  // HP 15%, Energy 30%
+                'DEADLY': { hp: 0.05, energy: 0.1 }      // HP 5%, Energy 10%
             };
             
             // 現在の危険度から回復率を取得
@@ -763,6 +805,23 @@ class Player {
                 this.hp = Math.min(this.maxHp, this.hp + hpRecovery);
             }
             
+            // エネルギー関連の処理
+            let energyDiff = 0;
+            if (this.rangedCombat && this.rangedCombat.energy) {
+                // エネルギー上限の回復（回復率に基づいて）
+                this.resetEnergyDecay(recoveryRate.energy * 100);
+                
+                // エネルギー回復の計算
+                const energyRecovery = Math.floor((this.rangedCombat.energy.max - this.rangedCombat.energy.current) * recoveryRate.energy);
+                if (energyRecovery > 0) {
+                    this.rangedCombat.energy.current = Math.min(
+                        this.rangedCombat.energy.max,
+                        this.rangedCombat.energy.current + energyRecovery
+                    );
+                }
+                energyDiff = this.rangedCombat.energy.current - beforeEnergy;
+            }
+            
             // フロアレベルを増加
             this.game.floorLevel++;
             
@@ -771,10 +830,19 @@ class Player {
             this.game.soundManager.updateBGM();  // BGMを更新
             this.game.playSound('descendStairsSound');
             
-            // Display recovery message in log (only if recovery occurred)
-            if (hpRecovery > 0) {
+            // 回復メッセージをログに表示（回復があった場合のみ）
+            if (hpRecovery > 0 || energyDiff > 0) {
                 const hpDiff = this.hp - beforeHp;
-                const recoveryMessage = `You descend the stairs and recover! ${beforeHp} → ${this.hp} HP (+${hpDiff})`;
+                let recoveryMessage = `You descend the stairs and recover!`;
+                
+                if (hpDiff > 0) {
+                    recoveryMessage += ` ${beforeHp} → ${this.hp} HP (+${hpDiff})`;
+                }
+                
+                if (energyDiff > 0) {
+                    recoveryMessage += ` ${Math.floor(beforeEnergy)} → ${Math.floor(this.rangedCombat.energy.current)} Energy (+${Math.floor(energyDiff)})`;
+                }
+                
                 this.game.logger.add(recoveryMessage, "heal");
             }
             
@@ -1792,6 +1860,9 @@ class Player {
             return;
         }
 
+        // エネルギー上限減少処理
+        this.processEnergyDecay();
+
         // 隣接するモンスターをチェック
         const surroundingMonsters = this.countSurroundingMonsters(this.game);
         if (surroundingMonsters > 0) {
@@ -1814,6 +1885,64 @@ class Player {
                 this.game.logger.add("Not enough energy for ranged combat. Mode deactivated.", "warning");
                 this.rangedCombat.isActive = false;
                 this.rangedCombat.target = null;
+            }
+        }
+    }
+
+    // エネルギー上限減少処理を追加
+    processEnergyDecay() {
+        if (!this.rangedCombat || !this.rangedCombat.energy) return;
+        
+        // ターンごとにカウンターを増加
+        this.rangedCombat.energy.decayCounter++;
+        
+        // 元のエネルギー最大値
+        const baseMax = this.rangedCombat.energy.baseMax;
+        
+        // 新しいエネルギー最大値を計算（最低値は0）
+        const minThreshold = 0;
+        const newMax = Math.max(
+            minThreshold, 
+            baseMax - (this.rangedCombat.energy.decayCounter * this.rangedCombat.energy.decayRate)
+        );
+        
+        // エネルギー最大値を更新
+        this.rangedCombat.energy.max = newMax;
+        
+        // 減少後、現在値が最大値を超えていたら調整
+        if (this.rangedCombat.energy.current > this.rangedCombat.energy.max) {
+            this.rangedCombat.energy.current = this.rangedCombat.energy.max;
+        }
+    }
+
+    // エネルギー上限をリセットする関数
+    resetEnergyDecay(recoveryPercent = 100) {
+        if (!this.rangedCombat || !this.rangedCombat.energy) return;
+        
+        // 回復率を0～100%の範囲に制限
+        const healPercent = Math.max(0, Math.min(100, recoveryPercent));
+        
+        if (healPercent >= 100) {
+            // 100%以上なら完全回復
+            this.rangedCombat.energy.decayCounter = 0;
+            this.rangedCombat.energy.max = this.rangedCombat.energy.baseMax;
+        } else {
+            // 減少したエネルギー上限の量を計算
+            const decayedAmount = this.rangedCombat.energy.baseMax - this.rangedCombat.energy.max;
+            
+            // 回復量を計算（減少量 × 回復率）
+            const healAmount = decayedAmount * (healPercent / 100);
+            
+            // 減少カウンターを調整
+            if (healAmount > 0) {
+                const counterReduction = healAmount / this.rangedCombat.energy.decayRate;
+                this.rangedCombat.energy.decayCounter = Math.max(0, this.rangedCombat.energy.decayCounter - counterReduction);
+                
+                // エネルギー上限を更新
+                this.rangedCombat.energy.max = Math.min(
+                    this.rangedCombat.energy.baseMax,
+                    this.rangedCombat.energy.baseMax - (this.rangedCombat.energy.decayCounter * this.rangedCombat.energy.decayRate)
+                );
             }
         }
     }

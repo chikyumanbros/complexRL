@@ -145,7 +145,7 @@ class StatusRenderer {
                             player.rangedCombat.energy.current >= player.rangedCombat.energy.cost ? '#3498db' : '#e74c3c';
             energyBarHTML = `
                 <div class="energy-bar">
-                    <div class="energy-numbers">Eg: ${Math.floor(player.rangedCombat.energy.current)}/${player.rangedCombat.energy.max}</div>
+                    <div class="energy-numbers">Eg: ${Math.floor(player.rangedCombat.energy.current)}/${Math.floor(player.rangedCombat.energy.max)}</div>
                     <div class="bar-container">
                         <div class="bar" style="width: ${energyPercent}%; background-color: ${barColor}"></div>
                     </div>
@@ -282,7 +282,7 @@ class StatusRenderer {
         return `
             <div class="ranged-combat-section">
                 <div class="energy-bar">
-                    <div class="energy-numbers">Eg: ${Math.floor(rangedCombat.energy.current)}/${rangedCombat.energy.max}</div>
+                    <div class="energy-numbers">Eg: ${Math.floor(rangedCombat.energy.current)}/${Math.floor(rangedCombat.energy.max)}</div>
                     <div class="bar-container">
                         <div class="bar" style="width: ${energyPercent}%; background-color: ${barColor}"></div>
                     </div>

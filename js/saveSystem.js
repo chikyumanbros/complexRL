@@ -42,8 +42,11 @@ class SaveSystem {
                     energy: {
                         current: this.game.player.rangedCombat.energy.current,
                         max: this.game.player.rangedCombat.energy.max,
+                        baseMax: this.game.player.rangedCombat.energy.baseMax,
                         rechargeRate: this.game.player.rangedCombat.energy.rechargeRate,
-                        cost: this.game.player.rangedCombat.energy.cost
+                        cost: this.game.player.rangedCombat.energy.cost,
+                        decayCounter: this.game.player.rangedCombat.energy.decayCounter,
+                        decayRate: this.game.player.rangedCombat.energy.decayRate
                     },
                     isActive: this.game.player.rangedCombat.isActive
                 },
@@ -139,7 +142,31 @@ class SaveSystem {
             // 遠距離攻撃のエネルギー情報を復元
             if (data.player.rangedCombat && data.player.rangedCombat.energy) {
                 this.game.player.rangedCombat.energy.current = data.player.rangedCombat.energy.current ?? this.game.player.rangedCombat.energy.max;
-                this.game.player.rangedCombat.energy.max = data.player.rangedCombat.energy.max ?? GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.game.player.stats);
+                
+                // エネルギー上限の減少情報を復元
+                const baseMaxEnergy = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.game.player.stats);
+                this.game.player.rangedCombat.energy.baseMax = data.player.rangedCombat.energy.baseMax ?? baseMaxEnergy;
+                this.game.player.rangedCombat.energy.decayCounter = data.player.rangedCombat.energy.decayCounter ?? 0;
+                this.game.player.rangedCombat.energy.decayRate = data.player.rangedCombat.energy.decayRate ?? 0.1;
+                
+                // 減少カウンターがある場合は、その値に基づいて上限を計算
+                if (this.game.player.rangedCombat.energy.decayCounter > 0) {
+                    this.game.player.rangedCombat.energy.max = Math.max(
+                        0, 
+                        this.game.player.rangedCombat.energy.baseMax - 
+                        (this.game.player.rangedCombat.energy.decayCounter * this.game.player.rangedCombat.energy.decayRate)
+                    );
+                } else {
+                    // 減少カウンターがなければ、保存された上限値またはデフォルト値を使用
+                    this.game.player.rangedCombat.energy.max = data.player.rangedCombat.energy.max ?? baseMaxEnergy;
+                }
+                
+                // 現在値が最大値を超えていないか確認
+                this.game.player.rangedCombat.energy.current = Math.min(
+                    this.game.player.rangedCombat.energy.current,
+                    this.game.player.rangedCombat.energy.max
+                );
+                
                 this.game.player.rangedCombat.energy.rechargeRate = data.player.rangedCombat.energy.rechargeRate ?? GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_RECHARGE(this.game.player.stats);
                 this.game.player.rangedCombat.energy.cost = data.player.rangedCombat.energy.cost ?? GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_COST(this.game.player.stats);
                 this.game.player.rangedCombat.isActive = data.player.rangedCombat.isActive ?? false;
