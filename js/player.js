@@ -1787,6 +1787,11 @@ class Player {
             return;
         }
 
+        // メディテーション中はエネルギーを回復しない
+        if (this.meditation && this.meditation.active) {
+            return;
+        }
+
         // 隣接するモンスターをチェック
         const surroundingMonsters = this.countSurroundingMonsters(this.game);
         if (surroundingMonsters > 0) {

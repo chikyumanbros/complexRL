@@ -14,7 +14,7 @@ const SKILLS = {
             {
                 id: 'jump',
                 name: 'Jump',
-                desc: 'Jump over enemies. Range based on DEX/CON. (Base: 3, +1 per 3 DEX over CON)',
+                desc: 'Jump over enemies. Range based on DEX/CON. (Base: 3, +1 per 3 DEX over CON) Costs 10 energy per tile.',
                 isFreeAction: false,
                 requiresTarget: true,
                 getRange: (player) => {
@@ -23,7 +23,7 @@ const SKILLS = {
                 },
                 getEffectText: (player) => {
                     const jumpRange = Math.floor((player.stats.dex - player.stats.con) / 3) + 3;
-                    return `[Range: ${jumpRange}]`;
+                    return `[Range: ${jumpRange}, Cost: 10/tile]`;
                 },
                 effect: (game, player, target) => {
                     // ---- Visibility Check ----
@@ -46,6 +46,13 @@ const SKILLS = {
                     
                     if (distance > jumpRange) {
                         game.logger.add(`Too far to jump! (Range: ${jumpRange})`, "warning");
+                        return false;
+                    }
+
+                    // ---- Energy Check ----
+                    const energyCost = distance * 10;
+                    if (!player.rangedCombat || player.rangedCombat.energy.current < energyCost) {
+                        game.logger.add(`Not enough energy to jump! (Need: ${energyCost})`, "warning");
                         return false;
                     }
 
@@ -83,7 +90,10 @@ const SKILLS = {
                     player.x = target.x;
                     player.y = target.y;
 
-                    game.logger.add("Jump!", "playerAction");
+                    // ---- Consume Energy ----
+                    player.rangedCombat.energy.current -= energyCost;
+                    
+                    game.logger.add(`Jump! (${energyCost} energy used)`, "playerAction");
 
                     // ジャンプの効果音を再生
                     game.playSound('jumpSound');
@@ -110,14 +120,14 @@ const SKILLS = {
             {
                 id: 'meditation',
                 name: 'Meditation',
-                desc: 'Meditate to recover HP. Move or take damage to cancel. (HP: WIS/3 per turn, Max turns: WIS/2)',
+                desc: 'Meditate to recover HP. Move or take damage to cancel. (HP: WIS/3 per turn, Max turns: WIS/2, Cost: 10 energy/turn)',
                 isFreeAction: false,
                 requiresTarget: false,
                 cancelOnDamage: true,
                 getEffectText: (player) => {
                     const healPerTurn = Math.floor(player.stats.wis / 3);
                     const maxTurns = Math.floor(player.stats.wis / 2);
-                    return `[HP: ${healPerTurn}/turn, ${maxTurns} turns]`;
+                    return `[HP: ${healPerTurn}/turn, ${maxTurns} turns, Energy: 10/turn]`;
                 },
                 effect: (game, player) => {
                     // ---- Status Check ----
@@ -128,6 +138,12 @@ const SKILLS = {
 
                     if (player.meditation && player.meditation.active) {
                         game.logger.add("Already meditating！", "warning");
+                        return false;
+                    }
+                    
+                    // ---- Energy Check ----
+                    if (!player.rangedCombat || player.rangedCombat.energy.current < 10) {
+                        game.logger.add("Not enough energy to meditate! (Need: 10)", "warning");
                         return false;
                     }
 
@@ -142,10 +158,13 @@ const SKILLS = {
                         totalHealed: 0
                     };
 
+                    // ---- Consume Energy ----
+                    player.rangedCombat.energy.current -= 10;
+
                     // サイケデリックエフェクトを追加
                     game.renderer.psychedelicTurn += 5;
 
-                    game.logger.add(`Started meditating... (HP: ${healPerTurn}/turn, Max turns: ${turnsRemaining})`, "playerInfo");
+                    game.logger.add(`Started meditating... (HP: ${healPerTurn}/turn, Max turns: ${turnsRemaining}, Energy: 10/turn)`, "playerInfo");
                     game.renderer.render();
 
                     // 瞑想開始時に効果音をループ再生

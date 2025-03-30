@@ -869,6 +869,25 @@ class Game {
     processMeditation() {
         if (!this.player.meditation || !this.player.meditation.active) return;
 
+        // エネルギーチェック（継続するには10エネルギーが必要）
+        if (this.player.rangedCombat && this.player.rangedCombat.energy.current < 10) {
+            this.logger.add("Not enough energy to continue meditation.", "warning");
+            
+            // 瞑想終了時に効果音を停止
+            if (!this.player.meditation.skipSound && this.player.meditation.soundStarted) {
+                this.soundManager.stopSound('meditationSound');
+            }
+            
+            this.logger.add(`Meditation cancelled. (Total healed: ${this.player.meditation.totalHealed} HP)`, "playerInfo");
+            this.player.meditation = null;
+            return;
+        }
+
+        // エネルギー消費（ターンごとに10消費）
+        if (this.player.rangedCombat) {
+            this.player.rangedCombat.energy.current -= 10;
+        }
+
         // 1ターンごとの回復処理
         const healAmount = this.player.meditation.healPerTurn;
 
