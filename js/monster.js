@@ -803,11 +803,15 @@ class Monster {
         
         // --- 床タイルのチェック ---
         // 床でないマップはそもそも移動できない
-        if (game.map[y][x] !== 'floor') {
+        if (!game.map[y] || !game.map[y][x] || game.map[y][x] !== 'floor') {
             return false;
         }
         
         // --- 特殊タイルのチェック ---
+        if (!game.tiles[y] || !game.tiles[y][x]) {
+            return false;
+        }
+        
         const tileChar = game.tiles[y][x];
         
         // --- Wall Check (include all wall types) ---
@@ -964,6 +968,11 @@ class Monster {
     isPassableForLineCheck(x, y, game) {
         // 範囲外なら通行不可
         if (x < 0 || x >= game.map[0].length || y < 0 || y >= game.map.length) {
+            return false;
+        }
+        
+        // game.mapとgame.tilesの存在チェック
+        if (!game.map[y] || !game.map[y][x] || !game.tiles[y] || !game.tiles[y][x]) {
             return false;
         }
         
