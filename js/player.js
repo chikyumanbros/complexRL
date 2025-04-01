@@ -62,6 +62,12 @@ class Player {
                 decayCounter: 0,
                 decayRate: 0.1
             },
+            attack: {
+                base: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.BASE_ATTACK(this.stats),
+                dice: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ATTACK_DICE(this.stats)
+            },
+            accuracy: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ACCURACY(this.stats),
+            range: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.RANGE(this.stats),
             attackedThisTurn: false,
             jumpedThisTurn: false  // ジャンプ使用フラグを追加
         };

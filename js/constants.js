@@ -47,7 +47,7 @@ const GAME_CONSTANTS = {
                 LEVEL_2: '▒',  // 中程度の濃度
                 LEVEL_3: '▓'   // 高濃度
             },
-            COLOR: '#663366', // 紫がかった暗い色
+            COLOR: '#996699', // より明るい紫
             VOLUME: {
                 // 瘴気の量（単位は任意）
                 AMOUNT: {

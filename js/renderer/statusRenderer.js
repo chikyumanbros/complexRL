@@ -153,6 +153,17 @@ class StatusRenderer {
             `;
         }
 
+        // ペナルティテキストの生成
+        let penaltyText = '';
+        if (surroundingMonsters > 1) {
+            penaltyText = `<div class="penalty-text">Penalty: -${Math.min(60, (surroundingMonsters - 1) * penaltyPerMonster)}% (${surroundingMonsters} enemies)</div>`;
+        }
+
+        // 攻撃速度の表示
+        const speed = GAME_CONSTANTS.FORMULAS.SPEED(player.stats);
+        const speedColor = GAME_CONSTANTS.COLORS.SPEED[speed.value].color;
+        const speedDisplay = `<span style="color: ${speedColor}">${speed.name}</span>`;
+
         return `
             ${energyBarHTML}
             <div class="stats-grid">
@@ -205,9 +216,10 @@ class StatusRenderer {
                 </div>
                 <div class="stat-row">
                     <span class="label">SPD:</span>
-                    <span id="speed">${speedText}</span>
+                    <span id="speed">${speedDisplay}</span>
                 </div>
             </div>
+            ${penaltyText}
         `;
     }
 
@@ -215,34 +227,37 @@ class StatusRenderer {
         const rangedCombat = player.rangedCombat;
         if (!rangedCombat) return '';
 
+        // 必要なプロパティが存在しない場合のフォールバック
+        const attack = rangedCombat.attack || { 
+            base: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.BASE_ATTACK(player.stats),
+            dice: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ATTACK_DICE(player.stats)
+        };
+        const accuracy = rangedCombat.accuracy || GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ACCURACY(player.stats);
+        const range = rangedCombat.range || GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.RANGE(player.stats);
+
         // エネルギーバーの計算
         const energyPercent = (rangedCombat.energy.current / rangedCombat.energy.max) * 100;
         const barColor = rangedCombat.energy.current === rangedCombat.energy.max ? '#2ecc71' :
                         rangedCombat.energy.current >= rangedCombat.energy.cost ? '#3498db' : '#e74c3c';
 
         // 命中率の計算（ターゲットがいる場合はサイズ補正を含める）
-        const baseHitChance = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ACCURACY(player.stats);
+        const baseHitChance = accuracy;
         let accuracyDisplay = `${baseHitChance}%`;
+        
+        // 周囲のモンスター数を取得
+        const surroundingMonsters = player.countSurroundingMonsters ? player.countSurroundingMonsters(this.game) : 0;
+        const penaltyPerMonster = 15; // 1体につき15%のペナルティ
+        
         if (rangedCombat.isActive && rangedCombat.target) {
             const target = this.game.getMonsterAt(rangedCombat.target.x, rangedCombat.target.y);
             if (target) {
-                // 周囲のモンスターによるペナルティを先に計算
-                const surroundingMonsters = player.countSurroundingMonsters(this.game);
-                const penaltyPerMonster = 15;
-                const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster)) / 100;
-
-                // ペナルティを基本命中率に適用
-                const penalizedAccuracy = Math.floor(baseHitChance * (1 - surroundingPenalty));  // baseHitChanceを使用
-
-                // サイズ補正を後から加算
                 const sizeModifier = GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.SIZE_ACCURACY_MODIFIER(target.stats);
-                const finalAccuracy = Math.min(95, Math.max(5, penalizedAccuracy + sizeModifier));
+                const finalAccuracy = Math.min(95, Math.max(5, baseHitChance + sizeModifier));
                 
-                // サイズ補正に応じて色を変更
-                if (sizeModifier !== 0) {
-                    accuracyDisplay = `<span style="color: ${sizeModifier > 0 ? '#2ecc71' : '#e74c3c'}">${finalAccuracy}%</span>`;
-                } else {
-                    accuracyDisplay = `${finalAccuracy}%`;
+                if (sizeModifier > 0) {
+                    accuracyDisplay = `${baseHitChance}% <span style="color: #2ecc71">(+${sizeModifier}%)</span>`;
+                } else if (sizeModifier < 0) {
+                    accuracyDisplay = `${baseHitChance}% <span style="color: #e74c3c">(${sizeModifier}%)</span>`;
                 }
             }
         }
@@ -258,25 +273,36 @@ class StatusRenderer {
         // 速度表示の作成（基本速度→遠距離速度）
         const speedDisplay = `<span style="color: ${speedInfo.color}">${rangedSpeed.name}</span>`;
 
-        // 周囲のモンスターによるペナルティを計算
-        const surroundingMonsters = player.countSurroundingMonsters(this.game);
-        let penaltyText = '';
-        if (surroundingMonsters > 1) {
-            const penaltyPerMonster = 15;
-            const surroundingPenalty = Math.min(60, Math.max(0, (surroundingMonsters - 1) * penaltyPerMonster));
-        }
-
-        // ターゲット情報
+        // ターゲット情報の表示
         let targetInfo = '';
         if (rangedCombat.isActive && rangedCombat.target) {
             const target = this.game.getMonsterAt(rangedCombat.target.x, rangedCombat.target.y);
             if (target) {
                 const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
-                    player.x, player.y,
-                    rangedCombat.target.x, rangedCombat.target.y
+                    player.x, player.y, rangedCombat.target.x, rangedCombat.target.y
                 );
-                targetInfo = `<div class="target-info"><span style="color: #f1c40f">Target: ${target.name} (${distance} tiles away)</span></div>`;
+                
+                // 距離に基づいた色を設定
+                let distanceColor = '#2ecc71'; // デフォルト: 緑
+                if (distance > range) {
+                    distanceColor = '#e74c3c'; // 範囲外: 赤
+                } else if (distance > range * 0.7) {
+                    distanceColor = '#f1c40f'; // 範囲ギリギリ: 黄色
+                }
+                
+                targetInfo = `
+                    <div class="target-info">
+                        <span class="label">Target:</span>
+                        <span>${target.name} <span style="color: ${distanceColor}">(${distance} tiles)</span></span>
+                    </div>
+                `;
             }
+        }
+
+        // ペナルティテキストの生成
+        let penaltyText = '';
+        if (surroundingMonsters > 1) {
+            penaltyText = `<div class="penalty-text">Penalty: -${Math.min(60, (surroundingMonsters - 1) * penaltyPerMonster)}% (${surroundingMonsters} enemies)</div>`;
         }
 
         return `
@@ -290,7 +316,7 @@ class StatusRenderer {
                 <div class="stats-grid">
                     <div class="stat-row">
                         <span class="label">ATK:</span>
-                        <span id="attack">${rangedCombat.attack.base}+${rangedCombat.attack.dice.count}d${rangedCombat.attack.dice.sides}</span>
+                        <span id="attack">${attack.base}+${attack.dice.count}d${attack.dice.sides}</span>
                     </div>
                     <div class="stat-row">
                         <span class="label">ACC:</span>
@@ -298,7 +324,7 @@ class StatusRenderer {
                     </div>
                     <div class="stat-row">
                         <span class="label">Range:</span>
-                        <span id="range">${rangedCombat.range}</span>
+                        <span id="range">${range}</span>
                     </div>
                     <div class="stat-row">
                         <span class="label">Cost:</span>
