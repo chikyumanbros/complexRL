@@ -907,8 +907,23 @@ class Monster {
     // ========================== hasLineOfSight Method ==========================
     // 視線チェックメソッドを修正 - game内のvisionSystemを使用
     hasLineOfSight(game) {
-        // 游ムのVisionSystemを利用する
-        return game.visionSystem.hasLineOfSight(this.x, this.y, game.player.x, game.player.y);
+        // VisionSystemの代わりに自前の視線判定ロジックを使用する
+        const points = this.getLinePoints(this.x, this.y, game.player.x, game.player.y, game);
+        
+        // 視線が遮られている場合（getLinePointsが空配列を返す）
+        if (points.length === 0) {
+            return false;
+        }
+        
+        // 全ての点で視線チェック（モンスター自身と目標の位置を除く）
+        for (let i = 1; i < points.length - 1; i++) {
+            const point = points[i];
+            if (!this.isPassableForLineCheck(point.x, point.y, game)) {
+                return false;
+            }
+        }
+        
+        return true;
     }
 
     // ========================== getLinePoints Utility Method ==========================
