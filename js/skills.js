@@ -125,7 +125,7 @@ const SKILLS = {
                 requiresTarget: false,
                 cancelOnDamage: true,
                 getEffectText: (player) => {
-                    const healPerTurn = Math.floor(player.stats.wis / 3);
+                    const healPerTurn = Math.floor(player.stats.wis / 2) + 1;
                     const maxTurns = Math.floor(player.stats.wis / 2);
                     return `[HP: ${healPerTurn}/turn, ${maxTurns} turns, Energy: 10/turn]`;
                 },
@@ -147,7 +147,7 @@ const SKILLS = {
                         return false;
                     }
 
-                    const healPerTurn = Math.floor(player.stats.wis / 3);
+                    const healPerTurn = Math.floor(player.stats.wis / 2) + 1;
                     const turnsRemaining = Math.floor(player.stats.wis / 2);
 
                     player.meditation = {
