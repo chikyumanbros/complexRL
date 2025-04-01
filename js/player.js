@@ -785,10 +785,10 @@ class Player {
             
             // 危険度に応じた回復率を定義
             const recoveryRates = {
-                'SAFE': { hp: 0.5, energy: 0.7 },        // HP 50%, Energy 70%
-                'NORMAL': { hp: 0.3, energy: 0.5 },      // HP 30%, Energy 50%
-                'DANGEROUS': { hp: 0.15, energy: 0.3 },  // HP 15%, Energy 30%
-                'DEADLY': { hp: 0.05, energy: 0.1 }      // HP 5%, Energy 10%
+                'SAFE': { hp: 0.5, energy: 1.0 },        // HP 50%, Energy 100%
+                'NORMAL': { hp: 0.3, energy: 0.8 },      // HP 30%, Energy 80%
+                'DANGEROUS': { hp: 0.15, energy: 0.6 },  // HP 15%, Energy 60%
+                'DEADLY': { hp: 0.05, energy: 0.4 }      // HP 5%, Energy 40%
             };
             
             // 現在の危険度から回復率を取得
