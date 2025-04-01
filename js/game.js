@@ -10,6 +10,7 @@ class Game {
         this.visionSystem = new VisionSystem(this);
         this.saveSystem = new SaveSystem(this);  // 追加
         this.liquidSystem = new LiquidSystem(this); // 液体システムの追加
+        this.gasSystem = new GasSystem(this); // ガスシステムの追加
 
         // デバッグユーティリティの初期化
         this.debugUtils = new DebugUtils(this);
@@ -74,6 +75,9 @@ class Game {
         
         // 液体をリセット
         this.liquidSystem.reset();
+        
+        // ガスをリセット
+        this.gasSystem.reset();
         
         // 血痕と蜘蛛の巣をクリア（後方互換性のために残す）
         this.bloodpools = [];
@@ -653,6 +657,15 @@ class Game {
         
         // 血痕の寿命を更新
         this.updateBloodpools();
+        
+        // ガスの更新処理
+        if (this.gasSystem) {
+            // ガスの減衰と拡散
+            this.gasSystem.update();
+            
+            // 血液からの瘴気発生処理
+            this.gasSystem.generateMiasmaFromBlood();
+        }
         
         // ホームフロアのステータスを更新
         if (this.floor === 0) {

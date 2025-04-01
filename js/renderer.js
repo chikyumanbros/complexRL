@@ -854,8 +854,8 @@ class Renderer {
                     }
                        
                     // 蜘蛛の巣の描画
-                    const web = this.game.webs && this.game.webs.find(w => w.x === x && w.y === y);
-                    if (web) {
+                    const webIndex = this.game.webs ? this.game.webs.findIndex(web => web.x === x && web.y === y) : -1;
+                    if (webIndex !== -1) {
                         // プレイヤーが捕まっている場合は特別なクラスを追加
                         if (this.game.player.caughtInWeb && 
                             this.game.player.caughtInWeb.x === x && 
@@ -965,6 +965,52 @@ class Renderer {
                         // グリッド位置を指定
                         style += `; grid-row: ${y + 1}; grid-column: ${x + 1};`;
                     }
+                    
+                    // ガスの描画
+                    if (this.game.gasSystem) {
+                        const gas = this.game.gasSystem.getGasAt(x, y);
+                        if (gas) {
+                            const gasSettings = GAME_CONSTANTS.GASES[gas.type.toUpperCase()];
+                            if (gasSettings) {
+                                // 濃度に応じた表示文字を取得
+                                const gasChar = gasSettings.CHARS[`LEVEL_${gas.density}`];
+                                
+                                // プレイヤーやモンスターがガスの中にいる場合は、元の内容を保持
+                                const originalContent = content;
+                                
+                                // ガスの文字を設定
+                                content = gasChar;
+                                
+                                // ガスの濃度に応じた不透明度を設定
+                                const baseOpacity = 0.3 + (gas.density * 0.2); // 濃度1: 0.5, 濃度2: 0.7, 濃度3: 0.9
+                                
+                                // ガスのスタイルを設定
+                                style = `color: ${gasSettings.COLOR}; opacity: ${baseOpacity};`;
+                                
+                                // プレイヤーやモンスターがガスの中にいる場合はその内容を優先
+                                if (x === this.game.player.x && y === this.game.player.y) {
+                                    content = this.game.player.char;
+                                    const healthStatus = this.game.player.getHealthStatus(this.game.player.hp, this.game.player.maxHp);
+                                    style = `color: ${healthStatus.color}; opacity: 1; text-shadow: 0 0 5px ${gasSettings.COLOR}`;
+                                } else {
+                                    const monster = this.game.getMonsterAt(x, y);
+                                    if (monster) {
+                                        content = monster.char;
+                                        style = `color: ${GAME_CONSTANTS.COLORS.MONSTER[monster.type]}; opacity: 1; text-shadow: 0 0 5px ${gasSettings.COLOR}`;
+                                    }
+                                }
+                                
+                                // 背景があれば適用
+                                if (backgroundColor) {
+                                    style += `; background: ${backgroundColor}`;
+                                }
+                                
+                                // グリッド位置を指定
+                                style += `; grid-row: ${y + 1}; grid-column: ${x + 1};`;
+                            }
+                        }
+                    }
+                    
                 } else if (isExplored) {
                     opacity = 0.3;
                     content = this.game.tiles[y][x];

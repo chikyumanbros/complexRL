@@ -81,6 +81,9 @@ class SaveSystem {
             bloodpools: this.game.bloodpools,
             liquids: {
                 blood: this.game.liquidSystem.getLiquids('blood')
+            },
+            gases: {
+                miasma: this.game.gasSystem.gases.miasma
             }
         };
 
@@ -269,7 +272,29 @@ class SaveSystem {
             
             // bloodpoolsを更新（後方互換性のため）
             this.game.bloodpools = this.game.liquidSystem.getLiquids('blood');
-
+            
+            // ガスシステムをリセットし、ガスデータを復元
+            this.game.gasSystem.reset();
+            
+            // ガスデータの復元
+            if (data.gases && data.gases.miasma && Array.isArray(data.gases.miasma)) {
+                data.gases.miasma.forEach(gas => {
+                    if (gas && typeof gas.x === 'number' && typeof gas.y === 'number' &&
+                        gas.x >= 0 && gas.x < this.game.width && 
+                        gas.y >= 0 && gas.y < this.game.height &&
+                        this.game.map[gas.y][gas.x] === 'floor') {
+                        // gasSystemのプロパティに直接追加
+                        this.game.gasSystem.gases.miasma.push({
+                            x: gas.x,
+                            y: gas.y,
+                            density: gas.density || 1,
+                            volume: gas.volume || 0.2,
+                            remainingTurns: gas.remainingTurns || 10
+                        });
+                    }
+                });
+            }
+            
             // 環境の更新
             this.game.updateExplored();
             if (this.game.floorLevel === 0) {

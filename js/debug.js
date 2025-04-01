@@ -58,6 +58,13 @@ class DebugUtils {
                 return;
             }
         });
+        
+        // デバッグ用コマンドをグローバルに登録
+        window.debugCreateMiasma = this.debugCreateMiasma.bind(this);
+        
+        // デバッグコマンドの説明
+        console.log('デバッグコマンド一覧:');
+        console.log('debugCreateMiasma() - プレイヤーの位置に瘴気を生成');
     }
     
     // 自動更新のセットアップ
@@ -463,6 +470,18 @@ class DebugUtils {
         this.game.logger.add("Enter: Generate Map with Selected Parameters", "important");
         this.game.logger.add("ESC: Exit Map Generation Mode", "important");
         this.game.logger.add(`Current Selection: Floor ${this.selectedFloorLevel}, Danger Level ${this.selectedDangerLevel}`, "important");
+    }
+    
+    /**
+     * プレイヤーの位置に瘴気を生成する
+     */
+    debugCreateMiasma() {
+        if (this.game.gasSystem) {
+            this.game.gasSystem.debugCreateMiasmaAtPlayer();
+            this.game.renderer.render();
+            return "瘴気を生成しました。";
+        }
+        return "ガスシステムが初期化されていません。";
     }
 }
 

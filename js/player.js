@@ -60,7 +60,7 @@ class Player {
                 baseMax: 100,
                 rechargeRate: 5,
                 decayCounter: 0,
-                decayRate: 0.2
+                decayRate: 0.1
             },
             attackedThisTurn: false,
             jumpedThisTurn: false  // ジャンプ使用フラグを追加
