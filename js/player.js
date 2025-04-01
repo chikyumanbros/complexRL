@@ -52,22 +52,18 @@ class Player {
 
         // 遠距離攻撃システムの初期化
         this.rangedCombat = {
+            isActive: false,
+            target: null,
             energy: {
-                current: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats),
-                max: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats),
-                baseMax: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_MAX(this.stats), // 基本最大値（減少前）
-                rechargeRate: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_RECHARGE(this.stats),
-                cost: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ENERGY_COST(this.stats),
-                decayCounter: 0, // エネルギー上限減少用カウンター
-                decayRate: 0.1   // エネルギー上限の減少率（10ターンで1減少）
+                current: 100,
+                max: 100,
+                baseMax: 100,
+                rechargeRate: 5,
+                decayCounter: 0,
+                decayRate: 0.2
             },
-            attack: {
-                base: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.BASE_ATTACK(this.stats),
-                dice: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ATTACK_DICE(this.stats)
-            },
-            accuracy: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.ACCURACY(this.stats),
-            range: GAME_CONSTANTS.FORMULAS.RANGED_COMBAT.RANGE(this.stats),
-            isActive: false  // 遠距離攻撃モードのフラグ
+            attackedThisTurn: false,
+            jumpedThisTurn: false  // ジャンプ使用フラグを追加
         };
     }
 
@@ -1852,6 +1848,12 @@ class Player {
         // 遠距離攻撃を行ったターンはリチャージしない
         if (this.rangedCombat.attackedThisTurn) {
             this.rangedCombat.attackedThisTurn = false; // フラグをリセット
+            return;
+        }
+
+        // ジャンプを使用したターンはリチャージしない
+        if (this.rangedCombat.jumpedThisTurn) {
+            this.rangedCombat.jumpedThisTurn = false; // フラグをリセット
             return;
         }
 

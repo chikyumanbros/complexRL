@@ -93,6 +93,9 @@ const SKILLS = {
                     // ---- Consume Energy ----
                     player.rangedCombat.energy.current -= energyCost;
                     
+                    // ジャンプ使用フラグを設定
+                    player.rangedCombat.jumpedThisTurn = true;
+                    
                     game.logger.add(`Jump! (${energyCost} energy used)`, "playerAction");
 
                     // ジャンプの効果音を再生
