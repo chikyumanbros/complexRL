@@ -1863,12 +1863,8 @@ class Player {
         // エネルギー上限減少処理
         this.processEnergyDecay();
 
-        // 隣接するモンスターをチェック
-        const surroundingMonsters = this.countSurroundingMonsters(this.game);
-        if (surroundingMonsters > 0) {
-            // モンスターが隣接している場合は回復しない
-            return;
-        }
+        // 隣接するモンスターのチェックを削除
+        // 敵と隣接していてもエネルギー回復を許可する
 
         const oldEnergy = this.rangedCombat.energy.current;
         this.rangedCombat.energy.current = Math.min(

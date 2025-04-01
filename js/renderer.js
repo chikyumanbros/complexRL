@@ -280,7 +280,7 @@ class Renderer {
         // プレイヤーとその周辺のタイルのみを更新
         const px = this.game.player.x;
         const py = this.game.player.y;
-        const updateRadius = 15;
+        const updateRadius = 10;
         
         // 更新範囲内のタイルとそのキーを収集
         const tilesToUpdate = [];
