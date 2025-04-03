@@ -1243,6 +1243,9 @@ class Game {
         // 液体システムをリセット
         this.liquidSystem.reset();
         
+        // ガスシステムをリセット
+        this.gasSystem.reset();
+        
         // 血痕情報を完全にリセット（後方互換性のため）
         this.bloodpools = [];
         
