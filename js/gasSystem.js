@@ -304,14 +304,27 @@ class GasSystem {
         
         // 各血液プールについて処理
         bloodPools.forEach(blood => {
+            // 新しく追加：血液の「年齢」をチェック（何ターン経過したか）
+            if (!blood.age) {
+                blood.age = 1;
+                return; // 新鮮な血液からは瘴気を発生させない
+            } else {
+                blood.age++;
+                
+                // 一定の年齢（例：5ターン）未満の血液は瘴気発生確率を低くする
+                if (blood.age < 5) {
+                    return; // 若すぎる血液からは瘴気を発生させない
+                }
+            }
+            
             // 瘴気が発生する確率（血液の量と重症度に依存）
-            const generationChance = miasmaSettings.GENERATION.BASE_CHANCE * 
+            const generationChance = (miasmaSettings.GENERATION.BASE_CHANCE * 0.5) * // 基本確率を半分に
                 miasmaSettings.GENERATION.SEVERITY_FACTOR[`LEVEL_${blood.severity}`];
             
             // 瘴気を発生させるかランダムに決定
             if (Math.random() < generationChance) {
-                // 発生する瘴気の量を計算
-                const miasmaAmount = blood.volume * miasmaSettings.GENERATION.RATE;
+                // 発生する瘴気の量を計算（生成率を1/3に削減）
+                const miasmaAmount = blood.volume * (miasmaSettings.GENERATION.RATE / 3);
                 
                 // 最小量以上の瘴気が発生する場合のみ処理
                 if (miasmaAmount >= miasmaSettings.VOLUME.MINIMUM) {
