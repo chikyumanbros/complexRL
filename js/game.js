@@ -679,8 +679,8 @@ class Game {
             this.gasSystem.generateMiasmaFromBlood();
         }
         
-        // 電気フィールドの更新処理（線形放電システムに変更により無効化）
-        // this.updateElectricalFields();
+        // 電気フィールドの更新処理
+        this.updateElectricalFields();
         
         // ★★★ 新規追加：ガス・液体効果の処理 ★★★
         this.processEnvironmentalEffects();
