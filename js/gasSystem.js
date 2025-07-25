@@ -537,7 +537,7 @@ class GasSystem {
         explodedPositions.add(posKey);
         
         const explosionRadius = Math.min(1 + Math.floor(miasma.density / 2), 2); // 最大半径2
-        const baseDamage = 2 + miasma.density; // 濃度に応じたダメージ（3-5ダメージ）
+        const baseDamage = 6 + Math.floor(miasma.density * 2); // 濃度に応じたダメージ（8-12ダメージ）
         
         // 視覚エフェクト
         const isVisible = this.game.getVisibleTiles().some(tile => tile.x === x && tile.y === y);

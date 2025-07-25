@@ -136,9 +136,9 @@ const GAME_CONSTANTS = {
         },
         // プレイヤー・モンスターへの影響
         DAMAGE_PER_TURN: {
-            LEVEL_1: 1,
-            LEVEL_2: 2,
-            LEVEL_3: 4
+            LEVEL_1: 3,
+            LEVEL_2: 6,
+            LEVEL_3: 10
         }
     },
 
@@ -1023,9 +1023,11 @@ const GAME_CONSTANTS = {
         FIRE: {
             TRIGGER_HP_PERCENT: 0.5,    // HP 50%以下で発生可能
             CHANCE: 0.15,               // 15%の確率
-            SELF_DAMAGE_PER_TURN: 2,    // 毎ターン2ダメージ
+            SELF_DAMAGE_PER_TURN: 4,    // 毎ターン4ダメージ（2→4に増加）
+            FIRE_DAMAGE: 6,             // 周囲への炎ダメージ（新規追加）
             DURATION: 8,                // 8ターン継続
             SPREAD_CHANCE: 0.3,         // 周囲への延焼確率
+            RANGE: 2,                   // 炎の影響範囲（新規追加）
             EFFECTS: {
                 CHAR: '♦',              // 発火状態の表示文字
                 COLOR: '#FF4444'        // 赤色

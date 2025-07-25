@@ -2539,6 +2539,66 @@ class Monster {
             // 自分自身にダメージ
             this.takeDamage(GAME_CONSTANTS.MALFUNCTIONS.FIRE.SELF_DAMAGE_PER_TURN, game);
             
+            // ★★★ 周囲への炎ダメージを追加 ★★★
+            const fireConfig = GAME_CONSTANTS.MALFUNCTIONS.FIRE;
+            const range = fireConfig.RANGE;
+            const damage = fireConfig.FIRE_DAMAGE;
+            
+            // 周囲のタイルに炎ダメージ
+            for (let dx = -range; dx <= range; dx++) {
+                for (let dy = -range; dy <= range; dy++) {
+                    if (dx === 0 && dy === 0) continue; // 自分は除外
+                    
+                    const targetX = this.x + dx;
+                    const targetY = this.y + dy;
+                    
+                    if (!game.isValidPosition(targetX, targetY)) continue;
+                    
+                    const distance = Math.max(Math.abs(dx), Math.abs(dy));
+                    if (distance > range) continue;
+                    
+                    // 距離による減衰（範囲1で100%、範囲2で60%）
+                    const damageMultiplier = distance === 1 ? 1.0 : 0.6;
+                    const adjustedDamage = Math.floor(damage * damageMultiplier);
+                    
+                    // プレイヤーへのダメージ
+                    if (game.player.x === targetX && game.player.y === targetY) {
+                        game.player.takeDamage(adjustedDamage, { 
+                            game: game, 
+                            type: 'fire_malfunction',
+                            isEnvironmentalDamage: true 
+                        });
+                        game.logger.add(`You are burned by the flames! (${adjustedDamage} damage)`, 'playerDamage');
+                    }
+                    
+                    // モンスターへのダメージ
+                    const targetMonster = game.getMonsterAt(targetX, targetY);
+                    if (targetMonster && targetMonster !== this) {
+                        targetMonster.takeDamage(adjustedDamage, { 
+                            game: game, 
+                            type: 'fire_malfunction',
+                            isEnvironmentalDamage: true 
+                        });
+                        
+                        const isVisible = game.getVisibleTiles().some(tile => tile.x === targetX && tile.y === targetY);
+                        if (isVisible) {
+                            game.logger.add(`${targetMonster.name} is burned by the flames!`, 'monsterInfo');
+                        }
+                    }
+                    
+                    // 火炎ガスの生成
+                    if (Math.random() < fireConfig.SPREAD_CHANCE) {
+                        game.gasSystem.addGas(targetX, targetY, 'fire_gas', Math.random() * 0.8 + 0.4); // 0.4-1.2量
+                    }
+                }
+            }
+            
+            // 視覚エフェクト
+            const isVisible = game.getVisibleTiles().some(tile => tile.x === this.x && tile.y === this.y);
+            if (isVisible) {
+                game.renderer.showMalfunctionEffect(this.x, this.y, 'fire', 3);
+            }
+            
             // 効果終了チェック
             if (this.malfunctionCounters.fire <= 0) {
                 this.malfunctions.fire = false;
