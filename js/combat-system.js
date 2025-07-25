@@ -472,6 +472,15 @@ class CombatSystem {
             }
         }
 
+        // ★★★ 遠距離攻撃の軌道上の瘴気爆発チェック ★★★
+        const miasmaResult = this.checkProjectileMiasmaExplosions(attacker, defender, game, context);
+        if (miasmaResult.blocked) {
+            // プロジェクタイルが瘴気爆発で阻害された場合
+            attacker.rangedCombat.energy.current -= energyCost;
+            attacker.rangedCombat.attackedThisTurn = true;
+            return { hit: false, evaded: false, damage: 0, killed: false, blocked: true };
+        }
+
         // 隣接チェック
         const distance = GAME_CONSTANTS.DISTANCE.calculateChebyshev(
             attacker.x, attacker.y,
@@ -722,6 +731,82 @@ class CombatSystem {
         }
 
         return game.lastAttackResult;
+    }
+
+    // ★★★ 遠距離攻撃軌道上の瘴気爆発チェック ★★★
+    static checkProjectileMiasmaExplosions(attacker, defender, game, context) {
+        // 射線の座標を取得
+        const linePoints = this.getLinePoints(attacker.x, attacker.y, defender.x, defender.y);
+        
+        // 軌道上の各点で瘴気をチェック
+        const explosions = [];
+        for (const point of linePoints) {
+            const miasma = game.gasSystem.getGasAt(point.x, point.y, 'miasma');
+            if (miasma) {
+                // 瘴気爆発を発生
+                const exploded = game.gasSystem.checkMiasmaExplosion(
+                    point.x, 
+                    point.y, 
+                    'ranged_attack', 
+                    { attacker: attacker, defender: defender, context: context }
+                );
+                
+                if (exploded) {
+                    explosions.push({ x: point.x, y: point.y, density: miasma.density });
+                    
+                    // 爆発によりプロジェクタイルが阻害される可能性
+                    const blockChance = 0.3 + (miasma.density * 0.2); // 濃度に応じた阻害確率
+                    if (Math.random() < blockChance) {
+                        game.logger.add(`Your shot is disrupted by the fiery explosion!`, 'warning');
+                        // プロジェクタイルが阻害された場合、攻撃を無効化
+                        return { blocked: true, explosions: explosions };
+                    }
+                }
+            }
+        }
+        
+        // 爆発が発生したがプロジェクタイルは通過
+        if (explosions.length > 0) {
+            const explosionCount = explosions.length;
+            const totalDensity = explosions.reduce((sum, exp) => sum + exp.density, 0);
+            game.logger.add(
+                `Your shot triggers ${explosionCount} fiery explosion${explosionCount > 1 ? 's' : ''}!`, 
+                'important'
+            );
+        }
+        
+        return { blocked: false, explosions: explosions };
+    }
+
+    // 射線上の座標を取得するヘルパーメソッド
+    static getLinePoints(x1, y1, x2, y2) {
+        const points = [];
+        const dx = Math.abs(x2 - x1);
+        const dy = Math.abs(y2 - y1);
+        const sx = (x1 < x2) ? 1 : -1;
+        const sy = (y1 < y2) ? 1 : -1;
+        let err = dx - dy;
+
+        let x = x1;
+        let y = y1;
+
+        while (true) {
+            points.push({ x: x, y: y });
+            
+            if (x === x2 && y === y2) break;
+            
+            const e2 = 2 * err;
+            if (e2 > -dy) {
+                err -= dy;
+                x += sx;
+            }
+            if (e2 < dx) {
+                err += dx;
+                y += sy;
+            }
+        }
+
+        return points;
     }
 
     // 射線上のモンスターをチェックするメソッド

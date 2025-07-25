@@ -10,11 +10,12 @@ class GasSystem {
     constructor(game) {
         this.game = game;
         this.gases = {
-            miasma: [], // 瘴気（腐敗から発生するガス）
+            miasma: [],
+            fire_gas: []        // 火炎ガス
             // 将来的に他のガスタイプを追加可能
-            // smoke: [],  // 煙
-            // poison: [], // 毒ガス
-            // steam: [],  // 蒸気
+            // smoke: [],
+            // poison: [],
+            // steam: [],
         };
     }
 
@@ -51,23 +52,33 @@ class GasSystem {
         const lowerType = type.toLowerCase();
         
         // マップが有効でない場合は処理しない
-        if (!this.game.map || !this.game.map[y] || !this.game.map[y][x] || this.game.map[y][x] !== 'floor') {
+        if (!this.game.map || !this.game.map[y] || !this.game.map[y][x]) {
             return false;
         }
         
-        // 壁タイルにはガスを置かない
+        const isFireGas = (lowerType === 'fire_gas');
+        const mapCell = this.game.map[y][x];
+        const tileCell = this.game.tiles[y] && this.game.tiles[y][x];
+        
+        // 基本的にはfloorのみ許可、但し火炎ガスは例外
+        if (mapCell !== 'floor' && !isFireGas) {
+            return false;
+        }
+        
+        // 壁タイルにはガスを置かない（火炎ガスも含む）
         if (this.game.tiles && this.game.tiles[y] && 
             GAME_CONSTANTS.TILES.WALL.includes(this.game.tiles[y][x])) {
             return false;
         }
         
-        // 階段の上にはガスを置かない
+        // 階段の上にはガスを置かない（火炎ガスも含む）
         if (this.game.tiles && this.game.tiles[y] && this.game.tiles[y][x] === GAME_CONSTANTS.STAIRS.CHAR) {
             return false;
         }
 
-        // 閉じたドアの上にはガスを置かない
-        if (this.game.tiles && this.game.tiles[y] && this.game.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+        // 火炎ガス以外は閉じたドアの上にはガスを置かない
+        if (!isFireGas && this.game.tiles && this.game.tiles[y] && 
+            this.game.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
             return false;
         }
 
@@ -257,6 +268,9 @@ class GasSystem {
                 this.diffuseGas(gasType);
             }
         }
+        
+        // ★★★ 燃焼家具の更新処理を追加 ★★★
+        this.updateBurningFurniture();
     }
 
     /**
@@ -415,5 +429,461 @@ class GasSystem {
             
             console.log('デバッグ：プレイヤー位置に瘴気を生成しました');
         }
+    }
+
+    /**
+     * ガスによるダメージを適用
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {Object} entity - プレイヤーまたはモンスター
+     */
+    applyGasDamage(x, y, entity) {
+        // 各ガスタイプについてダメージを計算
+        for (const gasType in this.gases) {
+            const gas = this.getGasAt(x, y, gasType);
+            if (gas) {
+                const gasSettings = GAME_CONSTANTS.GASES[gasType.toUpperCase()];
+                if (gasSettings && gasSettings.DAMAGE_PER_TURN) {
+                    const damage = gasSettings.DAMAGE_PER_TURN[`LEVEL_${gas.density}`];
+                    if (damage > 0) {
+                        // ダメージ適用
+                        entity.takeDamage(damage, { 
+                            game: this.game, 
+                            type: gasType,
+                            isGasDamage: true 
+                        });
+                        
+                        // ログ表示
+                        if (entity === this.game.player) {
+                            const gasNames = {
+                                fire_gas: 'fire gas',
+                                miasma: 'miasma'
+                            };
+                            this.game.logger.add(`You are hurt by ${gasNames[gasType] || gasType}!`, 'playerDamage');
+                        } else if (entity.name) {
+                            // モンスターの場合
+                            const gasNames = {
+                                fire_gas: 'fire gas',
+                                miasma: 'miasma'
+                            };
+                            const isVisible = this.game.getVisibleTiles().some(tile => 
+                                tile.x === entity.x && tile.y === entity.y
+                            );
+                            if (isVisible) {
+                                this.game.logger.add(`${entity.name} is hurt by ${gasNames[gasType] || gasType}! (${damage} damage)`, 'monsterInfo');
+                            }
+                        }
+
+                        // ★★★ 火炎ガスによる蜘蛛の巣消去を追加 ★★★
+                        if (gasType === 'fire_gas') {
+                            this.handleFireWebInteraction(x, y);
+                            this.handleFurnitureIgnition(x, y, gas.density);
+                        }
+
+                        // ★★★ 家具延焼処理を追加 ★★★
+                        if (gasType === 'fire_gas') {
+                            this.handleFurnitureIgnition(x, y, gas.density);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ============================= 瘴気爆発システム =============================
+
+    /**
+     * 特定位置での瘴気爆発をチェック・実行
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {string} triggerType - 爆発要因（'ranged_attack', 'fire', 'explosion'）
+     * @param {Object} triggerSource - 爆発要因の詳細情報
+     * @returns {boolean} 爆発が発生したかどうか
+     */
+    checkMiasmaExplosion(x, y, triggerType = 'unknown', triggerSource = null) {
+        const miasma = this.getGasAt(x, y, 'miasma');
+        if (!miasma) {
+            return false;
+        }
+
+        // 瘴気爆発を実行（新しい爆発セッションとして開始）
+        return this.triggerMiasmaExplosion(x, y, miasma, triggerType, triggerSource, new Set(), 0);
+    }
+
+    /**
+     * 瘴気爆発を実行
+     * @param {number} x - 爆発中心X座標
+     * @param {number} y - 爆発中心Y座標
+     * @param {Object} miasma - 瘴気オブジェクト
+     * @param {string} triggerType - 爆発要因
+     * @param {Object} triggerSource - 爆発要因の詳細
+     * @param {Set} explodedPositions - 既に爆発した位置（連鎖制御用）
+     * @param {number} chainDepth - 連鎖の深度
+     * @returns {boolean} 爆発成功
+     */
+    triggerMiasmaExplosion(x, y, miasma, triggerType, triggerSource, explodedPositions = new Set(), chainDepth = 0) {
+        // 連鎖深度制限（最大3回まで）
+        if (chainDepth > 3) {
+            return false;
+        }
+        
+        // 既に爆発した位置かチェック
+        const posKey = `${x},${y}`;
+        if (explodedPositions.has(posKey)) {
+            return false;
+        }
+        
+        // 爆発位置を記録
+        explodedPositions.add(posKey);
+        
+        const explosionRadius = Math.min(1 + Math.floor(miasma.density / 2), 2); // 最大半径2
+        const baseDamage = 2 + miasma.density; // 濃度に応じたダメージ（3-5ダメージ）
+        
+        // 視覚エフェクト
+        const isVisible = this.game.getVisibleTiles().some(tile => tile.x === x && tile.y === y);
+        if (isVisible) {
+            this.game.logger.add(`Miasma explodes in a burst of flames!`, 'important');
+            this.game.renderer.showMiasmaExplosion(x, y, explosionRadius, miasma.density);
+            this.game.playSound('caution');
+        }
+
+        // 爆発範囲内のダメージ処理
+        const affectedPositions = [];
+        for (let dx = -explosionRadius; dx <= explosionRadius; dx++) {
+            for (let dy = -explosionRadius; dy <= explosionRadius; dy++) {
+                const targetX = x + dx;
+                const targetY = y + dy;
+                
+                if (!this.game.isValidPosition(targetX, targetY)) continue;
+                
+                const distance = Math.max(Math.abs(dx), Math.abs(dy)); // チェビシェフ距離
+                if (distance > explosionRadius) continue;
+
+                // 距離によるダメージ減衰
+                const distanceFactor = 1 - (distance / (explosionRadius + 1)) * 0.8; // 最大80%減衰
+                const adjustedDamage = Math.max(1, Math.floor(baseDamage * distanceFactor)); // 最低1ダメージ
+                
+                affectedPositions.push({x: targetX, y: targetY, damage: adjustedDamage});
+                
+                // プレイヤーへのダメージ
+                if (this.game.player.x === targetX && this.game.player.y === targetY) {
+                    this.game.player.takeDamage(adjustedDamage, { 
+                        game: this.game, 
+                        type: 'miasma_explosion',
+                        isEnvironmentalDamage: true 
+                    });
+                    this.game.logger.add(`You are caught in the fiery explosion! (${adjustedDamage} damage)`, 'playerDamage');
+                }
+                
+                // モンスターへのダメージ
+                const monster = this.game.getMonsterAt(targetX, targetY);
+                if (monster) {
+                    monster.takeDamage(adjustedDamage, { 
+                        game: this.game, 
+                        type: 'miasma_explosion',
+                        isEnvironmentalDamage: true 
+                    });
+                    
+                    const isMonsterVisible = this.game.getVisibleTiles().some(tile => tile.x === targetX && tile.y === targetY);
+                    if (isMonsterVisible) {
+                        this.game.logger.add(`${monster.name} is caught in the fiery explosion!`, 'monsterInfo');
+                    }
+                }
+                
+                // 爆発後に火炎ガスが広がる（炎の爆発イメージ）
+                if (distance <= explosionRadius && distance > 0) {
+                    this.addGas(targetX, targetY, 'fire_gas', 1, 0.4); // 火炎ガスが広がる
+                }
+            }
+        }
+
+        // 元の瘴気を削除
+        this.removeGasAt(x, y, 'miasma');
+        
+        // 連鎖爆発のチェック（周囲の瘴気も爆発する可能性）
+        if (chainDepth < 3) { // 深度制限内でのみ連鎖
+            this.checkChainExplosion(x, y, Math.max(explosionRadius, 2), explodedPositions, chainDepth + 1);
+        }
+        
+        return true;
+    }
+
+    /**
+     * 連鎖爆発をチェック
+     * @param {number} centerX - 爆発中心X座標
+     * @param {number} centerY - 爆発中心Y座標
+     * @param {number} chainRadius - 連鎖チェック範囲
+     * @param {Set} explodedPositions - 既に爆発した位置
+     * @param {number} chainDepth - 連鎖の深度
+     */
+    checkChainExplosion(centerX, centerY, chainRadius, explodedPositions, chainDepth) {
+        const chainChance = 0.2; // 20%の確率で連鎖（爆発範囲縮小に合わせて調整）
+        
+        for (let dx = -chainRadius; dx <= chainRadius; dx++) {
+            for (let dy = -chainRadius; dy <= chainRadius; dy++) {
+                if (dx === 0 && dy === 0) continue;
+                
+                const x = centerX + dx;
+                const y = centerY + dy;
+                const posKey = `${x},${y}`;
+                
+                if (!this.game.isValidPosition(x, y)) continue;
+                if (explodedPositions.has(posKey)) continue; // 既に爆発した場所はスキップ
+                
+                const miasma = this.getGasAt(x, y, 'miasma');
+                if (miasma && Math.random() < chainChance) {
+                    // 即座に連鎖爆発（遅延なし）
+                    this.triggerMiasmaExplosion(x, y, miasma, 'chain_explosion', null, explodedPositions, chainDepth);
+                }
+            }
+        }
+    }
+
+    /**
+     * 特定位置の特定ガスタイプを削除
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {string} type - ガスタイプ
+     */
+    removeGasAt(x, y, type) {
+        const lowerType = type.toLowerCase();
+        if (this.gases[lowerType]) {
+            this.gases[lowerType] = this.gases[lowerType].filter(gas => 
+                !(gas.x === x && gas.y === y)
+            );
+        }
+    }
+
+    /**
+     * 火炎ガスによる瘴気爆発のチェック（液体ガス相互作用から呼び出し）
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     */
+    checkFireMiasmaExplosion(x, y) {
+        const fireGas = this.getGasAt(x, y, 'fire_gas');
+        const miasma = this.getGasAt(x, y, 'miasma');
+        
+        if (fireGas && miasma) {
+            // 火炎ガスによる瘴気爆発（確実に発生）
+            this.triggerMiasmaExplosion(x, y, miasma, 'fire', fireGas, new Set(), 0);
+        }
+    }
+
+    /**
+     * 火炎ガスと蜘蛛の巣の相互作用処理
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     */
+    handleFireWebInteraction(x, y) {
+        if (!this.game.webs) {
+            this.game.webs = [];
+            return;
+        }
+        
+        const webIndex = this.game.webs.findIndex(web => web.x === x && web.y === y);
+        if (webIndex !== -1) {
+            // 蜘蛛の巣を燃やして消去
+            this.game.webs.splice(webIndex, 1);
+
+            // プレイヤーが捕まっていた場合は解放
+            if (this.game.player.caughtInWeb && 
+                this.game.player.caughtInWeb.x === x && 
+                this.game.player.caughtInWeb.y === y) {
+                this.game.player.caughtInWeb = null;
+                this.game.logger.add('The fire burns away the web, freeing you!', 'important');
+            }
+
+            // 捕まっていたモンスターを解放
+            const monster = this.game.getMonsterAt(x, y);
+            if (monster && monster.caughtInWeb) {
+                monster.caughtInWeb = false;
+                this.game.logger.add(`The fire burns the web, freeing ${monster.name}!`, 'monsterInfo');
+            }
+
+            // エフェクトを表示
+            const isVisible = this.game.getVisibleTiles().some(tile => tile.x === x && tile.y === y);
+            if (isVisible) {
+                this.game.logger.add('The web catches fire and burns away!', 'info');
+                this.game.playSound('caution'); // 燃焼音
+            }
+        }
+    }
+
+    /**
+     * 家具の延焼処理
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {number} fireDensity - 火炎の濃度
+     */
+    handleFurnitureIgnition(x, y, fireDensity) {
+        // 境界チェック
+        if (!this.game.isValidPosition || !this.game.isValidPosition(x, y)) {
+            return;
+        }
+        
+        if (!this.game.tiles[y] || !this.game.map[y]) {
+            return;
+        }
+        
+        const tile = this.game.tiles[y][x];
+        const map = this.game.map[y][x];
+        
+        if (!tile || !map) {
+            return;
+        }
+        
+        // ドアの燃焼判定
+        if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED || tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
+            const burnChance = GAME_CONSTANTS.FLAMMABLE_OBJECTS.DOOR.BURN_CHANCE * (fireDensity * 0.5);
+            console.log(`🔥 Door fire check at (${x},${y}): density=${fireDensity}, chance=${burnChance.toFixed(3)}`);
+            
+            if (Math.random() < burnChance) {
+                console.log(`🔥 Door ignited at (${x},${y})!`);
+                this.igniteFurniture(x, y, 'door');
+            } else {
+                console.log(`🔥 Door didn't ignite at (${x},${y})`);
+            }
+        }
+        
+        // 木製障害物の燃焼判定
+        if (map === 'obstacle') {
+            const isWoodenObstacle = GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tile);
+            if (isWoodenObstacle) {
+                const burnChance = GAME_CONSTANTS.FLAMMABLE_OBJECTS.OBSTACLE.TRANSPARENT.BURN_CHANCE * (fireDensity * 0.25);
+                
+                if (Math.random() < burnChance) {
+                    this.igniteFurniture(x, y, 'obstacle');
+                }
+            }
+        }
+    }
+
+    /**
+     * 家具を燃やす
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {string} furnitureType - 家具タイプ
+     */
+    igniteFurniture(x, y, furnitureType) {
+        if (!this.burningFurniture) {
+            this.burningFurniture = [];
+        }
+        
+        // 既に燃えているかチェック
+        const existingFire = this.burningFurniture.find(f => f.x === x && f.y === y);
+        if (existingFire) return;
+        
+        let settings;
+        if (furnitureType === 'door') {
+            settings = GAME_CONSTANTS.FLAMMABLE_OBJECTS.DOOR;
+        } else if (furnitureType === 'obstacle') {
+            settings = GAME_CONSTANTS.FLAMMABLE_OBJECTS.OBSTACLE.TRANSPARENT;
+        } else {
+            return;
+        }
+        
+        // 燃焼オブジェクトを追加
+        this.burningFurniture.push({
+            x: x,
+            y: y,
+            type: furnitureType,
+            duration: settings.BURN_DURATION,
+            originalTile: this.game.tiles[y][x],
+            originalColor: this.game.colors[y][x]
+        });
+        
+        // 見た目を変更
+        if (furnitureType === 'door') {
+            this.game.tiles[y][x] = settings.CHAR_BURNT;
+            this.game.colors[y][x] = settings.COLOR_BURNT;
+        }
+        
+        // 周囲に火炎ガスを発生
+        this.addGas(x, y, 'fire_gas', 2);
+        
+        // エフェクト表示
+        const isVisible = this.game.getVisibleTiles().some(tile => tile.x === x && tile.y === y);
+        if (isVisible) {
+            const furnitureNames = { door: 'door', obstacle: 'furniture' };
+            this.game.logger.add(`The ${furnitureNames[furnitureType]} catches fire!`, 'warning');
+            this.game.playSound('caution');
+        }
+    }
+
+    /**
+     * メカニカル故障からのガス生成
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {string} malfunctionType - 故障タイプ
+     * @param {number} severity - 重症度
+     */
+    generateGasFromMalfunction(x, y, malfunctionType, severity = 2) {
+        switch (malfunctionType) {
+            case 'fire':
+                this.addGas(x, y, 'fire_gas', severity);
+                break;
+            // electrical は電気フィールドシステムに移行済み
+        }
+    }
+
+    /**
+     * 燃焼中の家具を更新
+     */
+    updateBurningFurniture() {
+        if (!this.burningFurniture) {
+            this.burningFurniture = [];
+            return;
+        }
+        
+        this.burningFurniture = this.burningFurniture.filter(furniture => {
+            furniture.duration--;
+            
+            // 延焼処理
+            if (furniture.duration > 0) {
+                const settings = furniture.type === 'door' 
+                    ? GAME_CONSTANTS.FLAMMABLE_OBJECTS.DOOR
+                    : GAME_CONSTANTS.FLAMMABLE_OBJECTS.OBSTACLE.TRANSPARENT;
+                
+                // 隣接タイルへの延焼チェック
+                if (Math.random() < settings.SPREAD_CHANCE * 0.3) {
+                    this.spreadFireToAdjacent(furniture.x, furniture.y);
+                }
+                
+                // 火炎ガスを継続発生
+                this.addGas(furniture.x, furniture.y, 'fire_gas', 1);
+                
+                return true; // 燃焼継続
+            } else {
+                // 燃焼終了：燃え尽きて床になる
+                this.game.map[furniture.y][furniture.x] = 'floor';
+                this.game.tiles[furniture.y][furniture.x] = GAME_CONSTANTS.TILES.FLOOR[
+                    Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
+                ];
+                this.game.colors[furniture.y][furniture.x] = GAME_CONSTANTS.COLORS.FLOOR;
+                
+                const isVisible = this.game.getVisibleTiles().some(tile => 
+                    tile.x === furniture.x && tile.y === furniture.y);
+                if (isVisible) {
+                    this.game.logger.add('The burnt furniture crumbles to ash.', 'info');
+                }
+                
+                return false; // 削除
+            }
+        });
+    }
+
+    /**
+     * 隣接タイルへの火炎の拡散処理
+     * @param {number} x - 拡散元のX座標
+     * @param {number} y - 拡散元のY座標
+     */
+    spreadFireToAdjacent(x, y) {
+        const adjacentTiles = this.getAdjacentFloorTiles(x, y);
+        if (adjacentTiles.length === 0) {
+            return;
+        }
+
+        const targetTile = adjacentTiles[Math.floor(Math.random() * adjacentTiles.length)];
+        this.igniteFurniture(targetTile.x, targetTile.y, 'obstacle'); // 木製障害物として扱う
     }
 } 

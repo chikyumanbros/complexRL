@@ -11,6 +11,7 @@ class Game {
         this.saveSystem = new SaveSystem(this);  // 追加
         this.liquidSystem = new LiquidSystem(this); // 液体システムの追加
         this.gasSystem = new GasSystem(this); // ガスシステムの追加
+        this.electricalFields = []; // 電気フィールドシステム
 
         // デバッグユーティリティの初期化
         this.debugUtils = new DebugUtils(this);
@@ -334,6 +335,9 @@ class Game {
     }
 
     processPlayerTurn() {
+        // ★★★ プレイヤーの状態効果減衰処理を追加 ★★★
+        this.processPlayerStatusEffects();
+        
         // 蜘蛛の巣処理
         if (this.player.caughtInWeb) {
             // 脱出を試みる - 成功/失敗の結果に関わらず処理済みとする
@@ -667,6 +671,12 @@ class Game {
             this.gasSystem.generateMiasmaFromBlood();
         }
         
+        // 電気フィールドの更新処理（線形放電システムに変更により無効化）
+        // this.updateElectricalFields();
+        
+        // ★★★ 新規追加：ガス・液体効果の処理 ★★★
+        this.processEnvironmentalEffects();
+        
         // ホームフロアのステータスを更新
         if (this.floor === 0) {
             this.updateHomeFloorStatus();
@@ -683,6 +693,286 @@ class Game {
         if (this.inputHandler.examineTarget) {
             const target = this.inputHandler.examineTarget;
             this.logger.updateLookInfo(target.x, target.y);
+        }
+    }
+
+    // 新しいメソッドを追加
+    /**
+     * ガス・液体による環境効果を処理
+     */
+    processEnvironmentalEffects() {
+        // プレイヤーへの効果適用
+        if (this.player.hp > 0) {
+            this.applyEnvironmentalEffectsToEntity(this.player, this.player.x, this.player.y);
+        }
+        
+        // モンスターへの効果適用
+        for (const monster of this.monsters) {
+            if (monster.hp > 0) {
+                this.applyEnvironmentalEffectsToEntity(monster, monster.x, monster.y);
+            }
+        }
+        
+        // 液体とガスの相互作用処理
+        this.processLiquidGasInteractions();
+    }
+
+    /**
+     * 特定のエンティティに環境効果を適用
+     * @param {Object} entity - プレイヤーまたはモンスター
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     */
+    applyEnvironmentalEffectsToEntity(entity, x, y) {
+        // ガスによる効果
+        this.gasSystem.applyGasDamage(x, y, entity);
+        
+        // 液体による効果
+        this.liquidSystem.applyLiquidEffects(x, y, entity);
+    }
+
+
+
+    /**
+     * 拡張された感電範囲のダメージ処理
+     * @param {number} centerX - 中心X座標
+     * @param {number} centerY - 中心Y座標
+     * @param {number} range - 拡張範囲
+     * @param {number} damage - 拡張範囲でのダメージ
+     */
+    applyExtendedElectricalDamage(centerX, centerY, range, damage) {
+        const conductiveLiquids = ['blood', 'water']; // オイルは絶縁性なので除外
+        let chainCount = 0; // デバッグ用カウンター
+        
+        for (let dx = -range; dx <= range; dx++) {
+            for (let dy = -range; dy <= range; dy++) {
+                if (dx === 0 && dy === 0) continue; // 中心は除外
+                
+                const x = centerX + dx;
+                const y = centerY + dy;
+                
+                if (!this.isValidPosition(x, y)) continue;
+                
+                // 液体の連鎖があるかチェック
+                let hasConnectingLiquid = false;
+                let liquidType = '';
+                for (const liquidTypeCheck of conductiveLiquids) {
+                    const liquid = this.liquidSystem.getLiquidAt(x, y, liquidTypeCheck);
+                    if (liquid) {
+                        hasConnectingLiquid = true;
+                        liquidType = liquidTypeCheck;
+                        chainCount++;
+                        break;
+                    }
+                }
+                
+                if (hasConnectingLiquid) {
+                    // プレイヤーがその位置にいるかチェック
+                    if (this.player.x === x && this.player.y === y) {
+                        this.player.takeDamage(Math.floor(damage), { 
+                            game: this, 
+                            type: 'electrical_chain',
+                            isEnvironmentalDamage: true 
+                        });
+                        this.logger.add(`Electricity conducts through ${liquidType} to you!`, 'playerDamage');
+                    }
+                    
+                    // モンスターがその位置にいるかチェック
+                    const monster = this.getMonsterAt(x, y);
+                    if (monster) {
+                        monster.takeDamage(Math.floor(damage), { 
+                            game: this, 
+                            type: 'electrical_chain',
+                            isEnvironmentalDamage: true 
+                        });
+                        
+                        const isVisible = this.getVisibleTiles().some(tile => tile.x === x && tile.y === y);
+                        if (isVisible) {
+                            this.logger.add(`Electricity chains through ${liquidType} to ${monster.name}!`, 'monsterInfo');
+                        }
+                    }
+                }
+            }
+        }
+        
+        // デバッグログ（開発確認用）
+        if (this.debug && chainCount > 0) {
+            this.logger.add(`[DEBUG] Electrical chain affected ${chainCount} liquid tiles`, 'info');
+        }
+    }
+
+    // ============================= 電気フィールドシステム =============================
+
+    /**
+     * 電気フィールドを作成
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {number} level - 電気フィールドのレベル (1-3)
+     * @param {number} duration - 持続ターン数 (省略時は設定値を使用)
+     */
+    createElectricalField(x, y, level = 2, duration = null) {
+        // 既存の電気フィールドを検索
+        const existingField = this.electricalFields.find(field => field.x === x && field.y === y);
+        
+        if (existingField) {
+            // 既存のフィールドがあれば、より強いレベルで更新
+            existingField.level = Math.max(existingField.level, level);
+            existingField.duration = duration || GAME_CONSTANTS.GASES.ELECTRICAL_FIELDS.DURATION.BASE;
+            return;
+        }
+
+        // 新しい電気フィールドを作成
+        const field = {
+            x: x,
+            y: y,
+            level: level,
+            duration: duration || GAME_CONSTANTS.GASES.ELECTRICAL_FIELDS.DURATION.BASE,
+            lastDischargeTime: this.turn
+        };
+
+        this.electricalFields.push(field);
+        
+        // 視覚エフェクト
+        const isVisible = this.getVisibleTiles().some(tile => tile.x === x && tile.y === y);
+        if (isVisible) {
+            this.renderer.showElectricalFieldEffect(x, y, 1);
+        }
+    }
+
+    /**
+     * 電気フィールドの更新処理（毎ターン呼び出し）
+     */
+    updateElectricalFields() {
+        // 持続時間の減少と削除
+        this.electricalFields = this.electricalFields.filter(field => {
+            field.duration--;
+            return field.duration > 0;
+        });
+
+        // 各電気フィールドでの放電処理
+        this.electricalFields.forEach(field => {
+            this.processElectricalFieldDischarge(field);
+        });
+    }
+
+    /**
+     * 電気フィールドでの放電処理
+     * @param {Object} field - 電気フィールドオブジェクト
+     */
+    processElectricalFieldDischarge(field) {
+        const config = GAME_CONSTANTS.GASES.ELECTRICAL_FIELDS;
+        const dischargeChance = config.DISCHARGE_CHANCE[`LEVEL_${field.level}`];
+        
+        // 放電判定
+        if (Math.random() > dischargeChance) {
+            return;
+        }
+
+        let baseDamage = config.DAMAGE[`LEVEL_${field.level}`];
+
+        // プレイヤーがその位置にいるかチェック
+        if (this.player.x === field.x && this.player.y === field.y) {
+            let damage = baseDamage;
+            
+            // 液体による伝導性チェック
+            const conductivityMultiplier = this.getElectricalConductivity(field.x, field.y);
+            damage = Math.floor(damage * conductivityMultiplier);
+            
+            this.player.takeDamage(damage, { 
+                game: this, 
+                type: 'electrical_field',
+                isEnvironmentalDamage: true 
+            });
+            
+            this.logger.add(`You are shocked by an electrical field! (${damage} damage)`, 'playerDamage');
+        }
+
+        // モンスターがその位置にいるかチェック
+        const monster = this.getMonsterAt(field.x, field.y);
+        if (monster) {
+            let damage = baseDamage;
+            
+            // 液体による伝導性チェック
+            const conductivityMultiplier = this.getElectricalConductivity(field.x, field.y);
+            damage = Math.floor(damage * conductivityMultiplier);
+            
+            monster.takeDamage(damage, { 
+                game: this, 
+                type: 'electrical_field',
+                isEnvironmentalDamage: true 
+            });
+            
+            const isVisible = this.getVisibleTiles().some(tile => tile.x === field.x && tile.y === field.y);
+            if (isVisible) {
+                this.logger.add(`${monster.name} is shocked by electrical discharge!`, 'monsterInfo');
+            }
+        }
+
+        // ★★★ 液体を通じた感電チェーン処理を追加 ★★★
+        // 電気フィールドからも隣接液体への感電を発生させる
+        const liquidChainRange = 3; // 液体チェーン範囲
+        const chainDamage = Math.floor(baseDamage * 0.8); // チェーンダメージは80%
+        this.applyExtendedElectricalDamage(field.x, field.y, liquidChainRange, chainDamage);
+
+        // 視覚エフェクト
+        const isVisible = this.getVisibleTiles().some(tile => tile.x === field.x && tile.y === field.y);
+        if (isVisible) {
+            this.renderer.showMalfunctionEffect(field.x, field.y, 'electrical', field.level);
+            // 液体チェーン効果の視覚エフェクトも追加
+            this.renderer.showElectricalFieldEffect(field.x, field.y, liquidChainRange);
+        }
+    }
+
+    /**
+     * 電気の伝導性を計算（液体の種類に応じて）
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @returns {number} 伝導性倍率
+     */
+    getElectricalConductivity(x, y) {
+        const config = GAME_CONSTANTS.GASES.ELECTRICAL_FIELDS.LIQUID_CONDUCTIVITY;
+        
+        // 血液をチェック
+        const blood = this.liquidSystem.getLiquidAt(x, y, 'blood');
+        if (blood) {
+            return config.BLOOD;
+        }
+        
+        // 水をチェック（将来実装）
+        const water = this.liquidSystem.getLiquidAt(x, y, 'water');
+        if (water) {
+            return config.WATER;
+        }
+        
+        // オイルをチェック（絶縁性）
+        const oil = this.liquidSystem.getLiquidAt(x, y, 'oil');
+        if (oil) {
+            return config.OIL;
+        }
+        
+        // 液体がない場合は通常の伝導性
+        return 1.0;
+    }
+
+    /**
+     * 指定位置の電気フィールドを取得
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @returns {Object|null} 電気フィールドオブジェクト
+     */
+    getElectricalFieldAt(x, y) {
+        return this.electricalFields.find(field => field.x === x && field.y === y);
+    }
+
+    /**
+     * 液体とガスの全体的な相互作用処理
+     */
+    processLiquidGasInteractions() {
+        // 冷却液と火炎ガスの相互作用処理
+        const coolants = this.liquidSystem.getLiquids('coolant');
+        
+        for (const coolant of coolants) {
+            this.liquidSystem.handleLiquidGasInteraction(coolant.x, coolant.y);
         }
     }
 
@@ -1826,6 +2116,164 @@ class Game {
                     // 最初に見つけたモンスターのみ表示して終了
                     break;
                 }
+            }
+        }
+    }
+
+    // 新しいメソッドを追加
+    /**
+     * プレイヤーの状態効果を処理
+     */
+    processPlayerStatusEffects() {
+        // 冷却液効果の減衰処理
+        if (this.player.coolantEffects) {
+            this.player.coolantEffects.duration--;
+            if (this.player.coolantEffects.duration <= 0) {
+                delete this.player.coolantEffects;
+                this.logger.add('The coolant effect wears off.', 'info');
+            }
+        }
+    }
+
+    // ============================= 線形電気放電システム =============================
+
+    /**
+     * 線形電気放電を実行（1ターンで完結する稲妻型の放電）
+     * @param {number} startX - 放電開始X座標
+     * @param {number} startY - 放電開始Y座標
+     * @param {number} damage - 基本ダメージ
+     * @param {number} maxLength - 最大放電距離
+     * @param {number} branchCount - 分岐数（複数方向への放電）
+     */
+    triggerLinearElectricalDischarge(startX, startY, damage = 4, maxLength = 6, branchCount = 2) {
+        const dischargeLines = [];
+        
+        // 複数の放電線を生成
+        for (let i = 0; i < branchCount; i++) {
+            const dischargeLine = this.generateElectricalDischargePath(startX, startY, maxLength);
+            dischargeLines.push(dischargeLine);
+        }
+        
+        // 各放電線に沿ってダメージを適用
+        dischargeLines.forEach((line, lineIndex) => {
+            line.forEach((point, pointIndex) => {
+                // 距離に応じてダメージを減衰
+                const distanceFactor = 1 - (pointIndex / line.length) * 0.3; // 最大30%減衰
+                const adjustedDamage = Math.floor(damage * distanceFactor);
+                
+                this.applyElectricalDischargeAtPoint(point.x, point.y, adjustedDamage);
+            });
+        });
+        
+        // 視覚エフェクト：線形に稲妻を表示
+        const isVisible = this.getVisibleTiles().some(tile => tile.x === startX && tile.y === startY);
+        if (isVisible) {
+            this.renderer.showLinearElectricalDischarge(dischargeLines, damage);
+        }
+        
+        // サウンド効果
+        this.playSound('caution2');
+        
+        return dischargeLines;
+    }
+
+    /**
+     * ランダムな線形放電パスを生成
+     * @param {number} startX - 開始X座標
+     * @param {number} startY - 開始Y座標
+     * @param {number} maxLength - 最大長さ
+     * @returns {Array} 放電パスの座標配列
+     */
+    generateElectricalDischargePath(startX, startY, maxLength) {
+        const path = [{x: startX, y: startY}];
+        let currentX = startX;
+        let currentY = startY;
+        
+        // ランダムな初期方向を決定
+        const directions = [
+            {x: 1, y: 0}, {x: -1, y: 0}, {x: 0, y: 1}, {x: 0, y: -1},
+            {x: 1, y: 1}, {x: -1, y: -1}, {x: 1, y: -1}, {x: -1, y: 1}
+        ];
+        let direction = directions[Math.floor(Math.random() * directions.length)];
+        
+        for (let i = 1; i < maxLength; i++) {
+            // 30%の確率で方向転換（稲妻の蛇行を表現）
+            if (Math.random() < 0.3) {
+                const newDirection = directions[Math.floor(Math.random() * directions.length)];
+                direction = newDirection;
+            }
+            
+            const nextX = currentX + direction.x;
+            const nextY = currentY + direction.y;
+            
+            // 境界チェック
+            if (nextX < 0 || nextX >= GAME_CONSTANTS.DIMENSIONS.WIDTH ||
+                nextY < 0 || nextY >= GAME_CONSTANTS.DIMENSIONS.HEIGHT) {
+                break;
+            }
+            
+            // 壁に当たったら終了（電気は壁を通らない）
+            if (GAME_CONSTANTS.TILES.WALL.includes(this.tiles[nextY][nextX])) {
+                break;
+            }
+            
+            path.push({x: nextX, y: nextY});
+            currentX = nextX;
+            currentY = nextY;
+            
+            // 10%の確率で放電が自然終了
+            if (Math.random() < 0.1) {
+                break;
+            }
+        }
+        
+        return path;
+    }
+
+    /**
+     * 特定の点での電気放電ダメージを処理
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {number} damage - ダメージ量
+     */
+    applyElectricalDischargeAtPoint(x, y, damage) {
+        // 液体による伝導性チェック
+        const conductivityMultiplier = this.getElectricalConductivity(x, y);
+        const adjustedDamage = Math.floor(damage * conductivityMultiplier);
+        
+        // プレイヤーへのダメージ
+        if (this.player.x === x && this.player.y === y) {
+            this.player.takeDamage(adjustedDamage, { 
+                game: this, 
+                type: 'electrical_discharge',
+                isEnvironmentalDamage: true 
+            });
+            this.logger.add(`Lightning strikes you! (${adjustedDamage} damage)`, 'playerDamage');
+        }
+        
+        // モンスターへのダメージ
+        const monster = this.getMonsterAt(x, y);
+        if (monster) {
+            monster.takeDamage(adjustedDamage, { 
+                game: this, 
+                type: 'electrical_discharge',
+                isEnvironmentalDamage: true 
+            });
+            
+            const isVisible = this.getVisibleTiles().some(tile => tile.x === x && tile.y === y);
+            if (isVisible) {
+                this.logger.add(`Lightning strikes ${monster.name}!`, 'monsterInfo');
+            }
+        }
+        
+        // 液体がある場合は周囲への感電チェーン
+        const conductiveLiquids = ['blood', 'water'];
+        for (const liquidType of conductiveLiquids) {
+            const liquid = this.liquidSystem.getLiquidAt(x, y, liquidType);
+            if (liquid) {
+                // 小規模な液体チェーン（範囲1、ダメージ50%）
+                this.applyExtendedElectricalDamage(x, y, 1, Math.floor(adjustedDamage * 0.5));
+                break;
             }
         }
     }

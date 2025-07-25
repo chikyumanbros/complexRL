@@ -114,78 +114,64 @@ const GAME_CONSTANTS = {
                 MEDIUM: 0.7,  // 中程度の濃度になる閾値
                 HEAVY: 1.5    // 高濃度になる閾値
             },
-            MINIMUM: 0.1      // 最小量
+            MINIMUM: 0.1,     // 最小存在量
+            DECAY_RATE: 0.15  // 減衰率（毎ターン15%減少）
         },
-        DURATION: {
-            BASE: 6,         // 基本持続ターン数（短め）
-            DENSITY_FACTOR: {
-                LEVEL_1: 0.8,  // 薄い: 短時間
-                LEVEL_2: 1.2,  // 中程度: 基本時間
-                LEVEL_3: 1.8   // 濃い: 長時間
-            }
-        },
-        DECAY_RATE: 0.15,    // 15%ずつ減少（速い消失）
-        DIFFUSION: {
-            BASE_CHANCE: 0.8, // 高い拡散確率
-            DENSITY_FACTOR: {
-                LEVEL_1: 0.7,
-                LEVEL_2: 1.0,
-                LEVEL_3: 1.4
-            },
-            RATE: 0.3        // 多めに拡散
-        },
-        // プレイヤー・モンスターへの影響
-        DAMAGE_PER_TURN: {
-            LEVEL_1: 1,
-            LEVEL_2: 2,
-            LEVEL_3: 4
-        }
+        DAMAGE_PER_TURN: 3,   // 毎ターンのダメージ
+        SPREAD_CHANCE: 0.4    // 延焼確率
     },
 
-    // 電気フィールド（メカニカルモンスターの漏電故障から発生する帯電エリア）
-    ELECTRICAL_FIELDS: {
+    // 電気ガス（メカニカルモンスターの漏電故障から発生）
+    ELECTRICAL_GAS: {
         CHARS: {
-            LEVEL_1: '⋅',  // 弱い帯電
-            LEVEL_2: '※',  // 中程度の帯電
-            LEVEL_3: '※'   // 強い帯電
+            LEVEL_1: '◦',  // 薄い電気
+            LEVEL_2: '※',  // 中程度の電気
+            LEVEL_3: '⚡'   // 高濃度の電気
         },
-        COLORS: {
-            LEVEL_1: '#44BBFF', // 薄い青
-            LEVEL_2: '#44DDFF', // 中程度の青
-            LEVEL_3: '#66FFFF'  // 明るい青白
+        COLOR: '#44DDFF', // 青い電気
+        VOLUME: {
+            AMOUNT: {
+                LIGHT: 0.2,
+                MEDIUM: 0.5,
+                HEAVY: 1.0
+            },
+            THRESHOLD: {
+                MEDIUM: 0.6,
+                HEAVY: 1.2
+            },
+            MINIMUM: 0.05,
+            DECAY_RATE: 0.25  // 電気は早く消散
         },
-        DURATION: {
-            BASE: 3,         // 基本持続ターン数（短時間で消失）
-            LEVEL_FACTOR: {
-                LEVEL_1: 1.0,
-                LEVEL_2: 1.5,
-                LEVEL_3: 2.0
-            }
-        },
-        DISCHARGE_CHANCE: {
-            LEVEL_1: 0.4,    // 40%の確率で放電
-            LEVEL_2: 0.6,    // 60%の確率で放電
-            LEVEL_3: 0.8     // 80%の確率で放電
-        },
-        DAMAGE: {
-            LEVEL_1: 2,
-            LEVEL_2: 3,
-            LEVEL_3: 4
-        },
-        // 液体との相互作用
-        LIQUID_CONDUCTIVITY: {
-            BLOOD: 1.5,      // 血液は導電性があり1.5倍ダメージ
-            WATER: 2.0,      // 水は非常に導電性が高く2.0倍ダメージ
-            OIL: 0.3         // オイルは絶縁性で0.3倍ダメージ
-        }
+        DAMAGE_PER_TURN: 4,   // 電気ダメージ
+        WATER_AMPLIFIER: 2.0  // 水がある場合のダメージ倍率
     },
 
-    // 将来的に他のガスタイプを追加可能
-    /*
+    // 煙幕ガス（視界を妨げる）
     SMOKE: {
-        // 煙の設定
-    }
-    */
+        CHARS: {
+            LEVEL_1: '░',  // 薄い煙
+            LEVEL_2: '▒',  // 中程度の煙
+            LEVEL_3: '▓'   // 濃い煙
+        },
+        COLOR: '#666666', // グレー
+        VOLUME: {
+            AMOUNT: {
+                LIGHT: 0.4,
+                MEDIUM: 0.8,
+                HEAVY: 1.6
+            },
+            THRESHOLD: {
+                MEDIUM: 0.9,
+                HEAVY: 1.8
+            },
+            MINIMUM: 0.15,
+            DECAY_RATE: 0.12
+        },
+        VISION_REDUCTION: {
+            LIGHT: 1,     // 視界-1
+            MEDIUM: 2,    // 視界-2
+            HEAVY: 3      // 視界-3
+        }
     },
 
     // 蜘蛛の巣関連
@@ -287,75 +273,75 @@ const GAME_CONSTANTS = {
             }
         },
 
-        // オイル（メカニカルモンスターの故障から漏れる可燃性液体）
-        OIL: {
-            CHAR: '≈',
-            COLOR: '#8B4513', // 茶色いオイル
-            ANIMATION_CHARS: ['≈', '~', '∼', '~', '≈', '∼'],
+        // 冷却液（メカニカルモンスターの故障から漏れる）
+        COOLANT: {
+            CHAR: '~',
+            COLOR: '#44AAFF', // 青い冷却液
+            ANIMATION_CHARS: ['~', '∼', '≈', '∼', '~', '∼'],
             ANIMATION_COLORS: [
-                '#8B4513',  // 基本の茶色
-                '#A0522D',  // 少し明るい茶色
-                '#CD853F',  // さらに明るい茶色
-                '#DEB887',  // 非常に明るい茶色
-                '#CD853F',  // さらに明るい茶色
-                '#A0522D',  // 少し明るい茶色
+                '#44AAFF',  // 基本の青
+                '#55BBFF',  // 少し明るい青
+                '#66CCFF',  // さらに明るい青
+                '#77DDFF',  // 非常に明るい青
+                '#66CCFF',  // さらに明るい青
+                '#55BBFF',  // 少し明るい青
             ],
             SEVERITY: {
                 LIGHT: {
                     CHAR: '·',
-                    COLOR: '#8B4513',
+                    COLOR: '#44AAFF',
                     OPACITY: 0.6
                 },
                 MEDIUM: {
                     CHAR: '~',
-                    COLOR: '#A0522D',
+                    COLOR: '#55BBFF',
                     OPACITY: 0.75
                 },
                 HEAVY: {
                     CHAR: '≈',
-                    COLOR: '#CD853F',
+                    COLOR: '#66CCFF',
                     OPACITY: 0.9
                 }
             },
             DURATION: {
-                BASE: 15,           // 基本持続ターン数（血液と同様に長持ち）
+                BASE: 12,           // 基本持続ターン数
                 SEVERITY_FACTOR: {
                     LIGHT: 1.0,
-                    MEDIUM: 1.2,
-                    HEAVY: 1.5
+                    MEDIUM: 1.3,
+                    HEAVY: 1.8
                 }
             },
             VOLUME: {
                 AMOUNT: {
-                    LIGHT: 0.4,
-                    MEDIUM: 0.8,
-                    HEAVY: 1.6
+                    LIGHT: 0.3,
+                    MEDIUM: 0.7,
+                    HEAVY: 1.4
                 },
                 THRESHOLD: {
-                    MEDIUM: 1.0,
-                    HEAVY: 2.4
+                    MEDIUM: 0.8,
+                    HEAVY: 2.0
                 },
-                TILE_CAPACITY: 5.0,
-                OVERFLOW_RATIO: 0.7,
+                TILE_CAPACITY: 4.0,
+                OVERFLOW_RATIO: 0.8,
                 MINIMUM: 0.1
             },
-            TRANSFER_RATE: 0.3,      // 30%が移動先に付着（粘性）
-            EVAPORATION_RATE: 0.02,  // 2%ずつ蒸発（ゆっくり蒸発）
+            TRANSFER_RATE: 0.25,     // 25%が移動先に付着
+            EVAPORATION_RATE: 0.05,  // 5%ずつ蒸発
             EFFECTS: {
-                FLAMMABLE: true,             // 可燃性
-                MOVEMENT_SLOW: true,         // 移動速度減少
-                SLIP_CHANCE: 0.1,           // 滑る確率
-                TEMPERATURE_EFFECT: 'none'   // 温度効果なし
+                DISSOLVES_WEB: true,
+                EXTINGUISHES_FIRE: true,        // 火炎ガスを中和
+                MOVEMENT_SLOW: true,            // 移動速度減少
+                TEMPERATURE_EFFECT: 'cooling'   // 冷却効果
             },
             // 相互作用
             INTERACTIONS: {
                 FIRE_GAS: {
-                    IGNITION_CHANCE: 0.9,   // 火炎ガスに触れると90%の確率で発火
-                    AMPLIFICATION: 1.5      // 火災を1.5倍に拡大
+                    NEUTRALIZATION_RATE: 0.8,  // 火炎ガスを80%中和
+                    STEAM_GENERATION: true     // 蒸気を発生（将来実装）
                 },
-                ELECTRICAL: {
-                    INSULATION: false,      // 電気を通さない（絶縁性）
-                    SHOCK_RESISTANCE: 0.7   // 感電ダメージを30%軽減
+                BLOOD: {
+                    COAGULATION_CHANCE: 0.3,   // 30%の確率で血液を凝固
+                    MOVEMENT_PENALTY: 2        // 移動困難度増加
                 }
             }
         },
@@ -1009,73 +995,6 @@ const GAME_CONSTANTS = {
         },
         ACCURACY: 50,
         RANGE: 6
-    },
-
-    // メカニカル故障システム
-    MALFUNCTIONS: {
-        TYPES: {
-            FIRE: 'fire',
-            ELECTRICAL: 'electrical',
-            OIL_LEAK: 'oil_leak'
-        },
-        
-        // 発火故障
-        FIRE: {
-            TRIGGER_HP_PERCENT: 0.5,    // HP 50%以下で発生可能
-            CHANCE: 0.15,               // 15%の確率
-            SELF_DAMAGE_PER_TURN: 2,    // 毎ターン2ダメージ
-            DURATION: 8,                // 8ターン継続
-            SPREAD_CHANCE: 0.3,         // 周囲への延焼確率
-            EFFECTS: {
-                CHAR: '♦',              // 発火状態の表示文字
-                COLOR: '#FF4444'        // 赤色
-            }
-        },
-        
-        // 漏電故障（強化版）
-        ELECTRICAL: {
-            TRIGGER_HP_PERCENT: 0.3,    // HP 30%以下で発生可能
-            CHANCE: 0.25,               // 25%の確率（増加）
-            SELF_DAMAGE_PER_TURN: 1,    // 毎ターン1ダメージ
-            SHOCK_DAMAGE: 4,            // 感電ダメージ（3→4に増加）
-            DURATION: 8,                // 8ターン継続（6→8に増加）
-            RANGE: 2,                   // 感電範囲（1→2に拡張）
-            LIQUID_CHAIN_RANGE: 4,      // リキッド経由の感電範囲
-            LIQUID_DAMAGE_MULTIPLIER: 1.5, // リキッド経由時のダメージ倍率
-            EFFECTS: {
-                CHAR: '※',              // 漏電状態の表示文字
-                COLOR: '#44FFFF'        // 水色
-            }
-        },
-        
-        // オイル漏れ故障（新規）
-        OIL_LEAK: {
-            TRIGGER_HP_PERCENT: 0.4,    // HP 40%以下で発生可能
-            CHANCE: 0.15,               // 15%の確率
-            DURATION: 10,               // 10ターン継続
-            LEAK_AMOUNT: 1.2,           // 1ターンあたりの漏れ量（出血と同様の仕組み）
-            BLEED_CHANCE: 0.8,          // 80%の確率で毎ターンオイル漏れ
-            EFFECTS: {
-                CHAR: '≈',              // オイル漏れの表示文字
-                COLOR: '#8B4513'        // 茶色
-            }
-        }
-    },
-
-    FLAMMABLE_OBJECTS: {
-        DOOR: {
-            BURN_CHANCE: 0.4,        // ドアが燃える確率
-            BURN_DURATION: 5,        // 燃焼継続ターン数
-            SPREAD_CHANCE: 0.6,      // 隣接への延焼確率
-            CHAR_BURNT: '▒',         // 燃えたドアの文字
-            COLOR_BURNT: '#8B4513'   // 燃えたドアの色
-        },
-        OBSTACLE: {
-            TRANSPARENT: {
-                BURN_CHANCE: 0.3,    // 木製障害物の燃焼確率
-                BURN_DURATION: 4,
-                SPREAD_CHANCE: 0.5
-            }
-        }
     }
+
 };

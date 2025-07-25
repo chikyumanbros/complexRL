@@ -762,9 +762,40 @@ class Renderer {
                                 let monsterOpacity = 1;
                                 style = `color: ${GAME_CONSTANTS.COLORS.MONSTER[monster.type]}; opacity: ${monsterOpacity}; text-shadow: 0 0 5px ${backgroundColor}`;
 
+                                // ★★★ 故障エフェクトの追加 ★★★
+                                if (monster.isOfCategory && monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.MECHANICAL)) {
+                                    // メカニカルモンスターの基本クラス
+                                    classes.push('mechanical-monster');
+                                    
+                                    // HP に応じた損傷表示
+                                    const hpPercent = monster.hp / monster.maxHp;
+                                    if (hpPercent < 0.3) {
+                                        classes.push('mechanical-damaged');
+                                    }
+                                    
+                                    // 故障状態のクラス追加
+                                    if (monster.malfunctions) {
+                                        if (monster.malfunctions.fire) {
+                                            classes.push('fire-malfunction');
+                                        }
+                                        if (monster.malfunctions.electrical) {
+                                            classes.push('electrical-malfunction');
+                                        }
+                                                                if (monster.malfunctions.oil_leak) {
+                            classes.push('oil-leak');
+                        }
+                                        
+                                        // 複数故障の場合
+                                        const malfunctionCount = Object.keys(monster.malfunctions).filter(key => monster.malfunctions[key]).length;
+                                        if (malfunctionCount > 1) {
+                                            classes.push('multiple-malfunction');
+                                        }
+                                    }
+                                }
+                                // ★★★ 故障エフェクト追加終了 ★★★
+
                                 if (monster.hasStartedFleeing) {
                                     classes.push('fleeing-monster');
-                                    // data-char属性に元の文字を保存
                                     style += `; --char: '${monster.char}'`;
                                 }
 
@@ -772,12 +803,11 @@ class Renderer {
                                     style += '; animation: sleeping-monster 1s infinite';
                                 }
                                 
-                                // モンスターが蜘蛛の巣に捕まっている場合、monster-caught-webクラスを追加
                                 if (monster.caughtInWeb && monster.type !== 'G_SPIDER') {
                                     classes.push('monster-caught-web');
                                 }
                                 
-                                content = displayChar; // 表示用の文字を content に設定
+                                content = displayChar;
                             } else {
                                 const psychedelicEffect = this.calculatePsychedelicEffect(x, y, content, this.game.colors[y][x], true);
                                 content = psychedelicEffect.char;
@@ -974,39 +1004,115 @@ class Renderer {
                             if (gasSettings) {
                                 // 濃度に応じた表示文字を取得
                                 const gasChar = gasSettings.CHARS[`LEVEL_${gas.density}`];
+                                const gasColor = gasSettings.COLOR;
                                 
-                                // プレイヤーやモンスターがガスの中にいる場合は、元の内容を保持
-                                const originalContent = content;
-                                
-                                // ガスの文字を設定
+                                // ★★★ ガス優先表示システム ★★★
+                                // ガスがある場所では常にガスの文字を表示
                                 content = gasChar;
                                 
                                 // ガスの濃度に応じた不透明度を設定
-                                const baseOpacity = 0.3 + (gas.density * 0.2); // 濃度1: 0.5, 濃度2: 0.7, 濃度3: 0.9
+                                const baseOpacity = 0.5 + (gas.density * 0.25); // 濃度1: 0.75, 濃度2: 1.0, 濃度3: 1.25（上限1.0）
+                                style = `color: ${gasColor}; opacity: ${Math.min(baseOpacity, 1.0)};`;
                                 
-                                // ガスのスタイルを設定
-                                style = `color: ${gasSettings.COLOR}; opacity: ${baseOpacity};`;
+                                // プレイヤーやモンスターがいるかチェック
+                                const isPlayerAtPosition = (x === this.game.player.x && y === this.game.player.y);
+                                const monsterAtPosition = this.game.getMonsterAt(x, y);
                                 
-                                // プレイヤーやモンスターがガスの中にいる場合はその内容を優先
-                                if (x === this.game.player.x && y === this.game.player.y) {
-                                    content = this.game.player.char;
-                                    const healthStatus = this.game.player.getHealthStatus(this.game.player.hp, this.game.player.maxHp);
-                                    style = `color: ${healthStatus.color}; opacity: 1; text-shadow: 0 0 5px ${gasSettings.COLOR}`;
-                                } else {
-                                    const monster = this.game.getMonsterAt(x, y);
-                                    if (monster) {
-                                        content = monster.char;
-                                        style = `color: ${GAME_CONSTANTS.COLORS.MONSTER[monster.type]}; opacity: 1; text-shadow: 0 0 5px ${gasSettings.COLOR}`;
+                                if (isPlayerAtPosition || monsterAtPosition) {
+                                    // ★★★ 蜘蛛の巣チェック：蜘蛛の巣に捕まっている場合はガス効果を適用しない ★★★
+                                    const playerCaughtInWeb = isPlayerAtPosition && this.game.player.caughtInWeb;
+                                    const monsterCaughtInWeb = monsterAtPosition && monsterAtPosition.caughtInWeb;
+                                    
+                                    if (!playerCaughtInWeb && !monsterCaughtInWeb) {
+                                        // キャラクターがいる場合は背景で存在を示す
+                                        const shadowSize = 3 + gas.density * 2;
+                                        const bgOpacity = 0.15 + (gas.density * 0.05);
+                                        
+                                        // 16進数カラーをRGBAに変換
+                                        const hex = gasColor.replace('#', '');
+                                        const r = parseInt(hex.substr(0, 2), 16);
+                                        const g = parseInt(hex.substr(2, 2), 16);
+                                        const b = parseInt(hex.substr(4, 2), 16);
+                                        
+                                        if (isPlayerAtPosition) {
+                                            // プレイヤーの場合：暖色系の背景とパルス効果
+                                            style += `; background-color: rgba(255, 255, 100, ${bgOpacity});`;
+                                            style += `; text-shadow: 0 0 ${shadowSize}px rgba(255, 255, 100, 0.9);`;
+                                            classes.push('player-in-gas');
+                                        } else if (monsterAtPosition) {
+                                            // モンスターの場合：赤系の背景と点滅効果
+                                            style += `; background-color: rgba(255, 100, 100, ${bgOpacity});`;
+                                            style += `; text-shadow: 0 0 ${shadowSize}px rgba(255, 100, 100, 0.8);`;
+                                            classes.push('monster-in-gas');
+                                        }
+                                        
+                                        // ガス中にいることを示すクラスを追加
+                                        classes.push('in-gas');
+                                        classes.push(`gas-density-${gas.density}`);
                                     }
                                 }
                                 
-                                // 背景があれば適用
-                                if (backgroundColor) {
-                                    style += `; background: ${backgroundColor}`;
-                                }
+                                // ガスエフェクトクラスを追加
+                                classes.push(`gas-${gas.type.toLowerCase()}`);
+                            }
+                        }
+                    }
+                    
+                    // 電気フィールドの描画
+                    const electricalField = this.game.getElectricalFieldAt(x, y);
+                    if (electricalField) {
+                        const fieldSettings = GAME_CONSTANTS.GASES.ELECTRICAL_FIELDS;
+                        
+                        // レベルに応じた表示文字を取得
+                        const fieldChar = fieldSettings.CHARS[`LEVEL_${electricalField.level}`];
+                        const fieldColor = fieldSettings.COLORS[`LEVEL_${electricalField.level}`];
+                        
+                        // プレイヤーやモンスターがいない場合のみフィールドを表示
+                        const isPlayerAtPosition = (x === this.game.player.x && y === this.game.player.y);
+                        const monsterAtPosition = this.game.getMonsterAt(x, y);
+                        
+                        if (!isPlayerAtPosition && !monsterAtPosition) {
+                            content = fieldChar;
+                            style = `color: ${fieldColor}; opacity: 0.7;`;
+                        } else {
+                            // プレイヤーやモンスターがいる場合は背景色で表示
+                            style += `; text-shadow: 0 0 8px ${fieldColor};`;
+                        }
+                        
+                        // 電気フィールドエフェクトを追加
+                        classes.push('electrical-field');
+                    }
+
+                    // ★★★ ガス優先システム：ガスがない場所でのみキャラクター表示 ★★★
+                    // ただし、蜘蛛の巣がある場合は蜘蛛の巣を優先
+                    const hasGas = this.game.gasSystem && this.game.gasSystem.getGasAt(x, y);
+                    const hasWeb = this.game.webs && this.game.webs.findIndex(web => web.x === x && web.y === y) !== -1;
+                    
+                    if (!hasGas && !hasWeb) {
+                        if (x === this.game.player.x && y === this.game.player.y) {
+                            content = this.game.player.char;
+                            const healthStatus = this.game.player.getHealthStatus(this.game.player.hp, this.game.player.maxHp);
+                            // 既存のtext-shadowを保持しつつ、プレイヤーの色を確保
+                            const shadowMatch = style.match(/text-shadow: [^;]+/);
+                            const existingShadow = shadowMatch ? `; ${shadowMatch[0]}` : '';
+                            style = `color: ${healthStatus.color}; opacity: 1${existingShadow}`;
+                        } else {
+                            const monster = this.game.getMonsterAt(x, y);
+                            if (monster) {
+                                content = monster.char;
+                                // 既存のエフェクトを保持しつつ、モンスターの色を確保
+                                const shadowMatch = style.match(/text-shadow: [^;]+/);
+                                const existingShadow = shadowMatch ? `; ${shadowMatch[0]}` : '';
                                 
-                                // グリッド位置を指定
-                                style += `; grid-row: ${y + 1}; grid-column: ${x + 1};`;
+                                const animationMatch = style.match(/animation: [^;]+/);
+                                const existingAnimation = animationMatch ? `; ${animationMatch[0]}` : '';
+                                
+                                style = `color: ${GAME_CONSTANTS.COLORS.MONSTER[monster.type]}; opacity: 1${existingShadow}${existingAnimation}`;
+                                
+                                // 睡眠状態のアニメーションを再適用
+                                if (monster.isSleeping && !existingAnimation) {
+                                    style += '; animation: sleeping-monster 1s infinite';
+                                }
                             }
                         }
                     }
@@ -1720,4 +1826,305 @@ class Renderer {
      * 照明エフェクトの切り替え
      * @param {boolean} enabled - 照明エフェクトが有効かどうか
      */
+
+    /**
+     * 故障エフェクトを表示する
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {string} type - 故障タイプ ('fire', 'electrical', 'oil_leak')
+     * @param {number} severity - エフェクトの強度 (1-3)
+     */
+    showMalfunctionEffect(x, y, type, severity = 1) {
+        const gameContainer = document.getElementById('game');
+        if (!gameContainer) return;
+
+        // パーティクルの数を重症度に応じて調整
+        const particleCount = severity * 3;
+        
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('span');
+            
+            if (type === 'fire') {
+                particle.textContent = '●';
+                particle.className = 'fire-particle';
+                particle.style.color = '#FF4444';
+                particle.style.setProperty('--spark-dx', `${(Math.random() - 0.5) * 30}px`);
+                particle.style.setProperty('--spark-dy', `${(Math.random() - 0.5) * 30}px`);
+            } else if (type === 'electrical') {
+                particle.textContent = '※';
+                particle.className = 'electrical-spark';
+                particle.style.color = '#44FFFF';
+                particle.style.setProperty('--spark-dx', `${(Math.random() - 0.5) * 20}px`);
+                particle.style.setProperty('--spark-dy', `${(Math.random() - 0.5) * 20}px`);
+            }
+            
+            // 位置設定（実際のメソッドを使用）
+            const position = this.getTilePosition(x, y);
+            if (position) {
+                particle.style.position = 'absolute';
+                particle.style.left = `${position.x + position.width / 2}px`;
+                particle.style.top = `${position.y + position.height / 2}px`;
+                particle.style.zIndex = '1000';
+                particle.style.pointerEvents = 'none';
+                
+                gameContainer.appendChild(particle);
+                
+                // アニメーション終了後に削除
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.parentNode.removeChild(particle);
+                    }
+                }, 600);
+            }
+        }
+    }
+
+    /**
+     * 感電範囲エフェクトを表示する
+     * @param {number} x - 中心X座標
+     * @param {number} y - 中心Y座標
+     * @param {number} range - 感電範囲
+     */
+    showElectricalFieldEffect(x, y, intensity = 1) {
+        if (!this.mapContainer) return;
+        
+        const effectDuration = 300;
+        
+        for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+                const sparkElement = document.createElement('div');
+                sparkElement.className = 'electrical-spark';
+                sparkElement.textContent = '※';
+                
+                const tileSize = 16;
+                const left = x * tileSize + (Math.random() - 0.5) * tileSize * intensity;
+                const top = y * tileSize + (Math.random() - 0.5) * tileSize * intensity;
+                
+                sparkElement.style.position = 'absolute';
+                sparkElement.style.left = `${left}px`;
+                sparkElement.style.top = `${top}px`;
+                sparkElement.style.color = '#44FFFF';
+                sparkElement.style.fontSize = '12px';
+                sparkElement.style.pointerEvents = 'none';
+                sparkElement.style.zIndex = '1000';
+                sparkElement.style.setProperty('--spark-dx', `${(Math.random() - 0.5) * 30}px`);
+                sparkElement.style.setProperty('--spark-dy', `${(Math.random() - 0.5) * 30}px`);
+                
+                this.mapContainer.appendChild(sparkElement);
+                
+                setTimeout(() => {
+                    if (sparkElement.parentNode) {
+                        sparkElement.parentNode.removeChild(sparkElement);
+                    }
+                }, effectDuration);
+            }, i * 30);
+        }
+    }
+
+    /**
+     * 線形電気放電の視覚エフェクトを表示
+     * @param {Array} dischargeLines - 放電線の配列
+     * @param {number} baseDamage - 基本ダメージ（エフェクトの強度に影響）
+     */
+    showLinearElectricalDischarge(dischargeLines, baseDamage = 4) {
+        if (!this.mapContainer) return;
+        
+        const effectDuration = 600; // 0.6秒
+        const intensity = Math.min(baseDamage / 4, 3); // ダメージに応じた強度
+        
+        dischargeLines.forEach((line, lineIndex) => {
+            // 各線を順次表示（稲妻が走るように）
+            const lineDelay = lineIndex * 50;
+            
+            line.forEach((point, pointIndex) => {
+                const pointDelay = lineDelay + pointIndex * 20; // 線が進むように遅延
+                
+                setTimeout(() => {
+                    // 稲妻のメイン効果
+                    const lightningElement = document.createElement('div');
+                    lightningElement.className = 'lightning-discharge';
+                    lightningElement.textContent = ['⚡', '※', '✦'][Math.floor(Math.random() * 3)];
+                    
+                    const tileSize = 16;
+                    const left = point.x * tileSize;
+                    const top = point.y * tileSize;
+                    
+                    lightningElement.style.position = 'absolute';
+                    lightningElement.style.left = `${left}px`;
+                    lightningElement.style.top = `${top}px`;
+                    lightningElement.style.color = '#FFFFFF';
+                    lightningElement.style.textShadow = '0 0 8px #44FFFF, 0 0 16px #66FFFF';
+                    lightningElement.style.fontSize = '14px';
+                    lightningElement.style.fontWeight = 'bold';
+                    lightningElement.style.pointerEvents = 'none';
+                    lightningElement.style.zIndex = '1000';
+                    lightningElement.style.animation = 'lightning-flash 0.3s ease-out forwards';
+                    
+                    this.mapContainer.appendChild(lightningElement);
+                    
+                    // スパーク効果を追加
+                    for (let i = 0; i < Math.floor(intensity); i++) {
+                        const sparkElement = document.createElement('div');
+                        sparkElement.className = 'lightning-spark';
+                        sparkElement.textContent = '※';
+                        
+                        const sparkLeft = left + (Math.random() - 0.5) * tileSize;
+                        const sparkTop = top + (Math.random() - 0.5) * tileSize;
+                        
+                        sparkElement.style.position = 'absolute';
+                        sparkElement.style.left = `${sparkLeft}px`;
+                        sparkElement.style.top = `${sparkTop}px`;
+                        sparkElement.style.color = '#44FFFF';
+                        sparkElement.style.fontSize = '10px';
+                        sparkElement.style.pointerEvents = 'none';
+                        sparkElement.style.zIndex = '999';
+                        sparkElement.style.animation = 'spark-fade 0.4s ease-out forwards';
+                        
+                        this.mapContainer.appendChild(sparkElement);
+                        
+                        // スパークを削除
+                        setTimeout(() => {
+                            if (sparkElement.parentNode) {
+                                sparkElement.parentNode.removeChild(sparkElement);
+                            }
+                        }, 400);
+                    }
+                    
+                    // メイン稲妻を削除
+                    setTimeout(() => {
+                        if (lightningElement.parentNode) {
+                            lightningElement.parentNode.removeChild(lightningElement);
+                        }
+                    }, effectDuration);
+                }, pointDelay);
+            });
+        });
+    }
+
+    /**
+     * 故障フラッシュエフェクトを表示する
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     */
+    showMalfunctionFlash(x, y) {
+        const span = document.querySelector(`#game span[data-x="${x}"][data-y="${y}"]`);
+        if (span) {
+            span.classList.add('malfunction-flash');
+            setTimeout(() => {
+                span.classList.remove('malfunction-flash');
+            }, 800);
+        }
+    }
+
+    /**
+     * 瘴気爆発の視覚エフェクトを表示
+     * @param {number} x - 爆発中心X座標
+     * @param {number} y - 爆発中心Y座標
+     * @param {number} radius - 爆発半径
+     * @param {number} density - 瘴気の濃度
+     */
+    showMiasmaExplosion(x, y, radius, density = 2) {
+        if (!this.mapContainer) return;
+        
+        const intensity = Math.min(density, 3); // 最大濃度3
+        const effectDuration = 800; // 0.8秒
+        
+        // 爆発の中心エフェクト
+        const centerExplosion = document.createElement('div');
+        centerExplosion.className = 'miasma-explosion-center';
+        centerExplosion.textContent = '*';
+        
+        const tileSize = 16;
+        const centerLeft = x * tileSize;
+        const centerTop = y * tileSize;
+        
+        centerExplosion.style.position = 'absolute';
+        centerExplosion.style.left = `${centerLeft}px`;
+        centerExplosion.style.top = `${centerTop}px`;
+        centerExplosion.style.color = '#FF6644';
+        centerExplosion.style.textShadow = '0 0 16px #FF6644, 0 0 32px #FF8844';
+        centerExplosion.style.fontSize = '16px';
+        centerExplosion.style.fontWeight = 'bold';
+        centerExplosion.style.pointerEvents = 'none';
+        centerExplosion.style.zIndex = '1000';
+        centerExplosion.style.animation = 'miasma-explosion-center 0.8s ease-out forwards';
+        
+        this.mapContainer.appendChild(centerExplosion);
+        
+        // 放射状の毒雲エフェクト（小さな爆発に合わせて数を調整）
+        const cloudCount = Math.max(4, radius * 2); // 最小4個、半径に応じて増加
+        const angleStep = 360 / cloudCount;
+        for (let angle = 0; angle < 360; angle += angleStep) {
+            const radian = (angle * Math.PI) / 180;
+            const distance = radius * tileSize * 0.8;
+            
+            const cloudElement = document.createElement('div');
+            cloudElement.className = 'miasma-explosion-cloud';
+            cloudElement.textContent = ['%', '&', '#'][Math.floor(Math.random() * 3)];
+            
+            const cloudLeft = centerLeft + Math.cos(radian) * distance;
+            const cloudTop = centerTop + Math.sin(radian) * distance;
+            
+            cloudElement.style.position = 'absolute';
+            cloudElement.style.left = `${cloudLeft}px`;
+            cloudElement.style.top = `${cloudTop}px`;
+            cloudElement.style.color = '#CC4422';
+            cloudElement.style.textShadow = '0 0 12px #CC4422, 0 0 24px #FF6644';
+            cloudElement.style.fontSize = '12px';
+            cloudElement.style.pointerEvents = 'none';
+            cloudElement.style.zIndex = '999';
+            cloudElement.style.animation = `miasma-explosion-cloud 1s ease-out forwards`;
+            cloudElement.style.animationDelay = `${angle * 2}ms`;
+            
+            this.mapContainer.appendChild(cloudElement);
+            
+            // 毒雲を削除
+            setTimeout(() => {
+                if (cloudElement.parentNode) {
+                    cloudElement.parentNode.removeChild(cloudElement);
+                }
+            }, 1000 + (angle * angleStep / 45));
+        }
+        
+        // 範囲内のパーティクル散布（小さな爆発に合わせて調整）
+        const particleCount = Math.max(4, radius * 4); // 最小4個、半径に応じて増加
+        for (let i = 0; i < particleCount; i++) {
+            const particleElement = document.createElement('div');
+            particleElement.className = 'miasma-explosion-particle';
+            particleElement.textContent = '.';
+            
+            const particleAngle = Math.random() * 360;
+            const particleDistance = Math.random() * radius * tileSize;
+            const particleRadian = (particleAngle * Math.PI) / 180;
+            
+            const particleLeft = centerLeft + Math.cos(particleRadian) * particleDistance;
+            const particleTop = centerTop + Math.sin(particleRadian) * particleDistance;
+            
+            particleElement.style.position = 'absolute';
+            particleElement.style.left = `${particleLeft}px`;
+            particleElement.style.top = `${particleTop}px`;
+            particleElement.style.color = '#CC4422';
+            particleElement.style.fontSize = '8px';
+            particleElement.style.pointerEvents = 'none';
+            particleElement.style.zIndex = '998';
+            particleElement.style.animation = 'miasma-explosion-particle 1.2s ease-out forwards';
+            particleElement.style.animationDelay = `${i * 30}ms`;
+            
+            this.mapContainer.appendChild(particleElement);
+            
+            // パーティクルを削除
+            setTimeout(() => {
+                if (particleElement.parentNode) {
+                    particleElement.parentNode.removeChild(particleElement);
+                }
+            }, 1200 + (i * 30));
+        }
+        
+        // 中心爆発を削除
+        setTimeout(() => {
+            if (centerExplosion.parentNode) {
+                centerExplosion.parentNode.removeChild(centerExplosion);
+            }
+        }, effectDuration);
+    }
 }

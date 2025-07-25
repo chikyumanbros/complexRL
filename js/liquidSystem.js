@@ -11,10 +11,10 @@ class LiquidSystem {
         this.game = game;
         this.liquids = {
             blood: [], // 血液
+            oil: []    // オイル（メカニカルモンスターから漏れる可燃性液体）
             // 将来的に他の液体タイプを追加可能
             // water: [],  // 水
             // poison: [], // 毒
-            // oil: [],    // 油
             // acid: []    // 酸
         };
     }
@@ -513,4 +513,127 @@ class LiquidSystem {
         const lowerType = type.toLowerCase();
         return this.liquids[lowerType] || [];
     }
+
+    /**
+     * 液体による効果を適用
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {Object} entity - プレイヤーまたはモンスター
+     */
+    applyLiquidEffects(x, y, entity) {
+        // 冷却液による移動速度減少効果
+        const coolant = this.getLiquidAt(x, y, 'coolant');
+        if (coolant) {
+            this.applyCoolantEffects(entity, coolant);
+        }
+        
+        // 他の液体効果もここに追加可能
+        // 例：酸による継続ダメージ、油による滑り効果など
+    }
+
+    /**
+     * オイルによる効果を適用
+     * @param {Object} entity - プレイヤーまたはモンスター
+     * @param {Object} oil - オイルオブジェクト
+     */
+    applyOilEffects(entity, oil) {
+        // オイルによる移動速度減少と滑り効果を設定
+        if (!entity.oilEffects) {
+            entity.oilEffects = {
+                movementSlow: true,
+                severity: oil.severity,
+                duration: 4 // 4ターン持続
+            };
+            
+            // ログ表示
+            if (entity === this.game.player) {
+                this.game.logger.add('The oil makes you slip and slows your movement!', 'warning');
+            } else {
+                const isVisible = this.game.getVisibleTiles().some(tile => 
+                    tile.x === entity.x && tile.y === entity.y);
+                if (isVisible) {
+                    this.game.logger.add(`${entity.name} is slowed by the oil!`, 'monsterInfo');
+                }
+            }
+        } else {
+            // 既存の効果を更新
+            entity.oilEffects.severity = Math.max(entity.oilEffects.severity, oil.severity);
+            entity.oilEffects.duration = 4; // 期間をリセット
+        }
+        
+        // 滑り判定
+        const slipChance = GAME_CONSTANTS.LIQUIDS.OIL.EFFECTS.SLIP_CHANCE * oil.severity;
+        if (Math.random() < slipChance) {
+            // 滑って移動がスキップされる可能性
+            if (entity === this.game.player) {
+                this.game.logger.add('You slip on the oil!', 'warning');
+            } else {
+                const isVisible = this.game.getVisibleTiles().some(tile => 
+                    tile.x === entity.x && tile.y === entity.y);
+                if (isVisible) {
+                    this.game.logger.add(`${entity.name} slips on the oil!`, 'monsterInfo');
+                }
+            }
+            return true; // 滑って移動失敗
+        }
+        return false; // 正常に移動
+    }
+
+    /**
+     * 液体とガスの相互作用処理（拡張版）
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     */
+    handleLiquidGasInteraction(x, y) {
+        // オイルと火炎ガスの相互作用（発火）
+        const oil = this.getLiquidAt(x, y, 'oil');
+        const fireGas = this.game.gasSystem.getGasAt(x, y, 'fire_gas');
+        
+        if (oil && fireGas) {
+            const oilSettings = GAME_CONSTANTS.LIQUIDS.OIL;
+            const ignitionChance = oilSettings.INTERACTIONS.FIRE_GAS.IGNITION_CHANCE;
+            
+            if (Math.random() < ignitionChance) {
+                // オイルが発火
+                const amplification = oilSettings.INTERACTIONS.FIRE_GAS.AMPLIFICATION;
+                
+                // 火炎ガスを拡大
+                fireGas.volume *= amplification;
+                fireGas.density = this.game.gasSystem.calculateDensityFromVolume('fire_gas', fireGas.volume);
+                
+                // 周囲に追加の火炎ガスを発生
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        if (dx === 0 && dy === 0) continue;
+                        const newX = x + dx;
+                        const newY = y + dy;
+                        if (newX >= 0 && newX < GAME_CONSTANTS.DIMENSIONS.WIDTH && 
+                            newY >= 0 && newY < GAME_CONSTANTS.DIMENSIONS.HEIGHT) {
+                            this.game.gasSystem.addGas(newX, newY, 'fire_gas', 1);
+                        }
+                    }
+                }
+                
+                // オイルを消費
+                oil.volume *= 0.3; // 70%消費
+                if (oil.volume < GAME_CONSTANTS.LIQUIDS.OIL.VOLUME.MINIMUM) {
+                    this.liquids.oil = this.liquids.oil.filter(l => !(l.x === x && l.y === y));
+                } else {
+                    // 重症度を再計算
+                    oil.severity = this.calculateSeverityFromVolume('oil', oil.volume);
+                }
+                
+                // エフェクト表示
+                const isVisible = this.game.getVisibleTiles().some(tile => tile.x === x && tile.y === y);
+                if (isVisible) {
+                    this.game.logger.add('Oil ignites in a burst of flames!', 'warning');
+                    this.game.playSound('caution');
+                }
+            }
+        }
+        
+        // ★★★ 火炎ガスと瘴気の相互作用（瘴気爆発） ★★★
+        this.game.gasSystem.checkFireMiasmaExplosion(x, y);
+    }
+
 } 

@@ -133,6 +133,10 @@ class Monster {
         
         // Bleeding status effects
         this.bleedingEffects = [];  // Array to track multiple bleeding effects
+        
+        // 故障状態の初期化
+        this.malfunctions = {};
+        this.malfunctionCounters = {};
     }
 
     // ========================== takeDamage Method ==========================
@@ -146,7 +150,22 @@ class Monster {
             return { damage: amount, killed: false, evaded: false };
         }
 
-        const damage = Math.max(1, amount);
+        let damage = Math.max(1, amount);
+        
+        // オイルの絶縁効果をチェック（感電ダメージのみ）
+        if (context.type && (context.type === 'electrical' || context.type === 'electrical_chain' || context.type === 'electrical_conductivity')) {
+            const oil = game.liquidSystem.getLiquidAt(this.x, this.y, 'oil');
+            if (oil) {
+                const shockResistance = GAME_CONSTANTS.LIQUIDS.OIL.INTERACTIONS.ELECTRICAL.SHOCK_RESISTANCE;
+                damage = Math.floor(damage * shockResistance);
+                
+                const isVisible = game.getVisibleTiles().some(tile => tile.x === this.x && tile.y === this.y);
+                if (isVisible) {
+                    game.logger.add(`${this.name} is partially protected by oil insulation!`, 'monsterInfo');
+                }
+            }
+        }
+        
         this.hp -= damage;
 
         // Check for bleeding chance if this is an organic monster
@@ -214,6 +233,11 @@ class Monster {
             }
 
             game.removeMonster(this);
+        }
+
+        // メカニカル系モンスターの故障チェック
+        if (this.isOfCategory(MONSTER_CATEGORIES.PRIMARY.MECHANICAL)) {
+            this.checkForMalfunction(game, damage);
         }
 
         return result;
@@ -520,6 +544,12 @@ class Monster {
 
     // ========================== act Method (Monster's Turn Actions) ==========================
     act(game) {
+        // 故障効果の処理
+        this.processMalfunctions(game);
+        
+        // ★★★ 状態効果の処理 ★★★
+        this.processStatusEffects(game);
+        
         // --- Action Reset ---
         if (this.hasActedThisTurn) {
             this.hasActedThisTurn = false;
@@ -784,11 +814,28 @@ class Monster {
                 ];
                 const [moveX, moveY] = directions[Math.floor(Math.random() * directions.length)];
                 
-                if (!game.getMonsterAt(this.x + moveX, this.y + moveY)) {
-                    if (this.canMoveTo(this.x + moveX, this.y + moveY, game)) {
-                        this.x += moveX;
-                        this.y += moveY;
-                    }
+                const newX = this.x + moveX;
+                const newY = this.y + moveY;
+                
+                // ★★★ より厳密なチェックに修正 ★★★
+                if (this.isValidMoveDestination(newX, newY, game)) {
+                    this.x = newX;
+                    this.y = newY;
+                }
+            }
+        }
+
+        // 冷却液効果の処理
+        if (this.coolantEffects) {
+            this.coolantEffects.duration--;
+            if (this.coolantEffects.duration <= 0) {
+                delete this.coolantEffects;
+            } else {
+                // 移動制限チェック
+                const skipChance = this.coolantEffects.severity * 0.15; // モンスターは少し影響が軽い
+                if (Math.random() < skipChance) {
+                    // 移動をスキップ
+                    return;
                 }
             }
         }
@@ -1508,9 +1555,10 @@ class Monster {
         const fromY = this.y;
         
         // 最終チェック - ジャンプ先が本当に移動可能か確認
-        if (!this.canMoveTo(jumpTarget.x, jumpTarget.y, game) || 
-            game.getMonsterAt(jumpTarget.x, jumpTarget.y)) {
-            return false; // 移動先が不適切な場合はジャンプしない
+        if (!this.isValidMoveDestination(jumpTarget.x, jumpTarget.y, game)) {
+            // デバッグログ：ジャンプ失敗
+            console.warn(`Monster ${this.name} failed to jump from (${fromX}, ${fromY}) to (${jumpTarget.x}, ${jumpTarget.y})`);
+            return false;
         }
         
         // 移動エフェクトを表示
@@ -1949,8 +1997,9 @@ class Monster {
                 const newY = this.y + bestMove.move.y;
                 
                 // 最終チェック - 壁やその他の障害物がないことを確認
-                if (!this.canMoveTo(newX, newY, game) || game.getMonsterAt(newX, newY)) {
-                    // 移動先が不適切になった場合は移動せずに終了
+                if (!this.isValidMoveDestination(newX, newY, game)) {
+                    // デバッグログ：蜘蛛の巣への移動失敗
+                    console.warn(`Monster ${this.name} failed to move towards web from (${oldX}, ${oldY}) to (${newX}, ${newY})`);
                     return false;
                 }
                 
@@ -2367,5 +2416,356 @@ class Monster {
         if (damagePercent >= 10) return 3;  // Severe bleeding (>= 10% HP per turn)
         if (damagePercent >= 5) return 2;   // Moderate bleeding (>= 5% HP per turn)
         return 1;                           // Light bleeding (< 5% HP per turn)
+    }
+
+    // 新しいメソッドを追加
+    checkForMalfunction(game, damage) {
+        const hpPercent = this.hp / this.maxHp;
+        
+        // 発火故障チェック
+        if (!this.malfunctions.fire && 
+            hpPercent <= GAME_CONSTANTS.MALFUNCTIONS.FIRE.TRIGGER_HP_PERCENT &&
+            Math.random() < GAME_CONSTANTS.MALFUNCTIONS.FIRE.CHANCE) {
+            this.triggerFireMalfunction(game);
+        }
+        
+        // 漏電故障チェック
+        if (!this.malfunctions.electrical && 
+            hpPercent <= GAME_CONSTANTS.MALFUNCTIONS.ELECTRICAL.TRIGGER_HP_PERCENT &&
+            Math.random() < GAME_CONSTANTS.MALFUNCTIONS.ELECTRICAL.CHANCE) {
+            this.triggerElectricalMalfunction(game);
+        }
+        
+        // オイル漏れ故障チェック
+        if (!this.malfunctions.oil_leak && 
+            hpPercent <= GAME_CONSTANTS.MALFUNCTIONS.OIL_LEAK.TRIGGER_HP_PERCENT &&
+            Math.random() < GAME_CONSTANTS.MALFUNCTIONS.OIL_LEAK.CHANCE) {
+            this.triggerOilLeakMalfunction(game);
+        }
+    }
+
+    triggerFireMalfunction(game) {
+        this.malfunctions.fire = true;
+        this.malfunctionCounters.fire = GAME_CONSTANTS.MALFUNCTIONS.FIRE.DURATION;
+        
+        const isVisible = game.getVisibleTiles().some(tile => tile.x === this.x && tile.y === this.y);
+        if (isVisible) {
+            game.logger.add(`${this.name} sparks and catches fire!`, 'monsterInfo');
+            game.playSound('caution');
+            
+            game.renderer.showMalfunctionEffect(this.x, this.y, 'fire', 2);
+            game.renderer.showMalfunctionFlash(this.x, this.y);
+        }
+        
+        // ★ 新規追加：火炎ガス生成 ★
+        game.gasSystem.generateGasFromMalfunction(this.x, this.y, 'fire', 2);
+    }
+
+    triggerElectricalMalfunction(game) {
+        this.malfunctions.electrical = true;
+        this.malfunctionCounters.electrical = GAME_CONSTANTS.MALFUNCTIONS.ELECTRICAL.DURATION;
+        
+        const isVisible = game.getVisibleTiles().some(tile => tile.x === this.x && tile.y === this.y);
+        if (isVisible) {
+            game.logger.add(`${this.name} discharges electricity!`, 'monsterInfo');
+            game.playSound('caution2');
+            
+            game.renderer.showMalfunctionEffect(this.x, this.y, 'electrical', 3);
+        }
+        
+        // ★★★ 新しい線形放電システムを使用 ★★★
+        const damage = GAME_CONSTANTS.MALFUNCTIONS.ELECTRICAL.SHOCK_DAMAGE;
+        const maxLength = 6;
+        const branchCount = Math.floor(1 + Math.random() * 3); // 1-3本の稲妻
+        
+        game.triggerLinearElectricalDischarge(this.x, this.y, damage, maxLength, branchCount);
+    }
+
+    applyElectricalShock(game) {
+        const config = GAME_CONSTANTS.MALFUNCTIONS.ELECTRICAL;
+        const range = config.RANGE;
+        const damage = config.SHOCK_DAMAGE;
+        const liquidChainRange = config.LIQUID_CHAIN_RANGE;
+        const liquidDamageMultiplier = config.LIQUID_DAMAGE_MULTIPLIER;
+        
+        // 直接的な感電範囲をチェック
+        for (let dx = -range; dx <= range; dx++) {
+            for (let dy = -range; dy <= range; dy++) {
+                if (dx === 0 && dy === 0) continue;
+                
+                const targetX = this.x + dx;
+                const targetY = this.y + dy;
+                
+                // 範囲外チェック
+                if (targetX < 0 || targetX >= GAME_CONSTANTS.DIMENSIONS.WIDTH ||
+                    targetY < 0 || targetY >= GAME_CONSTANTS.DIMENSIONS.HEIGHT) {
+                    continue;
+                }
+                
+                // プレイヤーが直接範囲内にいるかチェック
+                if (game.player.x === targetX && game.player.y === targetY) {
+                    game.player.takeDamage(damage, { game: game, type: 'electrical' });
+                    game.logger.add(`You are shocked by ${this.name}!`, 'playerDamage');
+                }
+                
+                // モンスターが範囲内にいるかチェック
+                const monster = game.getMonsterAt(targetX, targetY);
+                if (monster && monster !== this) {
+                    monster.takeDamage(damage, { game: game, type: 'electrical' });
+                    const isVisible = game.getVisibleTiles().some(tile => tile.x === targetX && tile.y === targetY);
+                    if (isVisible) {
+                        game.logger.add(`${monster.name} is shocked by electrical discharge!`, 'monsterInfo');
+                    }
+                }
+            }
+        }
+        
+        // 液体を通じた感電チェーン（拡張範囲）
+        game.applyExtendedElectricalDamage(this.x, this.y, liquidChainRange, Math.floor(damage * liquidDamageMultiplier));
+        
+        // 視覚効果
+        const isVisible = game.getVisibleTiles().some(tile => tile.x === this.x && tile.y === this.y);
+        if (isVisible) {
+            game.renderer.showElectricalFieldEffect(this.x, this.y, range);
+        }
+    }
+
+    // 新しいメソッドを追加
+    processMalfunctions(game) {
+        // 発火故障の処理
+        if (this.malfunctions.fire) {
+            this.malfunctionCounters.fire--;
+            
+            // 自分自身にダメージ
+            this.takeDamage(GAME_CONSTANTS.MALFUNCTIONS.FIRE.SELF_DAMAGE_PER_TURN, game);
+            
+            // 効果終了チェック
+            if (this.malfunctionCounters.fire <= 0) {
+                this.malfunctions.fire = false;
+                const isVisible = game.getVisibleTiles().some(tile => tile.x === this.x && tile.y === this.y);
+                if (isVisible) {
+                    game.logger.add(`${this.name}'s fire burns out.`, 'monsterInfo');
+                }
+            }
+        }
+        
+        // 漏電故障の処理
+        if (this.malfunctions.electrical) {
+            this.malfunctionCounters.electrical--;
+            
+            // 自分自身にダメージ
+            this.takeDamage(GAME_CONSTANTS.MALFUNCTIONS.ELECTRICAL.SELF_DAMAGE_PER_TURN, game);
+            
+            // ★★★ 毎ターン線形放電を発生 ★★★
+            const damage = Math.floor(GAME_CONSTANTS.MALFUNCTIONS.ELECTRICAL.SHOCK_DAMAGE * 0.7); // 継続ダメージは少し弱く
+            const maxLength = 4; // 初回より短く
+            const branchCount = Math.floor(1 + Math.random() * 2); // 1-2本の稲妻
+            
+            const isVisible = game.getVisibleTiles().some(tile => tile.x === this.x && tile.y === this.y);
+            if (isVisible) {
+                game.logger.add(`${this.name} sparks with electricity!`, 'monsterInfo');
+            }
+            
+            game.triggerLinearElectricalDischarge(this.x, this.y, damage, maxLength, branchCount);
+            
+            // 効果終了チェック
+            if (this.malfunctionCounters.electrical <= 0) {
+                this.malfunctions.electrical = false;
+                const isVisible = game.getVisibleTiles().some(tile => tile.x === this.x && tile.y === this.y);
+                if (isVisible) {
+                    game.logger.add(`${this.name}'s electrical systems stabilize.`, 'monsterInfo');
+                }
+            }
+        }
+        
+        // オイル漏れ故障の処理
+        if (this.malfunctions.oil_leak) {
+            this.malfunctionCounters.oil_leak--;
+            
+            // 毎ターンオイル漏れ処理
+            this.processOilLeakEffects(game);
+            
+            // 効果終了チェック
+            if (this.malfunctionCounters.oil_leak <= 0) {
+                this.malfunctions.oil_leak = false;
+                delete this.oilLeakData;
+                const isVisible = game.getVisibleTiles().some(tile => tile.x === this.x && tile.y === this.y);
+                if (isVisible) {
+                    game.logger.add(`${this.name}'s oil leak seals itself.`, 'monsterInfo');
+                }
+            }
+        }
+    }
+
+    // オイル漏れ故障の実装（生物系の出血と同様の仕組み）
+    triggerOilLeakMalfunction(game) {
+        this.malfunctions.oil_leak = true;
+        this.malfunctionCounters.oil_leak = GAME_CONSTANTS.MALFUNCTIONS.OIL_LEAK?.DURATION || 10;
+        
+        // オイル漏れの状態を初期化（出血と同様）
+        if (!this.oilLeakData) {
+            this.oilLeakData = {
+                severity: 1,
+                totalLoss: 0
+            };
+        }
+        
+        const isVisible = game.getVisibleTiles().some(tile => tile.x === this.x && tile.y === this.y);
+        if (isVisible) {
+            game.logger.add(`${this.name} starts leaking oil!`, 'monsterInfo');
+            game.playSound('caution');
+        }
+        
+        // 初回のオイル漏れ
+        this.processOilLeakEffects(game);
+    }
+
+    /**
+     * オイル漏れの処理（出血システムと同様）
+     * @param {Game} game - ゲームインスタンス
+     */
+    processOilLeakEffects(game) {
+        if (!this.malfunctions.oil_leak || !this.oilLeakData) {
+            return;
+        }
+        
+        const oilLeakConfig = GAME_CONSTANTS.MALFUNCTIONS.OIL_LEAK;
+        
+        // オイル漏れ判定
+        if (Math.random() < oilLeakConfig.BLEED_CHANCE) {
+            // 漏れの重症度を取得
+            const severity = this.getOilLeakSeverity();
+            
+            // 漏れ量を計算
+            let oilVolume = 0;
+            switch (severity) {
+                case 3: // 重度の漏れ
+                    oilVolume = GAME_CONSTANTS.LIQUIDS.OIL.VOLUME.AMOUNT.HEAVY;
+                    break;
+                case 2: // 中度の漏れ
+                    oilVolume = GAME_CONSTANTS.LIQUIDS.OIL.VOLUME.AMOUNT.MEDIUM;
+                    break;
+                case 1: // 軽度の漏れ
+                default:
+                    oilVolume = GAME_CONSTANTS.LIQUIDS.OIL.VOLUME.AMOUNT.LIGHT;
+                    break;
+            }
+            
+            // オイルを床に追加
+            game.liquidSystem.addLiquid(this.x, this.y, 'oil', severity, oilVolume);
+            
+            // プレイヤーの視界内にいるかチェック
+            const isVisibleToPlayer = game.getVisibleTiles()
+                .some(tile => tile.x === this.x && tile.y === this.y);
+            
+            if (isVisibleToPlayer && severity >= 2) {
+                game.logger.add(`${this.name} leaks more oil!`, "monsterInfo");
+            }
+        }
+    }
+
+    /**
+     * オイル漏れの重症度を取得
+     * @returns {number} 重症度 (1-3)
+     */
+    getOilLeakSeverity() {
+        if (!this.oilLeakData) return 1;
+        
+        const hpPercent = this.hp / this.maxHp;
+        
+        if (hpPercent <= 0.2) {
+            return 3; // 重度
+        } else if (hpPercent <= 0.4) {
+            return 2; // 中度
+        } else {
+            return 1; // 軽度
+        }
+    }
+
+    // 新しいメソッドを追加
+    /**
+     * モンスターの状態効果を処理
+     * @param {Game} game - ゲームインスタンス
+     */
+    processStatusEffects(game) {
+        // オイル効果の処理
+        if (this.oilEffects) {
+            this.oilEffects.duration--;
+            if (this.oilEffects.duration <= 0) {
+                delete this.oilEffects;
+            } else {
+                // 移動制限チェック（行動前に判定）
+                const blockChance = this.oilEffects.severity * 0.12; // モンスターは12%（少し高め）
+                if (Math.random() < blockChance) {
+                    // このターンの行動をスキップ（滑って転ぶ）
+                    const isVisible = game.getVisibleTiles().some(tile => tile.x === this.x && tile.y === this.y);
+                    if (isVisible) {
+                        game.logger.add(`${this.name} slips on oil and stumbles!`, 'monsterInfo');
+                    }
+                    return true; // 行動スキップを示す
+                }
+            }
+        }
+        return false; // 正常に行動可能
+    }
+
+    // 新しいメソッド：移動先の検証を統一
+    /**
+     * 移動先が有効かどうかの厳密なチェック
+     * @param {number} x - 移動先X座標
+     * @param {number} y - 移動先Y座標  
+     * @param {Game} game - ゲームインスタンス
+     * @returns {boolean} - 移動可能かどうか
+     */
+    isValidMoveDestination(x, y, game) {
+        // 基本的な移動可能性チェック
+        if (!this.canMoveTo(x, y, game)) {
+            return false;
+        }
+        
+        // 他のモンスターがいないかチェック
+        if (game.getMonsterAt(x, y)) {
+            return false;
+        }
+        
+        // マップ境界チェック（念のため）
+        if (x < 0 || x >= game.width || y < 0 || y >= game.height) {
+            return false;
+        }
+        
+        // 実際のタイル情報をダブルチェック
+        if (!game.map[y] || !game.map[y][x] || game.map[y][x] !== 'floor') {
+            // デバッグログ：壁への移動を試みた場合
+            console.warn(`Monster ${this.name} tried to move to non-floor tile at (${x}, ${y}): ${game.map[y] ? game.map[y][x] : 'undefined'}`);
+            return false;
+        }
+        
+        // tiles配列のチェック
+        if (!game.tiles[y] || !game.tiles[y][x]) {
+            console.warn(`Monster ${this.name} tried to move to undefined tile at (${x}, ${y})`);
+            return false;
+        }
+        
+        const tileChar = game.tiles[y][x];
+        
+        // 壁タイルへの移動を厳密に禁止
+        if (GAME_CONSTANTS.TILES.WALL.includes(tileChar) || 
+            GAME_CONSTANTS.TILES.CYBER_WALL.includes(tileChar)) {
+            console.warn(`Monster ${this.name} tried to move to wall tile '${tileChar}' at (${x}, ${y})`);
+            return false;
+        }
+        
+        // 閉じたドアへの移動を禁止
+        if (tileChar === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
+            return false;
+        }
+        
+        // 障害物への移動を禁止
+        if (GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(tileChar) || 
+            GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tileChar)) {
+            return false;
+        }
+        
+        return true;
     }
 } 

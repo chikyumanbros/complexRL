@@ -1702,3 +1702,717 @@ body::before {
     animation: none !important;
     color: #ff0000 !important; /* 赤色に変更 */
 }
+
+/* ========== メカニカル故障エフェクト ========== */
+
+/* 発火故障アニメーション */
+@keyframes fire-malfunction {
+    0%, 100% {
+        color: #FF4444;
+        text-shadow: 0 0 8px #FF4444, 0 0 16px #FF6666;
+        transform: scale(1);
+    }
+    25% {
+        color: #FF6666;
+        text-shadow: 0 0 12px #FF4444, 0 0 24px #FF8888;
+        transform: scale(1.1);
+    }
+    50% {
+        color: #FF8888;
+        text-shadow: 0 0 16px #FF4444, 0 0 32px #FFAAAA;
+        transform: scale(1.05);
+    }
+    75% {
+        color: #FFAAAA;
+        text-shadow: 0 0 12px #FF4444, 0 0 24px #FF6666;
+        transform: scale(1.1);
+    }
+}
+
+.fire-malfunction {
+    animation: fire-malfunction 0.8s infinite;
+    position: relative;
+    z-index: 100;
+}
+
+/* 発火パーティクルエフェクト */
+@keyframes fire-particle {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+        color: #FF4444;
+    }
+    50% {
+        opacity: 0.8;
+        transform: translate(calc(-50% + var(--spark-dx, 0px)), calc(-50% + var(--spark-dy, 0px))) scale(1.2);
+        color: #FF8888;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--spark-dx, 0px)), calc(-50% + var(--spark-dy, 0px))) scale(0.5);
+        color: #FFAAAA;
+    }
+}
+
+.fire-particle {
+    position: absolute;
+    pointer-events: none;
+    animation: fire-particle 0.6s ease-out forwards;
+    z-index: 1000;
+}
+
+/* 漏電故障アニメーション */
+@keyframes electrical-malfunction {
+    0%, 100% {
+        color: #44FFFF;
+        text-shadow: 0 0 8px #44FFFF, 0 0 16px #88FFFF;
+        transform: scale(1);
+    }
+    20% {
+        color: #88FFFF;
+        text-shadow: 0 0 12px #44FFFF, 0 0 24px #AAFFFF;
+        transform: scale(1.05);
+    }
+    40% {
+        color: #AAFFFF;
+        text-shadow: 0 0 16px #44FFFF, 0 0 32px #CCFFFF;
+        transform: scale(1.1);
+    }
+    60% {
+        color: #CCFFFF;
+        text-shadow: 0 0 12px #44FFFF, 0 0 24px #88FFFF;
+        transform: scale(1.02);
+    }
+    80% {
+        color: #FFFFFF;
+        text-shadow: 0 0 20px #44FFFF, 0 0 40px #88FFFF;
+        transform: scale(1.08);
+    }
+}
+
+.electrical-malfunction {
+    animation: electrical-malfunction 0.4s infinite;
+    position: relative;
+    z-index: 100;
+}
+
+/* 電気スパークエフェクト */
+@keyframes electrical-spark {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(0.5);
+        color: #FFFFFF;
+        text-shadow: 0 0 4px #44FFFF;
+    }
+    30% {
+        opacity: 0.9;
+        transform: translate(calc(-50% + var(--spark-dx, 0px)), calc(-50% + var(--spark-dy, 0px))) scale(1);
+        color: #44FFFF;
+        text-shadow: 0 0 8px #44FFFF, 0 0 16px #88FFFF;
+    }
+    70% {
+        opacity: 0.6;
+        transform: translate(calc(-50% + var(--spark-dx, 0px)), calc(-50% + var(--spark-dy, 0px))) scale(0.8);
+        color: #88FFFF;
+        text-shadow: 0 0 6px #44FFFF;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--spark-dx, 0px)), calc(-50% + var(--spark-dy, 0px))) scale(0.3);
+        color: #AAFFFF;
+    }
+}
+
+.electrical-spark {
+    position: absolute;
+    pointer-events: none;
+    animation: electrical-spark 0.3s ease-out forwards;
+    z-index: 1000;
+}
+
+/* 感電範囲エフェクト */
+@keyframes electrical-field {
+    0%, 100% {
+        background-color: rgba(68, 255, 255, 0.1);
+        box-shadow: inset 0 0 10px rgba(68, 255, 255, 0.3);
+    }
+    50% {
+        background-color: rgba(68, 255, 255, 0.2);
+        box-shadow: inset 0 0 20px rgba(68, 255, 255, 0.5);
+    }
+}
+
+.electrical-field {
+    animation: electrical-field 0.5s infinite;
+    position: relative;
+}
+
+/* 故障警告エフェクト */
+@keyframes malfunction-warning {
+    0% {
+        color: inherit;
+        text-shadow: none;
+    }
+    50% {
+        color: #FFFF44;
+        text-shadow: 0 0 8px #FFFF44, 0 0 16px #FFFF88;
+    }
+    100% {
+        color: inherit;
+        text-shadow: none;
+    }
+}
+
+.malfunction-warning {
+    animation: malfunction-warning 1s ease-in-out 3;
+    position: relative;
+}
+
+/* 機械的故障の基本表示 */
+.mechanical-damaged {
+    position: relative;
+}
+
+.mechanical-damaged::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%),
+        linear-gradient(-45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+    animation: mechanical-glitch 2s infinite;
+    pointer-events: none;
+}
+
+@keyframes mechanical-glitch {
+    0%, 90%, 100% {
+        opacity: 0;
+    }
+    5%, 85% {
+        opacity: 1;
+    }
+}
+
+/* オイル漏れエフェクト */
+@keyframes oil-leak {
+    0%, 100% {
+        color: #8B4513;
+        text-shadow: 0 0 6px #8B4513;
+        transform: scale(1);
+    }
+    50% {
+        color: #CD853F;
+        text-shadow: 0 0 12px #8B4513, 0 0 24px #CD853F;
+        transform: scale(1.02);
+    }
+}
+
+.oil-leak {
+    animation: oil-leak 1.8s infinite;
+    position: relative;
+}
+
+/* 故障の重要度に応じた色分け */
+.malfunction-critical {
+    animation: fire-malfunction 0.3s infinite;
+}
+
+.malfunction-major {
+    animation: electrical-malfunction 0.5s infinite;
+}
+
+.malfunction-minor {
+    animation: oil-leak 1s infinite;
+}
+
+/* 複数故障時のエフェクト */
+.multiple-malfunction {
+    animation: 
+        fire-malfunction 0.8s infinite,
+        electrical-malfunction 0.4s infinite;
+    transform-origin: center;
+}
+
+/* 故障修復エフェクト */
+@keyframes repair-effect {
+    0% {
+        color: inherit;
+        text-shadow: none;
+        transform: scale(1);
+    }
+    25% {
+        color: #44FF44;
+        text-shadow: 0 0 8px #44FF44;
+        transform: scale(1.1);
+    }
+    50% {
+        color: #88FF88;
+        text-shadow: 0 0 16px #44FF44, 0 0 32px #88FF88;
+        transform: scale(1.2);
+    }
+    75% {
+        color: #AAFFAA;
+        text-shadow: 0 0 12px #44FF44;
+        transform: scale(1.05);
+    }
+    100% {
+        color: inherit;
+        text-shadow: none;
+        transform: scale(1);
+    }
+}
+
+.repair-effect {
+    animation: repair-effect 1s ease-out;
+    position: relative;
+}
+
+/* メカニカルモンスター特有のエフェクト */
+.mechanical-monster {
+    position: relative;
+}
+
+.mechanical-monster::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 30% 30%, rgba(0, 255, 255, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 70% 70%, rgba(255, 255, 0, 0.05) 0%, transparent 50%);
+    animation: mechanical-ambient 3s infinite;
+    pointer-events: none;
+}
+
+@keyframes mechanical-ambient {
+    0%, 100% {
+        opacity: 0.3;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* 故障発生時のフラッシュエフェクト */
+@keyframes malfunction-flash {
+    0% {
+        background-color: transparent;
+    }
+    10% {
+        background-color: rgba(255, 255, 255, 0.8);
+    }
+    20% {
+        background-color: transparent;
+    }
+    30% {
+        background-color: rgba(255, 68, 68, 0.6);
+    }
+    40% {
+        background-color: transparent;
+    }
+    50% {
+        background-color: rgba(68, 255, 255, 0.6);
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+.malfunction-flash {
+    animation: malfunction-flash 0.8s ease-out;
+    position: relative;
+}
+
+/* ========== 線形稲妻放電エフェクト ========== */
+
+/* 稲妻のメインフラッシュ */
+@keyframes lightning-flash {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+        text-shadow: 0 0 4px #44FFFF, 0 0 8px #66FFFF;
+    }
+    20% {
+        opacity: 1;
+        transform: scale(1.3);
+        text-shadow: 0 0 12px #FFFFFF, 0 0 24px #44FFFF, 0 0 36px #66FFFF;
+    }
+    50% {
+        opacity: 0.9;
+        transform: scale(1.1);
+        text-shadow: 0 0 16px #FFFFFF, 0 0 32px #44FFFF;
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1);
+        text-shadow: 0 0 8px #44FFFF;
+    }
+}
+
+.lightning-discharge {
+    animation: lightning-flash 0.3s ease-out forwards;
+}
+
+/* 稲妻のスパーク効果 */
+@keyframes spark-fade {
+    0% {
+        opacity: 0.8;
+        transform: scale(1);
+        text-shadow: 0 0 6px #44FFFF;
+    }
+    30% {
+        opacity: 1;
+        transform: scale(1.2);
+        text-shadow: 0 0 12px #44FFFF, 0 0 24px #66FFFF;
+    }
+    70% {
+        opacity: 0.6;
+        transform: scale(0.9);
+        text-shadow: 0 0 8px #44FFFF;
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.5);
+        text-shadow: 0 0 4px #44FFFF;
+    }
+}
+
+.lightning-spark {
+    animation: spark-fade 0.4s ease-out forwards;
+}
+
+/* 稲妻の線形進行効果 */
+@keyframes lightning-progress {
+    0% {
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.3;
+    }
+}
+
+/* 電気ダメージ受けた時のフラッシュ */
+@keyframes electrical-damage-flash {
+    0% {
+        background-color: rgba(68, 255, 255, 0.8);
+        text-shadow: 0 0 16px #44FFFF;
+    }
+    50% {
+        background-color: rgba(255, 255, 255, 0.6);
+        text-shadow: 0 0 32px #FFFFFF;
+    }
+    100% {
+        background-color: transparent;
+        text-shadow: none;
+    }
+}
+
+.electrical-damage {
+    animation: electrical-damage-flash 0.3s ease-out;
+}
+
+/* ========== ガス中のキャラクターエフェクト ========== */
+
+/* 瘴気ガスエフェクト */
+@keyframes miasma-pulse {
+    0%, 100% {
+        text-shadow: 0 0 6px #4a7c59, 0 0 12px #4a7c59;
+        box-shadow: inset 0 0 8px rgba(74, 124, 89, 0.3);
+    }
+    50% {
+        text-shadow: 0 0 12px #4a7c59, 0 0 24px #4a7c59, 0 0 36px #4a7c59;
+        box-shadow: inset 0 0 16px rgba(74, 124, 89, 0.5);
+    }
+}
+
+.gas-miasma {
+    animation: miasma-pulse 2s ease-in-out infinite;
+}
+
+/* 火炎ガスエフェクト */
+@keyframes fire-gas-flicker {
+    0%, 100% {
+        text-shadow: 0 0 8px #ff6b35, 0 0 16px #ff6b35;
+        box-shadow: inset 0 0 10px rgba(255, 107, 53, 0.4);
+    }
+    25% {
+        text-shadow: 0 0 12px #ff6b35, 0 0 24px #ff6b35, 0 0 36px #ff6b35;
+        box-shadow: inset 0 0 15px rgba(255, 107, 53, 0.6);
+    }
+    50% {
+        text-shadow: 0 0 16px #ff6b35, 0 0 32px #ff6b35, 0 0 48px #ff6b35;
+        box-shadow: inset 0 0 20px rgba(255, 107, 53, 0.7);
+    }
+    75% {
+        text-shadow: 0 0 12px #ff6b35, 0 0 24px #ff6b35, 0 0 36px #ff6b35;
+        box-shadow: inset 0 0 15px rgba(255, 107, 53, 0.6);
+    }
+}
+
+.gas-fire_gas {
+    animation: fire-gas-flicker 1s ease-in-out infinite;
+}
+
+/* 汎用ガスエフェクト（未定義のガス用） */
+@keyframes generic-gas-pulse {
+    0%, 100% {
+        text-shadow: 0 0 6px currentColor, 0 0 12px currentColor;
+        opacity: 0.9;
+    }
+    50% {
+        text-shadow: 0 0 12px currentColor, 0 0 24px currentColor;
+        opacity: 1;
+    }
+}
+
+.gas-generic {
+    animation: generic-gas-pulse 1.5s ease-in-out infinite;
+}
+
+/* ガス中キャラクターの基本エフェクト */
+.in-gas {
+    position: relative;
+    z-index: 10;
+    box-sizing: border-box;
+}
+
+/* プレイヤーとモンスターのガス中効果の基本設定 */
+.player-in-gas,
+.monster-in-gas {
+    box-sizing: border-box;
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    line-height: 1em;
+    text-align: center;
+}
+
+/* 濃度レベル別のエフェクト強度 */
+.gas-density-1 {
+    filter: brightness(0.95);
+}
+
+.gas-density-2 {
+    filter: brightness(0.9) contrast(1.1);
+}
+
+.gas-density-3 {
+    filter: brightness(0.85) contrast(1.2);
+}
+
+/* ========== ガス中のキャラクター専用エフェクト ========== */
+
+/* ガス中のプレイヤー：暖色でパルス */
+@keyframes player-in-gas-pulse {
+    0%, 100% {
+        background-color: rgba(255, 255, 100, 0.2);
+        text-shadow: 0 0 6px rgba(255, 255, 100, 0.8);
+    }
+    50% {
+        background-color: rgba(255, 255, 150, 0.35);
+        text-shadow: 0 0 12px rgba(255, 255, 100, 1.0);
+    }
+}
+
+.player-in-gas {
+    animation: player-in-gas-pulse 1.5s ease-in-out infinite;
+    outline: 1px solid rgba(255, 255, 100, 0.5);
+    outline-offset: -1px;
+    position: relative;
+    z-index: 2;
+}
+
+/* ガス中のモンスター：寒色で点滅 */
+@keyframes monster-in-gas-blink {
+    0%, 70% {
+        background-color: rgba(255, 100, 100, 0.2);
+        text-shadow: 0 0 4px rgba(255, 100, 100, 0.8);
+    }
+    80%, 100% {
+        background-color: rgba(255, 150, 150, 0.4);
+        text-shadow: 0 0 8px rgba(255, 100, 100, 1.0);
+    }
+}
+
+.monster-in-gas {
+    animation: monster-in-gas-blink 1.2s ease-in-out infinite;
+    outline: 1px solid rgba(255, 100, 100, 0.5);
+    outline-offset: -1px;
+    position: relative;
+    z-index: 2;
+}
+
+/* 濃度別のエフェクト強化 */
+.gas-density-1.player-in-gas {
+    animation-duration: 2s; /* ゆっくり */
+}
+
+.gas-density-2.player-in-gas {
+    animation-duration: 1.5s; /* 標準 */
+}
+
+.gas-density-3.player-in-gas {
+    animation-duration: 1s; /* 速く */
+    outline-width: 2px; /* 境界線を太く */
+}
+
+.gas-density-1.monster-in-gas {
+    animation-duration: 1.5s;
+}
+
+.gas-density-2.monster-in-gas {
+    animation-duration: 1.2s;
+}
+
+.gas-density-3.monster-in-gas {
+    animation-duration: 0.8s; /* より速く点滅 */
+    outline-width: 2px;
+}
+
+/* ========== 蜘蛛の巣優先ルール ========== */
+
+/* 蜘蛛の巣に捕まっている時はガス効果を無効化 */
+.player-caught-web.player-in-gas {
+    animation: none !important;
+    background-color: transparent !important;
+    outline: none !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+}
+
+.monster-caught-web.monster-in-gas {
+    animation: none !important;
+    background-color: transparent !important;
+    outline: none !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+    color: #ff0000 !important; /* 赤色を維持 */
+}
+
+/* 蜘蛛の巣に捕まっている時は濃度効果も無効化 */
+.player-caught-web.gas-density-1,
+.player-caught-web.gas-density-2,
+.player-caught-web.gas-density-3,
+.monster-caught-web.gas-density-1,
+.monster-caught-web.gas-density-2,
+.monster-caught-web.gas-density-3 {
+    filter: none !important;
+}
+
+/* ========== 瘴気爆発エフェクト ========== */
+
+/* 瘴気爆発の中心エフェクト */
+@keyframes miasma-explosion-center {
+    0% {
+        transform: scale(0.5);
+        opacity: 1;
+        text-shadow: 0 0 8px #FF6644, 0 0 16px #FF8844;
+    }
+    25% {
+        transform: scale(1.5);
+        opacity: 1;
+        text-shadow: 0 0 24px #FF6644, 0 0 48px #FF8844, 0 0 72px #CC4422;
+    }
+    50% {
+        transform: scale(2);
+        opacity: 0.8;
+        text-shadow: 0 0 32px #FF6644, 0 0 64px #FF8844;
+    }
+    100% {
+        transform: scale(3);
+        opacity: 0;
+        text-shadow: 0 0 16px #FF6644;
+    }
+}
+
+.miasma-explosion-center {
+    animation: miasma-explosion-center 0.8s ease-out forwards;
+}
+
+/* 瘴気爆発の毒雲エフェクト */
+@keyframes miasma-explosion-cloud {
+    0% {
+        transform: scale(0.3) rotate(0deg);
+        opacity: 0.8;
+        text-shadow: 0 0 8px #CC4422;
+    }
+    30% {
+        transform: scale(1) rotate(90deg);
+        opacity: 1;
+        text-shadow: 0 0 16px #CC4422, 0 0 32px #FF6644;
+    }
+    70% {
+        transform: scale(1.3) rotate(180deg);
+        opacity: 0.7;
+        text-shadow: 0 0 20px #CC4422, 0 0 40px #FF6644;
+    }
+    100% {
+        transform: scale(1.8) rotate(270deg);
+        opacity: 0;
+        text-shadow: 0 0 12px #CC4422;
+    }
+}
+
+.miasma-explosion-cloud {
+    animation: miasma-explosion-cloud 1s ease-out forwards;
+}
+
+/* 瘴気爆発のパーティクルエフェクト */
+@keyframes miasma-explosion-particle {
+    0% {
+        transform: scale(0.5);
+        opacity: 0.9;
+        color: #FF6644;
+    }
+    40% {
+        transform: scale(1.2);
+        opacity: 0.8;
+        color: #CC4422;
+    }
+    80% {
+        transform: scale(0.8);
+        opacity: 0.4;
+        color: #AA2211;
+    }
+    100% {
+        transform: scale(0.3);
+        opacity: 0;
+        color: #881100;
+    }
+}
+
+.miasma-explosion-particle {
+    animation: miasma-explosion-particle 1.2s ease-out forwards;
+}
+
+/* 瘴気爆発の波動エフェクト */
+@keyframes miasma-explosion-wave {
+    0% {
+        transform: scale(0);
+        opacity: 0.6;
+        border: 2px solid #FF6644;
+        border-radius: 50%;
+    }
+    50% {
+        transform: scale(2);
+        opacity: 0.4;
+        border: 1px solid #CC4422;
+    }
+    100% {
+        transform: scale(4);
+        opacity: 0;
+        border: 1px solid transparent;
+    }
+}
+
+.miasma-explosion-wave {
+    animation: miasma-explosion-wave 1s ease-out forwards;
+}

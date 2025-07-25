@@ -209,6 +209,24 @@ class Player {
 
     // ===== Movement Methods =====
     move(dx, dy, map) {
+        // ★★★ 冷却液効果による移動制限をチェック ★★★
+        if (this.coolantEffects && this.coolantEffects.movementSlow) {
+            const severity = this.coolantEffects.severity;
+            const blockChance = severity * 0.15; // 重症度 × 15%の確率で移動ブロック
+            
+            if (Math.random() < blockChance) {
+                this.game.logger.add('The thick coolant prevents you from moving!', 'warning');
+                // 効果時間を減少
+                this.coolantEffects.duration--;
+                if (this.coolantEffects.duration <= 0) {
+                    delete this.coolantEffects;
+                    this.game.logger.add('You break free from the coolant!', 'info');
+                }
+                // ターンは消費するが移動はしない（trueを返す）
+                return true;
+            }
+        }
+        
         // 蜘蛛の巣に捕まっている場合、まず脱出を試みる
         // この時、game.js の processPlayerTurn で既に処理されていない場合のみ実行
         if (this.caughtInWeb && !this._processedWebThisTurn) {
@@ -500,6 +518,16 @@ class Player {
             damage = amount;  // 防御計算なしで直接ダメージを適用
         } else {
             damage = Math.max(1, amount);
+        }
+        
+        // オイルの絶縁効果をチェック（感電ダメージのみ）
+        if (context.type && (context.type === 'electrical' || context.type === 'electrical_chain' || context.type === 'electrical_conductivity')) {
+            const oil = this.game.liquidSystem.getLiquidAt(this.x, this.y, 'oil');
+            if (oil) {
+                const shockResistance = GAME_CONSTANTS.LIQUIDS.OIL.INTERACTIONS.ELECTRICAL.SHOCK_RESISTANCE;
+                damage = Math.floor(damage * shockResistance);
+                this.game.logger.add('The oil insulates you from some electrical damage!', 'playerInfo');
+            }
         }
         
         // HPが0未満にならないように制限

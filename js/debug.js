@@ -61,10 +61,16 @@ class DebugUtils {
         
         // デバッグ用コマンドをグローバルに登録
         window.debugCreateMiasma = this.debugCreateMiasma.bind(this);
+        window.debugCreateFire = this.debugCreateFire.bind(this);
+        window.debugTestFurniture = this.debugTestFurniture.bind(this);
+        window.debugForceBurn = this.debugForceBurn.bind(this);
         
         // デバッグコマンドの説明
         console.log('デバッグコマンド一覧:');
         console.log('debugCreateMiasma() - プレイヤーの位置に瘴気を生成');
+        console.log('debugCreateFire() - プレイヤーの位置に火炎ガスを生成');
+        console.log('debugTestFurniture() - 周囲の家具延焼をテスト');
+        console.log('debugForceBurn() - 周囲の家具を強制燃焼（100%確率）');
     }
     
     // 自動更新のセットアップ
@@ -482,6 +488,125 @@ class DebugUtils {
             return "瘴気を生成しました。";
         }
         return "ガスシステムが初期化されていません。";
+    }
+
+    /**
+     * プレイヤーの位置に火炎ガスを生成する
+     */
+    debugCreateFire() {
+        if (this.game.gasSystem) {
+            const player = this.game.player;
+            this.game.gasSystem.addGas(player.x, player.y, 'fire_gas', 3);
+            
+            // 周囲にも火炎ガスを配置
+            const adjacent = [
+                {x: player.x-1, y: player.y}, {x: player.x+1, y: player.y},
+                {x: player.x, y: player.y-1}, {x: player.x, y: player.y+1}
+            ];
+            
+            adjacent.forEach(pos => {
+                if (this.game.isValidPosition && this.game.isValidPosition(pos.x, pos.y)) {
+                    this.game.gasSystem.addGas(pos.x, pos.y, 'fire_gas', 2);
+                }
+            });
+            
+            this.game.renderer.render();
+            return "火炎ガスを生成しました。";
+        }
+        return "ガスシステムが初期化されていません。";
+    }
+
+    /**
+     * 周囲の家具延焼をテストする
+     */
+    debugTestFurniture() {
+        if (!this.game.gasSystem) {
+            return "ガスシステムが初期化されていません。";
+        }
+
+        const player = this.game.player;
+        let furnitureFound = false;
+        let testResults = [];
+
+        // プレイヤー周囲8マスをチェック
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                const x = player.x + dx;
+                const y = player.y + dy;
+                
+                if (!this.game.isValidPosition(x, y)) continue;
+                
+                const tile = this.game.tiles[y] && this.game.tiles[y][x];
+                const map = this.game.map[y] && this.game.map[y][x];
+                
+                // ドアまたは木製障害物をチェック
+                if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED || 
+                    tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
+                    furnitureFound = true;
+                    // 火炎ガスを配置
+                    this.game.gasSystem.addGas(x, y, 'fire_gas', 3);
+                    testResults.push(`Door at (${x}, ${y}) - Fire applied`);
+                } else if (map === 'obstacle' && 
+                    GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tile)) {
+                    furnitureFound = true;
+                    // 火炎ガスを配置
+                    this.game.gasSystem.addGas(x, y, 'fire_gas', 3);
+                    testResults.push(`Wooden obstacle at (${x}, ${y}) - Fire applied`);
+                }
+            }
+        }
+
+        this.game.renderer.render();
+        
+        if (furnitureFound) {
+            console.log('家具延焼テスト結果:');
+            testResults.forEach(result => console.log('- ' + result));
+            return `家具延焼テストを実行しました。コンソールで詳細を確認してください。`;
+        } else {
+            return "周囲に燃焼可能な家具が見つかりませんでした。";
+        }
+    }
+
+    /**
+     * 周囲の家具を強制的に燃やす（100%確率）
+     */
+    debugForceBurn() {
+        if (!this.game.gasSystem) {
+            return "ガスシステムが初期化されていません。";
+        }
+        
+        const player = this.game.player;
+        let burnCount = 0;
+        
+        // 周囲9マスをチェック
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                const x = player.x + dx;
+                const y = player.y + dy;
+                
+                if (!this.game.isValidPosition(x, y)) continue;
+                
+                const tile = this.game.tiles[y][x];
+                const map = this.game.map[y][x];
+                
+                // ドアの場合
+                if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED || tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
+                    console.log(`🔥 Force burning door at (${x},${y})`);
+                    this.game.gasSystem.igniteFurniture(x, y, 'door');
+                    burnCount++;
+                }
+                // 木製障害物の場合
+                else if (map === 'obstacle' && 
+                         GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tile)) {
+                    console.log(`🔥 Force burning obstacle at (${x},${y})`);
+                    this.game.gasSystem.igniteFurniture(x, y, 'obstacle');
+                    burnCount++;
+                }
+            }
+        }
+        
+        this.game.renderer.render();
+        return `${burnCount}箇所の家具を強制燃焼させました。`;
     }
 }
 
