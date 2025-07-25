@@ -550,9 +550,9 @@ class Monster {
         // ★★★ 状態効果の処理 ★★★
         this.processStatusEffects(game);
         
-        // --- Action Reset ---
+        // --- Action Check ---
+        // 既に行動済みの場合は早期終了（フラグはリセットしない）
         if (this.hasActedThisTurn) {
-            this.hasActedThisTurn = false;
             return;
         }
 

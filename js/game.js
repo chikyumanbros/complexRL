@@ -467,48 +467,56 @@ class Game {
                             // 移動先が有効か確認
                             if (this.isValidPosition(monster.x + dx, monster.y + dy) && 
                                 !this.isOccupied(monster.x + dx, monster.y + dy)) {
-                                monster.x += dx;
-                                monster.y += dy;
-                                monster.hasActedThisTurn = true;
                                 
-                                // プレイヤーの視界内にいる場合のみメッセージを表示
-                                const isVisibleToPlayer = this.getVisibleTiles()
-                                    .some(tile => tile.x === monster.x && tile.y === monster.y);
+                                // より安全な移動チェックを使用
+                                const newX = monster.x + dx;
+                                const newY = monster.y + dy;
                                 
-                                // プレイヤーの知覚可能範囲内にある血液の近くにいる場合のみメッセージを表示
-                                const isBloodInPlayerSight = this.getVisibleTiles()
-                                    .some(tile => tile.x === nearestBlood.x && tile.y === nearestBlood.y);
+                                if (monster.isValidMoveDestination && monster.isValidMoveDestination(newX, newY, this)) {
+                                    monster.x = newX;
+                                    monster.y = newY;
+                                    monster.hasActedThisTurn = true;
                                     
-                                // プレイヤーまたは血液が視界内にある場合のみメッセージを表示
-                                if (isVisibleToPlayer && (isBloodInPlayerSight || nearestDistance <= 3)) {
-                                    // 距離に応じたメッセージを表示
-                                    // 昆虫系、爬虫類系、死者系で異なるメッセージを表示
-                                    if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC, MONSTER_CATEGORIES.SECONDARY.INSECTOID)) {
-                                        if (nearestDistance <= 5) {
-                                            this.logger.add(`${monster.name} is aggressively drawn to the scent of blood!`, "monsterInfo");
-                                        } else if (nearestDistance <= 15) {
-                                            this.logger.add(`${monster.name} skitters toward the blood...`, "monsterInfo");
-                                        } else {
-                                            this.logger.add(`${monster.name} seems to have detected blood from afar...`, "monsterInfo");
-                                        }
-                                    } else if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC, MONSTER_CATEGORIES.SECONDARY.REPTILE)) {
-                                        if (nearestDistance <= 5) {
-                                            this.logger.add(`${monster.name} flicks its tongue, sensing the blood!`, "monsterInfo");
-                                        } else if (nearestDistance <= 15) {
-                                            this.logger.add(`${monster.name} slithers toward the blood...`, "monsterInfo");
-                                        } else {
-                                            this.logger.add(`${monster.name} tastes the air, detecting blood nearby...`, "monsterInfo");
-                                        }
-                                    } else { // アンデッド系の場合
-                                        if (nearestDistance <= 5) {
-                                            this.logger.add(`${monster.name} is strongly attracted to the scent of blood!`, "monsterInfo");
-                                        } else if (nearestDistance <= 15) {
-                                            this.logger.add(`${monster.name} moved, drawn by the scent of blood...`, "monsterInfo");
-                                        } else {
-                                            this.logger.add(`${monster.name} seems to have sensed the scent of blood from afar...`, "monsterInfo");
+                                    // プレイヤーの視界内にいる場合のみメッセージを表示
+                                    const isVisibleToPlayer = this.getVisibleTiles()
+                                        .some(tile => tile.x === monster.x && tile.y === monster.y);
+                                    
+                                    // プレイヤーの知覚可能範囲内にある血液の近くにいる場合のみメッセージを表示
+                                    const isBloodInPlayerSight = this.getVisibleTiles()
+                                        .some(tile => tile.x === nearestBlood.x && tile.y === nearestBlood.y);
+                                        
+                                    // プレイヤーまたは血液が視界内にある場合のみメッセージを表示
+                                    if (isVisibleToPlayer && (isBloodInPlayerSight || nearestDistance <= 3)) {
+                                        // 距離に応じたメッセージを表示
+                                        // 昆虫系、爬虫類系、死者系で異なるメッセージを表示
+                                        if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC, MONSTER_CATEGORIES.SECONDARY.INSECTOID)) {
+                                            if (nearestDistance <= 5) {
+                                                this.logger.add(`${monster.name} is aggressively drawn to the scent of blood!`, "monsterInfo");
+                                            } else if (nearestDistance <= 15) {
+                                                this.logger.add(`${monster.name} skitters toward the blood...`, "monsterInfo");
+                                            } else {
+                                                this.logger.add(`${monster.name} seems to have detected blood from afar...`, "monsterInfo");
+                                            }
+                                        } else if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC, MONSTER_CATEGORIES.SECONDARY.REPTILE)) {
+                                            if (nearestDistance <= 5) {
+                                                this.logger.add(`${monster.name} flicks its tongue, sensing the blood!`, "monsterInfo");
+                                            } else if (nearestDistance <= 15) {
+                                                this.logger.add(`${monster.name} slithers toward the blood...`, "monsterInfo");
+                                            } else {
+                                                this.logger.add(`${monster.name} tastes the air, detecting blood nearby...`, "monsterInfo");
+                                            }
+                                        } else { // アンデッド系の場合
+                                            if (nearestDistance <= 5) {
+                                                this.logger.add(`${monster.name} is strongly attracted to the scent of blood!`, "monsterInfo");
+                                            } else if (nearestDistance <= 15) {
+                                                this.logger.add(`${monster.name} moved, drawn by the scent of blood...`, "monsterInfo");
+                                            } else {
+                                                this.logger.add(`${monster.name} seems to have sensed the scent of blood from afar...`, "monsterInfo");
+                                            }
                                         }
                                     }
                                 }
+                                // 移動に失敗した場合も通常のモンスター行動に進む
                             }
                         }
                     }
