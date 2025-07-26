@@ -238,10 +238,7 @@ class InputHandler {
                 this.game.renderer.render();
                 return;
             }
-            if (this.game.mode === GAME_CONSTANTS.MODES.WIKI) {
-                this.closeWikiMode();
-                return;
-            }
+
             if (this.game.mode === GAME_CONSTANTS.MODES.HELP) {
                 this.game.toggleMode();
                 return;
@@ -373,10 +370,7 @@ class InputHandler {
         //     return;
         // }
         
-        if (this.game.mode === GAME_CONSTANTS.MODES.WIKI) {
-            this.handleWikiModeInput(key);
-            return;
-        }
+
 
         // --- Stat Selection Mode Handling ---
         if (this.mode === 'statSelect') {
@@ -588,11 +582,7 @@ class InputHandler {
             return;
         }
 
-        // Wikiモードを開く（wキー）
-        if (key === 'w') {
-            this.openWikiMode();
-            return;
-        }
+
 
         // --- Tab key to toggle codex ---
         if (key === 'tab') {
@@ -1844,98 +1834,7 @@ class InputHandler {
         }
     }
 
-    // ----------------------
-    // Wiki Mode Methods
-    // ----------------------
-    openWikiMode() {
-        // 既存のゲームモードを保存
-        this.previousMode = this.game.mode;
-        
-        // Wikiモードを設定
-        this.game.mode = GAME_CONSTANTS.MODES.WIKI;
-        
-        // 現在のWikiページの存在を確認
-        const existingWikiWindow = document.getElementById('wiki-frame-container');
-        if (existingWikiWindow) {
-            // 既に開いていれば表示切替
-            existingWikiWindow.style.display = existingWikiWindow.style.display === 'none' ? 'flex' : 'none';
-            return;
-        }
-        
-        // Wikiページを表示するコンテナを作成
-        const wikiFrameContainer = document.createElement('div');
-        wikiFrameContainer.id = 'wiki-frame-container';
-        wikiFrameContainer.style.position = 'fixed';
-        wikiFrameContainer.style.top = '0';
-        wikiFrameContainer.style.left = '0';
-        wikiFrameContainer.style.width = '100%';
-        wikiFrameContainer.style.height = '100%';
-        wikiFrameContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-        wikiFrameContainer.style.zIndex = '1000';
-        wikiFrameContainer.style.display = 'flex';
-        wikiFrameContainer.style.justifyContent = 'center';
-        wikiFrameContainer.style.alignItems = 'center';
-        
-        // Wikiページを表示するiframeを作成
-        const wikiFrame = document.createElement('iframe');
-        wikiFrame.id = 'wiki-frame';
-        wikiFrame.style.width = '80%';
-        wikiFrame.style.height = '80%';
-        wikiFrame.style.border = 'none';
-        wikiFrame.style.backgroundColor = '#fff';
-        wikiFrame.style.borderRadius = '5px';
-        wikiFrame.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.5)';
-        wikiFrame.src = 'wiki.html';
-        
-        // Create close button
-        const closeButton = document.createElement('div');
-        closeButton.textContent = 'Close [ESC]';
-        closeButton.style.position = 'absolute';
-        closeButton.style.top = '10px';
-        closeButton.style.right = '10%';
-        closeButton.style.color = '#fff';
-        closeButton.style.padding = '5px 10px';
-        closeButton.style.backgroundColor = '#333';
-        closeButton.style.borderRadius = '5px';
-        closeButton.style.cursor = 'pointer';
-        closeButton.onclick = () => this.closeWikiMode();
-        
-        // Add elements to container
-        wikiFrameContainer.appendChild(wikiFrame);
-        wikiFrameContainer.appendChild(closeButton);
-        document.body.appendChild(wikiFrameContainer);
-        
-        // Add key event listener (ESC key to close)
-        this.wikiKeydownListener = (e) => {
-            if (e.key === 'Escape') {
-                this.closeWikiMode();
-            }
-        };
-        document.addEventListener('keydown', this.wikiKeydownListener);
-        
-        // Add log message
-        this.game.logger.add('Wiki screen opened. Press [ESC] or click [Close] to return.', 'system');
-    }
-    
-    // Method to close wiki mode
-    closeWikiMode() {
-        const wikiContainer = document.getElementById('wiki-frame-container');
-        if (wikiContainer) {
-            wikiContainer.style.display = 'none';
-        }
-        
-        // Restore previous mode
-        this.game.mode = this.previousMode || GAME_CONSTANTS.MODES.GAME;
-        
-        // Remove key event listener
-        if (this.wikiKeydownListener) {
-            document.removeEventListener('keydown', this.wikiKeydownListener);
-            this.wikiKeydownListener = null;
-        }
-        
-        // Add log message
-        this.game.logger.add('Wiki screen closed.', 'system');
-    }
+
 
     // ----------------------
     // Skill Slot Management Methods
