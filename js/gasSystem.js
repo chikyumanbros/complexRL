@@ -39,108 +39,42 @@ class GasSystem {
     }
 
     /**
-     * ガスを追加
+     * ガスを追加する
      * @param {number} x - X座標
      * @param {number} y - Y座標
      * @param {string} type - ガスタイプ
-     * @param {number} density - ガスの濃度（1-3）
-     * @param {number|null} volume - ガスの量（明示的に指定する場合）
-     * @returns {boolean} - 追加に成功したかどうか
+     * @param {number} density - 密度
+     * @param {number} volume - 量（省略可）
      */
     addGas(x, y, type, density, volume = null) {
-        // ガスタイプを小文字に変換
         const lowerType = type.toLowerCase();
         
-        // マップが有効でない場合は処理しない
-        if (!this.game.map || !this.game.map[y] || !this.game.map[y][x]) {
-            return false;
-        }
-        
-        const isFireGas = (lowerType === 'fire_gas');
-        const mapCell = this.game.map[y][x];
-        const tileCell = this.game.tiles[y] && this.game.tiles[y][x];
-        
-        // 基本的にはfloorのみ許可、但し火炎ガスは例外
-        if (mapCell !== 'floor' && !isFireGas) {
-            return false;
-        }
-        
-        // 壁タイルにはガスを置かない（火炎ガスも含む）
-        if (this.game.tiles && this.game.tiles[y] && 
-            GAME_CONSTANTS.TILES.WALL.includes(this.game.tiles[y][x])) {
-            return false;
-        }
-        
-        // 階段の上にはガスを置かない（火炎ガスも含む）
-        if (this.game.tiles && this.game.tiles[y] && this.game.tiles[y][x] === GAME_CONSTANTS.STAIRS.CHAR) {
-            return false;
-        }
-
-        // 火炎ガス以外は閉じたドアの上にはガスを置かない
-        if (!isFireGas && this.game.tiles && this.game.tiles[y] && 
-            this.game.tiles[y][x] === GAME_CONSTANTS.TILES.DOOR.CLOSED) {
-            return false;
-        }
-
-        // ガスタイプが存在するか確認
         if (!this.gases[lowerType]) {
-            console.error(`未定義のガスタイプ: ${lowerType}`);
-            return false;
+            this.gases[lowerType] = [];
         }
-
-        // ガスの量を決定
-        let gasAmount = this.calculateGasAmount(type, density, volume);
         
-        // ガスの設定を取得
-        const gasSettings = GAME_CONSTANTS.GASES[type.toUpperCase()];
-        
-        // 微量のガスは処理しない（最小値未満は無視）
-        if (gasAmount < gasSettings.VOLUME.MINIMUM) {
-            return false;
-        }
-
-        // 既存のガスを検索
-        const existingGas = this.gases[lowerType].find(g => g.x === x && g.y === y);
-
+        // 既存のガスがある場合は合成
+        const existingGas = this.gases[lowerType].find(gas => gas.x === x && gas.y === y);
         if (existingGas) {
-            // 既存のガスがある場合、ガス量を追加して濃度を更新
-            const oldVolume = existingGas.volume || 0;
-            const newVolume = oldVolume + gasAmount;
-            
-            // 新しい総量が最小値未満ならガスを削除して終了
-            if (newVolume < gasSettings.VOLUME.MINIMUM) {
-                this.gases[lowerType] = this.gases[lowerType].filter(g => !(g.x === x && g.y === y));
-                return false;
-            }
-            
-            existingGas.volume = newVolume;
-
-            // ガス量に応じて濃度を決定
-            const newDensity = this.calculateDensityFromVolume(type, newVolume);
-            existingGas.density = newDensity;
-            
-            // 残りターン数を更新（最大値に制限）
-            existingGas.remainingTurns = Math.min(
-                existingGas.remainingTurns + Math.floor(gasSettings.DURATION.BASE / 2),
-                gasSettings.DURATION.BASE * gasSettings.DURATION.DENSITY_FACTOR[`LEVEL_${newDensity}`]
-            );
+            existingGas.volume += volume || this.calculateVolumeFromDensity(lowerType, density);
+            existingGas.density = Math.min(3, this.calculateDensityFromVolume(lowerType, existingGas.volume));
         } else {
-            // 新しいガスを追加
-            // 持続時間を計算
-            const baseDuration = gasSettings.DURATION.BASE;
-            const durationFactor = gasSettings.DURATION.DENSITY_FACTOR[`LEVEL_${density}`];
-            const remainingTurns = Math.floor(baseDuration * durationFactor);
-            
-            this.gases[lowerType].push({
+            // 新しいガスを作成
+            const newGas = {
                 x: x,
                 y: y,
-                density: density,
-                volume: gasAmount,
-                remainingTurns: remainingTurns
-            });
+                density: Math.min(3, density),
+                volume: volume || this.calculateVolumeFromDensity(lowerType, density),
+                duration: this.calculateDuration(lowerType, density)
+            };
+            
+            this.gases[lowerType].push(newGas);
         }
-
-        return true;
+        
+        // ★★★ 火炎ガスの場合、隣接タイルにも軽微な火炎ガスを拡散 ★★★
+        if (lowerType === 'fire_gas' && density >= 2) { // 密度2以上の場合のみ
+            this.spreadFireGasToAdjacent(x, y, density);
+        }
     }
 
     /**
@@ -169,6 +103,24 @@ class GasSystem {
             case 1:
             default:
                 return gasSettings.VOLUME.AMOUNT.LIGHT;
+        }
+    }
+
+    /**
+     * 密度からガス量を計算
+     * @param {string} type - ガスタイプ
+     * @param {number} density - 密度
+     * @returns {number} - ガス量
+     */
+    calculateVolumeFromDensity(type, density) {
+        const gasSettings = GAME_CONSTANTS.GASES[type.toUpperCase()];
+        if (!gasSettings) return 0.5;
+        
+        switch (density) {
+            case 3: return gasSettings.VOLUME.AMOUNT.HEAVY;
+            case 2: return gasSettings.VOLUME.AMOUNT.MEDIUM;
+            case 1:
+            default: return gasSettings.VOLUME.AMOUNT.LIGHT;
         }
     }
 
@@ -269,6 +221,9 @@ class GasSystem {
             }
         }
         
+        // ★★★ 火炎ガスから隣接家具への延焼処理を追加 ★★★
+        this.processFireGasIgnition();
+        
         // ★★★ 燃焼家具の更新処理を追加 ★★★
         this.updateBurningFurniture();
     }
@@ -285,11 +240,11 @@ class GasSystem {
 
         // ガスの減衰処理
         this.gases[type] = this.gases[type].filter(gas => {
-            // 残りターン数を減少
-            gas.remainingTurns--;
+            // 持続時間を減少
+            gas.duration--;
             
-            // 残りターン数が0になったらガスを削除
-            if (gas.remainingTurns <= 0) {
+            // 持続時間が0になったらガスを削除
+            if (gas.duration <= 0) {
                 return false;
             }
             
@@ -299,8 +254,12 @@ class GasSystem {
             // 濃度を再計算
             gas.density = this.calculateDensityFromVolume(type, gas.volume);
             
-            // 最小量未満になった場合はガスを削除
-            return gas.volume >= gasSettings.VOLUME.MINIMUM;
+            // 最小量未満になった場合は削除
+            if (gas.volume < gasSettings.VOLUME.MINIMUM) {
+                return false;
+            }
+            
+            return true;
         });
     }
 
@@ -350,6 +309,32 @@ class GasSystem {
                 }
             }
         });
+    }
+
+    /**
+     * ガス持続時間の計算
+     * @param {string} type - ガスタイプ
+     * @param {number} density - 密度
+     * @returns {number} - 持続時間
+     */
+    calculateDuration(type, density) {
+        try {
+            const gasSettings = GAME_CONSTANTS.GASES[type.toUpperCase()];
+            if (!gasSettings || !gasSettings.DURATION) {
+                console.warn(`Gas settings not found for type: ${type}`);
+                return 5; // デフォルト5ターン
+            }
+            
+            const baseDuration = gasSettings.DURATION.BASE || 5;
+            const densityLevel = Math.max(1, Math.min(3, Math.floor(density) || 1)); // 1-3の範囲に制限
+            const factor = gasSettings.DURATION.DENSITY_FACTOR[`LEVEL_${densityLevel}`] || 1.0;
+            
+            const result = Math.floor(baseDuration * factor);
+            return Math.max(1, result); // 最低1ターンは保証
+        } catch (error) {
+            console.warn(`Error calculating duration for ${type}:`, error);
+            return 5; // エラー時のデフォルト値
+        }
     }
 
     /**
@@ -479,11 +464,6 @@ class GasSystem {
                             this.handleFireWebInteraction(x, y);
                             this.handleFurnitureIgnition(x, y, gas.density);
                         }
-
-                        // ★★★ 家具延焼処理を追加 ★★★
-                        if (gasType === 'fire_gas') {
-                            this.handleFurnitureIgnition(x, y, gas.density);
-                        }
                     }
                 }
             }
@@ -593,6 +573,9 @@ class GasSystem {
                 // 爆発後に火炎ガスが広がる（炎の爆発イメージ）
                 if (distance <= explosionRadius && distance > 0) {
                     this.addGas(targetX, targetY, 'fire_gas', 1, 0.4); // 火炎ガスが広がる
+                    
+                    // ★★★ 爆発による家具燃焼チェックを追加 ★★★
+                    this.handleFurnitureIgnition(targetX, targetY, 2.0); // 爆発の高熱で燃焼チェック
                 }
             }
         }
@@ -655,7 +638,105 @@ class GasSystem {
     }
 
     /**
-     * 火炎ガスによる瘴気爆発のチェック（液体ガス相互作用から呼び出し）
+     * 火炎ガスから隣接家具への延焼処理
+     * 毎ターン実行される時間経過による延焼システム
+     */
+    processFireGasIgnition() {
+        const fireGases = this.gases['fire_gas'] || [];
+        
+        if (fireGases.length === 0) {
+            return;
+        }
+        
+        // 各火炎ガスについて隣接タイルをチェック
+        for (const fireGas of fireGases) {
+            const directions = [
+                [-1, -1], [0, -1], [1, -1],
+                [-1,  0],          [1,  0],
+                [-1,  1], [0,  1], [1,  1]
+            ];
+            
+            // 隣接する8方向をチェック
+            for (const [dx, dy] of directions) {
+                const targetX = fireGas.x + dx;
+                const targetY = fireGas.y + dy;
+                
+                if (!this.game.isValidPosition(targetX, targetY)) continue;
+                
+                // 既に燃えているかチェック
+                const alreadyBurning = this.burningFurniture?.find(f => f.x === targetX && f.y === targetY);
+                if (alreadyBurning) continue;
+                
+                const tile = this.game.tiles[targetY][targetX];
+                const map = this.game.map[targetY][targetX];
+                
+                // 燃えやすい家具があるかチェック
+                let furnitureType = null;
+                let baseIgnitionChance = 0;
+                
+                // ドアの場合
+                if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED || tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
+                    furnitureType = 'door';
+                    baseIgnitionChance = GAME_CONSTANTS.FLAMMABLE_OBJECTS.DOOR.BURN_CHANCE || 0.7;
+                }
+                // 木製障害物の場合
+                else if (map === 'obstacle' && GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tile)) {
+                    furnitureType = 'obstacle';
+                    baseIgnitionChance = GAME_CONSTANTS.FLAMMABLE_OBJECTS.OBSTACLE.TRANSPARENT.BURN_CHANCE || 0.6;
+                }
+                
+                if (furnitureType) {
+                    // 燃えやすい家具がない場合、または設定値が異常な場合はスキップ
+                    if (!furnitureType || baseIgnitionChance <= 0 || isNaN(baseIgnitionChance)) {
+                        continue;
+                    }
+                    
+                    // 火炎ガスの密度チェック
+                    if (!fireGas.density || fireGas.density <= 0 || isNaN(fireGas.density)) {
+                        continue;
+                    }
+                    
+                    // 火炎ガスの密度に応じた延焼確率を計算
+                    const densityFactor = fireGas.density * 0.3;
+                    const adjacentPenalty = 0.5;
+                    
+                    // 火炎ガスの持続時間も考慮
+                    let timeExposureFactor = 1.0;
+                    
+                    try {
+                        if (fireGas.duration !== undefined && fireGas.density !== undefined) {
+                            const maxDuration = this.calculateDuration('fire_gas', fireGas.density) || 6;
+                            const burnTime = Math.max(0, maxDuration - fireGas.duration);
+                            
+                            if (maxDuration > 0) {
+                                timeExposureFactor = 1 + (burnTime / maxDuration) * 0.5;
+                            }
+                        }
+                    } catch (error) {
+                        timeExposureFactor = 1.0;
+                    }
+                    
+                    const ignitionChance = baseIgnitionChance * densityFactor * adjacentPenalty * timeExposureFactor;
+                    
+                    // 延焼判定
+                    if (Math.random() < ignitionChance * 0.3) {
+                        this.igniteFurniture(targetX, targetY, furnitureType);
+                        
+                        // 延焼メッセージ
+                        const isVisible = this.game.getVisibleTiles().some(tile => tile.x === targetX && tile.y === targetY);
+                        if (isVisible) {
+                            const furnitureNames = { door: 'door', obstacle: 'furniture' };
+                            const typeName = furnitureNames[furnitureType] || 'object';
+                            this.game.logger.add(`The ${typeName} catches fire from nearby flames!`, 'warning');
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 火炎ガスからの瘴気爆発のチェック（液体ガス相互作用から呼び出し）
      * @param {number} x - X座標
      * @param {number} y - Y座標
      */
@@ -734,22 +815,19 @@ class GasSystem {
         
         // ドアの燃焼判定
         if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED || tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
-            const burnChance = GAME_CONSTANTS.FLAMMABLE_OBJECTS.DOOR.BURN_CHANCE * (fireDensity * 0.5);
-            console.log(`🔥 Door fire check at (${x},${y}): density=${fireDensity}, chance=${burnChance.toFixed(3)}`);
+            const burnChance = GAME_CONSTANTS.FLAMMABLE_OBJECTS.DOOR.BURN_CHANCE * (fireDensity * 0.8);
             
             if (Math.random() < burnChance) {
-                console.log(`🔥 Door ignited at (${x},${y})!`);
                 this.igniteFurniture(x, y, 'door');
-            } else {
-                console.log(`🔥 Door didn't ignite at (${x},${y})`);
             }
         }
         
         // 木製障害物の燃焼判定
         if (map === 'obstacle') {
             const isWoodenObstacle = GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tile);
+            
             if (isWoodenObstacle) {
-                const burnChance = GAME_CONSTANTS.FLAMMABLE_OBJECTS.OBSTACLE.TRANSPARENT.BURN_CHANCE * (fireDensity * 0.25);
+                const burnChance = GAME_CONSTANTS.FLAMMABLE_OBJECTS.OBSTACLE.TRANSPARENT.BURN_CHANCE * (fireDensity * 0.6);
                 
                 if (Math.random() < burnChance) {
                     this.igniteFurniture(x, y, 'obstacle');
@@ -771,7 +849,9 @@ class GasSystem {
         
         // 既に燃えているかチェック
         const existingFire = this.burningFurniture.find(f => f.x === x && f.y === y);
-        if (existingFire) return;
+        if (existingFire) {
+            return;
+        }
         
         let settings;
         if (furnitureType === 'door') {
@@ -779,7 +859,11 @@ class GasSystem {
         } else if (furnitureType === 'obstacle') {
             settings = GAME_CONSTANTS.FLAMMABLE_OBJECTS.OBSTACLE.TRANSPARENT;
         } else {
-            return;
+            return; // 不明な家具タイプは静かに終了
+        }
+        
+        if (!settings) {
+            return; // 設定が見つからない場合は静かに終了
         }
         
         // 燃焼オブジェクトを追加
@@ -788,14 +872,24 @@ class GasSystem {
             y: y,
             type: furnitureType,
             duration: settings.BURN_DURATION,
+            maxDuration: settings.BURN_DURATION, // 最大持続時間を記録
             originalTile: this.game.tiles[y][x],
             originalColor: this.game.colors[y][x]
         });
         
-        // 見た目を変更
+        // 見た目を変更（安全なフォールバック付き）
         if (furnitureType === 'door') {
-            this.game.tiles[y][x] = settings.CHAR_BURNT;
-            this.game.colors[y][x] = settings.COLOR_BURNT;
+            const charBurnt = settings.CHAR_BURNT || '#';
+            const colorBurnt = settings.COLOR_BURNT || '#FF4444';
+            
+            this.game.tiles[y][x] = charBurnt;
+            this.game.colors[y][x] = colorBurnt;
+        } else if (furnitureType === 'obstacle') {
+            const charBurnt = settings.CHAR_BURNT || '*';
+            const colorBurnt = settings.COLOR_BURNT || '#FF6644';
+            
+            this.game.tiles[y][x] = charBurnt;
+            this.game.colors[y][x] = colorBurnt;
         }
         
         // 周囲に火炎ガスを発生
@@ -805,8 +899,11 @@ class GasSystem {
         const isVisible = this.game.getVisibleTiles().some(tile => tile.x === x && tile.y === y);
         if (isVisible) {
             const furnitureNames = { door: 'door', obstacle: 'furniture' };
-            this.game.logger.add(`The ${furnitureNames[furnitureType]} catches fire!`, 'warning');
+            const typeName = furnitureNames[furnitureType] || 'object';
+            this.game.logger.add(`The ${typeName} catches fire and burns fiercely!`, 'warning');
             this.game.playSound('caution');
+            // 視覚エフェクトを追加
+            this.game.renderer.showMalfunctionEffect(x, y, 'fire', 2);
         }
     }
 
@@ -838,33 +935,82 @@ class GasSystem {
         this.burningFurniture = this.burningFurniture.filter(furniture => {
             furniture.duration--;
             
-            // 延焼処理
+            // 燃焼継続中の処理
             if (furniture.duration > 0) {
                 const settings = furniture.type === 'door' 
                     ? GAME_CONSTANTS.FLAMMABLE_OBJECTS.DOOR
                     : GAME_CONSTANTS.FLAMMABLE_OBJECTS.OBSTACLE.TRANSPARENT;
                 
+                // 燃焼段階によるメッセージ表示
+                const isVisible = this.game.getVisibleTiles().some(tile => 
+                    tile.x === furniture.x && tile.y === furniture.y);
+                
+                if (isVisible) {
+                    const burntPercent = 1 - (furniture.duration / furniture.maxDuration);
+                    const furnitureNames = { door: 'door', obstacle: 'furniture' };
+                    const typeName = furnitureNames[furniture.type] || `unknown furniture (${furniture.type})`;
+                    
+                    // 燃焼段階に応じたメッセージ（時々表示）
+                    if (Math.random() < 0.15) { // 15%の確率で表示
+                        if (burntPercent < 0.3) {
+                            this.game.logger.add(`The ${typeName} burns brightly.`, 'info');
+                        } else if (burntPercent < 0.7) {
+                            this.game.logger.add(`The ${typeName} is half consumed by flames.`, 'info');
+                        } else {
+                            this.game.logger.add(`The ${typeName} is almost burnt to ashes.`, 'info');
+                        }
+                    }
+                    
+                    // 視覚エフェクト（時々表示）
+                    if (Math.random() < 0.2) { // 20%の確率で炎エフェクト
+                        this.game.renderer.showMalfunctionEffect(furniture.x, furniture.y, 'fire', 1);
+                    }
+                }
+                
                 // 隣接タイルへの延焼チェック
-                if (Math.random() < settings.SPREAD_CHANCE * 0.3) {
+                if (settings && settings.SPREAD_CHANCE && Math.random() < settings.SPREAD_CHANCE * 0.8) {
                     this.spreadFireToAdjacent(furniture.x, furniture.y);
                 }
                 
-                // 火炎ガスを継続発生
-                this.addGas(furniture.x, furniture.y, 'fire_gas', 1);
+                // 火炎ガスを継続発生（燃焼の激しさに応じて）
+                const gasIntensity = Math.min(2, 0.5 + (furniture.maxDuration - furniture.duration) * 0.1);
+                this.addGas(furniture.x, furniture.y, 'fire_gas', gasIntensity);
                 
                 return true; // 燃焼継続
             } else {
+                // 🔍 燃え尽き時のundefined問題対策
+                console.log(`🔥 Furniture burnout at (${furniture.x}, ${furniture.y}): Converting to floor...`);
+                
                 // 燃焼終了：燃え尽きて床になる
                 this.game.map[furniture.y][furniture.x] = 'floor';
-                this.game.tiles[furniture.y][furniture.x] = GAME_CONSTANTS.TILES.FLOOR[
-                    Math.floor(Math.random() * GAME_CONSTANTS.TILES.FLOOR.length)
-                ];
-                this.game.colors[furniture.y][furniture.x] = GAME_CONSTANTS.COLORS.FLOOR;
                 
+                // 床タイルと色を同時に設定（undefinedを防ぐ）
+                const floorTiles = GAME_CONSTANTS.TILES.FLOOR;
+                const floorColor = GAME_CONSTANTS.COLORS.FLOOR;
+                
+                // 安全に床タイルを設定
+                if (floorTiles && floorTiles.length > 0) {
+                    this.game.tiles[furniture.y][furniture.x] = floorTiles[Math.floor(Math.random() * floorTiles.length)];
+                } else {
+                    this.game.tiles[furniture.y][furniture.x] = '.';
+                }
+                
+                // 安全に床色を設定
+                if (floorColor !== undefined) {
+                    this.game.colors[furniture.y][furniture.x] = floorColor;
+                } else {
+                    this.game.colors[furniture.y][furniture.x] = '#8B4513';
+                }
+                
+                console.log(`🔥 Conversion complete: tile='${this.game.tiles[furniture.y][furniture.x]}', color='${this.game.colors[furniture.y][furniture.x]}'`);
+                
+                // メッセージ表示
                 const isVisible = this.game.getVisibleTiles().some(tile => 
                     tile.x === furniture.x && tile.y === furniture.y);
                 if (isVisible) {
-                    this.game.logger.add('The burnt furniture crumbles to ash.', 'info');
+                    const furnitureNames = { door: 'door', obstacle: 'furniture' };
+                    const typeName = furnitureNames[furniture.type] || `unknown furniture (${furniture.type})`;
+                    this.game.logger.add(`The ${typeName} has burned completely and crumbles to ash.`, 'warning');
                 }
                 
                 return false; // 削除
@@ -878,12 +1024,220 @@ class GasSystem {
      * @param {number} y - 拡散元のY座標
      */
     spreadFireToAdjacent(x, y) {
-        const adjacentTiles = this.getAdjacentFloorTiles(x, y);
-        if (adjacentTiles.length === 0) {
+        // 隣接する8方向をチェック
+        const directions = [
+            [-1, -1], [0, -1], [1, -1],
+            [-1,  0],          [1,  0],
+            [-1,  1], [0,  1], [1,  1]
+        ];
+        
+        const flammableTargets = [];
+        
+        // 隣接する各タイルで燃えるものを探す
+        for (const [dx, dy] of directions) {
+            const targetX = x + dx;
+            const targetY = y + dy;
+            
+            if (!this.game.isValidPosition(targetX, targetY)) continue;
+            
+            // 既に燃えているかチェック
+            const alreadyBurning = this.burningFurniture?.find(f => f.x === targetX && f.y === targetY);
+            if (alreadyBurning) continue;
+            
+            const tile = this.game.tiles[targetY][targetX];
+            const map = this.game.map[targetY][targetX];
+            
+            // ドアの場合
+            if (tile === GAME_CONSTANTS.TILES.DOOR.CLOSED || tile === GAME_CONSTANTS.TILES.DOOR.OPEN) {
+                flammableTargets.push({
+                    x: targetX,
+                    y: targetY,
+                    type: 'door'
+                });
+            }
+            
+            // 木製障害物の場合
+            if (map === 'obstacle' && GAME_CONSTANTS.TILES.OBSTACLE.TRANSPARENT.includes(tile)) {
+                flammableTargets.push({
+                    x: targetX,
+                    y: targetY,
+                    type: 'obstacle'
+                });
+            }
+        }
+        
+        // 延焼可能な対象がなければ終了
+        if (flammableTargets.length === 0) {
             return;
         }
 
-        const targetTile = adjacentTiles[Math.floor(Math.random() * adjacentTiles.length)];
-        this.igniteFurniture(targetTile.x, targetTile.y, 'obstacle'); // 木製障害物として扱う
+        // ランダムに対象を選んで延焼させる
+        const target = flammableTargets[Math.floor(Math.random() * flammableTargets.length)];
+        
+        // 延焼確率を適用（高い火炎密度で延焼チェック）
+        this.handleFurnitureIgnition(target.x, target.y, 2.0);
+        
+        // デバッグ情報
+        const isVisible = this.game.getVisibleTiles().some(tile => tile.x === target.x && tile.y === target.y);
+        if (isVisible) {
+            console.log(`🔥 Fire spreads to ${target.type} at (${target.x}, ${target.y})`);
+            const furnitureNames = { door: 'door', obstacle: 'furniture' };
+            const typeName = furnitureNames[target.type] || 'object';
+            this.game.logger.add(`Fire spreads to the nearby ${typeName}!`, 'warning');
+        }
+    }
+
+    /**
+     * 火炎ガスの隣接タイルへの拡散
+     * @param {number} x - 中心X座標
+     * @param {number} y - 中心Y座標
+     * @param {number} sourceDensity - 元の火炎ガス密度
+     */
+    spreadFireGasToAdjacent(x, y, sourceDensity) {
+        const directions = [
+            [-1, -1], [0, -1], [1, -1],
+            [-1,  0],          [1,  0],
+            [-1,  1], [0,  1], [1,  1]
+        ];
+        
+        // 拡散する火炎ガスの密度を計算（元の30%程度）
+        const spreadDensity = Math.max(1, Math.floor(sourceDensity * 0.3));
+        const spreadVolume = this.calculateVolumeFromDensity('fire_gas', spreadDensity) * 0.5;
+        
+        for (const [dx, dy] of directions) {
+            const targetX = x + dx;
+            const targetY = y + dy;
+            
+            if (!this.game.isValidPosition(targetX, targetY)) continue;
+            
+            // 床タイルのみに拡散
+            if (this.game.map[targetY][targetX] !== 'floor') continue;
+            
+            // 壁や障害物には拡散しない
+            const tile = this.game.tiles[targetY][targetX];
+            if (GAME_CONSTANTS.TILES.WALL.includes(tile) || 
+                GAME_CONSTANTS.TILES.CYBER_WALL.includes(tile) ||
+                GAME_CONSTANTS.TILES.OBSTACLE.BLOCKING.includes(tile)) {
+                continue;
+            }
+            
+            // 既存の火炎ガスがある場合はスキップ（重複を避ける）
+            const existingFireGas = this.getGasAt(targetX, targetY, 'fire_gas');
+            if (existingFireGas && existingFireGas.density >= spreadDensity) {
+                continue;
+            }
+            
+            // 30%の確率で拡散
+            if (Math.random() < 0.3) {
+                // 既存のガスに追加する形で拡散
+                if (!this.gases['fire_gas']) {
+                    this.gases['fire_gas'] = [];
+                }
+                
+                this.gases['fire_gas'].push({
+                    x: targetX,
+                    y: targetY,
+                    density: spreadDensity,
+                    volume: spreadVolume,
+                    duration: this.calculateDuration('fire_gas', spreadDensity) * 0.7 // 短い持続時間
+                });
+            }
+        }
+    }
+
+    /**
+     * 火炎の隣接タイルへの影響を処理
+     * @param {Object} entity - プレイヤーまたはモンスター
+     * @param {number} x - エンティティのX座標
+     * @param {number} y - エンティティのY座標
+     */
+    processAdjacentFireEffects(entity, x, y) {
+        let totalHeatDamage = 0;
+        const heatSources = [];
+        
+        // 隣接する8方向をチェック
+        const directions = [
+            [-1, -1], [0, -1], [1, -1],
+            [-1,  0],          [1,  0],
+            [-1,  1], [0,  1], [1,  1]
+        ];
+        
+        for (const [dx, dy] of directions) {
+            const checkX = x + dx;
+            const checkY = y + dy;
+            
+            if (!this.game.isValidPosition(checkX, checkY)) continue;
+            
+            // 火炎ガスからの熱ダメージ
+            const fireGas = this.getGasAt(checkX, checkY, 'fire_gas');
+            if (fireGas) {
+                const fireConfig = GAME_CONSTANTS.GASES.FIRE_GAS;
+                const directDamage = fireConfig.DAMAGE_PER_TURN[`LEVEL_${fireGas.density}`];
+                // 隣接タイルでは30%の熱ダメージ
+                const heatDamage = Math.floor(directDamage * 0.3);
+                if (heatDamage > 0) {
+                    totalHeatDamage += heatDamage;
+                    heatSources.push({
+                        type: 'fire_gas',
+                        x: checkX,
+                        y: checkY,
+                        damage: heatDamage,
+                        density: fireGas.density
+                    });
+                }
+            }
+            
+            // 燃焼中の家具からの熱ダメージ
+            const burningFurniture = this.burningFurniture?.find(f => f.x === checkX && f.y === checkY);
+            if (burningFurniture) {
+                // 燃焼段階に応じたダメージ
+                const burnProgress = 1 - (burningFurniture.duration / burningFurniture.maxDuration);
+                const baseDamage = burningFurniture.type === 'door' ? 4 : 3; // ドアは少し強い
+                const heatDamage = Math.floor(baseDamage * (0.5 + burnProgress * 0.5) * 0.4); // 40%の熱ダメージ
+                if (heatDamage > 0) {
+                    totalHeatDamage += heatDamage;
+                    heatSources.push({
+                        type: 'burning_furniture',
+                        x: checkX,
+                        y: checkY,
+                        damage: heatDamage,
+                        furnitureType: burningFurniture.type
+                    });
+                }
+            }
+        }
+        
+        // 熱ダメージを適用
+        if (totalHeatDamage > 0) {
+            // 最大値を制限（過度なダメージを防ぐ）
+            totalHeatDamage = Math.min(totalHeatDamage, 8);
+            
+            entity.takeDamage(totalHeatDamage, { 
+                game: this.game, 
+                type: 'fire_heat',
+                isEnvironmentalDamage: true 
+            });
+            
+            // メッセージ表示
+            if (entity === this.game.player) {
+                this.game.logger.add(`You feel the intense heat from nearby flames! (${totalHeatDamage} damage)`, 'playerDamage');
+            } else if (entity.name) {
+                const isVisible = this.game.getVisibleTiles().some(tile => 
+                    tile.x === entity.x && tile.y === entity.y
+                );
+                if (isVisible) {
+                    this.game.logger.add(`${entity.name} is affected by intense heat! (${totalHeatDamage} damage)`, 'monsterInfo');
+                }
+            }
+            
+            // 視覚エフェクト（隣接する火炎源の中で最も強いもの）
+            const strongestSource = heatSources.reduce((max, source) => 
+                source.damage > max.damage ? source : max, heatSources[0]);
+            
+            if (strongestSource && this.game.getVisibleTiles().some(tile => tile.x === x && tile.y === y)) {
+                // 熱の波動エフェクト
+                this.game.renderer.showMalfunctionEffect(x, y, 'fire', 1);
+            }
+        }
     }
 } 

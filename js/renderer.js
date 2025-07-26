@@ -355,6 +355,20 @@ class Renderer {
                 content = this.game.tiles[y][x];
                 style = `color: ${this.game.colors[y][x]}`;
                 
+                // 🔍 UNDEFINED チェック・修復
+                if (content === undefined) {
+                    console.log(`❌ UNDEFINED TILE at (${x}, ${y}) in renderMapFast - repairing...`);
+                    content = '.'; // 安全なフォールバック
+                    this.game.tiles[y][x] = '.';
+                }
+                
+                if (this.game.colors[y][x] === undefined) {
+                    console.log(`❌ UNDEFINED COLOR at (${x}, ${y}) in renderMapFast - repairing...`);
+                    this.game.colors[y][x] = '#333'; // 安全なフォールバック
+                }
+                
+                style = `color: ${this.game.colors[y][x]}`;
+                
                 // ホームフロアでは照明エフェクトを省略
                 if (!isHomeFloor && !isPlayerTile && !monster) {
                     const distance = Math.max(Math.abs(x - px), Math.abs(y - py));
@@ -432,8 +446,21 @@ class Renderer {
             } else if (isExplored) {
                 // 探索済みだが現在見えていないタイル
                 content = this.game.tiles[y][x];
+                
+                // 🔍 UNDEFINED チェック・修復
+                if (content === undefined) {
+                    console.log(`❌ UNDEFINED TILE at (${x}, ${y}) in renderMap (explored) - repairing...`);
+                    content = '.'; // 安全なフォールバック
+                    this.game.tiles[y][x] = '.';
+                }
+                
+                if (this.game.colors[y][x] === undefined) {
+                    console.log(`❌ UNDEFINED COLOR at (${x}, ${y}) in renderMap (explored) - repairing...`);
+                    this.game.colors[y][x] = '#333'; // 安全なフォールバック
+                }
+                
                 opacity = 0.3;
-                style = `color: ${this.game.colors[y][x]}; opacity: ${opacity}; grid-row: ${y + 1}; grid-column: ${x + 1};`;
+                style = `color: ${this.game.colors[y][x]}; opacity: ${opacity}`;
                 
                 // キャッシュに現在の状態を保存
                 tileState[key] = {
@@ -715,6 +742,20 @@ class Renderer {
                     }
 
                     content = this.game.tiles[y][x];
+                    style = `color: ${this.game.colors[y][x]}`;
+
+                    // 🔍 UNDEFINED チェック・修復
+                    if (content === undefined) {
+                        console.log(`❌ UNDEFINED TILE at (${x}, ${y}) in renderMap - repairing...`);
+                        content = '.'; // 安全なフォールバック
+                        this.game.tiles[y][x] = '.';
+                    }
+                    
+                    if (this.game.colors[y][x] === undefined) {
+                        console.log(`❌ UNDEFINED COLOR at (${x}, ${y}) in renderMap - repairing...`);
+                        this.game.colors[y][x] = '#333'; // 安全なフォールバック
+                    }
+                    
                     style = `color: ${this.game.colors[y][x]}`;
 
                     // サイケデリックエフェクトの適用（psychedelicTurnが0より大きい場合）
@@ -1120,6 +1161,19 @@ class Renderer {
                 } else if (isExplored) {
                     opacity = 0.3;
                     content = this.game.tiles[y][x];
+                    
+                    // 🔍 UNDEFINED チェック・修復
+                    if (content === undefined) {
+                        console.log(`❌ UNDEFINED TILE at (${x}, ${y}) in renderMap (explored) - repairing...`);
+                        content = '.'; // 安全なフォールバック
+                        this.game.tiles[y][x] = '.';
+                    }
+                    
+                    if (this.game.colors[y][x] === undefined) {
+                        console.log(`❌ UNDEFINED COLOR at (${x}, ${y}) in renderMap (explored) - repairing...`);
+                        this.game.colors[y][x] = '#333'; // 安全なフォールバック
+                    }
+                    
                     style = `color: ${this.game.colors[y][x]}; opacity: ${opacity}`;
                 }
 
@@ -1205,7 +1259,14 @@ class Renderer {
             if (updatesToApply.length > 0) {
                 // アップデートを一度に適用（DOM操作を最小化）
                 updatesToApply.forEach(update => {
-                    update.element.textContent = update.content;
+                    // 🔍 UNDEFINED チェック・修復
+                    let safeContent = update.content;
+                    if (safeContent === undefined) {
+                        console.log(`❌ UNDEFINED in update batch - fixing to '.'`);
+                        safeContent = '.';
+                    }
+                    
+                    update.element.textContent = safeContent;
                     update.element.className = update.classes.join(' ');
                     update.element.setAttribute('style', update.style);
                 });
@@ -1226,7 +1287,14 @@ class Renderer {
                         const tile = document.createElement('span');
                         tile.dataset.x = x;
                         tile.dataset.y = y;
-                        tile.textContent = state.content;
+                        // 🔍 UNDEFINED チェック・修復
+                        let safeContent = state.content;
+                        if (safeContent === undefined) {
+                            console.log(`❌ UNDEFINED in DOM update at (${x}, ${y}) - fixing to '.'`);
+                            safeContent = '.';
+                        }
+                        
+                        tile.textContent = safeContent;
                         tile.className = state.classes.join(' ');
                         tile.setAttribute('style', state.style);
                         fragment.appendChild(tile);
@@ -1251,7 +1319,14 @@ class Renderer {
                     
                     const dataAttrs = `data-x="${x}" data-y="${y}"`;
                     const classString = state.classes.length > 0 ? `class="${state.classes.join(' ')}"` : '';
-                    display += `<span ${dataAttrs} ${classString} style="${state.style}">${state.content}</span>`;
+                    // 🔍 UNDEFINED チェック・修復
+                    let safeContent = state.content;
+                    if (safeContent === undefined) {
+                        console.log(`❌ UNDEFINED in HTML output at (${x}, ${y}) - fixing to '.'`);
+                        safeContent = '.';
+                    }
+                    
+                    display += `<span ${dataAttrs} ${classString} style="${state.style}">${safeContent}</span>`;
                 }
             }
             container.innerHTML = display;

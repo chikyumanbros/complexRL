@@ -14,7 +14,7 @@ const GAME_CONSTANTS = {
         },
         OBSTACLE: {
             BLOCKING: ['◘', '◙'],      // 視線を遮る障害物
-            TRANSPARENT: ['¤', '†', '‡', '¶', '≡', '£', '┼', '◊', '♠', 'Ж', 'Ш', '='],   // 視線を通す障害物
+            TRANSPARENT: ['¤', '†', '‡', '¶', '≡', '£', '┼', '◊', '♠', 'Ж', 'Ш', '=', '♦', '◘', '◙'],   // 視線を通す障害物（実際に使用されているタイルを追加）
         },
         SPACE: [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',' ',' ',' ',' ',' ', '░', '·', '°' , '*', '◊', '○', '●', '☼', '÷', 'ø', 'פ'],
         SPACE_COLORS: [
@@ -1066,17 +1066,19 @@ const GAME_CONSTANTS = {
 
     FLAMMABLE_OBJECTS: {
         DOOR: {
-            BURN_CHANCE: 0.4,        // ドアが燃える確率
-            BURN_DURATION: 5,        // 燃焼継続ターン数
-            SPREAD_CHANCE: 0.6,      // 隣接への延焼確率
-            CHAR_BURNT: '▒',         // 燃えたドアの文字
-            COLOR_BURNT: '#8B4513'   // 燃えたドアの色
+            BURN_CHANCE: 0.7,        // ドアが燃える確率（0.4→0.7に増加）
+            BURN_DURATION: 15,       // 燃焼継続ターン数（6→15に大幅増加）
+            SPREAD_CHANCE: 0.9,      // 隣接への延焼確率（0.8→0.9に増加）
+            CHAR_BURNT: '#',         // 燃えたドアの文字（フォント安全な文字に変更）
+            COLOR_BURNT: '#FF4444'   // 燃えたドアの色（より明るい赤に変更）
         },
         OBSTACLE: {
             TRANSPARENT: {
-                BURN_CHANCE: 0.3,    // 木製障害物の燃焼確率
-                BURN_DURATION: 4,
-                SPREAD_CHANCE: 0.5
+                BURN_CHANCE: 0.6,        // 木製障害物の燃焼確率（0.3→0.6に増加）
+                BURN_DURATION: 12,       // 燃焼継続ターン数（5→12に大幅増加）
+                SPREAD_CHANCE: 0.8,      // 隣接への延焼確率（0.7→0.8に増加）
+                CHAR_BURNT: '*',         // 燃えた障害物の文字（フォント安全な文字に変更）
+                COLOR_BURNT: '#FF6644'   // 燃えた障害物の色（オレンジ色）
             }
         }
     }

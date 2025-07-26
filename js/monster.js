@@ -2590,6 +2590,9 @@ class Monster {
                     if (Math.random() < fireConfig.SPREAD_CHANCE) {
                         game.gasSystem.addGas(targetX, targetY, 'fire_gas', Math.random() * 0.8 + 0.4); // 0.4-1.2量
                     }
+                    
+                    // ★★★ 家具燃焼チェックを追加 ★★★
+                    game.gasSystem.handleFurnitureIgnition(targetX, targetY, 1.5); // 高い火炎密度で燃焼チェック
                 }
             }
             

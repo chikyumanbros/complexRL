@@ -737,6 +737,9 @@ class Game {
         
         // 液体による効果
         this.liquidSystem.applyLiquidEffects(x, y, entity);
+        
+        // ★★★ 火炎の隣接影響を追加 ★★★
+        this.gasSystem.processAdjacentFireEffects(entity, x, y);
     }
 
 
@@ -1072,15 +1075,32 @@ class Game {
         // モンスター撃破数をカウントアップ
         this.monstersKilled++;
 
+        // ★★★ 火炎ダメージによる死亡かチェック ★★★
+        const isFireDeath = context && (
+            context.type === 'fire_gas' || 
+            context.type === 'fire_malfunction' || 
+            context.type === 'fire_heat' ||
+            context.isGasDamage && context.type === 'fire_gas'
+        );
+
         // suppressMessageフラグがtrueの場合はログメッセージを表示しない
         if (!suppressMessage) {
             // 機会攻撃とキルのログを1行にまとめる
             const attackDesc = context.isOpportunityAttack ? "Opportunity attack" : context.attackType;
             const criticalText = context.isCritical ? " [CRITICAL HIT!]" : "";
             
-            // ドアキルの場合はダメージ計算の詳細を表示しない
+            // ★★★ 火炎死亡の特別メッセージ ★★★
             let message;
-            if (damageResult === null || context.attackType === "Door crush") {
+            if (isFireDeath) {
+                const fireDeathMessages = [
+                    `${monster.name} is consumed by flames!`,
+                    `${monster.name} burns to death!`,
+                    `${monster.name} is incinerated by the fire!`,
+                    `${monster.name} succumbs to the burning flames!`,
+                    `${monster.name} is killed by the blazing fire!`
+                ];
+                message = fireDeathMessages[Math.floor(Math.random() * fireDeathMessages.length)];
+            } else if (damageResult === null || context.attackType === "Door crush") {
                 message = `${attackDesc}${criticalText} kills ${monster.name} with ${result.damage} damage!`;
             } else if (context.source === 'bleeding') {
                 // 出血ダメージの場合は防御力を表示しない
@@ -1097,8 +1117,11 @@ class Game {
 
             this.logger.add(message, messageClass);
 
-            // クリティカルヒット時のエフェクトを表示
-            if (context.isCritical) {
+            // ★★★ 火炎死亡時の特別エフェクト ★★★
+            if (isFireDeath) {
+                this.renderer.showMalfunctionEffect(monster.x, monster.y, 'fire', 3);
+                this.playSound('caution2'); // 特別な効果音
+            } else if (context.isCritical) {
                 this.renderer.showCritEffect(monster.x, monster.y);
             }
         }
@@ -1112,6 +1135,10 @@ class Game {
         // 生物系モンスターの場合、死亡時に血痕を生成する確率判定
         if (monster.isOfCategory(MONSTER_CATEGORIES.PRIMARY.ORGANIC)) {
             const deathBloodChance = 0.8; // 80%の確率で血痕を生成
+            
+            // ★★★ 火炎死亡時は血液が沸騰して蒸発するため生成量を減らす ★★★
+            const bloodReductionFactor = isFireDeath ? 0.2 : 1.0; // 火炎死亡時は20%のみ
+            
             if (Math.random() < deathBloodChance) {
                 // 重症度を計算（ダメージ量に応じて）
                 let severity;
@@ -1123,6 +1150,11 @@ class Game {
                     severity = 2; // 中度の血痕
                 } else {
                     severity = 1; // 軽度の血痕
+                }
+                
+                // ★★★ 火炎死亡時は重症度も下げる（血液が凝固・炭化） ★★★
+                if (isFireDeath && severity > 1) {
+                    severity = Math.max(1, severity - 1);
                 }
                 
                 // 血液量を決定（モンスターのサイズに基づく）
@@ -1140,8 +1172,27 @@ class Game {
                     bloodVolume = GAME_CONSTANTS.LIQUIDS.BLOOD.VOLUME.DEATH_AMOUNT.MEDIUM;
                 }
                 
+                // ★★★ 火炎死亡時は血液量を大幅減少 ★★★
+                bloodVolume *= bloodReductionFactor;
+                
                 // 血痕を生成（重症度とボリュームを指定）
-                this.addBloodpool(monster.x, monster.y, severity, bloodVolume);
+                if (bloodVolume > 0.01) { // 最小量以上の場合のみ生成
+                    this.addBloodpool(monster.x, monster.y, severity, bloodVolume);
+                    
+                    // ★★★ 火炎死亡時のメッセージ ★★★
+                    if (isFireDeath) {
+                        const isVisible = this.getVisibleTiles().some(tile => tile.x === monster.x && tile.y === monster.y);
+                        if (isVisible && Math.random() < 0.3) { // 30%の確率で表示
+                            this.logger.add(`${monster.name}'s blood boils from the heat...`, 'warning');
+                        }
+                    }
+                } else if (isFireDeath) {
+                    // 血液が完全に蒸発した場合
+                    const isVisible = this.getVisibleTiles().some(tile => tile.x === monster.x && tile.y === monster.y);
+                    if (isVisible && Math.random() < 0.2) { // 20%の確率で表示
+                        this.logger.add(`The flames completely evaporate ${monster.name}'s blood.`, 'info');
+                    }
+                }
             }
         }
 
@@ -1173,6 +1224,32 @@ class Game {
 
         if (deathInfo.killedByPlayer) {
             this.monsterKillCount++;  // プレイヤーが倒した場合のみカウント
+        }
+
+        // ★★★ 火炎死亡時の追加処理 ★★★
+        if (isFireDeath) {
+            // 死体が燃焼し続けることで追加の火炎ガスを発生
+            const additionalFireGas = Math.random() * 1.5 + 0.5; // 0.5-2.0量
+            this.gasSystem.addGas(monster.x, monster.y, 'fire_gas', additionalFireGas);
+            
+            // 隣接タイルにも軽微な火炎ガスを拡散（死体の燃焼）
+            const directions = [
+                [-1, -1], [0, -1], [1, -1],
+                [-1,  0],          [1,  0],
+                [-1,  1], [0,  1], [1,  1]
+            ];
+            
+            for (const [dx, dy] of directions) {
+                const adjacentX = monster.x + dx;
+                const adjacentY = monster.y + dy;
+                
+                if (this.isValidPosition(adjacentX, adjacentY) && Math.random() < 0.4) {
+                    this.gasSystem.addGas(adjacentX, adjacentY, 'fire_gas', Math.random() * 0.6 + 0.2);
+                }
+            }
+            
+            // 火炎死亡時は隣接家具への燃焼チェック
+            this.gasSystem.handleFurnitureIgnition(monster.x, monster.y, 2.5); // 高い火炎密度
         }
     }
 
